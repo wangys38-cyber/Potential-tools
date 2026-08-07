@@ -257,59 +257,51 @@ class ExcelReader:
             raise ValueError(f'解析 HTML 格式 Excel 文件失败: {str(e)}')
     
     def _parse_html_excel(self):
-        """解析 HTML 格式的 Excel 文件，只提取必要列节省内存"""
+        """流式解析 HTML 格式 Excel 文件，不使用 BeautifulSoup 避免大文件 OOM"""
         try:
-            from bs4 import BeautifulSoup
+            # HTML 实体和标签清理
+            def clean_html_text(text):
+                text = re.sub(r'<[^>]+>', '', text)
+                text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+                text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+                return text.strip()
+
+            # === 第一步：流式读取表头（只读前 200KB）===
+            READ_SIZE = 200 * 1024
             with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                soup = BeautifulSoup(f.read(), 'lxml')
-            
-            tables = soup.find_all('table')
-            if not tables:
-                return []
-            
-            main_table = None
-            for table in tables:
-                if table.find('thead'):
-                    main_table = table
-                    break
-            if not main_table:
-                best_count = 0
-                for table in tables:
-                    trs = table.find_all('tr')
-                    if len(trs) >= 3 and len(trs) > best_count:
-                        best_count = len(trs)
-                        main_table = table
-            if not main_table:
-                main_table = tables[-1]
-            
-            thead = main_table.find('thead')
-            all_headers = []
-            if thead:
-                ths = thead.find_all('th')
-                for th in ths:
-                    text = th.get_text(strip=True)
-                    if text:
-                        all_headers.append(text)
+                head_chunk = f.read(READ_SIZE)
+
+            # 提取 <th> 表头
+            th_pattern = re.compile(r'<th[^>]*>(.*?)</th>', re.IGNORECASE | re.DOTALL)
+            th_matches = th_pattern.findall(head_chunk)
+            all_headers = [clean_html_text(m) for m in th_matches if clean_html_text(m)]
+
+            if not all_headers:
+                # 回退：从第一个 <tr> 中的 <td> 提取
+                tr_pattern = re.compile(r'<tr[^>]*>(.*?)</tr>', re.IGNORECASE | re.DOTALL)
+                tr_match = tr_pattern.search(head_chunk)
+                if tr_match:
+                    td_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.IGNORECASE | re.DOTALL)
+                    td_matches = td_pattern.findall(tr_match.group(1))
+                    all_headers = [clean_html_text(m) for m in td_matches if clean_html_text(m)]
+
             if not all_headers:
                 all_headers = ['Project', 'Key', 'Summary', 'Issue Type', 'Status',
                               'Priority', 'Resolution', 'Assignee', 'Reporter', 'Creator',
                               'Created', 'Last Viewed', 'Updated', 'Resolved', 'Affects Version/s']
-            
-            # 扫描关键特殊列：Severity / Component / Fix Version（可能在超过前15列的位置）
+
+            # 扫描关键特殊列：Severity / Component / Fix Version
             thead_col_map = {}
-            if thead:
-                ths = thead.find_all('th')
-                for idx, th in enumerate(ths):
-                    text = th.get_text(strip=True).lower()
-                    if text:
-                        if 'severity' in text and 'severity_col' not in thead_col_map:
-                            thead_col_map['severity_col'] = idx
-                        if 'component' in text and 'component_col' not in thead_col_map:
-                            thead_col_map['component_col'] = idx
-                        if ('fix version' in text or 'fixversion' in text) and 'fix_version_col' not in thead_col_map:
-                            thead_col_map['fix_version_col'] = idx
-            
-            # 关键优化：只保留前15列 + 3个特殊列，扔掉其余列节省内存
+            for idx, h in enumerate(all_headers):
+                h_lower = h.lower()
+                if 'severity' in h_lower and 'severity_col' not in thead_col_map:
+                    thead_col_map['severity_col'] = idx
+                if 'component' in h_lower and 'component_col' not in thead_col_map:
+                    thead_col_map['component_col'] = idx
+                if ('fix version' in h_lower or 'fixversion' in h_lower) and 'fix_version_col' not in thead_col_map:
+                    thead_col_map['fix_version_col'] = idx
+
+            # 只保留前15列 + 3个特殊列
             MAX_BASE_COLS = 15
             base_count = min(len(all_headers), MAX_BASE_COLS)
             keep_cols = list(range(base_count))
@@ -319,52 +311,89 @@ class ExcelReader:
                 if col_idx is not None and col_idx not in keep_cols:
                     keep_cols.append(col_idx)
                     extra_cols.append((col_idx, col_key))
-            
-            # 构建精简后的表头
+
             full_headers = list(all_headers[:base_count])
-            # 补充特殊列表头
             for col_idx, col_key in extra_cols:
-                label = all_headers[col_idx] if col_idx < len(all_headers) else {'severity_col': 'Severity', 'component_col': 'Component/s', 'fix_version_col': 'Fix Version/s'}.get(col_key, '')
+                label = all_headers[col_idx] if col_idx < len(all_headers) else {
+                    'severity_col': 'Severity', 'component_col': 'Component/s',
+                    'fix_version_col': 'Fix Version/s'
+                }.get(col_key, '')
                 if label and label not in full_headers:
                     full_headers.append(label)
-            
-            _log_mem(f"HTML解析：准备提取行，保留{len(keep_cols)}列，表头{len(full_headers)}个")
-            
+
+            keep_cols_sorted = sorted(keep_cols)
+            _log_mem(f"HTML流式解析：保留{len(keep_cols)}列，表头{len(full_headers)}个")
+
+            # === 第二步：流式提取数据行 ===
             result_rows = [full_headers]
-            
-            all_trs = main_table.find_all('tr')
-            data_start = 0
-            if thead:
-                for i, tr in enumerate(all_trs):
-                    if tr.parent == thead:
-                        data_start = i + 1
-                        break
-            
             row_count = 0
-            for tr in all_trs[data_start:]:
-                cells = tr.find_all(['td', 'th'])
-                if not cells:
-                    continue
-                row = []
-                for col_idx in keep_cols:
-                    if col_idx < len(cells):
-                        row.append(cells[col_idx].get_text(strip=True))
-                    else:
-                        row.append('')
-                if any(c.strip() for c in row):
-                    result_rows.append(row)
-                    row_count += 1
-            
-            # 释放 BeautifulSoup 内存
-            soup.decompose()
-            del tables, main_table, all_trs
+            td_pattern = re.compile(r'<td[^>]*>(.*?)</td>', re.IGNORECASE | re.DOTALL)
+
+            # 找到 </thead> 位置，跳过表头
+            thead_end_pos = head_chunk.lower().find('</thead>')
+            skip_header = thead_end_pos >= 0
+
+            with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                if skip_header:
+                    f.seek(thead_end_pos + 8)
+                else:
+                    f.seek(0)
+
+                buffer = ''
+                CHUNK_SIZE = 512 * 1024  # 512KB chunks
+
+                while True:
+                    piece = f.read(CHUNK_SIZE)
+                    if not piece:
+                        break
+                    buffer += piece
+
+                    # 提取完整的 <tr>...</tr> 块
+                    while True:
+                        tr_start = buffer.find('<tr')
+                        if tr_start == -1:
+                            buffer = ''
+                            break
+                        tr_end = buffer.find('</tr>', tr_start)
+                        if tr_end == -1:
+                            # 不完整的行，保留到下次
+                            buffer = buffer[tr_start:]
+                            # 防止缓冲区无限增长（单行不应超过 1MB）
+                            if len(buffer) > 1024 * 1024:
+                                buffer = ''
+                            break
+
+                        tr_content = buffer[tr_start:tr_end + 5]
+                        buffer = buffer[tr_end + 5:]
+
+                        # 跳过包含 <th> 的行（表头行）
+                        if '<th' in tr_content.lower():
+                            continue
+
+                        # 提取 <td> 单元格
+                        td_matches = td_pattern.findall(tr_content)
+                        if not td_matches:
+                            continue
+
+                        row = []
+                        for col_idx in keep_cols_sorted:
+                            if col_idx < len(td_matches):
+                                row.append(clean_html_text(td_matches[col_idx]))
+                            else:
+                                row.append('')
+
+                        if any(c.strip() for c in row):
+                            result_rows.append(row)
+                            row_count += 1
+
+                    del piece
+
+            del buffer, head_chunk
             gc.collect()
-            
-            _log_mem(f"HTML解析完成：{row_count}行 x {len(full_headers)}列")
+
+            _log_mem(f"HTML流式解析完成：{row_count}行 x {len(full_headers)}列")
             return result_rows
-                
-        except ImportError:
-            raise ValueError('HTML 格式 Excel 文件需要 beautifulsoup4 和 lxml 库支持。请转换为 .xlsx 格式后再上传。')
+
         except Exception as e:
             raise ValueError(f'解析 HTML 格式 Excel 文件失败: {str(e)}')
     
@@ -1194,6 +1223,14 @@ def api_task_status():
         task = _load_task_meta(task_id)
         if task is None:
             return jsonify({'status': 'error', 'error': '任务不存在或已过期，请重新上传文件'}), 400
+
+    # 检查任务是否超时（超过 5 分钟仍在 processing 视为超时）
+    if task['status'] == 'processing':
+        created_at = task.get('created_at', 0)
+        if created_at and (time.time() - created_at) > 300:
+            task['status'] = 'error'
+            task['error'] = '分析超时（超过5分钟），可能是文件过大或格式异常，请尝试减少数据量或转换为 .xlsx 格式'
+            _save_task_meta(task_id, task)
 
     resp = {'status': task['status']}
 
