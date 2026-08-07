@@ -545,6 +545,58 @@ def health():
     mem = psutil.Process().memory_info().rss / 1024 / 1024
     return jsonify({'status': 'ok', 'memory_mb': round(mem, 1), 'pid': os.getpid()})
 
+
+@app.route('/api/debug')
+def api_debug():
+    """诊断端点：返回部署版本、内存、任务状态等信息"""
+    import psutil
+    p = psutil.Process()
+    mem_info = p.memory_info()
+
+    # 统计上传目录中的文件
+    upload_dir = app.config['UPLOAD_FOLDER']
+    uploaded_files = []
+    total_upload_size = 0
+    if os.path.exists(upload_dir):
+        for fname in os.listdir(upload_dir):
+            fpath = os.path.join(upload_dir, fname)
+            if os.path.isfile(fpath):
+                fsize = os.path.getsize(fpath)
+                uploaded_files.append({'name': fname, 'size_kb': round(fsize / 1024, 1)})
+                total_upload_size += fsize
+            elif os.path.isdir(fpath):
+                # 子目录（如 _task_meta, _chunk_meta）
+                file_count = len(os.listdir(fpath))
+                uploaded_files.append({'name': f'{fname}/', 'files': file_count})
+
+    # 后台任务状态
+    active_tasks = {
+        tid: {'status': t.get('status'), 'age_seconds': round(time.time() - t.get('created_at', time.time()), 0)}
+        for tid, t in _background_tasks.items()
+    }
+
+    return jsonify({
+        'status': 'ok',
+        'pid': os.getpid(),
+        'memory': {
+            'rss_mb': round(mem_info.rss / 1024 / 1024, 1),
+            'vms_mb': round(mem_info.vms / 1024 / 1024, 1),
+        },
+        'background_tasks': {
+            'total': len(_background_tasks),
+            'active': active_tasks,
+        },
+        'uploads': {
+            'files': uploaded_files[:20],
+            'total_size_mb': round(total_upload_size / 1024 / 1024, 2),
+        },
+        'config': {
+            'upload_folder': upload_dir,
+            'pdf_folder': app.config['PDF_FOLDER'],
+            'is_cloud': bool(os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT')),
+        }
+    })
+
 # === 测试报告分析 API ===
 @app.route('/api/test-report-analyze', methods=['POST'])
 def api_test_report_upload():
@@ -977,7 +1029,22 @@ def api_upload_complete():
     file_id = os.path.basename(file_path).replace('excel_', '').replace(meta['ext'], '')
 
     try:
-        logger.info(f"========== 分块上传完成: {filename} ==========")
+        file_size = os.path.getsize(file_path)
+        logger.info(f"========== 分块上传完成: {filename} (size={file_size / 1024 / 1024:.2f}MB) ==========")
+
+        # 检测文件格式
+        is_html = False
+        with open(file_path, 'rb') as f:
+            header = f.read(200)
+        if b'<html' in header.lower() or b'<!doctype' in header.lower():
+            is_html = True
+            logger.info(f"文件格式检测: HTML 伪装的 .xls 文件")
+        elif header[:4] == b'\x50\x4b\x03\x04':
+            logger.info(f"文件格式检测: .xlsx (ZIP格式)")
+        elif header[:8] == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
+            logger.info(f"文件格式检测: 真正的 .xls (OLE2格式)")
+        else:
+            logger.info(f"文件格式检测: 未知格式, header={header[:20]}")
 
         reader = ExcelReader(file_path)
         reader.open()
@@ -987,12 +1054,16 @@ def api_upload_complete():
         # 清理元数据
         _delete_chunk_meta(upload_id)
 
+        logger.info(f"上传成功: file_id={file_id}, sheets={sheet_names}, is_html={is_html}")
+
         return jsonify({
             'status': 'success',
             'data': {
                 'file_id': file_id,
                 'file_name': filename,
-                'sheet_names': sheet_names
+                'sheet_names': sheet_names,
+                'file_size_mb': round(file_size / 1024 / 1024, 2),
+                'is_html': is_html,
             }
         })
 

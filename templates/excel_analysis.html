@@ -431,9 +431,26 @@
             margin-top: 16px;
             font-size: 13px;
             font-weight: 500;
+            word-break: break-word;
+            line-height: 1.5;
         }
 
         .error-msg.show { display: block; animation: fadeIn 0.3s ease; }
+
+        .error-msg .retry-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 16px;
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .error-msg .retry-btn:hover { opacity: 0.85; }
 
         .detected-info {
             margin: 16px 0 20px;
@@ -777,7 +794,21 @@
         }
 
         function showError(msg) {
+            errorMsg.innerHTML = '';
             errorMsg.textContent = msg;
+            if (pendingFile) {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'retry-btn';
+                retryBtn.textContent = '重新分析';
+                retryBtn.onclick = function() {
+                    hideError();
+                    if (pendingFile) {
+                        analyzeFile(pendingFile);
+                    }
+                };
+                errorMsg.appendChild(document.createElement('br'));
+                errorMsg.appendChild(retryBtn);
+            }
             errorMsg.classList.add('show');
         }
 
