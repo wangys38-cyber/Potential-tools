@@ -185,9 +185,9 @@ class ExcelReader:
     def _parse_html_headers_only(self):
         """只解析 HTML 表头，不加载整个文件到内存（流式读取前 N KB）"""
         try:
-            # 只读取文件前 200KB 来提取表头和第一行数据
-            # HTML Excel 的 <thead> 在文件开头，数据行紧随其后
-            READ_SIZE = 200 * 1024
+            # 只读取文件前 500KB 来提取表头和第一行数据
+            # 增大到 500KB 以防 thead 超过 200KB（多语言/长列名场景）
+            READ_SIZE = 500 * 1024
             with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 chunk = f.read(READ_SIZE)
             
@@ -202,6 +202,9 @@ class ExcelReader:
                 # HTML 实体
                 text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
                 text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+                # 处理数字 HTML 实体
+                text = re.sub(r'&#(\d+);', lambda m: chr(int(m.group(1))) if int(m.group(1)) < 65536 else '', text)
+                text = re.sub(r'&#x([0-9a-fA-F]+);', lambda m: chr(int(m.group(1), 16)) if int(m.group(1), 16) < 65536 else '', text)
                 return text.strip()
             
             all_headers = [clean_html_text(m) for m in th_matches if clean_html_text(m)]
@@ -264,6 +267,9 @@ class ExcelReader:
                 text = re.sub(r'<[^>]+>', '', text)
                 text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
                 text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+                # 处理数字 HTML 实体 &#NNN; 和 &#xHHH;
+                text = re.sub(r'&#(\d+);', lambda m: chr(int(m.group(1))) if int(m.group(1)) < 65536 else '', text)
+                text = re.sub(r'&#x([0-9a-fA-F]+);', lambda m: chr(int(m.group(1), 16)) if int(m.group(1), 16) < 65536 else '', text)
                 return text.strip()
 
             # === 第一步：流式读取表头（只读前 200KB）===
@@ -333,16 +339,24 @@ class ExcelReader:
             thead_end_pos = head_chunk.lower().find('</thead>')
             skip_header = thead_end_pos >= 0
 
+            # 如果没有 </thead>，尝试找到第一个 <table 后开始
+            table_start_pos = head_chunk.lower().find('<table')
+            if not skip_header and table_start_pos >= 0:
+                start_pos = table_start_pos
+            elif skip_header:
+                start_pos = thead_end_pos + 8
+            else:
+                start_pos = 0
+
+            table_ended = False
+
             with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                if skip_header:
-                    f.seek(thead_end_pos + 8)
-                else:
-                    f.seek(0)
+                f.seek(start_pos)
 
                 buffer = ''
                 CHUNK_SIZE = 512 * 1024  # 512KB chunks
 
-                while True:
+                while True and not table_ended:
                     piece = f.read(CHUNK_SIZE)
                     if not piece:
                         break
@@ -368,6 +382,12 @@ class ExcelReader:
 
                         # 跳过包含 <th> 的行（表头行）
                         if '<th' in tr_content.lower():
+                            # 检查 </table> 是否在下一个 <tr> 之前
+                            next_tr = buffer.find('<tr')
+                            between = buffer[:next_tr] if next_tr >= 0 else buffer
+                            if '</table>' in between.lower():
+                                table_ended = True
+                                break
                             continue
 
                         # 提取 <td> 单元格
@@ -386,16 +406,27 @@ class ExcelReader:
                             result_rows.append(row)
                             row_count += 1
 
+                        # 检查 </table> 是否在下一个 <tr> 之前（主表结束）
+                        next_tr = buffer.find('<tr')
+                        between = buffer[:next_tr] if next_tr >= 0 else buffer
+                        if '</table>' in between.lower():
+                            table_ended = True
+                            break
+
                     del piece
 
             del buffer, head_chunk
             gc.collect()
 
+            logger.info(f"HTML流式解析完成：{row_count}行 x {len(full_headers)}列, table_ended={table_ended}")
             _log_mem(f"HTML流式解析完成：{row_count}行 x {len(full_headers)}列")
             return result_rows
 
         except Exception as e:
-            raise ValueError(f'解析 HTML 格式 Excel 文件失败: {str(e)}')
+            error_msg = f'解析 HTML 格式 Excel 文件失败: {type(e).__name__}: {str(e)}'
+            logger.error(error_msg)
+            logger.error(traceback.format_exc())
+            raise ValueError(error_msg)
     
     def get_sheet_names(self):
         """获取所有 sheet 名称"""
@@ -1293,8 +1324,9 @@ def api_excel_analyze_sheet():
             _background_tasks[task_id]['status'] = 'done'
             _save_task_meta(task_id, _background_tasks[task_id])
         except Exception as e:
+            error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'
             logger.error(f"分析失败: {traceback.format_exc()}")
-            _background_tasks[task_id]['error'] = str(e)
+            _background_tasks[task_id]['error'] = error_detail
             _background_tasks[task_id]['status'] = 'error'
             _save_task_meta(task_id, _background_tasks[task_id])
 
