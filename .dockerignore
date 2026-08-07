@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+uploads/
+pdfs/
+ai_config.json
+test_*.py
+test_*.xlsx
+test_output*
+create_*.py
+rebuild_exe.py
+simple_build.py
+switch_to_weasyprint.py
+.git
+.gitignore

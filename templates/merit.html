@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功德+1 🔔</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: radial-gradient(ellipse at center top, #2a1f3d 0%, #1a1528 40%, #0f0c1a 100%);
+            min-height: 100vh; overflow: hidden; color: #fff;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .star { position: absolute; background: rgba(255,255,255,0.6); border-radius: 50%; animation: twinkle 3s ease-in-out infinite; }
+        @keyframes twinkle { 0%,100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.3); } }
+
+        .total-merit {
+            position: fixed; top: 24px; right: 24px;
+            background: rgba(255,255,255,0.08); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,215,0,0.15); border-radius: 20px; padding: 18px 28px;
+            text-align: center; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.3); min-width: 140px;
+        }
+        .total-merit .label { font-size: 12px; color: rgba(255,215,0,0.7); letter-spacing: 2px; margin-bottom: 6px; }
+        .total-merit .value { font-size: 36px; font-weight: 700; color: #FFD700; text-shadow: 0 0 20px rgba(255,215,0,0.4); font-variant-numeric: tabular-nums; line-height: 1; }
+        .total-merit .unit { font-size: 14px; color: rgba(255,215,0,0.5); margin-left: 4px; }
+
+        .today-merit {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px 32px;
+            text-align: center; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .today-merit .label { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 2px; margin-bottom: 4px; }
+        .today-merit .value { font-size: 24px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+        .today-merit .date { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+
+        .scene { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; cursor: pointer; }
+        .fish-area { position: relative; width: 380px; height: 340px; }
+
+        /* ===== 木鱼主体 ===== */
+        .wooden-fish-wrap {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.06s ease-out;
+        }
+        .wooden-fish-wrap.knock {
+            transform: translate(-50%, -47%) scaleY(0.95) scaleX(1.02);
+        }
+
+        /* SVG木鱼充满容器 */
+        .fish-svg { width: 360px; height: 280px; display: block; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5)); }
+
+        /* ===== 木鱼锤 ===== */
+        .mallet-wrap {
+            position: absolute;
+            top: -60px; right: 0px;
+            width: 220px; height: 200px;
+            z-index: 20; pointer-events: none;
+            transform-origin: 80% 85%;
+            transform: rotate(-30deg);
+            transition: transform 0.04s ease-out;
+        }
+        .mallet-wrap.knock { animation: malletSwing 0.4s cubic-bezier(0.25, 0.1, 0.35, 1); }
+        @keyframes malletSwing {
+            0%   { transform: rotate(-30deg); }
+            30%  { transform: rotate(22deg); }
+            45%  { transform: rotate(15deg); }
+            100% { transform: rotate(-30deg); }
+        }
+        .mallet-svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); }
+
+        .hint {
+            position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%);
+            font-size: 14px; color: rgba(255,255,255,0.3); letter-spacing: 3px; white-space: nowrap;
+        }
+
+        .merit-popup {
+            position: absolute; font-size: 28px; font-weight: 700; color: #FFD700;
+            text-shadow: 0 0 15px rgba(255,215,0,0.6), 0 2px 4px rgba(0,0,0,0.3);
+            pointer-events: none; white-space: nowrap; z-index: 50;
+            animation: floatUp 1.2s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(0) scale(0.5); }
+            20% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-120px) scale(1); }
+        }
+
+        .ripple {
+            position: absolute; border-radius: 50%; border: 2px solid rgba(255,215,0,0.4);
+            pointer-events: none; z-index: 5; transform: translate(-50%, -50%);
+            animation: rippleExpand 0.8s ease-out forwards;
+        }
+        @keyframes rippleExpand { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 340px; height: 340px; opacity: 0; } }
+
+        .flash {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            width: 120px; height: 120px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,230,150,0.5) 0%, transparent 70%);
+            pointer-events: none; z-index: 15;
+            animation: flashFade 0.4s ease-out forwards;
+        }
+        @keyframes flashFade {
+            0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(2.5); }
+        }
+
+        .reset-btn, .back-btn {
+            position: fixed; top: 24px;
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            padding: 10px 18px; color: rgba(255,255,255,0.5); font-size: 12px;
+            cursor: pointer; transition: all 0.2s; z-index: 100; text-decoration: none;
+        }
+        .reset-btn { left: 24px; }
+        .back-btn { left: 130px; }
+        .reset-btn:hover { color: #ff6b6b; border-color: rgba(255,107,107,0.3); }
+        .back-btn:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+
+        .achievement {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
+            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.15));
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,215,0,0.3); border-radius: 20px;
+            padding: 30px 50px; text-align: center; z-index: 200;
+            box-shadow: 0 0 60px rgba(255,215,0,0.2);
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .achievement.show { transform: translate(-50%,-50%) scale(1); }
+        .achievement .icon { font-size: 48px; margin-bottom: 10px; }
+        .achievement .title { font-size: 20px; font-weight: 700; color: #FFD700; margin-bottom: 6px; }
+        .achievement .desc { font-size: 14px; color: rgba(255,255,255,0.6); }
+
+        @media (max-width: 600px) {
+            .fish-area { width: 310px; height: 290px; }
+            .fish-svg { width: 290px; height: 220px; }
+            .mallet-wrap { width: 180px; height: 165px; top: -50px; }
+            .total-merit { padding: 14px 20px; min-width: 110px; }
+            .total-merit .value { font-size: 28px; }
+            .back-btn { left: 120px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <a href="/" class="back-btn">← 返回</a>
+    <button class="reset-btn" onclick="resetMerit()">重置功德</button>
+
+    <div class="total-merit">
+        <div class="label">总功德</div>
+        <div><span class="value" id="totalMerit">0</span><span class="unit">功德</span></div>
+    </div>
+
+    <div class="scene" id="scene">
+        <div class="fish-area" id="fishArea">
+            <!-- 木鱼锤 -->
+            <div class="mallet-wrap" id="mallet">
+                <svg class="mallet-svg" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="hgrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#9A6B3A"/>
+                            <stop offset="35%" stop-color="#B07F45"/>
+                            <stop offset="50%" stop-color="#C18A50"/>
+                            <stop offset="65%" stop-color="#A87538"/>
+                            <stop offset="100%" stop-color="#855E30"/>
+                        </linearGradient>
+                        <linearGradient id="hgradLight" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(255,220,170,0.45)"/>
+                            <stop offset="50%" stop-color="rgba(255,220,170,0.1)"/>
+                            <stop offset="100%" stop-color="transparent"/>
+                        </linearGradient>
+                        <radialGradient id="mhead" cx="32%" cy="28%">
+                            <stop offset="0%" stop-color="#E8C088"/>
+                            <stop offset="30%" stop-color="#C08850"/>
+                            <stop offset="65%" stop-color="#8A5028"/>
+                            <stop offset="100%" stop-color="#5C3010"/>
+                        </radialGradient>
+                        <radialGradient id="mhl" cx="28%" cy="22%">
+                            <stop offset="0%" stop-color="rgba(255,240,200,0.6)"/>
+                            <stop offset="50%" stop-color="transparent"/>
+                        </radialGradient>
+                    </defs>
+                    <!-- 锤柄 -->
+                    <g transform="rotate(-32 110 110)">
+                        <rect x="55" y="102" width="120" height="18" rx="8" fill="url(#hgrad)"/>
+                        <rect x="55" y="102" width="120" height="9" rx="4.5" fill="url(#hgradLight)"/>
+                        <rect x="58" y="106" width="114" height="1.5" fill="rgba(0,0,0,0.1)"/>
+                        <!-- 柄末端 -->
+                        <circle cx="178" cy="111" r="12" fill="#855E30" stroke="#6B4A20" stroke-width="1.5"/>
+                        <circle cx="175" cy="108" r="5" fill="rgba(255,220,170,0.35)"/>
+                        <!-- 柄绑带 -->
+                        <rect x="68" y="100" width="6" height="22" rx="1" fill="#5C3010" opacity="0.6"/>
+                        <rect x="69" y="101" width="4" height="20" rx="1" fill="rgba(0,0,0,0.2)"/>
+                    </g>
+                    <!-- 锤头连接颈 -->
+                    <ellipse cx="58" cy="108" rx="10" ry="14" fill="#6B3A18"/>
+                    <!-- 锤头主体 -->
+                    <ellipse cx="42" cy="110" rx="42" ry="46" fill="url(#mhead)" stroke="#4A2810" stroke-width="1.5"/>
+                    <!-- 高光 -->
+                    <ellipse cx="32" cy="92" rx="24" ry="20" fill="url(#mhl)"/>
+                    <!-- 木纹环 -->
+                    <ellipse cx="42" cy="110" rx="37" ry="41" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+                    <ellipse cx="42" cy="110" rx="30" ry="34" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.8"/>
+                    <ellipse cx="42" cy="110" rx="22" ry="26" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="0.6"/>
+                    <ellipse cx="42" cy="110" rx="14" ry="18" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="0.5"/>
+                    <!-- 底部阴影 -->
+                    <ellipse cx="44" cy="128" rx="34" ry="22" fill="rgba(0,0,0,0.22)"/>
+                </svg>
+            </div>
+
+            <!-- 木鱼主体 SVG -->
+            <div class="wooden-fish-wrap" id="woodenFish">
+                <svg class="fish-svg" viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- 木鱼主体径向渐变 -->
+                        <radialGradient id="fishBody" cx="42%" cy="28%">
+                            <stop offset="0%" stop-color="#E84038"/>
+                            <stop offset="20%" stop-color="#D83028"/>
+                            <stop offset="50%" stop-color="#B82018"/>
+                            <stop offset="80%" stop-color="#881008"/>
+                            <stop offset="100%" stop-color="#5C0805"/>
+                        </radialGradient>
+                        <!-- 顶部高光 -->
+                        <radialGradient id="fishGlow" cx="40%" cy="20%">
+                            <stop offset="0%" stop-color="rgba(255,180,160,0.4)"/>
+                            <stop offset="60%" stop-color="transparent"/>
+                        </radialGradient>
+                        <!-- 开口内部渐变 -->
+                        <linearGradient id="slitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#1a0300"/>
+                            <stop offset="30%" stop-color="#3D0A05"/>
+                            <stop offset="50%" stop-color="#4D1008"/>
+                            <stop offset="70%" stop-color="#3D0A05"/>
+                            <stop offset="100%" stop-color="#1a0300"/>
+                        </linearGradient>
+                        <!-- 木纹纹理 -->
+                        <pattern id="woodgrain" x="0" y="0" width="360" height="280" patternUnits="userSpaceOnUse">
+                            <rect width="360" height="280" fill="url(#fishBody)"/>
+                            <path d="M 0 60 Q 180 55 360 62" stroke="rgba(0,0,0,0.04)" stroke-width="1" fill="none"/>
+                            <path d="M 0 90 Q 180 86 360 92" stroke="rgba(0,0,0,0.05)" stroke-width="1" fill="none"/>
+                            <path d="M 0 120 Q 180 116 360 122" stroke="rgba(0,0,0,0.04)" stroke-width="0.8" fill="none"/>
+                            <path d="M 0 175 Q 180 170 360 178" stroke="rgba(0,0,0,0.05)" stroke-width="1" fill="none"/>
+                            <path d="M 0 200 Q 180 196 360 204" stroke="rgba(0,0,0,0.04)" stroke-width="0.8" fill="none"/>
+                            <path d="M 0 225 Q 180 221 360 228" stroke="rgba(0,0,0,0.03)" stroke-width="0.6" fill="none"/>
+                        </pattern>
+                    </defs>
+
+                    <!-- 底部投影 -->
+                    <ellipse cx="180" cy="262" rx="140" ry="16" fill="rgba(0,0,0,0.35)"/>
+
+                    <!-- 木鱼主体（椭圆） -->
+                    <ellipse cx="180" cy="140" rx="160" ry="115" fill="url(#woodgrain)" stroke="#4A0805" stroke-width="2"/>
+
+                    <!-- 顶部高光层 -->
+                    <ellipse cx="170" cy="90" rx="110" ry="60" fill="url(#fishGlow)"/>
+
+                    <!-- 左侧暗部 -->
+                    <path d="M 30 100 Q 22 140 35 185 Q 50 160 55 140 Q 50 115 30 100 Z" fill="rgba(0,0,0,0.15)"/>
+                    <!-- 右侧暗部 -->
+                    <path d="M 330 100 Q 338 140 325 185 Q 310 160 305 140 Q 310 115 330 100 Z" fill="rgba(0,0,0,0.15)"/>
+
+                    <!-- 中间开口（木鱼特征裂缝） -->
+                    <ellipse cx="180" cy="140" rx="125" ry="14" fill="url(#slitGrad)"/>
+                    <!-- 开口边缘高光 -->
+                    <ellipse cx="180" cy="137" rx="120" ry="3" fill="none" stroke="rgba(255,140,100,0.15)" stroke-width="1"/>
+                    <ellipse cx="180" cy="143" rx="120" ry="3" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+                    <!-- 开口内部暗影 -->
+                    <ellipse cx="180" cy="141" rx="110" ry="4" fill="rgba(0,0,0,0.4)"/>
+
+                    <!-- 左侧装饰花纹（云纹/卷草纹） -->
+                    <g opacity="0.25" fill="none" stroke="rgba(255,200,180,0.6)" stroke-width="1.5">
+                        <path d="M 55 130 Q 45 125 42 135 Q 40 145 50 148 Q 58 146 56 138"/>
+                        <path d="M 50 155 Q 42 152 40 160 Q 42 168 52 165"/>
+                        <circle cx="48" cy="142" r="1.5" fill="rgba(255,200,180,0.5)"/>
+                    </g>
+
+                    <!-- 右侧装饰花纹 -->
+                    <g opacity="0.25" fill="none" stroke="rgba(255,200,180,0.6)" stroke-width="1.5">
+                        <path d="M 305 130 Q 315 125 318 135 Q 320 145 310 148 Q 302 146 304 138"/>
+                        <path d="M 310 155 Q 318 152 320 160 Q 318 168 308 165"/>
+                        <circle cx="312" cy="142" r="1.5" fill="rgba(255,200,180,0.5)"/>
+                    </g>
+
+                    <!-- 顶部装饰圆点（佛教元素） -->
+                    <circle cx="180" cy="55" r="4" fill="rgba(255,200,160,0.2)" stroke="rgba(255,180,140,0.3)" stroke-width="1"/>
+                    <circle cx="180" cy="55" r="1.5" fill="rgba(255,220,180,0.3)"/>
+
+                    <!-- 底部边缘亮线 -->
+                    <ellipse cx="180" cy="240" rx="130" ry="8" fill="none" stroke="rgba(255,100,80,0.08)" stroke-width="1"/>
+                </svg>
+            </div>
+        </div>
+        <div class="hint">点击木鱼 · 积攒功德</div>
+    </div>
+
+    <div class="today-merit">
+        <div class="label">今日功德</div>
+        <div class="value" id="todayMerit">0</div>
+        <div class="date" id="todayDate"></div>
+    </div>
+
+    <div class="achievement" id="achievement">
+        <div class="icon" id="achIcon">🎉</div>
+        <div class="title" id="achTitle">功德圆满</div>
+        <div class="desc" id="achDesc">恭喜达成新成就</div>
+    </div>
+
+    <script>
+        const STORAGE_KEY_TOTAL = 'merit_total';
+        const STORAGE_KEY_HISTORY = 'merit_history';
+
+        function getTodayStr() {
+            const now = new Date();
+            return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        }
+
+        function loadData() {
+            const total = parseInt(localStorage.getItem(STORAGE_KEY_TOTAL) || '0');
+            let history = {};
+            try { history = JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) || '{}'); } catch (e) { history = {}; }
+            const today = getTodayStr();
+            return { total, history, today, todayMerit: history[today] || 0 };
+        }
+
+        function saveData(total, history) {
+            localStorage.setItem(STORAGE_KEY_TOTAL, String(total));
+            localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
+        }
+
+        let audioCtx = null;
+        function playKnockSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                // 低频木质敲击
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(180, now);
+                osc1.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+                gain1.gain.setValueAtTime(0.55, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc1.connect(gain1); gain1.connect(audioCtx.destination);
+                osc1.start(now); osc1.stop(now + 0.22);
+                // 高频泛音
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(320, now);
+                osc2.frequency.exponentialRampToValueAtTime(110, now + 0.1);
+                gain2.gain.setValueAtTime(0.18, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc2.connect(gain2); gain2.connect(audioCtx.destination);
+                osc2.start(now); osc2.stop(now + 0.14);
+            } catch (e) {}
+        }
+
+        let meritData = loadData();
+
+        function updateUI() {
+            document.getElementById('totalMerit').textContent = meritData.total;
+            document.getElementById('todayMerit').textContent = meritData.todayMerit;
+            const date = new Date();
+            const weekdays = ['日','一','二','三','四','五','六'];
+            document.getElementById('todayDate').textContent = meritData.today + ' · 星期' + weekdays[date.getDay()];
+        }
+
+        function showMeritPopup(x, y) {
+            const popup = document.createElement('div');
+            popup.className = 'merit-popup';
+            popup.textContent = '功德 +1';
+            popup.style.left = (x - 40) + 'px';
+            popup.style.top = (y - 30) + 'px';
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1200);
+        }
+
+        function showRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 800);
+        }
+
+        function showFlash(area) {
+            const flash = document.createElement('div');
+            flash.className = 'flash';
+            area.appendChild(flash);
+            setTimeout(() => flash.remove(), 400);
+        }
+
+        const scene = document.getElementById('scene');
+        const fishArea = document.getElementById('fishArea');
+        const woodenFish = document.getElementById('woodenFish');
+        const mallet = document.getElementById('mallet');
+        let knockTimer = null;
+        let malletTimer = null;
+
+        function knock(e) {
+            e.preventDefault();
+            const x = e.clientX || (window.innerWidth / 2);
+            const y = e.clientY || (window.innerHeight / 2);
+
+            meritData.total += 1;
+            meritData.todayMerit += 1;
+            meritData.history[meritData.today] = meritData.todayMerit;
+            saveData(meritData.total, meritData.history);
+            updateUI();
+
+            playKnockSound();
+
+            // 锤子挥下
+            mallet.classList.remove('knock');
+            void mallet.offsetWidth;
+            mallet.classList.add('knock');
+            clearTimeout(malletTimer);
+            malletTimer = setTimeout(() => mallet.classList.remove('knock'), 400);
+
+            // 木鱼按压（延迟到锤子接触时刻）
+            setTimeout(() => {
+                woodenFish.classList.add('knock');
+                showFlash(fishArea);
+                clearTimeout(knockTimer);
+                knockTimer = setTimeout(() => woodenFish.classList.remove('knock'), 80);
+            }, 120);
+
+            showMeritPopup(x, y);
+            showRipple(x, y);
+            checkAchievement(meritData.total);
+        }
+
+        scene.addEventListener('click', knock);
+        scene.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            knock({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} });
+        });
+
+        const achievements = [
+            { count: 10, icon: '🌱', title: '初结善缘', desc: '功德+10，善念初起' },
+            { count: 50, icon: '🍃', title: '积善成德', desc: '功德+50，德行渐增' },
+            { count: 100, icon: '🌸', title: '百善孝先', desc: '功德+100，福报渐近' },
+            { count: 500, icon: '⭐', title: '功德无量', desc: '功德+500，福泽深厚' },
+            { count: 1000, icon: '🌙', title: '千载难逢', desc: '功德+1000，修行有成' },
+            { count: 5000, icon: '☀️', title: '功德圆满', desc: '功德+5000，大功告成' },
+            { count: 10000, icon: '🏆', title: '万德归一', desc: '功德+10000，功德圆满' },
+        ];
+        let triggeredAchievements = new Set(JSON.parse(localStorage.getItem('merit_achievements') || '[]'));
+
+        function checkAchievement(total) {
+            for (const ach of achievements) {
+                if (total >= ach.count && !triggeredAchievements.has(ach.count)) {
+                    triggeredAchievements.add(ach.count);
+                    localStorage.setItem('merit_achievements', JSON.stringify([...triggeredAchievements]));
+                    showAchievement(ach);
+                    break;
+                }
+            }
+        }
+
+        function showAchievement(ach) {
+            const el = document.getElementById('achievement');
+            document.getElementById('achIcon').textContent = ach.icon;
+            document.getElementById('achTitle').textContent = ach.title;
+            document.getElementById('achDesc').textContent = ach.desc;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2500);
+        }
+
+        function resetMerit() {
+            if (!confirm('确定要重置所有功德吗？此操作不可恢复。')) return;
+            meritData = { total: 0, history: {}, today: getTodayStr(), todayMerit: 0 };
+            triggeredAchievements.clear();
+            localStorage.removeItem(STORAGE_KEY_TOTAL);
+            localStorage.removeItem(STORAGE_KEY_HISTORY);
+            localStorage.removeItem('merit_achievements');
+            updateUI();
+        }
+
+        function createStars() {
+            const container = document.getElementById('stars');
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 2 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (2 + Math.random() * 3) + 's';
+                container.appendChild(star);
+            }
+        }
+
+        function checkDayChange() {
+            const today = getTodayStr();
+            if (today !== meritData.today) { meritData = loadData(); updateUI(); }
+        }
+        setInterval(checkDayChange, 60000);
+
+        createStars();
+        updateUI();
+    </script>
+</body>
+</html>

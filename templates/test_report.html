@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试报告分析工具</title>
+    <style>
+        :root {
+            --bg-primary: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #e5e7eb;
+            --border-strong: #d1d5db;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 24px 32px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+        .header .subtitle { font-size: 14px; opacity: 0.9; }
+        
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Upload */
+        .upload-card {
+            border: 2px dashed #c7d2fe;
+            border-radius: var(--radius-lg);
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafbff;
+        }
+        .upload-card:hover, .upload-card.dragover {
+            border-color: var(--accent);
+            background: #eef2ff;
+            transform: translateY(-2px);
+        }
+        .upload-icon { font-size: 64px; margin-bottom: 16px; }
+        .upload-card h3 { font-size: 20px; margin-bottom: 8px; color: var(--text-primary); }
+        .upload-card p { color: var(--text-secondary); font-size: 14px; }
+        .upload-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 12px; }
+        
+        /* Sheet Selector */
+        .sheet-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            background: #f9fafb;
+            border-radius: var(--radius-md);
+        }
+        .sheet-info .file-icon { font-size: 20px; }
+        .sheet-info .file-details { flex: 1; }
+        .sheet-info .file-name { font-weight: 600; font-size: 14px; }
+        .sheet-info .file-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .sheet-tabs { display: flex; flex-wrap: wrap; gap: 10px; }
+        .sheet-tab {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .sheet-tab:hover { background: #e5e7eb; }
+        .sheet-tab.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+        }
+        
+        /* Info Section */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .info-item {
+            background: #f9fafb;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent);
+        }
+        .info-item .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+        .info-item .value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 18px 12px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-card .number { font-size: 28px; font-weight: 700; }
+        .stat-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 6px; font-weight: 500; }
+        .stat-card.total .number { color: var(--text-primary); }
+        .stat-card.pass .number { color: var(--success); }
+        .stat-card.fail .number { color: var(--danger); }
+        .stat-card.rate .number { color: var(--accent); }
+        .stat-card.blocker .number { color: #dc2626; }
+        .stat-card.critical .number { color: #ea580c; }
+        .stat-card.major .number { color: #d97706; }
+        .stat-card.minor .number { color: #2563eb; }
+        .stat-card.trivial .number { color: #6b7280; }
+        
+        /* Summary Banner */
+        .summary-banner {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            border-radius: var(--radius-md);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            border: 1px solid #c7d2fe;
+        }
+        .summary-banner h4 {
+            font-size: 15px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-banner p {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* Test Items Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        .test-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .test-items-table th {
+            background: #f9fafb;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .test-items-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .test-items-table tbody tr:hover { background: #f9fafb; }
+        .test-items-table tbody tr:last-child td { border-bottom: none; }
+        
+        /* Result Badge */
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .result-badge.pass {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .result-badge.pass::before { content: '✓'; }
+        .result-badge.fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .result-badge.fail::before { content: '✗'; }
+        .result-badge.unknown {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        /* Severity Tag */
+        .severity-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .severity-tag.blocker { background: #fee2e2; color: #991b1b; }
+        .severity-tag.critical { background: #ffedd5; color: #9a3412; }
+        .severity-tag.major { background: #fef3c7; color: #92400e; }
+        .severity-tag.minor { background: #dbeafe; color: #1e40af; }
+        .severity-tag.trivial { background: #f3f4f6; color: #374151; }
+        
+        /* Test Item Name */
+        .test-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .test-item-module {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        /* Reason */
+        .reason-cell {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .reason-cell.empty {
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+        .reason-cell.fail-reason {
+            color: var(--danger);
+        }
+        
+        /* Actions */
+        .actions-bar {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: #e5e7eb; }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.show { display: block; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #e0e7ff;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading p { color: var(--text-secondary); font-size: 14px; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state p { font-size: 14px; }
+        
+        .hidden { display: none !important; }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .card { padding: 20px; }
+            .upload-card { padding: 40px 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 测试报告分析工具</h1>
+            <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看逐项分析结果</div>
+        </div>
+
+        <!-- 上传区 -->
+        <div class="card" id="uploadSection">
+            <div class="card-title">📤 上传测试报告</div>
+            <div class="upload-container">
+                <div class="upload-card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📊</div>
+                    <h3>选择或拖拽Excel文件</h3>
+                    <p>支持 .xlsx, .xls 格式的测试报告</p>
+                    <div class="upload-hint">点击选择文件，或将文件拖拽到此处</div>
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+            </div>
+        </div>
+
+        <!-- Sheet选择区 -->
+        <div class="card hidden" id="sheetSection">
+            <div class="card-title">📑 选择Sheet页</div>
+            <div class="sheet-info" id="sheetInfo"></div>
+            <div class="sheet-tabs" id="sheetTabs"></div>
+            <div class="actions-bar">
+                <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
+            </div>
+        </div>
+
+        <!-- 分析结果区 -->
+        <div id="resultSection" class="hidden">
+            <!-- 项目信息 -->
+            <div class="card" id="infoCard">
+                <div class="card-title">📋 项目信息</div>
+                <div class="info-grid" id="infoGrid"></div>
+            </div>
+
+            <!-- 测试统计 -->
+            <div class="card">
+                <div class="card-title">📊 测试统计</div>
+                <div class="stats-grid" id="statsGrid"></div>
+            </div>
+
+            <!-- 分析总结 -->
+            <div class="summary-banner" id="summaryBanner"></div>
+
+            <!-- 逐项明细 -->
+            <div class="card" id="detailCard">
+                <div class="card-title">📝 逐项明细</div>
+                <div id="tableContainer"></div>
+            </div>
+
+            <div class="actions-bar">
+                <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
+            </div>
+        </div>
+
+        <!-- 加载动画 -->
+        <div class="card loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>正在分析报告内容，请稍候...</p>
+        </div>
+    </div>
+
+    <script>
+        let currentFileId = null;
+        let currentSheetName = null;
+        let currentAnalysis = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadCard = document.getElementById('uploadCard');
+        const uploadSection = document.getElementById('uploadSection');
+        const sheetSection = document.getElementById('sheetSection');
+        const sheetInfo = document.getElementById('sheetInfo');
+        const resultSection = document.getElementById('resultSection');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // 上传区域拖拽
+        uploadCard.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadCard.classList.add('dragover');
+        });
+        uploadCard.addEventListener('dragleave', () => uploadCard.classList.remove('dragover'));
+        uploadCard.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadCard.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        async function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('请选择Excel文件 (.xlsx, .xls)');
+                return;
+            }
+
+            showLoading(true);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/test-report-analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    currentFileId = data.data.file_id;
+                    showSheetSelector(data.data);
+                } else {
+                    alert('上传失败: ' + (data.error || '未知错误'));
+                    showLoading(false);
+                    uploadSection.classList.remove('hidden');
+                }
+            } catch (err) {
+                alert('请求失败: ' + err.message);
+                showLoading(false);
+                uploadSection.classList.remove('hidden');
+            }
+        }
+
+        function showSheetSelector(data) {
+            uploadSection.classList.add('hidden');
+            sheetSection.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+
+            // 显示文件信息
+            sheetInfo.innerHTML = `
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">${escapeHtml(data.file_name)}</div>
+                    <div class="file-meta">共 ${data.sheet_count} 个Sheet，请选择要分析的Sheet页</div>
+                </div>
+            `;
+
+            // 显示Sheet列表
+            const tabsContainer = document.getElementById('sheetTabs');
+            tabsContainer.innerHTML = '';
+
+            data.sheet_names.forEach((name) => {
+                const tab = document.createElement('div');
+                tab.className = 'sheet-tab';
+                tab.textContent = name;
+                tab.onclick = () => selectSheet(name);
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        async function selectSheet(sheetName) {
+            currentSheetName = sheetName;
+
+            // 更新选中状态
+            document.querySelectorAll('.sheet-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.textContent === sheetName);
+            });
+
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/test-report-analyze-sheet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: currentFileId,
+                        sheet_name: sheetName
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    currentAnalysis = data.data;
+                    displayResults(data.data);
+                } else {
+                    alert('分析失败: ' + (data.error || '未知错误'));
+                    showLoading(false);
+                    sheetSection.classList.remove('hidden');
+                }
+            } catch (err) {
+                alert('请求失败: ' + err.message);
+                showLoading(false);
+                sheetSection.classList.remove('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            sheetSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+
+            // 显示项目信息
+            renderProjectInfo(data.project_info);
+            
+            // 显示统计
+            renderStats(data.stats);
+            
+            // 显示总结
+            renderSummary(data);
+            
+            // 显示逐项明细
+            renderTestItems(data.test_items);
+        }
+
+        function renderProjectInfo(info) {
+            const grid = document.getElementById('infoGrid');
+            grid.innerHTML = '';
+
+            if (!info || Object.keys(info).length === 0) {
+                grid.innerHTML = '<div style="color:var(--text-tertiary);">未识别到项目信息</div>';
+                return;
+            }
+
+            Object.entries(info).forEach(([label, value]) => {
+                const item = document.createElement('div');
+                item.className = 'info-item';
+                item.innerHTML = `
+                    <div class="label">${escapeHtml(label)}</div>
+                    <div class="value">${escapeHtml(value)}</div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function renderStats(stats) {
+            const grid = document.getElementById('statsGrid');
+            grid.innerHTML = '';
+
+            const total = stats.total || 0;
+            const pass = stats.pass || 0;
+            const fail = stats.fail || 0;
+            const passRate = stats.pass_rate || '0%';
+
+            const items = [
+                { key: 'total', label: '总测试项', value: total, cls: 'total' },
+                { key: 'pass', label: '通过', value: pass, cls: 'pass' },
+                { key: 'fail', label: '不通过', value: fail, cls: 'fail' },
+                { key: 'rate', label: '通过率', value: passRate, cls: 'rate' },
+            ];
+
+            // Severity统计
+            const severity = stats.severity || {};
+            const severityLabels = {
+                blocker: 'Blocker',
+                critical: 'Critical',
+                major: 'Major',
+                minor: 'Minor',
+                trivial: 'Trivial'
+            };
+            
+            ['blocker', 'critical', 'major', 'minor', 'trivial'].forEach(level => {
+                if (severity[level]) {
+                    items.push({
+                        key: level,
+                        label: severityLabels[level],
+                        value: severity[level],
+                        cls: level
+                    });
+                }
+            });
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'stat-card ' + item.cls;
+                card.innerHTML = `
+                    <div class="number">${item.value}</div>
+                    <div class="label">${item.label}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderSummary(data) {
+            const banner = document.getElementById('summaryBanner');
+            const stats = data.stats;
+            const total = stats.total || 0;
+            const pass = stats.pass || 0;
+            const fail = stats.fail || 0;
+            const passRate = stats.pass_rate || '0%';
+            const testItems = data.test_items || [];
+            const failItems = testItems.filter(item => item.result === 'fail');
+
+            if (total === 0) {
+                banner.innerHTML = `
+                    <h4>📋 分析总结</h4>
+                    <p>未找到测试项数据，请检查Excel文件格式是否正确。</p>
+                `;
+                return;
+            }
+
+            let summaryText = `本次共分析 <strong>${total}</strong> 项测试，`;
+            summaryText += `<span style="color:var(--success);">通过 ${pass} 项</span>，`;
+            summaryText += `<span style="color:var(--danger);">不通过 ${fail} 项</span>，`;
+            summaryText += `整体通过率为 <strong>${passRate}</strong>。`;
+
+            if (failItems.length > 0) {
+                summaryText += `<br><br><strong style="color:var(--danger);">不通过项详情：</strong><br>`;
+                failItems.forEach((item, idx) => {
+                    summaryText += `${idx + 1}. <strong>${escapeHtml(item.name)}</strong>`;
+                    if (item.severity) {
+                        summaryText += ` <span class="severity-tag ${getSeverityClass(item.severity)}">${escapeHtml(item.severity)}</span>`;
+                    }
+                    if (item.reason) {
+                        summaryText += ` — <span style="color:var(--danger);">${escapeHtml(item.reason)}</span>`;
+                    }
+                    summaryText += '<br>';
+                });
+            } else {
+                summaryText += '<br><br>🎉 所有测试项均已通过！';
+            }
+
+            banner.innerHTML = `
+                <h4>📋 分析总结</h4>
+                <p>${summaryText}</p>
+            `;
+        }
+
+        function renderTestItems(items) {
+            const container = document.getElementById('tableContainer');
+            
+            if (!items || items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>未找到测试项数据</p>
+                        <p style="font-size:12px;margin-top:8px;">请确保Excel文件包含测试项表格</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 排序：不通过的排前面
+            const sorted = [...items].sort((a, b) => {
+                if (a.result === 'fail' && b.result !== 'fail') return -1;
+                if (a.result !== 'fail' && b.result === 'fail') return 1;
+                // 不通过项按严重程度排序
+                if (a.result === 'fail' && b.result === 'fail') {
+                    const severityOrder = { blocker: 0, critical: 1, major: 2, minor: 3, trivial: 4 };
+                    const sevA = getSeverityLevel(a.severity);
+                    const sevB = getSeverityLevel(b.severity);
+                    return severityOrder[sevA] - severityOrder[sevB];
+                }
+                return 0;
+            });
+
+            let html = `
+                <div class="table-wrapper">
+                    <table class="test-items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">#</th>
+                                <th>测试项</th>
+                                <th>模块</th>
+                                <th>Severity</th>
+                                <th>结果</th>
+                                <th>原因/备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            sorted.forEach((item, idx) => {
+                const resultBadge = getResultBadge(item);
+                const severityTag = getSeverityTag(item.severity);
+                const reason = item.reason || '';
+                const isFail = item.result === 'fail';
+                
+                html += `
+                    <tr>
+                        <td style="color:var(--text-tertiary);">${idx + 1}</td>
+                        <td><span class="test-item-name">${escapeHtml(item.name)}</span></td>
+                        <td><span class="test-item-module">${escapeHtml(item.module) || '-'}</span></td>
+                        <td>${severityTag}</td>
+                        <td>${resultBadge}</td>
+                        <td>${reason ? `<span class="reason-cell ${isFail ? 'fail-reason' : ''}">${escapeHtml(reason)}</span>` : '<span class="reason-cell empty">-</span>'}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function getResultBadge(item) {
+            const result = item.result || 'unknown';
+            const text = item.result_text || result.toUpperCase();
+            
+            if (result === 'pass') {
+                return `<span class="result-badge pass">通过</span>`;
+            } else if (result === 'fail') {
+                return `<span class="result-badge fail">不通过</span>`;
+            }
+            return `<span class="result-badge unknown">${escapeHtml(text)}</span>`;
+        }
+
+        function getSeverityTag(severity) {
+            if (!severity) return '<span style="color:var(--text-tertiary);">-</span>';
+            
+            const cls = getSeverityClass(severity);
+            const label = severity.charAt(0).toUpperCase() + severity.slice(1);
+            
+            return `<span class="severity-tag ${cls}">${escapeHtml(label)}</span>`;
+        }
+
+        function getSeverityClass(severity) {
+            if (!severity) return '';
+            const sev = severity.toLowerCase();
+            if ('blocker' in sev) return 'blocker';
+            if ('critical' in sev) return 'critical';
+            if ('major' in sev) return 'major';
+            if ('minor' in sev) return 'minor';
+            if ('trivial' in sev) return 'trivial';
+            return '';
+        }
+
+        function getSeverityLevel(severity) {
+            if (!severity) return 'trivial';
+            const sev = severity.toLowerCase();
+            if ('blocker' in sev) return 'blocker';
+            if ('critical' in sev) return 'critical';
+            if ('major' in sev) return 'major';
+            if ('minor' in sev) return 'minor';
+            if ('trivial' in sev) return 'trivial';
+            return 'trivial';
+        }
+
+        function showLoading(show) {
+            if (show) {
+                loadingIndicator.classList.add('show');
+                uploadSection.classList.add('hidden');
+                sheetSection.classList.add('hidden');
+                resultSection.classList.add('hidden');
+            } else {
+                loadingIndicator.classList.remove('show');
+            }
+        }
+
+        function resetAll() {
+            currentFileId = null;
+            currentSheetName = null;
+            currentAnalysis = null;
+            fileInput.value = '';
+            uploadSection.classList.remove('hidden');
+            sheetSection.classList.add('hidden');
+            resultSection.classList.add('hidden');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

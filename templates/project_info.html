@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软件项目信息收集工具</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --bg-secondary: #fafafa;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-tertiary: #aeaeae;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --accent-pressed: #006edb;
+            --danger: #ff3b30;
+            --success: #34c759;
+            --warning: #ff9500;
+            --border: rgba(0, 0, 0, 0.06);
+            --border-hover: rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 980px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 20px 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .header .back-btn {
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .header .back-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .toolbar {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: var(--radius-lg);
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .toolbar-left {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+
+        .tool-btn.primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .tool-btn.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .tool-btn.primary:active {
+            background: var(--accent-pressed);
+            transform: scale(0.98);
+        }
+
+        .tool-btn.success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .tool-btn.success:hover {
+            filter: brightness(1.1);
+        }
+
+        .tool-btn.info {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .tool-btn.info:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .tool-btn.warning {
+            background: rgba(255, 149, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .tool-btn.warning:hover {
+            background: rgba(255, 149, 0, 0.15);
+        }
+
+        .tool-btn.danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .tool-btn.danger:hover {
+            filter: brightness(1.1);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+
+        .project-list {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .project-list h2 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 1;
+            letter-spacing: -0.2px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            margin-bottom: 16px;
+            background: var(--bg-secondary);
+            transition: all 0.2s ease;
+            font-family: inherit;
+            color: var(--text-primary);
+        }
+
+        .search-box:focus {
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .search-box::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .project-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .project-item {
+            padding: 14px 16px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+        }
+
+        .project-item:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .project-item.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .project-item .project-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
+        }
+
+        .project-item .project-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .project-item.active .project-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .project-item .project-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 11px;
+        }
+
+        .project-item .info-tag {
+            padding: 3px 8px;
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent);
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .project-item.active .info-tag {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .project-item .info-tag.cf {
+            background: rgba(52, 199, 89, 0.12);
+            color: var(--success);
+        }
+
+        .project-item.active .info-tag.cf {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .project-item .info-tag.rrr {
+            background: rgba(255, 149, 0, 0.12);
+            color: var(--warning);
+        }
+
+        .project-item.active .info-tag.rrr {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .project-item .info-detail {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .project-item.active .info-detail {
+            border-top-color: rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .project-item .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .project-item .info-row .label {
+            color: var(--text-tertiary);
+        }
+
+        .project-item.active .info-row .label {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .project-item .info-row .value {
+            font-weight: 500;
+            text-align: right;
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-form {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-sm);
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+        }
+
+        .form-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-section h2 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.2px;
+        }
+
+        .form-section h2::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease;
+        }
+
+        .form-group.animating {
+            overflow: hidden;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group.hidden-field {
+            display: none !important;
+        }
+
+        .form-group.showing {
+            animation: fieldFadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fieldFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 100px;
+            }
+        }
+
+        .camera-section {
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.05) 0%, rgba(0, 113, 227, 0.02) 100%);
+            border: 1px solid rgba(0, 113, 227, 0.15);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 8px;
+            position: relative;
+        }
+
+        .camera-section::before {
+            content: '📷';
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            font-size: 16px;
+            background: var(--bg-card);
+            padding: 0 6px;
+        }
+
+        .camera-section .form-group label {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .camera-section .form-group input {
+            border-color: rgba(0, 113, 227, 0.2);
+        }
+
+        .camera-section .form-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            letter-spacing: -0.1px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 90px;
+            line-height: 1.5;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-option:hover {
+            transform: scale(1.08);
+        }
+
+        .color-option.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent);
+        }
+
+        .color-option .color-label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+
+        .features-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .features-input input {
+            flex: 1;
+        }
+
+        .features-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .feature-tag {
+            padding: 6px 14px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feature-tag .remove {
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .feature-tag .remove:hover { opacity: 1; }
+
+        /* Test Data Section */
+        .test-data-container {
+            margin-top: 12px;
+        }
+
+        .test-data-entry {
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .test-data-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .test-data-fields {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .test-data-fields .form-group {
+            margin-bottom: 0;
+        }
+
+        .test-data-fields .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .remove-entry-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .remove-entry-btn:hover { background: #e63530; }
+
+        .add-entry-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 113, 227, 0.06);
+            border: 1.5px dashed var(--accent);
+            color: var(--accent);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .add-entry-btn:hover {
+            background: rgba(0, 113, 227, 0.1);
+            border-color: var(--accent-hover);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .detail-view {
+            padding: 8px 4px;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .detail-header .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .detail-section {
+            margin-bottom: 32px;
+        }
+
+        .detail-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            background: var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .detail-item {
+            padding: 16px 20px;
+            background: var(--bg-card);
+            transition: background 0.15s ease;
+        }
+
+        .detail-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-item .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .detail-item .value {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .detail-item .value.empty {
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+
+        .detail-colors {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .detail-color-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            cursor: default;
+        }
+
+        .detail-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .detail-feature-tag {
+            padding: 6px 14px;
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent);
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .detail-notes {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            border-radius: var(--radius-md);
+            color: #fff;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: var(--shadow-xl);
+            font-family: inherit;
+            backdrop-filter: blur(20px);
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .toast.info {
+            background: var(--accent);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .project-list {
+                max-height: 400px;
+            }
+
+            .project-form {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar-left,
+            .toolbar-right {
+                justify-content: center;
+            }
+
+            .detail-header h2 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 软件项目信息收集工具</h1>
+        <button class="back-btn" onclick="window.close()">关闭窗口</button>
+    </div>
+
+    <div class="container">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button class="tool-btn primary" onclick="newProject()">➕ 新建项目</button>
+                <button class="tool-btn success" onclick="saveProject()" style="display: none;">💾 保存</button>
+                <button class="tool-btn info" onclick="exportData()">📤 导出数据</button>
+                <button class="tool-btn warning" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+            </div>
+            <div class="toolbar-right">
+                <button class="tool-btn danger" onclick="deleteProject()">🗑️ 删除项目</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="project-list">
+                <h2>项目列表</h2>
+                <input type="text" class="search-box" placeholder="搜索项目..." oninput="filterProjects(this.value)">
+                <div class="project-items" id="projectItems">
+                    <div class="empty-state">
+                        <div class="icon">📁</div>
+                        <h3>暂无项目</h3>
+                        <p>点击"新建项目"开始创建</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="project-form" id="projectForm">
+                <div class="empty-state" id="formEmpty">
+                    <div class="icon">📝</div>
+                    <h3>请选择或新建一个项目</h3>
+                    <p>在左侧选择一个项目查看详情，或点击"新建项目"开始创建</p>
+                </div>
+
+                <div id="detailContent" style="display: none;"></div>
+
+                <div id="formContent" style="display: none;">
+                    <div class="form-section">
+                        <h2>基本信息</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>项目名称 *</label>
+                                <input type="text" id="projectName" placeholder="请输入项目名称">
+                            </div>
+                            <div class="form-group">
+                                <label>项目代号</label>
+                                <input type="text" id="projectCode" placeholder="如: IOT-001">
+                            </div>
+                            <div class="form-group">
+                                <label>项目类型</label>
+                                <select id="projectType">
+                                    <option value="">请选择</option>
+                                    <option value="IOT-watch">IOT-watch</option>
+                                    <option value="TWS">TWS</option>
+                                    <option value="AIW-PIN">AIW-PIN</option>
+                                    <option value="AIW-Glasses">AIW-Glasses</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>负责人</label>
+                                <input type="text" id="projectOwner" placeholder="请输入负责人">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>规格描述</label>
+                                <textarea id="projectSpec" placeholder="请输入产品规格描述，如尺寸、重量、材质等"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>外观设计</h2>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>颜色选项</label>
+                                <div class="color-options" id="colorOptions">
+                                    <div class="color-option" data-color="曜石黑" style="background: #1a1a2e;" onclick="toggleColor(this)"><span class="color-label">曜石黑</span></div>
+                                    <div class="color-option" data-color="星空蓝" style="background: #1e3a5f;" onclick="toggleColor(this)"><span class="color-label">星空蓝</span></div>
+                                    <div class="color-option" data-color="樱花粉" style="background: #ffb7c5;" onclick="toggleColor(this)"><span class="color-label">樱花粉</span></div>
+                                    <div class="color-option" data-color="薄荷绿" style="background: #98ff98;" onclick="toggleColor(this)"><span class="color-label">薄荷绿</span></div>
+                                    <div class="color-option" data-color="月光银" style="background: #c0c0c0;" onclick="toggleColor(this)"><span class="color-label">月光银</span></div>
+                                    <div class="color-option" data-color="玫瑰金" style="background: #b76e79;" onclick="toggleColor(this)"><span class="color-label">玫瑰金</span></div>
+                                    <div class="color-option" data-color="钛金灰" style="background: #555555;" onclick="toggleColor(this)"><span class="color-label">钛金灰</span></div>
+                                    <div class="color-option" data-color="珍珠白" style="background: #f8f8ff;" onclick="toggleColor(this)"><span class="color-label">珍珠白</span></div>
+                                    <div class="color-option" data-color="日落橙" style="background: #ff6b35;" onclick="toggleColor(this)"><span class="color-label">日落橙</span></div>
+                                    <div class="color-option" data-color="极光紫" style="background: #9b59b6;" onclick="toggleColor(this)"><span class="color-label">极光紫</span></div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="watchFaceGroup">
+                                <label>表盘数量</label>
+                                <input type="number" id="watchFaceCount" placeholder="个" min="0">
+                            </div>
+                            <div class="form-group" id="strapTypeGroup">
+                                <label>表带类型</label>
+                                <select id="strapType">
+                                    <option value="">请选择</option>
+                                    <option value="硅胶">硅胶</option>
+                                    <option value="皮质">皮质</option>
+                                    <option value="金属">金属</option>
+                                    <option value="编织">编织</option>
+                                    <option value="磁吸">磁吸</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden-field" id="cameraContainer">
+                                <div class="camera-section">
+                                    <div class="form-group">
+                                        <label>摄像头型号</label>
+                                        <input type="text" id="cameraModel" placeholder="如: GC2385">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>摄像头厂家</label>
+                                        <input type="text" id="cameraVendor" placeholder="如: GalaxyCore">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>硬件参数</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>主控芯片型号</label>
+                                <input type="text" id="mainChip" placeholder="如: Qualcomm QCC5151">
+                            </div>
+                            <div class="form-group">
+                                <label>主控芯片厂家</label>
+                                <input type="text" id="mainChipVendor" placeholder="如: Qualcomm">
+                            </div>
+                            <div class="form-group">
+                                <label>PPG芯片型号</label>
+                                <input type="text" id="ppgChip" placeholder="如: MAX30102">
+                            </div>
+                            <div class="form-group">
+                                <label>PPG芯片厂家</label>
+                                <input type="text" id="ppgChipVendor" placeholder="如: Maxim">
+                            </div>
+                            <div class="form-group">
+                                <label>GPS芯片型号</label>
+                                <input type="text" id="gpsChip" placeholder="如: u-blox M8">
+                            </div>
+                            <div class="form-group">
+                                <label>GPS芯片厂家</label>
+                                <input type="text" id="gpsChipVendor" placeholder="如: u-blox">
+                            </div>
+                            <div class="form-group">
+                                <label>A+G Sensor型号</label>
+                                <input type="text" id="agSensor" placeholder="如: BMI160">
+                            </div>
+                            <div class="form-group">
+                                <label>A+G Sensor厂家</label>
+                                <input type="text" id="agSensorVendor" placeholder="如: Bosch">
+                            </div>
+                            <div class="form-group">
+                                <label>NAND Flash型号</label>
+                                <input type="text" id="nandFlash" placeholder="如: MX25U3235F">
+                            </div>
+                            <div class="form-group">
+                                <label>NAND Flash厂家</label>
+                                <input type="text" id="nandFlashVendor" placeholder="如: Macronix">
+                            </div>
+                            <div class="form-group">
+                                <label>MIC型号</label>
+                                <input type="text" id="mic" placeholder="如: SPH0645">
+                            </div>
+                            <div class="form-group">
+                                <label>MIC厂家</label>
+                                <input type="text" id="micVendor" placeholder="如: Knowles">
+                            </div>
+                            <div class="form-group">
+                                <label>电池容量</label>
+                                <input type="text" id="batteryCapacity" placeholder="如: 300mAh">
+                            </div>
+                            <div class="form-group">
+                                <label>充电方式</label>
+                                <select id="chargeType">
+                                    <option value="">请选择</option>
+                                    <option value="磁吸充电">磁吸充电</option>
+                                    <option value="USB-C">USB-C</option>
+                                    <option value="无线充电">无线充电</option>
+                                    <option value="太阳能">太阳能</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>性能指标</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>GPS定位时长</label>
+                                <input type="text" id="gpsTime" placeholder="如: 30秒冷启动/3秒热启动">
+                            </div>
+                            <div class="form-group">
+                                <label>GPS定位精度</label>
+                                <input type="text" id="gpsAccuracy" placeholder="如: 2.5m CEP">
+                            </div>
+                            <div class="form-group">
+                                <label>蓝牙版本</label>
+                                <select id="bluetoothVersion">
+                                    <option value="">请选择</option>
+                                    <option value="BT 5.0">BT 5.0</option>
+                                    <option value="BT 5.1">BT 5.1</option>
+                                    <option value="BT 5.2">BT 5.2</option>
+                                    <option value="BT 5.3">BT 5.3</option>
+                                    <option value="BT 5.4">BT 5.4</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>蓝牙范围</label>
+                                <input type="text" id="bluetoothRange" placeholder="如: 10米">
+                            </div>
+                            <div class="form-group">
+                                <label>功耗指标 (工作电流)</label>
+                                <input type="text" id="powerConsumption" placeholder="如: 15mA@5V">
+                            </div>
+                            <div class="form-group">
+                                <label>待机时间</label>
+                                <input type="text" id="standbyTime" placeholder="如: 14天">
+                            </div>
+                            <div class="form-group">
+                                <label>连续使用时间</label>
+                                <input type="text" id="usageTime" placeholder="如: 7天(GPS关)">
+                            </div>
+                            <div class="form-group">
+                                <label>防水等级</label>
+                                <select id="waterproof">
+                                    <option value="">请选择</option>
+                                    <option value="IPX4">IPX4 (防溅)</option>
+                                    <option value="IPX5">IPX5 (防喷射)</option>
+                                    <option value="IPX6">IPX6 (防浸)</option>
+                                    <option value="IP67">IP67 (1米30分)</option>
+                                    <option value="IP68">IP68 (1.5米30分)</option>
+                                    <option value="5ATM">5ATM (50米)</option>
+                                    <option value="10ATM">10ATM (100米)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>软件功能</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Feature 数量</label>
+                                <input type="number" id="featureCount" placeholder="个" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>APP 支持平台</label>
+                                <div style="display: flex; gap: 16px; margin-top: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;">
+                                        <input type="checkbox" id="supportIOS"> iOS
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 4px; font-size: 14px;">
+                                        <input type="checkbox" id="supportAndroid"> Android
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>功能特性列表</label>
+                                <div class="features-input">
+                                    <input type="text" id="newFeature" placeholder="输入功能名称">
+                                    <button class="tool-btn primary" onclick="addFeature()">添加</button>
+                                </div>
+                                <div class="features-list" id="featuresList"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>版本信息</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>CF版本</label>
+                                <input type="text" id="cfVersion" placeholder="如: CF v1.0.0">
+                            </div>
+                            <div class="form-group">
+                                <label>RRR版本</label>
+                                <input type="text" id="rrrVersion" placeholder="如: RRR v2.0.0">
+                            </div>
+                            <div class="form-group">
+                                <label>RRR时间</label>
+                                <input type="date" id="rrrTime">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>🧪 项目测试数据</h2>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>测试数据列表</label>
+                                <div class="test-data-container" id="testDataContainer"></div>
+                                <button class="add-entry-btn" onclick="addTestDataEntry()">+ 添加测试数据</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2>备注信息</h2>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>项目备注</label>
+                                <textarea id="projectNotes" placeholder="请输入其他需要记录的信息..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="tool-btn" style="background: #f0f0f0; color: #666;" onclick="cancelEdit()">✕ 取消编辑</button>
+                        <button class="tool-btn success" onclick="saveProject()">💾 保存项目</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let currentProjectId = null;
+        let selectedColors = [];
+        let features = [];
+        let testData = [];
+        let currentMode = 'idle'; // 'idle', 'detail', 'edit', 'new'
+        let savedBeforeEdit = null; // 保存编辑前的状态，用于取消
+
+        function loadProjects() {
+            const saved = localStorage.getItem('projectInfoData');
+            if (saved) {
+                projects = JSON.parse(saved);
+            }
+            renderProjectList();
+            updateToolbarButtons();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('projectInfoData', JSON.stringify(projects));
+        }
+
+        function renderProjectList(filter = '') {
+            const container = document.getElementById('projectItems');
+            
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📁</div>
+                        <h3>暂无项目</h3>
+                        <p>点击"新建项目"开始创建</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const filtered = projects.filter(p => 
+                p.name.toLowerCase().includes(filter.toLowerCase()) ||
+                (p.code && p.code.toLowerCase().includes(filter.toLowerCase())) ||
+                (p.cfVersion && p.cfVersion.toLowerCase().includes(filter.toLowerCase())) ||
+                (p.rrrVersion && p.rrrVersion.toLowerCase().includes(filter.toLowerCase())) ||
+                (p.mainChip && p.mainChip.toLowerCase().includes(filter.toLowerCase()))
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🔍</div>
+                        <h3>未找到项目</h3>
+                        <p>尝试其他关键词</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const infoTags = [];
+                if (p.cfVersion) infoTags.push(`<span class="info-tag cf">CF: ${escapeHtml(p.cfVersion)}</span>`);
+                if (p.rrrVersion) infoTags.push(`<span class="info-tag rrr">RRR: ${escapeHtml(p.rrrVersion)}</span>`);
+                if (p.rrrTime) infoTags.push(`<span class="info-tag rrr">${escapeHtml(p.rrrTime)}</span>`);
+                if (p.mainChip) infoTags.push(`<span class="info-tag">${escapeHtml(p.mainChip.split(' ')[0] || p.mainChip)}</span>`);
+                if (p.agSensor) infoTags.push(`<span class="info-tag">${escapeHtml(p.agSensor.split(' ')[0] || p.agSensor)}</span>`);
+                if (p.nandFlash) infoTags.push(`<span class="info-tag">${escapeHtml(p.nandFlash.split(' ')[0] || p.nandFlash)}</span>`);
+                if (p.mic) infoTags.push(`<span class="info-tag">${escapeHtml(p.mic.split(' ')[0] || p.mic)}</span>`);
+                if (p.cameraModel) infoTags.push(`<span class="info-tag">${escapeHtml(p.cameraModel.split(' ')[0] || p.cameraModel)}</span>`);
+                
+                const details = [];
+                if (p.watchFaceCount) details.push(`<div class="info-row"><span class="label">表盘:</span><span class="value">${p.watchFaceCount}个</span></div>`);
+                if (p.cameraModel) details.push(`<div class="info-row"><span class="label">摄像头:</span><span class="value">${escapeHtml(p.cameraModel)}</span></div>`);
+                if (p.featureCount) details.push(`<div class="info-row"><span class="label">Feature:</span><span class="value">${p.featureCount}个</span></div>`);
+                if (p.gpsTime) details.push(`<div class="info-row"><span class="label">GPS:</span><span class="value">${escapeHtml(p.gpsTime)}</span></div>`);
+                if (p.powerConsumption) details.push(`<div class="info-row"><span class="label">功耗:</span><span class="value">${escapeHtml(p.powerConsumption)}</span></div>`);
+                if (p.agSensor) details.push(`<div class="info-row"><span class="label">A+G:</span><span class="value">${escapeHtml(p.agSensor)}</span></div>`);
+                if (p.nandFlash) details.push(`<div class="info-row"><span class="label">NAND:</span><span class="value">${escapeHtml(p.nandFlash)}</span></div>`);
+                if (p.mic) details.push(`<div class="info-row"><span class="label">MIC:</span><span class="value">${escapeHtml(p.mic)}</span></div>`);
+                
+                return `
+                <div class="project-item ${p.id === currentProjectId ? 'active' : ''}" onclick="selectProject('${p.id}')">
+                    <div class="project-name">${escapeHtml(p.name)}</div>
+                    <div class="project-meta">
+                        ${p.code ? escapeHtml(p.code) + ' | ' : ''}
+                        ${p.type || '未设置类型'}
+                    </div>
+                    ${infoTags.length > 0 ? `<div class="project-info">${infoTags.join('')}</div>` : ''}
+                    ${details.length > 0 ? `<div class="info-detail">${details.join('')}</div>` : ''}
+                </div>
+            `}).join('');
+        }
+
+        function filterProjects(value) {
+            renderProjectList(value);
+        }
+
+        function selectProject(id) {
+            currentProjectId = id;
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+
+            currentMode = 'detail';
+            document.getElementById('formEmpty').style.display = 'none';
+            document.getElementById('formContent').style.display = 'none';
+            document.getElementById('detailContent').style.display = 'block';
+            renderDetailView(project);
+            updateToolbarButtons();
+
+            renderProjectList(document.querySelector('.search-box').value);
+        }
+
+        function updateToolbarButtons() {
+            const saveBtn = document.querySelector('.toolbar-left .tool-btn.success');
+            if (currentMode === 'detail' || currentMode === 'idle') {
+                saveBtn.style.display = 'none';
+            } else {
+                saveBtn.style.display = 'flex';
+            }
+        }
+
+        function renderDetailView(project) {
+            const colors = project.colors || [];
+            const colorMap = {
+                '曜石黑': '#1a1a2e', '星空蓝': '#1e3a5f', '樱花粉': '#ffb7c5',
+                '薄荷绿': '#98ff98', '月光银': '#c0c0c0', '玫瑰金': '#b76e79',
+                '钛金灰': '#555555', '珍珠白': '#f8f8ff', '日落橙': '#ff6b35',
+                '极光紫': '#9b59b6'
+            };
+            
+            const colorDots = colors.map(c => 
+                `<div class="detail-color-dot" style="background: ${colorMap[c] || '#ccc'};" title="${escapeHtml(c)}"></div>`
+            ).join('');
+
+            const featureTags = (project.features || []).map(f => 
+                `<span class="detail-feature-tag">${escapeHtml(f)}</span>`
+            ).join('');
+
+            const p = project;
+            const fields = [
+                { label: '项目名称', value: p.name },
+                { label: '项目代号', value: p.code },
+                { label: '项目类型', value: p.type },
+                { label: '负责人', value: p.owner },
+                { label: '规格描述', value: p.spec, full: true },
+                { label: '主控芯片型号', value: p.mainChip },
+                { label: '主控芯片厂家', value: p.mainChipVendor },
+                { label: 'PPG芯片型号', value: p.ppgChip },
+                { label: 'PPG芯片厂家', value: p.ppgChipVendor },
+                { label: 'GPS芯片型号', value: p.gpsChip },
+                { label: 'GPS芯片厂家', value: p.gpsChipVendor },
+                { label: 'A+G Sensor型号', value: p.agSensor },
+                { label: 'A+G Sensor厂家', value: p.agSensorVendor },
+                { label: 'NAND Flash型号', value: p.nandFlash },
+                { label: 'NAND Flash厂家', value: p.nandFlashVendor },
+                { label: 'MIC型号', value: p.mic },
+                { label: 'MIC厂家', value: p.micVendor },
+                { label: '电池容量', value: p.batteryCapacity },
+                { label: '充电方式', value: p.chargeType },
+                { label: 'GPS定位时长', value: p.gpsTime },
+                { label: 'GPS定位精度', value: p.gpsAccuracy },
+                { label: '蓝牙版本', value: p.bluetoothVersion },
+                { label: '蓝牙范围', value: p.bluetoothRange },
+                { label: '功耗指标', value: p.powerConsumption },
+                { label: '待机时间', value: p.standbyTime },
+                { label: '连续使用时间', value: p.usageTime },
+                { label: '防水等级', value: p.waterproof },
+                { label: '表盘数量', value: p.watchFaceCount ? p.watchFaceCount + '个' : '' },
+                { label: 'Feature数量', value: p.featureCount ? p.featureCount + '个' : '' },
+                { label: '表带类型', value: p.strapType },
+                { label: '摄像头型号', value: p.cameraModel },
+                { label: '摄像头厂家', value: p.cameraVendor },
+                { label: 'CF版本', value: p.cfVersion },
+                { label: 'RRR版本', value: p.rrrVersion },
+                { label: 'RRR时间', value: p.rrrTime },
+                { label: 'APP支持平台', value: [p.supportIOS ? 'iOS' : '', p.supportAndroid ? 'Android' : ''].filter(Boolean).join(', ') },
+            ];
+
+            const basicFields = fields.filter((_, i) => i < 5);
+            const hardwareFields = fields.filter((_, i) => i >= 5 && i < 19);
+            const performanceFields = fields.filter((_, i) => i >= 19 && i < 27);
+            const softwareFields = fields.filter((_, i) => i >= 27 && i < 31);
+            const versionFields = fields.filter((_, i) => i >= 31);
+
+            const renderFields = (items) => items.map(f => `
+                <div class="detail-item ${f.full ? 'full-width' : ''}">
+                    <div class="label">${f.label}</div>
+                    <div class="value ${!f.value ? 'empty' : ''}">${escapeHtml(f.value) || '未填写'}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-view">
+                    <div class="detail-header">
+                        <h2>${escapeHtml(p.name || '未命名项目')}</h2>
+                        <div class="actions">
+                            <button class="tool-btn primary" onclick="enterEditMode()">✏️ 编辑</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>📋 基本信息</h3>
+                        <div class="detail-grid">
+                            ${renderFields(basicFields)}
+                        </div>
+                    </div>
+
+                    ${colorDots ? `
+                    <div class="detail-section">
+                        <h3>🎨 外观设计</h3>
+                        <div class="detail-item full-width">
+                            <div class="label">颜色选项</div>
+                            <div class="detail-colors">${colorDots}</div>
+                        </div>
+                    </div>` : ''}
+
+                    <div class="detail-section">
+                        <h3>🔧 硬件参数</h3>
+                        <div class="detail-grid">
+                            ${renderFields(hardwareFields)}
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>📊 性能指标</h3>
+                        <div class="detail-grid">
+                            ${renderFields(performanceFields)}
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>⚙️ 软件功能</h3>
+                        <div class="detail-grid">
+                            ${renderFields(softwareFields)}
+                        </div>
+                        ${featureTags ? `
+                        <div class="detail-item full-width">
+                            <div class="label">功能特性</div>
+                            <div class="detail-features">${featureTags}</div>
+                        </div>` : ''}
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>📌 版本信息</h3>
+                        <div class="detail-grid">
+                            ${renderFields(versionFields)}
+                        </div>
+                    </div>
+
+                    ${(p.testData && p.testData.length > 0) ? `
+                    <div class="detail-section">
+                        <h3>🧪 测试数据</h3>
+                        <div style="overflow-x: auto; margin-top: 12px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <thead>
+                                    <tr style="background: #f5f5f7;">
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5ea; font-weight: 600; color: #6e6e73;">软件阶段</th>
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5ea; font-weight: 600; color: #6e6e73;">测试版本</th>
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5ea; font-weight: 600; color: #6e6e73;">Component</th>
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5ea; font-weight: 600; color: #6e6e73;">测试指标</th>
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5ea; font-weight: 600; color: #6e6e73;">CWV</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${p.testData.map(td => `
+                                        <tr style="border-bottom: 1px solid #f0f0f3;">
+                                            <td style="padding: 10px 12px; color: #1d1d1f;">${escapeHtml(td.phase || '-')}</td>
+                                            <td style="padding: 10px 12px; color: #1d1d1f;">${escapeHtml(td.version || '-')}</td>
+                                            <td style="padding: 10px 12px; color: #0071e3; font-weight: 500;">${escapeHtml(td.component || '-')}</td>
+                                            <td style="padding: 10px 12px; color: #1d1d1f;">${escapeHtml(td.metrics || '-')}</td>
+                                            <td style="padding: 10px 12px; color: #1d1d1f;">${escapeHtml(td.cwv || '-')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>` : ''}
+
+                    ${p.notes ? `
+                    <div class="detail-section">
+                        <h3>📝 备注信息</h3>
+                        <div class="detail-notes">${escapeHtml(p.notes)}</div>
+                    </div>` : ''}
+                </div>
+            `;
+        }
+
+        function enterEditMode() {
+            if (!currentProjectId) return;
+            currentMode = 'edit';
+            const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+
+            document.getElementById('detailContent').style.display = 'none';
+            document.getElementById('formContent').style.display = 'block';
+            updateToolbarButtons();
+
+            loadProjectToForm(project);
+        }
+
+        function loadProjectToForm(project) {
+            document.getElementById('projectName').value = project.name || '';
+            document.getElementById('projectCode').value = project.code || '';
+            document.getElementById('projectType').value = project.type || '';
+            document.getElementById('projectOwner').value = project.owner || '';
+            document.getElementById('projectSpec').value = project.spec || '';
+            document.getElementById('watchFaceCount').value = project.watchFaceCount || '';
+            document.getElementById('strapType').value = project.strapType || '';
+            document.getElementById('cameraModel').value = project.cameraModel || '';
+            document.getElementById('cameraVendor').value = project.cameraVendor || '';
+            document.getElementById('mainChip').value = project.mainChip || '';
+            document.getElementById('mainChipVendor').value = project.mainChipVendor || '';
+            document.getElementById('ppgChip').value = project.ppgChip || '';
+            document.getElementById('ppgChipVendor').value = project.ppgChipVendor || '';
+            document.getElementById('gpsChip').value = project.gpsChip || '';
+            document.getElementById('gpsChipVendor').value = project.gpsChipVendor || '';
+            document.getElementById('agSensor').value = project.agSensor || '';
+            document.getElementById('agSensorVendor').value = project.agSensorVendor || '';
+            document.getElementById('nandFlash').value = project.nandFlash || '';
+            document.getElementById('nandFlashVendor').value = project.nandFlashVendor || '';
+            document.getElementById('mic').value = project.mic || '';
+            document.getElementById('micVendor').value = project.micVendor || '';
+            document.getElementById('batteryCapacity').value = project.batteryCapacity || '';
+            document.getElementById('chargeType').value = project.chargeType || '';
+            document.getElementById('gpsTime').value = project.gpsTime || '';
+            document.getElementById('gpsAccuracy').value = project.gpsAccuracy || '';
+            document.getElementById('bluetoothVersion').value = project.bluetoothVersion || '';
+            document.getElementById('bluetoothRange').value = project.bluetoothRange || '';
+            document.getElementById('powerConsumption').value = project.powerConsumption || '';
+            document.getElementById('standbyTime').value = project.standbyTime || '';
+            document.getElementById('usageTime').value = project.usageTime || '';
+            document.getElementById('waterproof').value = project.waterproof || '';
+            document.getElementById('featureCount').value = project.featureCount || '';
+            document.getElementById('supportIOS').checked = project.supportIOS || false;
+            document.getElementById('supportAndroid').checked = project.supportAndroid || false;
+            document.getElementById('cfVersion').value = project.cfVersion || '';
+            document.getElementById('rrrVersion').value = project.rrrVersion || '';
+            document.getElementById('rrrTime').value = project.rrrTime || '';
+            document.getElementById('projectNotes').value = project.notes || '';
+
+            selectedColors = [...(project.colors || [])];
+            updateColorSelection();
+
+            features = [...(project.features || [])];
+            testData = JSON.parse(JSON.stringify(project.testData || []));
+            renderFeatures();
+            renderTestData();
+
+            updateFieldVisibility(project.type);
+        }
+
+        function newProject() {
+            const project = {
+                id: Date.now().toString(),
+                name: '',
+                code: '',
+                type: '',
+                owner: '',
+                spec: '',
+                colors: [],
+                watchFaceCount: '',
+                strapType: '',
+                cameraModel: '',
+                cameraVendor: '',
+                mainChip: '',
+                mainChipVendor: '',
+                ppgChip: '',
+                ppgChipVendor: '',
+                gpsChip: '',
+                gpsChipVendor: '',
+                agSensor: '',
+                agSensorVendor: '',
+                nandFlash: '',
+                nandFlashVendor: '',
+                mic: '',
+                micVendor: '',
+                batteryCapacity: '',
+                chargeType: '',
+                gpsTime: '',
+                gpsAccuracy: '',
+                bluetoothVersion: '',
+                bluetoothRange: '',
+                powerConsumption: '',
+                standbyTime: '',
+                usageTime: '',
+                waterproof: '',
+                featureCount: '',
+                supportIOS: false,
+                supportAndroid: false,
+                features: [],
+                testData: [],
+                cfVersion: '',
+                rrrVersion: '',
+                rrrTime: '',
+                notes: '',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            projects.push(project);
+            currentProjectId = project.id;
+            currentMode = 'new';
+            saveToStorage();
+
+            document.getElementById('formEmpty').style.display = 'none';
+            document.getElementById('detailContent').style.display = 'none';
+            document.getElementById('formContent').style.display = 'block';
+            updateToolbarButtons();
+            loadProjectToForm(project);
+            
+            document.getElementById('projectName').focus();
+            showToast('已创建新项目，请填写信息', 'info');
+        }
+
+        function saveProject() {
+            if (!currentProjectId) {
+                showToast('请先选择或创建一个项目', 'error');
+                return;
+            }
+
+            const name = document.getElementById('projectName').value.trim();
+            if (!name) {
+                showToast('项目名称不能为空', 'error');
+                return;
+            }
+
+            const index = projects.findIndex(p => p.id === currentProjectId);
+            if (index === -1) return;
+
+            projects[index] = {
+                ...projects[index],
+                name: name,
+                code: document.getElementById('projectCode').value.trim(),
+                type: document.getElementById('projectType').value,
+                owner: document.getElementById('projectOwner').value.trim(),
+                spec: document.getElementById('projectSpec').value.trim(),
+                colors: [...selectedColors],
+                watchFaceCount: document.getElementById('watchFaceCount').value,
+                strapType: document.getElementById('strapType').value,
+                cameraModel: document.getElementById('cameraModel').value.trim(),
+                cameraVendor: document.getElementById('cameraVendor').value.trim(),
+                mainChip: document.getElementById('mainChip').value.trim(),
+                mainChipVendor: document.getElementById('mainChipVendor').value.trim(),
+                ppgChip: document.getElementById('ppgChip').value.trim(),
+                ppgChipVendor: document.getElementById('ppgChipVendor').value.trim(),
+                gpsChip: document.getElementById('gpsChip').value.trim(),
+                gpsChipVendor: document.getElementById('gpsChipVendor').value.trim(),
+                agSensor: document.getElementById('agSensor').value.trim(),
+                agSensorVendor: document.getElementById('agSensorVendor').value.trim(),
+                nandFlash: document.getElementById('nandFlash').value.trim(),
+                nandFlashVendor: document.getElementById('nandFlashVendor').value.trim(),
+                mic: document.getElementById('mic').value.trim(),
+                micVendor: document.getElementById('micVendor').value.trim(),
+                batteryCapacity: document.getElementById('batteryCapacity').value.trim(),
+                chargeType: document.getElementById('chargeType').value,
+                gpsTime: document.getElementById('gpsTime').value.trim(),
+                gpsAccuracy: document.getElementById('gpsAccuracy').value.trim(),
+                bluetoothVersion: document.getElementById('bluetoothVersion').value,
+                bluetoothRange: document.getElementById('bluetoothRange').value.trim(),
+                powerConsumption: document.getElementById('powerConsumption').value.trim(),
+                standbyTime: document.getElementById('standbyTime').value.trim(),
+                usageTime: document.getElementById('usageTime').value.trim(),
+                waterproof: document.getElementById('waterproof').value,
+                featureCount: document.getElementById('featureCount').value,
+                supportIOS: document.getElementById('supportIOS').checked,
+                supportAndroid: document.getElementById('supportAndroid').checked,
+                features: [...features],
+                testData: JSON.parse(JSON.stringify(testData)),
+                cfVersion: document.getElementById('cfVersion').value.trim(),
+                rrrVersion: document.getElementById('rrrVersion').value.trim(),
+                rrrTime: document.getElementById('rrrTime').value,
+                notes: document.getElementById('projectNotes').value.trim(),
+                updatedAt: new Date().toISOString()
+            };
+
+            saveToStorage();
+            renderProjectList(document.querySelector('.search-box').value);
+            
+            showToast('保存成功！', 'success');
+
+            selectProject(currentProjectId);
+        }
+
+        function deleteProject() {
+            if (!currentProjectId) {
+                showToast('请先选择一个项目', 'error');
+                return;
+            }
+
+            const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+
+            if (!confirm(`确定要删除项目"${project.name}"吗？此操作不可撤销。`)) {
+                return;
+            }
+
+            projects = projects.filter(p => p.id !== currentProjectId);
+            currentProjectId = null;
+            currentMode = 'idle';
+            saveToStorage();
+            
+            document.getElementById('formEmpty').style.display = 'block';
+            document.getElementById('detailContent').style.display = 'none';
+            document.getElementById('formContent').style.display = 'none';
+            
+            renderProjectList(document.querySelector('.search-box').value);
+            showToast('项目已删除', 'info');
+        }
+
+        function cancelEdit() {
+            if (!currentProjectId) return;
+            const project = projects.find(p => p.id === currentProjectId);
+            if (!project) return;
+            
+            currentMode = 'detail';
+            document.getElementById('formContent').style.display = 'none';
+            document.getElementById('detailContent').style.display = 'block';
+            updateToolbarButtons();
+            renderDetailView(project);
+        }
+
+        function toggleColor(element) {
+            const color = element.dataset.color;
+            const index = selectedColors.indexOf(color);
+            
+            if (index > -1) {
+                selectedColors.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                selectedColors.push(color);
+                element.classList.add('selected');
+            }
+        }
+
+        function updateColorSelection() {
+            document.querySelectorAll('.color-option').forEach(option => {
+                if (selectedColors.includes(option.dataset.color)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        function addFeature() {
+            const input = document.getElementById('newFeature');
+            const value = input.value.trim();
+            
+            if (!value) {
+                showToast('请输入功能名称', 'error');
+                return;
+            }
+
+            if (features.includes(value)) {
+                showToast('该功能已存在', 'error');
+                return;
+            }
+
+            features.push(value);
+            input.value = '';
+            renderFeatures();
+        }
+
+        function removeFeature(index) {
+            features.splice(index, 1);
+            renderFeatures();
+        }
+
+        function renderFeatures() {
+            const container = document.getElementById('featuresList');
+            
+            if (features.length === 0) {
+                container.innerHTML = '<span style="color: #999; font-size: 13px;">尚未添加功能特性</span>';
+                return;
+            }
+
+            container.innerHTML = features.map((f, i) => `
+                <span class="feature-tag">
+                    ${escapeHtml(f)}
+                    <span class="remove" onclick="removeFeature(${i})">✕</span>
+                </span>
+            `).join('');
+        }
+
+        const TEST_COMPONENTS = [
+            'feature', 'functions', 'performance', 'battery life',
+            'stability', 'health&fitness algo', 'compatibility', 'audio', 'instrumentation'
+        ];
+
+        function addTestDataEntry() {
+            testData.push({
+                phase: '',
+                version: '',
+                metrics: '',
+                cwv: '',
+                component: ''
+            });
+            renderTestData();
+        }
+
+        function removeTestDataEntry(index) {
+            testData.splice(index, 1);
+            renderTestData();
+        }
+
+        function updateTestDataEntry(index, field, value) {
+            testData[index][field] = value;
+        }
+
+        function renderTestData() {
+            const container = document.getElementById('testDataContainer');
+            
+            if (testData.length === 0) {
+                container.innerHTML = '<span style="color: #999; font-size: 13px; display:block; padding: 12px 0;">尚未添加测试数据</span>';
+                return;
+            }
+
+            container.innerHTML = testData.map((entry, i) => `
+                <div class="test-data-entry">
+                    <div class="test-data-entry-header">
+                        <span>🧪 测试数据 #${i + 1}</span>
+                        <button class="remove-entry-btn" onclick="removeTestDataEntry(${i})">删除</button>
+                    </div>
+                    <div class="test-data-fields">
+                        <div class="form-group">
+                            <label>软件阶段</label>
+                            <input type="text" placeholder="如: EVT, DVT, PVT" value="${escapeHtml(entry.phase)}" onchange="updateTestDataEntry(${i}, 'phase', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>测试版本</label>
+                            <input type="text" placeholder="如: CF v1.0.0" value="${escapeHtml(entry.version)}" onchange="updateTestDataEntry(${i}, 'version', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Component</label>
+                            <select onchange="updateTestDataEntry(${i}, 'component', this.value)">
+                                <option value="">请选择</option>
+                                ${TEST_COMPONENTS.map(c => `<option value="${c}" ${entry.component === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>CWV</label>
+                            <input type="text" placeholder="如: CWV-001" value="${escapeHtml(entry.cwv)}" onchange="updateTestDataEntry(${i}, 'cwv', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>测试指标</label>
+                            <input type="text" placeholder="如: 心率精度 ±2bpm" value="${escapeHtml(entry.metrics)}" onchange="updateTestDataEntry(${i}, 'metrics', this.value)">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportData() {
+            if (projects.length === 0) {
+                showToast('没有数据可导出', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify(projects, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `项目信息导出_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('导出成功！', 'success');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) {
+                        throw new Error('数据格式错误');
+                    }
+                    
+                    if (confirm(`检测到 ${imported.length} 个项目。是否合并到现有数据？\n点击"确定"合并，"取消"替换全部数据。`)) {
+                        projects = [...projects, ...imported];
+                    } else {
+                        projects = imported;
+                    }
+                    
+                    saveToStorage();
+                    renderProjectList();
+                    showToast('导入成功！', 'success');
+                } catch (err) {
+                    showToast('导入失败：' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('newFeature').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addFeature();
+            }
+        });
+
+        document.getElementById('projectType').addEventListener('change', function() {
+            updateFieldVisibility(this.value);
+        });
+
+        function updateFieldVisibility(projectType) {
+            const hideWatchFaceAndStrap = ['AIW-PIN', 'AIW-Glasses', 'TWS'].includes(projectType);
+            const showCamera = ['AIW-PIN', 'AIW-Glasses'].includes(projectType);
+            
+            const watchFaceGroup = document.getElementById('watchFaceGroup');
+            const strapTypeGroup = document.getElementById('strapTypeGroup');
+            const cameraContainer = document.getElementById('cameraContainer');
+            
+            if (hideWatchFaceAndStrap) {
+                watchFaceGroup.style.display = 'none';
+                strapTypeGroup.style.display = 'none';
+            } else {
+                watchFaceGroup.style.display = '';
+                strapTypeGroup.style.display = '';
+            }
+            
+            if (showCamera) {
+                cameraContainer.classList.remove('hidden-field');
+                cameraContainer.style.display = 'block';
+                cameraContainer.classList.add('showing');
+            } else {
+                cameraContainer.classList.add('hidden-field');
+                cameraContainer.style.display = 'none';
+                cameraContainer.classList.remove('showing');
+            }
+        }
+
+        loadProjects();
+    </script>
+</body>
+</html>

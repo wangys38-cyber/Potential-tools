@@ -1,0 +1,10 @@
+flask
+gunicorn
+openpyxl
+xlrd
+beautifulsoup4
+lxml
+playwright
+markdown
+requests
+python-docx

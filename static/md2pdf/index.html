@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF快转</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "SimSun", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 8px;
+            font-size: 15px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .watermark-settings {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e0e0e0;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .watermark-settings label {
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .watermark-settings input[type="text"] {
+            flex: 1;
+            min-width: 300px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .watermark-settings input[type="text"]:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .watermark-settings .hint {
+            font-size: 13px;
+            color: #888;
+            background: #f5f3ff;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .panel {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 18px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-header .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .panel-header .icon.blue {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .panel-header .icon.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+        }
+
+        .panel-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .editor-area {
+            height: 520px;
+            position: relative;
+        }
+
+        .editor-area textarea {
+            width: 100%;
+            height: 100%;
+            background: #fafafa;
+            border: none;
+            outline: none;
+            padding: 24px;
+            color: #333;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 14px;
+            resize: none;
+            line-height: 1.6;
+            transition: background 0.3s ease;
+        }
+
+        .editor-area textarea:focus {
+            background: #ffffff;
+        }
+
+        .editor-area textarea::placeholder {
+            color: #999;
+        }
+
+        .preview-area {
+            height: 520px;
+            overflow-y: auto;
+            padding: 24px;
+            background: #fff;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .preview-area h1 { font-size: 26px; font-weight: bold; border-bottom: 2px solid #667eea; padding-bottom: 12px; margin-bottom: 20px; color: #333; }
+        .preview-area h2 { font-size: 22px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; color: #333; }
+        .preview-area h3 { font-size: 19px; font-weight: bold; margin-top: 25px; margin-bottom: 12px; color: #333; }
+        .preview-area h4 { font-size: 17px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; color: #333; }
+        .preview-area p { margin-bottom: 15px; text-indent: 2em; }
+        .preview-area ul, .preview-area ol { margin-bottom: 15px; padding-left: 2em; }
+        .preview-area li { margin-bottom: 8px; }
+        .preview-area blockquote {
+            border-left: 4px solid #667eea;
+            padding: 12px 16px;
+            margin: 15px 0;
+            color: #666;
+            font-style: italic;
+            background-color: #f5f3ff;
+            border-radius: 0 8px 8px 0;
+        }
+        .preview-area code {
+            background-color: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.9em;
+        }
+        .preview-area pre {
+            background-color: #2d2d2d;
+            color: #ccc;
+            padding: 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .preview-area pre code { background-color: transparent; padding: 0; color: inherit; }
+        .preview-area table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .preview-area th, .preview-area td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .preview-area th { background-color: #f5f3ff; font-weight: bold; color: #667eea; }
+        .preview-area a { color: #667eea; text-decoration: none; font-weight: 500; }
+        .preview-area a:hover { text-decoration: underline; }
+        .preview-area img { max-width: 100%; height: auto; border-radius: 8px; }
+        .preview-area hr { border: none; border-top: 2px dashed #ddd; margin: 25px 0; }
+
+        .watermark-preview {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.03;
+            font-size: 70px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(-15deg);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 16px;
+            margin-top: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.5);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(240, 147, 251, 0.5);
+        }
+
+        .btn-upload:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-word {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-word:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
+        }
+
+        .btn-word:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spinner {
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .upload-area {
+            background: #ffffff;
+            border: 2px dashed #ddd;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f5f3ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.active {
+            border-color: #11998e;
+            background: #f0fff5;
+        }
+
+        .upload-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .upload-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .batch-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .batch-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.5);
+        }
+
+        .batch-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #wordFileInput {
+            display: none;
+        }
+
+        #batchFileInput {
+            display: none;
+        }
+
+        .progress-container {
+            display: none;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e0e0e0;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .progress-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: #f0f0f0;
+        }
+
+        .file-item.success {
+            background: #f0fff5;
+            border-left: 4px solid #11998e;
+        }
+
+        .file-item.failed {
+            background: #fff5f5;
+            border-left: 4px solid #ef4444;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 20px;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 400px;
+        }
+
+        .file-status {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .file-status.success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .file-status.failed {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .file-status.processing {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .download-all-btn {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .download-all-btn.show {
+            display: flex;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 25px;
+            color: #666;
+            font-size: 14px;
+            background: #f8f9fa;
+            margin-top: 30px;
+            border-radius: 16px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-header h2 {
+                font-size: 16px;
+            }
+
+            .btn {
+                padding: 14px 24px;
+                font-size: 14px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .upload-area {
+                padding: 35px 15px;
+            }
+
+            .watermark-settings {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .watermark-settings input[type="text"] {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark-preview" id="watermark">Motorola 2026年07月21日</div>
+
+    <div class="header">
+        <h1>PDF快转</h1>
+        <p>支持Markdown和Word文件转换，自动添加自定义水印</p>
+    </div>
+
+    <div class="container">
+        <div class="watermark-settings">
+            <label for="watermarkInput">
+                <span>🔖</span>
+                <span>自定义水印：</span>
+            </label>
+            <input type="text" id="watermarkInput" placeholder="输入水印内容，默认为 Motorola + 日期" value="">
+            <div class="hint">默认格式：Motorola 2026年07月21日</div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" accept=".md,.docx">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">点击或拖拽上传 Markdown 或 Word 文件</div>
+            <div class="upload-hint">支持 .md 和 .docx 文件，自动添加自定义水印</div>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-header">
+                <h3>📊 批量转换进度</h3>
+                <span class="progress-info" id="progressInfo">0/0 文件</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="file-list" id="fileList"></div>
+            <button class="btn btn-success download-all-btn" id="downloadAllBtn">
+                <span>📥</span>
+                <span>下载全部PDF</span>
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="icon blue">&lt;/&gt;</div>
+                    <h2>Markdown 编辑</h2>
+                </div>
+                <div class="editor-area">
+                    <textarea id="editor" placeholder="在此输入Markdown内容...&#10;&#10;示例：&#10;# 标题&#10;**加粗文本**&#10;*斜体文本*&#10;- 列表项&#10;```python&#10;code&#10;```"></textarea>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="icon green">👁</div>
+                    <h2>实时预览</h2>
+                </div>
+                <div class="preview-area" id="preview">
+                    <p style="text-align: center; color: #999; margin-top: 50px;">输入内容后将在这里显示预览效果</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" id="convertBtn">
+                <span class="spinner" id="convertSpinner" style="display: none;"></span>
+                <span id="convertText">转换为PDF</span>
+            </button>
+            <button class="btn btn-upload" id="uploadBtn">
+                <span class="spinner" id="uploadSpinner" style="display: none;"></span>
+                <span id="uploadText">markdown转PDF</span>
+            </button>
+            <button class="btn btn-word" id="wordBtn">
+                <span>📄</span>
+                <span>Word转PDF</span>
+            </button>
+            <button class="btn batch-btn" id="batchBtn">
+                <span>📦</span>
+                <span>批量转换</span>
+            </button>
+            <button class="btn btn-success" id="downloadBtn" disabled>
+                <span>📥</span>
+                <span>下载PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Powered by <a href="#" target="_blank">Yongshuo</a> | Support: Markdown (.md) | Word (.docx)</p>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const convertBtn = document.getElementById('convertBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const wordBtn = document.getElementById('wordBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const convertSpinner = document.getElementById('convertSpinner');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const convertText = document.getElementById('convertText');
+        const uploadText = document.getElementById('uploadText');
+        const watermark = document.getElementById('watermark');
+        const watermarkInput = document.getElementById('watermarkInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const wordFileInput = document.createElement('input');
+        wordFileInput.type = 'file';
+        wordFileInput.accept = '.docx';
+        wordFileInput.style.display = 'none';
+
+        const batchFileInput = document.createElement('input');
+        batchFileInput.type = 'file';
+        batchFileInput.id = 'batchFileInput';
+        batchFileInput.accept = '.md,.docx';
+        batchFileInput.multiple = true;
+        batchFileInput.style.display = 'none';
+
+        document.body.appendChild(wordFileInput);
+        document.body.appendChild(batchFileInput);
+
+        const batchBtn = document.getElementById('batchBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressInfo = document.getElementById('progressInfo');
+        const progressFill = document.getElementById('progressFill');
+        const fileList = document.getElementById('fileList');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+        let previewTimeout;
+        let currentFilename = '';
+        let successFiles = [];
+
+        function getWatermarkText() {
+            const custom = watermarkInput.value.trim();
+            if (custom) {
+                return custom;
+            }
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `Motorola ${year}年${month}月${day}日`;
+        }
+
+        function updateDate() {
+            watermark.textContent = getWatermarkText();
+        }
+
+        updateDate();
+
+        watermarkInput.addEventListener('input', () => {
+            updateDate();
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(updatePreview, 300);
+        });
+
+        async function updatePreview() {
+            const content = editor.value;
+            const watermarkText = getWatermarkText();
+
+            if (!content.trim()) {
+                preview.innerHTML = '<p style="text-align: center; color: #999; margin-top: 50px;">输入内容后将在这里显示预览效果</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content, watermark: watermarkText }),
+                });
+
+                const data = await response.json();
+                preview.innerHTML = data.html;
+            } catch (error) {
+                console.error('Preview error:', error);
+            }
+        }
+
+        editor.addEventListener('input', () => {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(updatePreview, 300);
+        });
+
+        convertBtn.addEventListener('click', async () => {
+            const content = editor.value;
+            const watermarkText = getWatermarkText();
+
+            if (!content.trim()) {
+                alert('请输入内容');
+                return;
+            }
+
+            convertBtn.disabled = true;
+            convertSpinner.style.display = 'block';
+            convertText.textContent = '转换中...';
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content, filename: currentFilename, watermark: watermarkText }),
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('转换失败：' + data.error);
+                } else {
+                    downloadBtn.disabled = false;
+                    downloadBtn.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = `/download/${data.filename}`;
+                        a.download = data.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                    alert('转换成功！点击下载按钮获取PDF');
+                }
+            } catch (error) {
+                alert('转换失败：' + error.message);
+            } finally {
+                convertBtn.disabled = false;
+                convertSpinner.style.display = 'none';
+                convertText.textContent = '转换为PDF';
+            }
+        });
+
+        wordBtn.addEventListener('click', () => {
+            wordFileInput.click();
+        });
+
+        wordFileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            const file = files[0];
+
+            if (!file.name.toLowerCase().endsWith('.docx')) {
+                alert('只支持Word文件(.docx)');
+                return;
+            }
+
+            const watermarkText = getWatermarkText();
+
+            uploadBtn.disabled = true;
+            uploadSpinner.style.display = 'block';
+            uploadText.textContent = 'Word转换中...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('watermark', watermarkText);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('转换失败：' + data.error);
+                } else {
+                    downloadBtn.disabled = false;
+                    downloadBtn.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = `/download/${data.filename}`;
+                        a.download = `${data.filename}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                    alert(`文件 "${data.original_name}.docx" 转换成功！点击下载按钮获取PDF`);
+                }
+            } catch (error) {
+                alert('转换失败：' + error.message);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadSpinner.style.display = 'none';
+                uploadText.textContent = 'markdown转PDF';
+                wordFileInput.value = '';
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            const ext = file.name.toLowerCase();
+            if (!ext.endsWith('.md') && !ext.endsWith('.docx')) {
+                alert('只支持Markdown文件(.md)和Word文件(.docx)');
+                return;
+            }
+
+            currentFilename = file.name.replace(/\.(md|docx)$/i, '');
+
+            if (ext.endsWith('.md')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    editor.value = e.target.result;
+                    updatePreview();
+                };
+                reader.readAsText(file, 'utf-8');
+            } else {
+                alert('Word文件已加载，请点击"上传文件转换"按钮进行转换');
+            }
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            fileInput.click();
+            fileInput.onchange = async (e) => {
+                const files = e.target.files;
+                if (files.length === 0) return;
+
+                const file = files[0];
+                const ext = file.name.toLowerCase();
+
+                if (!ext.endsWith('.md') && !ext.endsWith('.docx')) {
+                    alert('只支持Markdown文件(.md)和Word文件(.docx)');
+                    return;
+                }
+
+                const watermarkText = getWatermarkText();
+
+                uploadBtn.disabled = true;
+                uploadSpinner.style.display = 'block';
+                uploadText.textContent = '上传转换中...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('watermark', watermarkText);
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        alert('转换失败：' + data.error);
+                    } else {
+                        downloadBtn.disabled = false;
+                        downloadBtn.onclick = () => {
+                            const a = document.createElement('a');
+                            a.href = `/download/${data.filename}`;
+                            a.download = `${data.filename}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        };
+                        alert(`文件 "${data.original_name}.${ext.endsWith('.md') ? 'md' : 'docx'}" 转换成功！点击下载按钮获取PDF`);
+                    }
+                } catch (error) {
+                    alert('转换失败：' + error.message);
+                } finally {
+                    uploadBtn.disabled = false;
+                    uploadSpinner.style.display = 'none';
+                    uploadText.textContent = 'markdown转PDF';
+                    fileInput.value = '';
+                }
+            };
+        });
+
+        batchBtn.addEventListener('click', () => {
+            batchFileInput.click();
+        });
+
+        batchFileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            const validFiles = Array.from(files).filter(f => 
+                f.name.toLowerCase().endsWith('.md') || f.name.toLowerCase().endsWith('.docx')
+            );
+
+            if (validFiles.length === 0) {
+                alert('请选择Markdown文件(.md)或Word文件(.docx)');
+                return;
+            }
+
+            startBatchConvert(validFiles);
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                if (files.length === 1) {
+                    handleFile(files[0]);
+                } else {
+                    const validFiles = Array.from(files).filter(f => 
+                        f.name.toLowerCase().endsWith('.md') || f.name.toLowerCase().endsWith('.docx')
+                    );
+                    if (validFiles.length > 0) {
+                        startBatchConvert(validFiles);
+                    } else {
+                        alert('请选择Markdown文件(.md)或Word文件(.docx)');
+                    }
+                }
+            }
+        });
+
+        async function startBatchConvert(files) {
+            const watermarkText = getWatermarkText();
+            
+            progressContainer.classList.add('show');
+            fileList.innerHTML = '';
+            successFiles = [];
+            downloadAllBtn.classList.remove('show');
+
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.id = `file-${index}`;
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-icon">${file.name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                        <span class="file-name">${file.name}</span>
+                    </div>
+                    <span class="file-status processing">处理中...</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            progressInfo.textContent = `0/${files.length} 文件`;
+            progressFill.style.width = '0%';
+
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files[]', file);
+            });
+            formData.append('watermark', watermarkText);
+
+            batchBtn.disabled = true;
+            convertBtn.disabled = true;
+            uploadBtn.disabled = true;
+            wordBtn.disabled = true;
+
+            try {
+                const response = await fetch('/batch-upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                data.results.forEach((result, index) => {
+                    const fileItem = document.getElementById(`file-${index}`);
+                    if (fileItem) {
+                        if (result.status === 'success') {
+                            fileItem.classList.add('success');
+                            fileItem.innerHTML = `
+                                <div class="file-info">
+                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                                    <span class="file-name">${result.original_name}</span>
+                                </div>
+                                <span class="file-status success">✓ 成功</span>
+                            `;
+                            successFiles.push(result.pdf_filename);
+                        } else {
+                            fileItem.classList.add('failed');
+                            fileItem.innerHTML = `
+                                <div class="file-info">
+                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                                    <span class="file-name">${result.original_name}</span>
+                                </div>
+                                <span class="file-status failed">✗ 失败</span>
+                            `;
+                        }
+                    }
+                });
+
+                progressInfo.textContent = `${data.success_count}/${files.length} 文件`;
+                progressFill.style.width = `${(data.success_count / files.length) * 100}%`;
+
+                if (successFiles.length > 0) {
+                    downloadAllBtn.classList.add('show');
+                    alert(`批量转换完成！成功: ${data.success_count}, 失败: ${data.fail_count}`);
+                } else {
+                    alert('所有文件转换失败，请检查文件格式');
+                }
+            } catch (error) {
+                alert('批量转换失败：' + error.message);
+            } finally {
+                batchBtn.disabled = false;
+                convertBtn.disabled = false;
+                uploadBtn.disabled = false;
+                wordBtn.disabled = false;
+                batchFileInput.value = '';
+            }
+        }
+
+        downloadAllBtn.addEventListener('click', () => {
+            successFiles.forEach((filename, index) => {
+                setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = `/download/${filename}`;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }, index * 500);
+            });
+        });
+
+        updatePreview();
+    </script>
+</body>
+</html>

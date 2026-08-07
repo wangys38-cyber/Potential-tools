@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具集</title>
+    <script>
+        function openTool(url) {
+            window.open(url, '_blank');
+        }
+        
+        function handleCardClick(e, url) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(url, '_blank');
+        }
+    </script>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --border: rgba(0, 0, 0, 0.06);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 980px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .tool-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 40px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .tool-icon {
+            font-size: 64px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+
+        .tool-card:hover .tool-icon {
+            transform: scale(1.1);
+        }
+
+        .tool-card h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+
+        .tool-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .tool-btn {
+            display: inline-block;
+            padding: 12px 36px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: var(--radius-full);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 60px;
+        }
+
+        .feature-list {
+            text-align: left;
+            padding-left: 20px;
+            margin-bottom: 25px;
+            list-style: none;
+        }
+
+        .feature-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            list-style: none;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .feature-list li::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .container {
+                margin: 30px auto;
+            }
+
+            .tools-grid {
+                gap: 20px;
+            }
+
+            .tool-card {
+                padding: 30px 20px;
+            }
+
+            .tool-icon {
+                font-size: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🛠️ 我的工具集</h1>
+            <p>一站式工具平台，集成多种实用工具</p>
+        </div>
+        <div style="text-align: right;">
+            <p style="font-size: 12px; color: #86868b;">Version 1.0</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tools-grid">
+            <div class="tool-card" onclick="openTool('/noteNB')">
+                <div class="tool-icon">📝</div>
+                <h2>牛马笔记</h2>
+                <p>强大的记事本应用，支持Markdown编辑、标签管理、主题切换等功能</p>
+                <ul class="feature-list">
+                    <li>笔记CRUD操作</li>
+                    <li>Markdown实时预览</li>
+                    <li>标签云分类</li>
+                    <li>多主题切换</li>
+                    <li>完成时间管理</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/noteNB')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/md2pdf')">
+                <div class="tool-icon">📄</div>
+                <h2>PDF快转</h2>
+                <p>支持Markdown和Word文件转换为PDF，自动添加自定义水印</p>
+                <ul class="feature-list">
+                    <li>Markdown转PDF</li>
+                    <li>Word转PDF</li>
+                    <li>批量转换功能</li>
+                    <li>自定义水印</li>
+                    <li>公式渲染支持</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/md2pdf')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/plan-generator')">
+                <div class="tool-icon">📅</div>
+                <h2>软件计划生成器</h2>
+                <p>输入项目类型和起始节点，一键生成完整的软件计划时间节点表</p>
+                <ul class="feature-list">
+                    <li>支持多项目类型</li>
+                    <li>自动计算节点时间</li>
+                    <li>里程碑标记</li>
+                    <li>导出CSV/复制/打印</li>
+                    <li>周数自动统计</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/plan-generator')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/project-info')">
+                <div class="tool-icon">📊</div>
+                <h2>项目信息收集</h2>
+                <p>收集和管理软件项目的完整技术规格信息</p>
+                <ul class="feature-list">
+                    <li>项目基本信息管理</li>
+                    <li>硬件参数记录</li>
+                    <li>性能指标追踪</li>
+                    <li>功能特性管理</li>
+                    <li>数据导入导出</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/project-info')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/excel-analysis')">
+                <div class="tool-icon">📊</div>
+                <h2>CR问题分析</h2>
+                <p>上传问题清单Excel，自动按模块/研发/日期分析，生成带水印PDF报告</p>
+                <ul class="feature-list">
+                    <li>模块问题统计</li>
+                    <li>研发问题统计</li>
+                    <li>每日新增/解决趋势</li>
+                    <li>自动字段识别</li>
+                    <li>PDF报告生成</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/excel-analysis')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/merit')">
+                <div class="tool-icon">🔔</div>
+                <h2>功德+1</h2>
+                <p>敲击木鱼，积攒功德，修身养性，净化心灵</p>
+                <ul class="feature-list">
+                    <li>点击木鱼敲击</li>
+                    <li>功德+1动态弹窗</li>
+                    <li>总功德与今日功德统计</li>
+                    <li>自动保存进度</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/merit')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card" onclick="openTool('/test-report')">
+                <div class="tool-icon">📋</div>
+                <h2>测试报告分析</h2>
+                <p>上传测试报告Excel，自动提取软件版本、测试内容、测试结论、测试标准</p>
+                <ul class="feature-list">
+                    <li>自动识别关键字段</li>
+                    <li>多Sheet支持</li>
+                    <li>Pass/Fail统计</li>
+                    <li>拖拽上传</li>
+                </ul>
+                <button onclick="handleCardClick(event, '/test-report')" class="tool-btn">进入使用</button>
+            </div>
+
+            <div class="tool-card">
+                <div class="tool-icon">🔮</div>
+                <h2>更多工具</h2>
+                <p>后续将添加更多实用工具，敬请期待...</p>
+                <ul class="feature-list">
+                    <li>待开发</li>
+                    <li>敬请期待</li>
+                    <li>持续更新</li>
+                </ul>
+                <span class="tool-btn" style="opacity: 0.5; cursor: not-allowed;">开发中</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Powered by Yongshuo | 工具集 v1.0</p>
+    </div>
+</body>
+</html>
