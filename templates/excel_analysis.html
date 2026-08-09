@@ -816,8 +816,10 @@
             errorMsg.classList.remove('show');
         }
 
-        // 分块大小：512KB（确保每个请求远小于预览代理限制）
-        const CHUNK_SIZE = 512 * 1024;
+        // 分块大小：2MB（平衡吞吐量与请求体大小限制）
+        const CHUNK_SIZE = 2 * 1024 * 1024;
+        // 并发上传数：3 路（避免过多并发增加服务器压力）
+        const UPLOAD_CONCURRENCY = 3;
 
         async function uploadFileChunked(file) {
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -838,8 +840,9 @@
             }
             const uploadId = initResult.data.upload_id;
 
-            // 2. 逐块上传
-            for (let i = 0; i < totalChunks; i++) {
+            // 2. 并发上传分块（UPLOAD_CONCURRENCY 路同时上传）
+            let uploadedCount = 0;
+            const uploadSingleChunk = async (i) => {
                 const start = i * CHUNK_SIZE;
                 const end = Math.min(start + CHUNK_SIZE, file.size);
                 const chunk = file.slice(start, end);
@@ -847,6 +850,7 @@
                 const formData = new FormData();
                 formData.append('upload_id', uploadId);
                 formData.append('chunk_index', i);
+                formData.append('offset', start);
                 formData.append('chunk', chunk, `chunk_${i}`);
 
                 const chunkResp = await fetch('/api/upload-chunk', {
@@ -857,10 +861,18 @@
                 if (!chunkResp.ok || chunkResult.status !== 'success') {
                     throw new Error(chunkResult.error || `分块 ${i} 上传失败`);
                 }
-
-                // 更新进度提示
-                const progress = Math.round((i + 1) / totalChunks * 100);
+                uploadedCount++;
+                const progress = Math.round(uploadedCount / totalChunks * 100);
                 analyzing.querySelector('p').textContent = `正在上传文件... ${progress}%`;
+            };
+
+            // 分批并发：每批 UPLOAD_CONCURRENCY 个
+            for (let i = 0; i < totalChunks; i += UPLOAD_CONCURRENCY) {
+                const batch = [];
+                for (let j = i; j < Math.min(i + UPLOAD_CONCURRENCY, totalChunks); j++) {
+                    batch.push(uploadSingleChunk(j));
+                }
+                await Promise.all(batch);
             }
 
             // 3. 完成上传

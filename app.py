@@ -972,9 +972,10 @@ def api_upload_init():
     }
     _save_chunk_meta(upload_id, _chunk_uploads)
 
-    # 创建空文件
+    # 预分配文件大小（支持并发分块按 offset 写入）
     with open(file_path, 'wb') as f:
-        pass
+        if total_size > 0:
+            f.truncate(total_size)
 
     logger.info(f"分块上传初始化: {filename}, upload_id={upload_id}, total_chunks={total_chunks}, total_size={total_size}")
 
@@ -1007,9 +1008,14 @@ def api_upload_chunk():
     if chunk_index in meta['received_chunks']:
         return jsonify({'status': 'success', 'data': {'chunk_index': chunk_index, 'duplicate': True}})
 
-    # 读取分块数据并追加到文件
+    # 读取分块数据，按 offset 写入正确位置（支持并发乱序上传）
     chunk_data = chunk_file.read()
-    with open(meta['file_path'], 'ab') as f:
+    offset = int(request.form.get('offset', -1))
+    if offset < 0:
+        return jsonify({'error': '缺少 offset 参数'}), 400
+
+    with open(meta['file_path'], 'r+b') as f:
+        f.seek(offset)
         f.write(chunk_data)
 
     meta['received_chunks'].add(chunk_index)
