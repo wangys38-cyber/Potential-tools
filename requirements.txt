@@ -8,3 +8,4 @@ playwright
 markdown
 requests
 python-docx
+psutil
