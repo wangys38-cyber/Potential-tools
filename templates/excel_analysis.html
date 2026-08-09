@@ -1125,7 +1125,7 @@
                 const taskId = initResult.data.task_id;
                 // 轮询任务状态
                 let pollCount = 0;
-                const maxPolls = 300; // 最多轮询 300 次（约 5 分钟）
+                const maxPolls = 400; // 最多轮询 400 次（约 6.5 分钟）
                 while (pollCount < maxPolls) {
                     await new Promise(r => setTimeout(r, 1000));
                     const statusResp = await fetch('/api/task-status', {
