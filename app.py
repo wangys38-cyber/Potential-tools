@@ -917,17 +917,22 @@ def _analyze_sheet_detail(file_path, sheet_name):
         result = _get_cell_value(cells, col_indices.get('result', -1))
         reason = _get_cell_value(cells, col_indices.get('reason', -1))
 
-        result_clean = result.strip().lower()
-        is_pass = _is_pass_result(result_clean)
-        is_fail = _is_fail_result(result_clean)
+        # 尝试提取目标值和实测值（从 reason 或其他列中）
+        target_val = _get_cell_value(cells, col_indices.get('target', -1)) if 'target' in col_indices else ''
+        actual_val = _get_cell_value(cells, col_indices.get('actual', -1)) if 'actual' in col_indices else ''
+
+        # 使用新的分类函数
+        result_class = _classify_result(result.strip())
 
         test_item = {
             'name': name or f'测试项{row_idx + 1}',
             'module': module,
             'severity': severity,
-            'result': 'pass' if is_pass else ('fail' if is_fail else 'unknown'),
-            'result_text': result.strip() or ('Pass' if is_pass else 'Fail'),
+            'result': result_class,
+            'result_text': result.strip() if result.strip() else result_class,
             'reason': reason,
+            'target': target_val,
+            'actual': actual_val,
             'row_index': row_idx + 1
         }
         test_items.append(test_item)
@@ -936,7 +941,15 @@ def _analyze_sheet_detail(file_path, sheet_name):
     total = len(test_items)
     pass_count = sum(1 for item in test_items if item['result'] == 'pass')
     fail_count = sum(1 for item in test_items if item['result'] == 'fail')
+    blocked_count = sum(1 for item in test_items if item['result'] == 'blocked')
+    delayed_count = sum(1 for item in test_items if item['result'] == 'delayed')
+    na_count = sum(1 for item in test_items if item['result'] == 'n_a')
+    unknown_count = sum(1 for item in test_items if item['result'] == 'unknown')
+
+    # 已执行项 = 总数 - 延期 - 阻塞 - N/A - 未知
+    executed_count = total - delayed_count - blocked_count - na_count - unknown_count
     pass_rate = f"{(pass_count / total * 100):.1f}%" if total > 0 else "0%"
+    executed_pass_rate = f"{(pass_count / executed_count * 100):.1f}%" if executed_count > 0 else "0%"
 
     severity_stats = {}
     for item in test_items:
@@ -948,6 +961,20 @@ def _analyze_sheet_detail(file_path, sheet_name):
                     severity_stats[level] = severity_stats.get(level, 0) + 1
                     break
 
+    # 6. 生成智能分析报告
+    analysis = _generate_intelligent_analysis(test_items, project_info, {
+        'total': total,
+        'pass': pass_count,
+        'fail': fail_count,
+        'blocked': blocked_count,
+        'delayed': delayed_count,
+        'n_a': na_count,
+        'unknown': unknown_count,
+        'executed': executed_count,
+        'pass_rate': pass_rate,
+        'executed_pass_rate': executed_pass_rate
+    })
+
     return {
         'file_basename': os.path.splitext(os.path.basename(file_path))[0],
         'sheet_name': sheet_name,
@@ -957,9 +984,16 @@ def _analyze_sheet_detail(file_path, sheet_name):
             'total': total,
             'pass': pass_count,
             'fail': fail_count,
+            'blocked': blocked_count,
+            'delayed': delayed_count,
+            'n_a': na_count,
+            'unknown': unknown_count,
+            'executed': executed_count,
             'pass_rate': pass_rate,
+            'executed_pass_rate': executed_pass_rate,
             'severity': severity_stats
-        }
+        },
+        'analysis': analysis
     }
 
 
@@ -980,6 +1014,15 @@ def _detect_column_indices(headers):
             col_map['result'] = i
         elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述']):
             col_map['reason'] = i
+        elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr']):
+            col_map['target'] = i
+        elif any(kw in h for kw in ['实测', '实际', 'actual', '当前', 'current', '结果值']):
+            col_map['actual'] = i
+        elif any(kw in h for kw in ['风险', 'risk']):
+            col_map['risk'] = i
+        elif any(kw in h for kw in ['问题', 'issue', '核心问题', '问题描述']):
+            if 'reason' not in col_map:
+                col_map['reason'] = i
 
     if 'result' not in col_map:
         for i, h in enumerate(headers_lower):
@@ -1002,14 +1045,372 @@ def _get_cell_value(cells, idx):
     return str(cells[idx]).strip() if cells[idx] else ''
 
 
+def _classify_result(text):
+    """
+    全面分类测试结果状态，返回标准化的状态类别。
+    类别: pass / fail / blocked / delayed / n_a / unknown
+    - pass:     通过、合格、达标
+    - fail:     不通过、失败、不达标、未达标、NG
+    - blocked:  阻塞、未执行、跳过、skip
+    - delayed:  已延期、延期、推迟
+    - n_a:      不适用、N/A
+    - unknown:  无法识别
+    """
+    if not text:
+        return 'unknown'
+
+    t = text.strip().lower()
+
+    # N/A 类
+    na_words = ['n/a', 'na', '不适用', '无', 'none', 'null', '-']
+    if t in na_words:
+        return 'n_a'
+
+    # 否定形式优先判断（"不通过"含"通过"，"未达标"含"达标"，须在 pass 之前判断）
+    negative_fail_kws = ['不通过', '未通过', '不达标', '未达标', '不合格', '未合格',
+                         '不满足', '未满足', '失败', 'fail', 'failed', 'failure',
+                         'ng', 'error', 'reject', 'rejected', 'crash',
+                         'abort', 'timeout', '超时', '异常', '拒绝']
+    for kw in negative_fail_kws:
+        if kw in t:
+            return 'fail'
+
+    # 延期类
+    delayed_words = ['已延期', '延期', '推迟', 'delayed', 'postponed', 'deferred',
+                     'pending', '待定', '未开始', 'not started', '暂缓']
+    for kw in delayed_words:
+        if kw in t:
+            return 'delayed'
+
+    # 阻塞类
+    blocked_words = ['block', 'blocked', '阻塞', '阻塞中', 'skip', 'skipped',
+                     '跳过', '未执行', 'not executed', 'not run', 'wip',
+                     '进行中', 'in progress', 'in_progress']
+    for kw in blocked_words:
+        if kw in t:
+            return 'blocked'
+
+    # 通过类
+    pass_words = ['pass', 'passed', '通过', '合格', '达标', 'yes', 'y', 'ok',
+                  'success', '√', '✓', 'p', 'done', 'complete', 'completed',
+                  'closed', 'resolved', '完成', '已关闭', '已解决']
+    if t in pass_words or t.startswith('pass') or '通过' in t or '合格' in t or '达标' in t:
+        return 'pass'
+
+    # 失败类（精确匹配兜底）
+    fail_exact = ['no', 'n', '×', '✗', 'f', 'bug']
+    if t in fail_exact:
+        return 'fail'
+
+    return 'unknown'
+
+
 def _is_pass_result(text):
-    pass_words = ['pass', '通过', '合格', 'yes', 'y', 'ok', 'success', '√', '✓', 'p', 'done']
-    return text in pass_words or text.startswith('pass') or '通过' in text or '合格' in text
+    return _classify_result(text) == 'pass'
 
 
 def _is_fail_result(text):
-    fail_words = ['fail', '不通过', '不合格', 'no', 'n', 'ng', 'error', '×', '✗', 'f', 'bug', 'failed']
-    return text in fail_words or text.startswith('fail') or '不通过' in text or '不合格' in text or '失败' in text
+    cls = _classify_result(text)
+    return cls in ('fail', 'blocked', 'delayed')
+
+
+# === 智能分析引擎 ===
+
+# 测试项分类关键词映射
+_CATEGORY_KEYWORDS = {
+    '功能测试': ['functional', '功能', 'cuj', 'oobe', 'ota', 'requirement', '需求', '用例', 'case', 'p0'],
+    '性能专项': ['ttid', 'ttfd', 'fps', 'latency', '延迟', '响应', 'performance', '性能', '帧率',
+                 '启动', 'launch', 'scroll', '滚动', 'time to', '功耗'],
+    '续航DOU': ['dou', '续航', 'battery', '电池', '功耗', 'power', '耗电', '待机', 'endurance'],
+    '稳定性MTTF': ['mttf', '稳定性', 'stability', 'crash', '死机', '重启', 'reboot', '挂机',
+                   '内存', 'memory', 'leak', '泄漏'],
+    '运动健康算法': ['心率', 'heart rate', '睡眠', 'sleep', '步数', 'step', 'gps', '轨迹',
+                    '游泳', 'swim', '血氧', 'spo2', 'spO2', '血氧', '训练', 'training',
+                    '运动', 'sport', '健康', 'health', '算法', 'algorithm', '配速', 'pace',
+                    '划次', 'stroke', '能量', 'energy', '压力', 'stress', '指南针', 'compass'],
+    '兼容性': ['compatib', '兼容', 'bluetooth', '蓝牙', 'wifi', 'pairing', '配对',
+              '连接', 'connect', 'interop'],
+    '音频': ['audio', '音质', '音量', '麦克风', 'mic', 'speaker', '扬声器', '降噪', 'anc'],
+    'UI/UX': ['ui', 'ux', '界面', '交互', '动画', 'animation', '表盘', 'watch face',
+              'theme', '主题', '壁纸', 'widget', '小组件'],
+    '安全': ['security', '安全', '加密', 'encrypt', 'privacy', '隐私', '认证', 'auth'],
+    '网络通信': ['network', '网络', 'sync', '同步', 'push', '通知', 'notification',
+                'cellular', '蜂窝', ' esim', 'esim'],
+}
+
+# 状态中文标签
+_STATUS_LABELS = {
+    'pass': '通过',
+    'fail': '不通过',
+    'blocked': '阻塞',
+    'delayed': '已延期',
+    'n_a': '不适用',
+    'unknown': '未识别',
+}
+
+
+def _detect_category(item_name, item_module=''):
+    """根据测试项名称和模块识别所属分类"""
+    text = f"{item_name} {item_module}".lower()
+    for category, keywords in _CATEGORY_KEYWORDS.items():
+        for kw in keywords:
+            if kw.lower() in text:
+                return category
+    return '其他'
+
+
+def _assess_risk_level(items):
+    """
+    根据一组测试项的结果评估风险等级。
+    返回: '高' / '中' / '低' / '无'
+    """
+    if not items:
+        return '无'
+
+    total = len(items)
+    fail_count = sum(1 for i in items if i['result'] in ('fail',))
+    delayed_count = sum(1 for i in items if i['result'] == 'delayed')
+    blocked_count = sum(1 for i in items if i['result'] == 'blocked')
+    pass_count = sum(1 for i in items if i['result'] == 'pass')
+
+    problem_count = fail_count + delayed_count + blocked_count
+    problem_ratio = problem_count / total if total > 0 else 0
+    fail_ratio = fail_count / total if total > 0 else 0
+
+    # 高风险：有失败项且占比 >= 30%，或全部延期/阻塞
+    if fail_ratio >= 0.3 or (problem_count == total and total > 0):
+        return '高'
+    # 中风险：有失败项但占比 < 30%，或有延期/阻塞项
+    if fail_count > 0 or delayed_count > 0 or blocked_count > 0:
+        return '中'
+    # 低风险：全部通过但有未知项
+    if pass_count < total:
+        return '低'
+    return '无'
+
+
+def _generate_intelligent_analysis(test_items, project_info, stats):
+    """
+    生成结构化智能分析报告，对标豆包的分析质量。
+    输出包含：执行摘要、分类汇总、风险等级、关键发现、改进建议。
+    """
+    if not test_items:
+        return {
+            'executive_summary': '未找到测试项数据，请检查Excel文件格式是否正确。',
+            'overall_risk': '无',
+            'sections': [],
+            'key_findings': [],
+            'recommendations': []
+        }
+
+    total = stats['total']
+    pass_count = stats['pass']
+    fail_count = stats['fail']
+    blocked_count = stats['blocked']
+    delayed_count = stats['delayed']
+    unknown_count = stats['unknown']
+    executed = stats['executed']
+    pass_rate = stats['pass_rate']
+    executed_pass_rate = stats['executed_pass_rate']
+
+    # === 1. 按分类分组 ===
+    category_groups = {}
+    for item in test_items:
+        cat = _detect_category(item['name'], item.get('module', ''))
+        if cat not in category_groups:
+            category_groups[cat] = []
+        category_groups[cat].append(item)
+
+    # === 2. 生成各分类的汇总 ===
+    sections = []
+    for cat, items in category_groups.items():
+        cat_total = len(items)
+        cat_pass = sum(1 for i in items if i['result'] == 'pass')
+        cat_fail = sum(1 for i in items if i['result'] == 'fail')
+        cat_blocked = sum(1 for i in items if i['result'] == 'blocked')
+        cat_delayed = sum(1 for i in items if i['result'] == 'delayed')
+        cat_unknown = sum(1 for i in items if i['result'] == 'unknown')
+        cat_risk = _assess_risk_level(items)
+
+        # 生成分类摘要文本
+        summary_parts = []
+        summary_parts.append(f"共 {cat_total} 项")
+        if cat_pass > 0:
+            summary_parts.append(f"通过 {cat_pass} 项")
+        if cat_fail > 0:
+            summary_parts.append(f"不通过 {cat_fail} 项")
+        if cat_delayed > 0:
+            summary_parts.append(f"延期 {cat_delayed} 项")
+        if cat_blocked > 0:
+            summary_parts.append(f"阻塞 {cat_blocked} 项")
+        if cat_unknown > 0:
+            summary_parts.append(f"未识别 {cat_unknown} 项")
+
+        cat_pass_rate = f"{(cat_pass / cat_total * 100):.1f}%" if cat_total > 0 else "0%"
+        summary_parts.append(f"通过率 {cat_pass_rate}")
+
+        # 提取该分类下的问题项详情
+        problem_items = [i for i in items if i['result'] in ('fail', 'blocked', 'delayed')]
+
+        sections.append({
+            'category': cat,
+            'risk_level': cat_risk,
+            'total': cat_total,
+            'pass': cat_pass,
+            'fail': cat_fail,
+            'blocked': cat_blocked,
+            'delayed': cat_delayed,
+            'pass_rate': cat_pass_rate,
+            'summary': '，'.join(summary_parts),
+            'problem_items': [{
+                'name': i['name'],
+                'result': i['result'],
+                'result_text': i['result_text'],
+                'reason': i.get('reason', ''),
+                'target': i.get('target', ''),
+                'actual': i.get('actual', '')
+            } for i in problem_items],
+            'items': items
+        })
+
+    # 按风险等级排序：高 > 中 > 低 > 无
+    risk_order = {'高': 0, '中': 1, '低': 2, '无': 3}
+    sections.sort(key=lambda s: risk_order.get(s['risk_level'], 4))
+
+    # === 3. 评估整体风险 ===
+    all_risks = [s['risk_level'] for s in sections]
+    if '高' in all_risks:
+        overall_risk = '高'
+    elif '中' in all_risks:
+        overall_risk = '中'
+    elif '低' in all_risks:
+        overall_risk = '低'
+    else:
+        overall_risk = '无'
+
+    # === 4. 生成执行摘要 ===
+    summary_lines = []
+
+    # 基本信息
+    summary_lines.append(f"本次共分析 {total} 项测试")
+
+    # 执行情况
+    if delayed_count > 0 or blocked_count > 0:
+        summary_lines.append(f"其中已执行 {executed} 项，延期 {delayed_count} 项，阻塞 {blocked_count} 项")
+    else:
+        summary_lines.append(f"已执行 {executed} 项")
+
+    # 通过/失败情况
+    result_parts = []
+    if pass_count > 0:
+        result_parts.append(f"通过 {pass_count} 项")
+    if fail_count > 0:
+        result_parts.append(f"不通过 {fail_count} 项")
+    if blocked_count > 0:
+        result_parts.append(f"阻塞 {blocked_count} 项")
+    if delayed_count > 0:
+        result_parts.append(f"延期 {delayed_count} 项")
+    if unknown_count > 0:
+        result_parts.append(f"未识别 {unknown_count} 项")
+    summary_lines.append('，'.join(result_parts))
+
+    # 通过率
+    if executed > 0 and executed < total:
+        summary_lines.append(f"整体通过率 {pass_rate}（已执行项通过率 {executed_pass_rate}）")
+    else:
+        summary_lines.append(f"整体通过率 {pass_rate}")
+
+    # 整体评估
+    if fail_count > 0:
+        high_risk_sections = [s for s in sections if s['risk_level'] == '高']
+        mid_risk_sections = [s for s in sections if s['risk_level'] == '中']
+        if high_risk_sections:
+            risk_names = '、'.join([s['category'] for s in high_risk_sections])
+            summary_lines.append(f"整体风险等级为「高」，{risk_names} 存在高风险项，需重点关注")
+        elif mid_risk_sections:
+            summary_lines.append(f"整体风险等级为「中」，部分测试项未通过，需跟进闭环")
+        else:
+            summary_lines.append(f"整体风险等级为「低」，存在少量未通过项")
+    elif delayed_count > 0 or blocked_count > 0:
+        summary_lines.append(f"整体风险等级为「{'中' if (delayed_count + blocked_count) > total * 0.3 else '低'}」，"
+                             f"部分测试项延期或阻塞，需推进执行")
+    elif pass_count == total:
+        summary_lines.append("所有测试项均已通过，整体风险等级为「无」")
+    else:
+        summary_lines.append("部分测试项状态未明确，建议核实数据完整性")
+
+    executive_summary = '。'.join(summary_lines) + '。'
+
+    # === 5. 关键发现 ===
+    key_findings = []
+
+    # 高风险分类
+    for s in sections:
+        if s['risk_level'] == '高':
+            finding = f"【高风险】{s['category']}：{s['summary']}"
+            if s['problem_items']:
+                fail_names = [pi['name'] for pi in s['problem_items'][:5]]
+                finding += f"。主要问题项：{', '.join(fail_names)}"
+            key_findings.append(finding)
+
+    # 中风险分类
+    for s in sections:
+        if s['risk_level'] == '中':
+            finding = f"【中风险】{s['category']}：{s['summary']}"
+            if s['problem_items']:
+                fail_names = [pi['name'] for pi in s['problem_items'][:3]]
+                finding += f"。关注项：{', '.join(fail_names)}"
+            key_findings.append(finding)
+
+    # 延期项汇总
+    if delayed_count > 0:
+        delayed_items = [i for i in test_items if i['result'] == 'delayed']
+        delayed_names = [i['name'] for i in delayed_items[:5]]
+        more = f" 等 {len(delayed_items)} 项" if len(delayed_items) > 5 else ""
+        key_findings.append(f"【延期项】{len(delayed_items)} 项测试已延期：{', '.join(delayed_names)}{more}，需尽快安排执行")
+
+    # 阻塞项汇总
+    if blocked_count > 0:
+        blocked_items = [i for i in test_items if i['result'] == 'blocked']
+        blocked_names = [i['name'] for i in blocked_items[:5]]
+        more = f" 等 {len(blocked_items)} 项" if len(blocked_items) > 5 else ""
+        key_findings.append(f"【阻塞项】{len(blocked_items)} 项测试受阻：{', '.join(blocked_names)}{more}，需解除阻塞依赖")
+
+    # 通过项亮点
+    pass_sections = [s for s in sections if s['risk_level'] == '无' and s['pass'] == s['total']]
+    if pass_sections:
+        pass_names = '、'.join([s['category'] for s in pass_sections])
+        key_findings.append(f"【达标项】{pass_names} 全部通过，无风险")
+
+    # === 6. 改进建议 ===
+    recommendations = []
+
+    if fail_count > 0:
+        recommendations.append(f"针对 {fail_count} 项不通过测试，建议优先修复 Fail 项并安排回归验证")
+    if delayed_count > 0:
+        recommendations.append(f"针对 {delayed_count} 项延期测试，建议明确执行时间节点并推进落地")
+    if blocked_count > 0:
+        recommendations.append(f"针对 {blocked_count} 项阻塞测试，建议排查阻塞根因并协调资源解除依赖")
+    if unknown_count > 0:
+        recommendations.append(f"针对 {unknown_count} 项状态未识别的测试，建议核实结果字段填写是否规范")
+
+    high_risk_sections = [s for s in sections if s['risk_level'] == '高']
+    if high_risk_sections:
+        rec_cats = '、'.join([s['category'] for s in high_risk_sections])
+        recommendations.append(f"「{rec_cats}」为高风险领域，建议作为下一阶段重点攻关方向")
+
+    if not recommendations:
+        recommendations.append("所有测试项均已通过，建议保持现有质量水平，持续监控")
+
+    return {
+        'executive_summary': executive_summary,
+        'overall_risk': overall_risk,
+        'sections': sections,
+        'key_findings': key_findings,
+        'recommendations': recommendations,
+        'status_labels': _STATUS_LABELS
+    }
+
 
 # === 分块上传 API（绕过预览代理的请求体大小限制）===
 # 使用磁盘持久化存储分块上传元数据（兼容 Railway --max-requests 导致的 worker 重启）
