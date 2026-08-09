@@ -1684,12 +1684,37 @@
 
                 if (data.error) {
                     alert('转换失败：' + data.error);
-                } else {
+                } else if (data.status === 'success' && data.data && data.data.task_id) {
+                    // 轮询后台 PDF 渲染任务
+                    const taskId = data.data.task_id;
+                    let pollCount = 0;
+                    const maxPolls = 280;
+                    let pdfFilename = null;
+                    while (pollCount < maxPolls) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        const statusResp = await fetch('/api/task-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ task_id: taskId })
+                        });
+                        const statusResult = await statusResp.json();
+                        if (statusResult.status === 'done') {
+                            pdfFilename = statusResult.data.filename;
+                            break;
+                        } else if (statusResult.status === 'error') {
+                            throw new Error(statusResult.error || 'PDF渲染失败');
+                        }
+                        pollCount++;
+                        convertText.textContent = `转换中... (${pollCount}s)`;
+                    }
+                    if (!pdfFilename) {
+                        throw new Error('转换超时，请重试');
+                    }
                     downloadBtn.disabled = false;
                     downloadBtn.onclick = () => {
                         const a = document.createElement('a');
-                        a.href = `/download/${data.filename}`;
-                        a.download = data.filename;
+                        a.href = `/download/${pdfFilename}`;
+                        a.download = pdfFilename;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);

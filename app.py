@@ -139,7 +139,7 @@ class ExcelReader:
                 raise ValueError(f'无法读取 .xls 文件: {str(e)}。如果文件是从网页下载的，请转换为 .xlsx 格式后再上传。')
         else:
             from openpyxl import load_workbook
-            self._wb = load_workbook(self.file_path, data_only=True)
+            self._wb = load_workbook(self.file_path, data_only=True, read_only=True)
         return self
     
     def close(self):
@@ -666,12 +666,35 @@ def api_test_report_analyze_sheet():
     if not file_path:
         return jsonify({'error': '文件不存在，可能已过期'}), 404
 
-    try:
-        result = _analyze_sheet_detail(file_path, sheet_name)
-        return jsonify({'status': 'success', 'data': result})
-    except Exception as e:
-        logger.error(f"Sheet分析失败: {traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
+    # 创建后台任务（避免同步分析超过 Railway 5 分钟 HTTP 超时）
+    task_id = hashlib.md5(f"test_report_{file_id}_{sheet_name}_{time.time()}".encode()).hexdigest()[:16]
+    task_data = {
+        'status': 'processing',
+        'result': None,
+        'error': None,
+        'created_at': time.time()
+    }
+    _background_tasks[task_id] = task_data
+    _save_task_meta(task_id, task_data)
+
+    def _do_test_report_analysis():
+        try:
+            gc.collect()
+            result = _analyze_sheet_detail(file_path, sheet_name)
+            _background_tasks[task_id]['result'] = result
+            _background_tasks[task_id]['status'] = 'done'
+            _save_task_meta(task_id, _background_tasks[task_id])
+        except Exception as e:
+            error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'
+            logger.error(f"测试报告分析失败: {traceback.format_exc()}")
+            _background_tasks[task_id]['error'] = error_detail
+            _background_tasks[task_id]['status'] = 'error'
+            _save_task_meta(task_id, _background_tasks[task_id])
+
+    thread = threading.Thread(target=_do_test_report_analysis, daemon=True)
+    thread.start()
+
+    return jsonify({'status': 'success', 'data': {'task_id': task_id}})
 
 
 def _analyze_sheet_detail(file_path, sheet_name):
@@ -1903,6 +1926,65 @@ def _escape_html(text):
     """转义HTML特殊字符"""
     import html
     return html.escape(str(text)) if text else ''
+
+# === Chromium 浏览器全局复用（避免每次 PDF 渲染冷启动 3-10s） ===
+from playwright.sync_api import sync_playwright as _sync_playwright
+
+_pdf_render_lock = threading.Lock()
+_pw_instance = None
+_pw_browser = None
+
+def _get_pw_browser():
+    """获取或创建全局 Chromium 浏览器实例（复用，避免每次冷启动）"""
+    global _pw_instance, _pw_browser
+    if _pw_browser is not None:
+        try:
+            _ = _pw_browser.version
+            return _pw_browser
+        except Exception:
+            _pw_browser = None
+            logger.warning("Chromium 浏览器已断开，正在重新创建...")
+    if _pw_instance is None:
+        _pw_instance = _sync_playwright().start()
+    # 优先使用系统 Chrome（本地环境），失败后回退到 Playwright 内置 Chromium（Docker/Railway）
+    try:
+        _pw_browser = _pw_instance.chromium.launch(headless=True, channel="chrome")
+    except Exception:
+        _pw_browser = _pw_instance.chromium.launch(headless=True)
+    logger.info("Chromium 浏览器实例已创建（全局复用）")
+    return _pw_browser
+
+def _render_pdf(html_path, pdf_path, margin=None, extra_wait_ms=0, wait_selector=None):
+    """使用全局 Chromium 实例渲染 PDF（线程安全）。
+
+    通过 _pdf_render_lock 串行化访问，避免 Playwright sync API 的线程安全问题。
+    每次创建独立的 browser context，渲染完毕后关闭；浏览器进程本身保持常驻。
+    """
+    if margin is None:
+        margin = {'top': '2cm', 'right': '2cm', 'bottom': '2cm', 'left': '2cm'}
+    with _pdf_render_lock:
+        browser = _get_pw_browser()
+        context = browser.new_context()
+        page = context.new_page()
+        try:
+            page.goto(f'file://{html_path}')
+            page.wait_for_load_state('networkidle')
+            if wait_selector:
+                try:
+                    page.wait_for_selector(wait_selector, timeout=5000)
+                except Exception:
+                    pass
+            if extra_wait_ms > 0:
+                page.wait_for_timeout(extra_wait_ms)
+            page.pdf(
+                path=pdf_path,
+                format='A4',
+                margin=margin,
+                print_background=True
+            )
+        finally:
+            context.close()
+
 # === Markdown转PDF API ===
 @app.route('/api/md2pdf', methods=['POST'])
 def api_md2pdf():
@@ -1918,7 +2000,6 @@ def api_md2pdf():
             extensions=['extra', 'codehilite', 'tables', 'fenced_code']
         )
 
-        from playwright.sync_api import sync_playwright
         import tempfile as tf
 
         with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
@@ -1945,18 +2026,7 @@ def api_md2pdf():
 
         pdf_path = os.path.join(app.config['PDF_FOLDER'], f"md2pdf_{int(time.time())}.pdf")
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f"file://{html_path}")
-            page.wait_for_load_state('networkidle')
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '2cm', 'right': '2cm', 'bottom': '2cm', 'left': '2cm'},
-                print_background=True
-            )
-            browser.close()
+        _render_pdf(html_path, pdf_path)
 
         return jsonify({'filename': os.path.basename(pdf_path)})
     except Exception as e:
@@ -2013,7 +2083,6 @@ def api_convert():
             extensions=['extra', 'codehilite', 'tables', 'fenced_code']
         )
 
-        from playwright.sync_api import sync_playwright
         import tempfile as tf
 
         # 添加水印
@@ -2055,23 +2124,37 @@ def api_convert():
             pdf_filename = f"{safe_filename}_{int(time.time())}.pdf"
         else:
             pdf_filename = f"md2pdf_{int(time.time())}.pdf"
-        
+
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f"file://{html_path}")
-            page.wait_for_load_state('networkidle')
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '2cm', 'right': '2cm', 'bottom': '2cm', 'left': '2cm'},
-                print_background=True
-            )
-            browser.close()
+        # 后台渲染 PDF（避免同步请求超过 Railway 5 分钟超时）
+        task_id = hashlib.md5(f"convert_{time.time()}".encode()).hexdigest()[:16]
+        task_data = {
+            'status': 'processing',
+            'result': None,
+            'error': None,
+            'created_at': time.time()
+        }
+        _background_tasks[task_id] = task_data
+        _save_task_meta(task_id, task_data)
 
-        return jsonify({'filename': pdf_filename})
+        def _do_convert_pdf():
+            try:
+                _render_pdf(html_path, pdf_path)
+                _background_tasks[task_id]['result'] = {'filename': pdf_filename}
+                _background_tasks[task_id]['status'] = 'done'
+                _save_task_meta(task_id, _background_tasks[task_id])
+            except Exception as e:
+                error_detail = str(e) if str(e) else f'{type(e).__name__}'
+                logger.error(f"PDF转换失败: {traceback.format_exc()}")
+                _background_tasks[task_id]['error'] = error_detail
+                _background_tasks[task_id]['status'] = 'error'
+                _save_task_meta(task_id, _background_tasks[task_id])
+
+        thread = threading.Thread(target=_do_convert_pdf, daemon=True)
+        thread.start()
+
+        return jsonify({'status': 'success', 'data': {'task_id': task_id}})
     except Exception as e:
         logger.error(f"PDF生成失败: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
@@ -2119,8 +2202,7 @@ def api_upload():
         try:
             # 使用docx库读取并转换
             from docx import Document
-            from playwright.sync_api import sync_playwright
-            
+
             doc = Document(file_path)
             html_content = ''
             for para in doc.paragraphs:
@@ -2168,18 +2250,7 @@ def api_upload():
             pdf_filename = f"{orig_name}_{int(time.time())}.pdf"
             pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
 
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.goto(f"file://{html_path}")
-                page.wait_for_load_state('networkidle')
-                page.pdf(
-                    path=pdf_path,
-                    format='A4',
-                    margin={'top': '2cm', 'right': '2cm', 'bottom': '2cm', 'left': '2cm'},
-                    print_background=True
-                )
-                browser.close()
+            _render_pdf(html_path, pdf_path)
 
             return jsonify({
                 'filename': pdf_filename,
@@ -2650,8 +2721,7 @@ def api_excel_organize_pdf():
         
         # 构建HTML内容
         html_content = _build_excel_report_html(sections, summary, user_request, watermark)
-        
-        from playwright.sync_api import sync_playwright
+
         import tempfile as tf
         
         with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
@@ -2661,19 +2731,9 @@ def api_excel_organize_pdf():
         pdf_filename = f"excel_report_{int(time.time())}.pdf"
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
         
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f'file://{html_path}')
-            page.wait_for_load_state('networkidle')
-            page.wait_for_timeout(1000)
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
-                print_background=True
-            )
-            browser.close()
+        _render_pdf(html_path, pdf_path,
+                    margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
+                    extra_wait_ms=1000)
         
         try:
             os.unlink(html_path)
@@ -2807,8 +2867,7 @@ def api_excel_pdf():
     
     try:
         html_content = _build_excel_structured_report_html(structured_data, selected_sheets, watermark, custom_title)
-        
-        from playwright.sync_api import sync_playwright
+
         import tempfile as tf
         
         with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
@@ -2824,20 +2883,10 @@ def api_excel_pdf():
             pdf_filename = f"excel_pdf_{int(time.time())}.pdf"
             download_name = pdf_filename
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
-        
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f'file://{html_path}')
-            page.wait_for_load_state('networkidle')
-            page.wait_for_timeout(1500)
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
-                print_background=True
-            )
-            browser.close()
+
+        _render_pdf(html_path, pdf_path,
+                    margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
+                    extra_wait_ms=1500)
         
         try:
             os.unlink(html_path)
@@ -2872,8 +2921,7 @@ def api_excel_select_pdf():
     
     try:
         html_content = _build_excel_selected_report_html(structured_data, selected_data, selected_columns, watermark, custom_title)
-        
-        from playwright.sync_api import sync_playwright
+
         import tempfile as tf
         
         with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
@@ -2889,20 +2937,10 @@ def api_excel_select_pdf():
             pdf_filename = f"excel_select_pdf_{int(time.time())}.pdf"
             download_name = pdf_filename
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
-        
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f'file://{html_path}')
-            page.wait_for_load_state('networkidle')
-            page.wait_for_timeout(1500)
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
-                print_background=True
-            )
-            browser.close()
+
+        _render_pdf(html_path, pdf_path,
+                    margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
+                    extra_wait_ms=1500)
         
         try:
             os.unlink(html_path)
@@ -3272,30 +3310,9 @@ def api_excel_analyze_pdf():
         
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
 
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            # 优先使用系统 Chrome（本地环境），失败后回退到 Playwright 内置 Chromium（Docker/Railway 环境）
-            try:
-                browser = p.chromium.launch(headless=True, channel="chrome")
-            except Exception:
-                browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(f'file://{html_path}')
-            page.wait_for_load_state('networkidle')
-            # 等待Chart.js加载完成并渲染图表
-            try:
-                page.wait_for_selector('canvas', timeout=5000)
-            except Exception:
-                pass
-            page.wait_for_timeout(3000)
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
-                print_background=True
-            )
-            browser.close()
+        _render_pdf(html_path, pdf_path,
+                    margin={'top': '20mm', 'bottom': '20mm', 'left': '15mm', 'right': '15mm'},
+                    extra_wait_ms=3000, wait_selector='canvas')
 
         try:
             os.unlink(html_path)
