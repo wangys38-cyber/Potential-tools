@@ -5,3 +5,4 @@ builder = "dockerfile"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 # Railway 自动从 GitHub main 分支部署，每次 push 触发重新构建
+# v2.1 - 测试报告分析修复: 状态识别+智能分析引擎+风险评级 (2026-08-09)
