@@ -886,7 +886,7 @@ def _analyze_sheet_detail(file_path, sheet_name):
     test_items = []
     headers = []
     data_rows = []
-    table_header_keywords = ['结果', 'result', 'pass', 'fail', '通过', '测试项', 'test item', 'test case', 'module', '模块', 'severity', '严重程度', 'status', '状态', 'name', '名称', 'remark', '备注']
+    table_header_keywords = ['结果', 'result', 'pass', 'fail', '通过', '不通过', '测试项', '测试内容', '测试用例', 'test item', 'test case', 'module', '模块', '组件', 'severity', '严重程度', '严重性', '等级', 'status', '状态', 'name', '名称', '指标', 'remark', '备注', '说明', '原因', 'reason', '目标', 'target', '实测', 'actual', '问题', 'issue', 'category', '分类', '类型']
 
     for row_idx in range(info_end_row, len(rows)):
         row = rows[row_idx]
@@ -898,18 +898,56 @@ def _analyze_sheet_detail(file_path, sheet_name):
                 break
             continue
 
-        if not headers and len(non_empty) >= 3:
+        if not headers and len(non_empty) >= 2:
             row_text = ' '.join(cells).lower()
             matched_kws = set()
             for kw in table_header_keywords:
                 if kw in row_text:
                     matched_kws.add(kw)
-            if len(matched_kws) >= 2:
+            # 宽松匹配：2个非空+1个关键词，或3个非空+2个关键词
+            if (len(non_empty) >= 3 and len(matched_kws) >= 2) or (len(non_empty) >= 2 and len(matched_kws) >= 1):
                 headers = cells
                 continue
 
         if headers and len(non_empty) >= 1:
             data_rows.append({'cells': cells, 'row_idx': row_idx})
+
+    # 回退：如果严格匹配没找到表头，尝试找第一个含"结果"或"result"的行
+    if not headers:
+        for row_idx in range(info_end_row, len(rows)):
+            row = rows[row_idx]
+            cells = [str(c).strip() if c is not None else '' for c in row]
+            non_empty = [c for c in cells if c]
+            if not non_empty:
+                continue
+            row_text = ' '.join(cells).lower()
+            if '结果' in row_text or 'result' in row_text or 'pass' in row_text or 'pass/fail' in row_text or '状态' in row_text or 'status' in row_text:
+                headers = cells
+                # 收集后续数据行
+                for dr_idx in range(row_idx + 1, len(rows)):
+                    dr = rows[dr_idx]
+                    dr_cells = [str(c).strip() if c is not None else '' for c in dr]
+                    dr_non_empty = [c for c in dr_cells if c]
+                    if not dr_non_empty:
+                        break
+                    data_rows.append({'cells': dr_cells, 'row_idx': dr_idx})
+                break
+
+    # 最终回退：如果仍没找到表头，把所有非空行当数据，用第一行做表头
+    if not headers and len(rows) > info_end_row:
+        for row_idx in range(info_end_row, len(rows)):
+            row = rows[row_idx]
+            cells = [str(c).strip() if c is not None else '' for c in row]
+            non_empty = [c for c in cells if c]
+            if len(non_empty) >= 2:
+                headers = cells
+                for dr_idx in range(row_idx + 1, len(rows)):
+                    dr = rows[dr_idx]
+                    dr_cells = [str(c).strip() if c is not None else '' for c in dr]
+                    dr_non_empty = [c for c in dr_cells if c]
+                    if dr_non_empty:
+                        data_rows.append({'cells': dr_cells, 'row_idx': dr_idx})
+                break
 
     # 3. 检测列索引
     col_indices = _detect_column_indices(headers)
@@ -1012,29 +1050,26 @@ def _detect_column_indices(headers):
     headers_lower = [str(h).lower().strip() for h in headers]
 
     for i, h in enumerate(headers_lower):
-        if any(kw in h for kw in ['测试项', '测试内容', '名称', 'name', 'test item', 'test case', 'case']):
+        if any(kw in h for kw in ['测试项', '测试内容', '测试用例', '名称', 'name', 'test item', 'test case', 'case', '指标', '项目', '检查项']):
             col_map['name'] = i
-        elif any(kw in h for kw in ['模块', 'module', 'component', '组件', '功能']):
+        elif any(kw in h for kw in ['模块', 'module', 'component', '组件', '功能', '分类', 'category', '类型', '领域', '专项']):
             col_map['module'] = i
-        elif any(kw in h for kw in ['severity', '严重程度', '严重性', '等级', 'level']):
+        elif any(kw in h for kw in ['severity', '严重程度', '严重性', '等级', 'level', '优先级', 'priority']):
             col_map['severity'] = i
-        elif any(kw in h for kw in ['结果', 'result', 'pass/fail', '通过', 'status', '状态']):
+        elif any(kw in h for kw in ['结果', 'result', 'pass/fail', '通过', '状态', 'status', '结论', '判定']):
             col_map['result'] = i
-        elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述']):
+        elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述', '问题', 'issue', '问题描述', '核心问题']):
             col_map['reason'] = i
-        elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr']):
+        elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr', '基线', 'baseline', '阈值', 'threshold']):
             col_map['target'] = i
-        elif any(kw in h for kw in ['实测', '实际', 'actual', '当前', 'current', '结果值']):
+        elif any(kw in h for kw in ['实测', '实际', 'actual', '当前', 'current', '结果值', '测量', 'measured']):
             col_map['actual'] = i
         elif any(kw in h for kw in ['风险', 'risk']):
             col_map['risk'] = i
-        elif any(kw in h for kw in ['问题', 'issue', '核心问题', '问题描述']):
-            if 'reason' not in col_map:
-                col_map['reason'] = i
 
     if 'result' not in col_map:
         for i, h in enumerate(headers_lower):
-            if any(kw in h for kw in ['pass', 'fail', '通过', '不通过']):
+            if any(kw in h for kw in ['pass', 'fail', '通过', '不通过', '结论', '判定']):
                 col_map['result'] = i
                 break
 
