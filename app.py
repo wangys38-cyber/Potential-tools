@@ -837,9 +837,13 @@ def _analyze_sheet_detail(file_path, sheet_name):
             info_end_row = row_idx + 1
             continue
 
-        # 检查是否是表头行（多个单元格，且包含表头关键词）
+        # 检查是否是表头行（至少匹配2个不同的表头关键词，避免KV行被误判）
         row_text = ' '.join(cells).lower()
-        is_header_row = len(non_empty) >= 2 and any(kw in row_text for kw in header_keywords)
+        matched_kws = set()
+        for kw in header_keywords:
+            if kw in row_text:
+                matched_kws.add(kw)
+        is_header_row = len(non_empty) >= 3 and len(matched_kws) >= 2
         
         if is_header_row:
             info_end_row = row_idx
@@ -894,9 +898,13 @@ def _analyze_sheet_detail(file_path, sheet_name):
                 break
             continue
 
-        if not headers and len(non_empty) >= 2:
+        if not headers and len(non_empty) >= 3:
             row_text = ' '.join(cells).lower()
-            if any(kw in row_text for kw in table_header_keywords):
+            matched_kws = set()
+            for kw in table_header_keywords:
+                if kw in row_text:
+                    matched_kws.add(kw)
+            if len(matched_kws) >= 2:
                 headers = cells
                 continue
 
