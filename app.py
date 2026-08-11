@@ -36,6 +36,13 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = auth.SESSION_SECRET
 
+# Session 配置 — 确保登录状态持久化、跨页面共享
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_STATIC_URL') is not None  # HTTPS环境下启用Secure
+
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
     _runtime_dir = '/tmp/toolbox'
@@ -69,7 +76,7 @@ _PUBLIC_PATHS = (
 @app.before_request
 def require_login():
     """全局登录拦截：未登录用户自动跳转到登录页"""
-    # 已登录 — 放行
+    # 已登录 — 放行（仅检查 session，不查数据库）
     if auth.is_logged_in():
         return None
 
