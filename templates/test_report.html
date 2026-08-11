@@ -1156,6 +1156,8 @@
             // 纯数字判断
             const num = parseFloat(s.replace(/[>=≤<≥~≈约]/g, '').trim());
             if (!isNaN(num)) {
+                // 1 或 1.0 → 100%（测试指标中1代表100%）
+                if (num === 1) return '100%';
                 // 0~1 之间的小数 → 百分比 (0.7027 → 70.27%)
                 if (num > 0 && num < 1) return (num * 100).toFixed(2) + '%';
                 // 大于1的数，如果像是百分比形式(如 90, 95)也加上%
@@ -1186,12 +1188,11 @@
             });
 
             let html = `<div class="table-wrapper"><table class="test-items-table"><thead><tr>
-                <th style="width:50px;">#</th><th>测试项</th><th>模块</th><th>Severity</th><th>结果</th><th>目标</th><th>实测</th><th>原因/备注</th>
+                <th style="width:50px;">#</th><th>测试项</th><th>模块</th><th>结果</th><th>目标</th><th>实测</th><th>原因/备注</th>
             </tr></thead><tbody>`;
 
             sorted.forEach((item, idx) => {
                 const resultBadge = getResultBadge(item);
-                const severityTag = getSeverityTag(item.severity);
                 const reason = item.reason || '';
                 const isProblem = item.result === 'fail' || item.result === 'delayed' || item.result === 'blocked';
                 const targetDisplay = formatValue(item.target);
@@ -1201,11 +1202,10 @@
                     <td style="color:var(--text-tertiary);">${idx + 1}</td>
                     <td><span class="test-item-name">${escapeHtml(item.name)}</span></td>
                     <td><span class="test-item-module">${escapeHtml(item.module) || '-'}</span></td>
-                    <td>${severityTag}</td>
                     <td>${resultBadge}</td>
                     <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">${escapeHtml(targetDisplay)}</td>
                     <td style="font-size:13px;font-weight:600;color:${actualColor};white-space:nowrap;">${escapeHtml(actualDisplay)}</td>
-                    <td>${renderReason(reason, isProblem)}</td>
+                    <td style="max-width:400px;">${renderReason(reason, isProblem)}</td>
                 </tr>`;
             });
 
