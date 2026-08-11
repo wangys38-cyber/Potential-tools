@@ -9,3 +9,5 @@ markdown
 requests
 python-docx
 psutil
+whitenoise
+flask-compress
