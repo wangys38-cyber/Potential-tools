@@ -46,6 +46,7 @@ app.config['COMPRESS_MIMETYPES'] = [
     'application/xml', 'image/svg+xml',
 ]
 app.config['COMPRESS_LEVEL'] = 6
+app.config['COMPRESS_MIN_SIZE'] = 500  # 仅压缩大于500B的响应，避免小响应压缩开销
 
 # Whitenoise: 直接服务静态文件，跳过Flask请求处理（性能提升10倍+）
 app.wsgi_app = WhiteNoise(
