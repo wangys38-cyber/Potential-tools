@@ -35,16 +35,17 @@ def _load_config():
 
 _config = _load_config()
 
-SESSION_SECRET = _config.get('session_secret', 'default_secret_change_me')
+SESSION_SECRET = os.environ.get('SESSION_SECRET', _config.get('session_secret', 'default_secret_change_me'))
 ALLOW_GUEST = _config.get('allow_guest', True)
 
-FEISHU_APP_ID = _config.get('feishu', {}).get('app_id', '')
-FEISHU_APP_SECRET = _config.get('feishu', {}).get('app_secret', '')
-FEISHU_REDIRECT_URI = _config.get('feishu', {}).get('redirect_uri', '')
+# 优先使用环境变量（安全），回退到配置文件
+FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
+FEISHU_APP_SECRET = os.environ.get('FEISHU_APP_SECRET', _config.get('feishu', {}).get('app_secret', ''))
+FEISHU_REDIRECT_URI = os.environ.get('FEISHU_REDIRECT_URI', _config.get('feishu', {}).get('redirect_uri', ''))
 
-GOOGLE_CLIENT_ID = _config.get('google', {}).get('client_id', '')
-GOOGLE_CLIENT_SECRET = _config.get('google', {}).get('client_secret', '')
-GOOGLE_REDIRECT_URI = _config.get('google', {}).get('redirect_uri', '')
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', _config.get('google', {}).get('client_id', ''))
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', _config.get('google', {}).get('client_secret', ''))
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', _config.get('google', {}).get('redirect_uri', ''))
 
 
 def is_configured(provider):
