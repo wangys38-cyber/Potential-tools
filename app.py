@@ -33,7 +33,11 @@ else:
 template_dir = os.path.join(base_dir, 'templates')
 static_dir = os.path.join(base_dir, 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# 生产环境优化：关闭模板自动重载（避免每次请求检查文件修改时间）
+_is_production = bool(os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'))
+app.config['TEMPLATES_AUTO_RELOAD'] = not _is_production
+app.config['DEBUG'] = not _is_production
 app.secret_key = auth.SESSION_SECRET
 
 # Session 配置 — 确保登录状态持久化、跨页面共享
@@ -41,7 +45,10 @@ app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_STATIC_URL') is not None  # HTTPS环境下启用Secure
+app.config['SESSION_COOKIE_SECURE'] = _is_production  # HTTPS环境下启用Secure
+
+# 静态文件缓存 — 浏览器缓存1小时，减少重复请求
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600 if _is_production else 0
 
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
@@ -56,36 +63,47 @@ app.config['AI_CONFIG_FILE'] = os.path.join(_runtime_dir, 'ai_config.json')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 
-# 注入模板上下文：当前用户信息
+# 注入模板上下文：当前用户信息（仅对模板渲染生效）
 @app.context_processor
 def inject_user():
-    user = auth.get_current_user()
-    return dict(current_user=user, is_logged_in=user is not None)
+    # 快速检查 session，避免无谓的字典构造
+    if not session.get('user_id'):
+        return dict(current_user=None, is_logged_in=False)
+    return dict(
+        current_user={
+            'id': session.get('user_id'),
+            'name': session.get('user_name', ''),
+            'email': session.get('user_email', ''),
+            'avatar': session.get('user_avatar', ''),
+            'provider': session.get('user_provider', ''),
+        },
+        is_logged_in=True,
+    )
 
 
 # ==================== 登录拦截 ====================
-# 允许无需登录即可访问的路径前缀
+# 允许无需登录即可访问的路径前缀（按频率排序，命中即返回）
 _PUBLIC_PATHS = (
+    '/static/',
+    '/assets/',
     '/login',
     '/auth/',
     '/health',
-    '/static/',
-    '/assets/',
 )
 
 @app.before_request
 def require_login():
     """全局登录拦截：未登录用户自动跳转到登录页"""
-    # 已登录 — 放行（仅检查 session，不查数据库）
-    if auth.is_logged_in():
-        return None
-
     path = request.path
 
-    # 公开路径 — 放行
+    # 公开路径 — 最先检查，快速放行（静态文件、登录、OAuth回调等）
     for prefix in _PUBLIC_PATHS:
         if path.startswith(prefix):
             return None
+
+    # 已登录 — 放行（仅检查 session，不查数据库）
+    if session.get('user_id'):
+        return None
 
     # 如果允许游客模式 — 放行
     if auth.ALLOW_GUEST:
@@ -101,6 +119,19 @@ def require_login():
     if path.startswith('/api/'):
         return jsonify({'error': '请先登录', 'need_login': True}), 401
     return redirect(url_for('login_page'))
+
+
+@app.after_request
+def add_cache_headers(response):
+    """为静态资源添加缓存头，减少重复下载"""
+    path = request.path
+    # 静态文件缓存1小时
+    if path.startswith('/static/') or path.startswith('/assets/'):
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+    # API 响应不缓存
+    elif path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
 def normalize_date(date_str):

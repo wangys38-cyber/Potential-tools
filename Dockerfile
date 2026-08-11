@@ -33,5 +33,8 @@ RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
 
 EXPOSE 5001
 
-# 单 worker + 多线程（不设max-requests，避免worker回收杀死后台分析线程）
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300"]
+# 性能优化配置：
+# --preload: 预加载应用代码，减少worker启动时间
+# --workers 2: 两个worker提高并发（后台任务状态通过磁盘持久化，跨worker安全）
+# 不设max-requests：避免worker回收杀死后台分析线程
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 2 --threads 8 --timeout 300 --preload"]
