@@ -64,6 +64,58 @@
             font-size: 14px;
         }
 
+        /* ===== 用户信息 ===== */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-info .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+        .user-info .avatar-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .user-info .name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .user-info .provider-tag {
+            font-size: 11px;
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-primary);
+        }
+        .user-info .logout-btn {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        .user-info .logout-btn:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
         .container {
             max-width: 1200px;
             margin: 60px auto;
@@ -218,8 +270,17 @@
             <h1>🛠️ 我的工具集</h1>
             <p>一站式工具平台，集成多种实用工具</p>
         </div>
-        <div style="text-align: right;">
-            <p style="font-size: 12px; color: #86868b;">Version 1.0</p>
+        <div class="user-info">
+            {% if current_user %}
+                {% if current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" class="avatar" alt="avatar">
+                {% else %}
+                    <div class="avatar-placeholder">{{ current_user.name[:1] if current_user.name else '?' }}</div>
+                {% endif %}
+                <span class="name">{{ current_user.name }}</span>
+                <span class="provider-tag">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
+                <a href="/auth/logout" class="logout-btn">退出</a>
+            {% endif %}
         </div>
     </div>
 

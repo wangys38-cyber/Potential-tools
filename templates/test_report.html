@@ -710,7 +710,16 @@
 
         <!-- 用户栏 -->
         <div class="user-bar" id="userBar">
-            <!-- 动态填充 -->
+            {% if current_user %}
+                {% if current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" class="user-avatar" alt="avatar">
+                {% else %}
+                    <div class="user-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:600;">{{ current_user.name[:1] if current_user.name else '?' }}</div>
+                {% endif %}
+                <span class="user-name">{{ current_user.name }}</span>
+                <span class="user-provider">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
+                <a href="/auth/logout" class="logout-link">退出</a>
+            {% endif %}
         </div>
 
         <!-- 上传区 -->
@@ -1460,38 +1469,15 @@
             try {
                 const resp = await fetch('/api/user/info');
                 const data = await resp.json();
-                updateUserBar(data);
+                if (data.logged_in && data.user) {
+                    currentUser = data.user;
+                    const saveBtn = document.getElementById('saveReportBtn');
+                    const reportsBtn = document.getElementById('savedReportsBtnWrap');
+                    if (saveBtn) saveBtn.style.display = '';
+                    if (reportsBtn) reportsBtn.style.display = '';
+                }
             } catch (e) {
                 console.error('获取用户信息失败:', e);
-            }
-        }
-
-        function updateUserBar(data) {
-            const bar = document.getElementById('userBar');
-            const saveBtn = document.getElementById('saveReportBtn');
-            const reportsBtn = document.getElementById('savedReportsBtnWrap');
-
-            if (data.logged_in && data.user) {
-                currentUser = data.user;
-                const providerLabels = { feishu: '飞书', google: 'Google' };
-                const providerLabel = providerLabels[data.user.provider] || data.user.provider;
-                let avatarHtml = data.user.avatar
-                    ? `<img src="${data.user.avatar}" class="user-avatar" alt="avatar">`
-                    : `<div class="user-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:600;">${escapeHtml((data.user.name||'?').charAt(0))}</div>`;
-
-                bar.innerHTML = `
-                    ${avatarHtml}
-                    <span class="user-name">${escapeHtml(data.user.name)}</span>
-                    <span class="user-provider">${providerLabel}</span>
-                    <a href="/auth/logout" class="logout-link">退出</a>
-                `;
-                if (saveBtn) saveBtn.style.display = '';
-                if (reportsBtn) reportsBtn.style.display = '';
-            } else {
-                currentUser = null;
-                bar.innerHTML = `<a href="/login" class="login-link">🔑 登录</a>`;
-                if (saveBtn) saveBtn.style.display = 'none';
-                if (reportsBtn) reportsBtn.style.display = 'none';
             }
         }
 
