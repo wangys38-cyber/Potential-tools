@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium --with-deps
 
 # Cache bust: 强制 Railway 每次重新复制代码（避免 COPY . . 被缓存）
-ARG CACHE_BUST=2026-08-09-v5
+ARG CACHE_BUST=2026-08-11-v6
 RUN echo "Cache bust: $CACHE_BUST"
 
 # 复制应用代码（每次部署都会重新复制，不会被缓存）
