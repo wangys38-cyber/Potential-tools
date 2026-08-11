@@ -8,22 +8,25 @@
         :root {
             --bg-primary: #f0f2f5;
             --bg-card: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --text-primary: #1a1a2e;
             --text-secondary: #6b7280;
             --text-tertiary: #9ca3af;
             --accent: #4f46e5;
+            --accent-light: #818cf8;
             --accent-hover: #4338ca;
             --danger: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
+            --info: #0ea5e9;
             --border: #e5e7eb;
             --border-strong: #d1d5db;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -35,20 +38,56 @@
             -webkit-font-smoothing: antialiased;
         }
         .container { max-width: 1200px; margin: 0 auto; }
-        
-        /* Header */
+
+        /* ===== Header with Logos ===== */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 24px 32px;
+            background: var(--bg-gradient);
+            padding: 28px 36px;
             border-radius: var(--radius-lg);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             color: white;
             box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
         }
-        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .header-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+        .header-text { flex: 1; position: relative; z-index: 1; }
+        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; }
         .header .subtitle { font-size: 14px; opacity: 0.9; }
-        
-        /* Card */
+        .header-logo-right {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== Card ===== */
         .card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
@@ -58,19 +97,31 @@
             margin-bottom: 20px;
         }
         .card-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 17px;
+            font-weight: 700;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
+            color: var(--text-primary);
         }
-        
-        /* Upload */
+        .card-title-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            background: #eef2ff;
+            flex-shrink: 0;
+        }
+
+        /* ===== Upload ===== */
         .upload-card {
             border: 2px dashed #c7d2fe;
             border-radius: var(--radius-lg);
-            padding: 60px 40px;
+            padding: 56px 40px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
@@ -80,13 +131,14 @@
             border-color: var(--accent);
             background: #eef2ff;
             transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
-        .upload-icon { font-size: 64px; margin-bottom: 16px; }
+        .upload-icon { font-size: 56px; margin-bottom: 16px; }
         .upload-card h3 { font-size: 20px; margin-bottom: 8px; color: var(--text-primary); }
         .upload-card p { color: var(--text-secondary); font-size: 14px; }
         .upload-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 12px; }
-        
-        /* Sheet Selector */
+
+        /* ===== Sheet Selector ===== */
         .sheet-info {
             display: flex;
             align-items: center;
@@ -116,53 +168,53 @@
             background: var(--accent);
             color: #fff;
             border-color: var(--accent);
-            box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+            box-shadow: 0 2px 12px rgba(79,70,229,0.3);
         }
-        
-        /* Info Section */
+
+        /* ===== Info Grid ===== */
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 12px;
         }
         .info-item {
-            background: #f9fafb;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
             padding: 14px 16px;
             border-radius: var(--radius-sm);
             border-left: 3px solid var(--accent);
         }
         .info-item .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
         .info-item .value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
-        
-        /* Stats Cards */
+
+        /* ===== Stats Cards ===== */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
             gap: 12px;
             margin-bottom: 24px;
         }
         .stat-card {
             background: #fff;
             border: 1px solid var(--border);
-            padding: 18px 12px;
+            padding: 20px 12px;
             border-radius: var(--radius-md);
             text-align: center;
-            transition: transform 0.2s;
+            transition: all 0.2s;
         }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .stat-card .number { font-size: 28px; font-weight: 700; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--accent-light); }
+        .stat-card .number { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
         .stat-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 6px; font-weight: 500; }
         .stat-card.total .number { color: var(--text-primary); }
         .stat-card.pass .number { color: var(--success); }
         .stat-card.fail .number { color: var(--danger); }
-        .stat-card.rate .number { color: var(--accent); }
+        .stat-card.rate .number { color: var(--accent); font-size: 26px; }
         .stat-card.blocker .number { color: #dc2626; }
         .stat-card.critical .number { color: #ea580c; }
         .stat-card.major .number { color: #d97706; }
         .stat-card.minor .number { color: #2563eb; }
         .stat-card.trivial .number { color: #6b7280; }
-        
-        /* Summary Banner */
+
+        /* ===== Summary Banner ===== */
         .summary-banner {
             background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
             border-radius: var(--radius-md);
@@ -181,10 +233,10 @@
         .summary-banner p {
             font-size: 14px;
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.7;
         }
-        
-        /* Test Items Table */
+
+        /* ===== Test Items Table ===== */
         .table-wrapper {
             overflow-x: auto;
             border-radius: var(--radius-md);
@@ -212,8 +264,8 @@
         }
         .test-items-table tbody tr:hover { background: #f9fafb; }
         .test-items-table tbody tr:last-child td { border-bottom: none; }
-        
-        /* Result Badge */
+
+        /* ===== Result Badge ===== */
         .result-badge {
             display: inline-flex;
             align-items: center;
@@ -224,22 +276,19 @@
             font-weight: 600;
             white-space: nowrap;
         }
-        .result-badge.pass {
-            background: #d1fae5;
-            color: #065f46;
-        }
+        .result-badge.pass { background: #d1fae5; color: #065f46; }
         .result-badge.pass::before { content: '✓'; }
-        .result-badge.fail {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .result-badge.fail { background: #fee2e2; color: #991b1b; }
         .result-badge.fail::before { content: '✗'; }
-        .result-badge.unknown {
-            background: #f3f4f6;
-            color: #4b5563;
-        }
-        
-        /* Severity Tag */
+        .result-badge.unknown { background: #f3f4f6; color: #4b5563; }
+        .result-badge.blocked { background: #fef3c7; color: #92400e; }
+        .result-badge.blocked::before { content: '⊘'; }
+        .result-badge.delayed { background: #ffedd5; color: #9a3412; }
+        .result-badge.delayed::before { content: '◷'; }
+        .result-badge.n_a { background: #f3f4f6; color: #6b7280; }
+        .result-badge.n_a::before { content: '—'; }
+
+        /* ===== Severity Tag ===== */
         .severity-tag {
             display: inline-block;
             padding: 4px 10px;
@@ -253,8 +302,8 @@
         .severity-tag.major { background: #fef3c7; color: #92400e; }
         .severity-tag.minor { background: #dbeafe; color: #1e40af; }
         .severity-tag.trivial { background: #f3f4f6; color: #374151; }
-        
-        /* Risk Badge */
+
+        /* ===== Risk Badge ===== */
         .risk-badge {
             display: inline-flex;
             align-items: center;
@@ -269,31 +318,16 @@
         .risk-badge.medium { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
         .risk-badge.low { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .risk-badge.none { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        
-        /* Result Badge (expanded) */
-        .result-badge.blocked {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        .result-badge.blocked::before { content: '⊘'; }
-        .result-badge.delayed {
-            background: #ffedd5;
-            color: #9a3412;
-        }
-        .result-badge.delayed::before { content: '◷'; }
-        .result-badge.n_a {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-        .result-badge.n_a::before { content: '—'; }
-        
-        /* Analysis Section */
+
+        /* ===== Analysis Section ===== */
         .analysis-section {
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             overflow: hidden;
+            transition: box-shadow 0.2s;
         }
+        .analysis-section:hover { box-shadow: var(--shadow-sm); }
         .analysis-section-header {
             display: flex;
             align-items: center;
@@ -330,10 +364,7 @@
             margin-bottom: 12px;
             line-height: 1.6;
         }
-        .problem-item-list {
-            list-style: none;
-            padding: 0;
-        }
+        .problem-item-list { list-style: none; padding: 0; }
         .problem-item-list li {
             padding: 8px 0;
             border-bottom: 1px solid #f3f4f6;
@@ -346,8 +377,8 @@
         .problem-item-name { font-weight: 600; color: var(--text-primary); }
         .problem-item-reason { color: var(--text-secondary); font-size: 12px; }
         .problem-item-target { color: var(--accent); font-size: 12px; }
-        
-        /* Key Findings */
+
+        /* ===== Key Findings ===== */
         .finding-item {
             padding: 12px 16px;
             border-radius: var(--radius-sm);
@@ -360,8 +391,8 @@
         .finding-item.medium { background: #fffbeb; border-color: #f59e0b; }
         .finding-item.info { background: #f0f9ff; border-color: #0ea5e9; }
         .finding-item.success { background: #f0fdf4; border-color: #10b981; }
-        
-        /* Recommendations */
+
+        /* ===== Recommendations ===== */
         .recommendation-item {
             padding: 10px 16px;
             background: #f9fafb;
@@ -379,8 +410,8 @@
             font-weight: 700;
             flex-shrink: 0;
         }
-        
-        /* Overall Risk Banner */
+
+        /* ===== Risk Banner ===== */
         .risk-banner {
             display: inline-flex;
             align-items: center;
@@ -395,32 +426,17 @@
         .risk-banner.medium { background: #fef3c7; color: #92400e; }
         .risk-banner.low { background: #dbeafe; color: #1e40af; }
         .risk-banner.none { background: #d1fae5; color: #065f46; }
-        
-        /* Test Item Name */
-        .test-item-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .test-item-module {
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-        
-        /* Reason */
-        .reason-cell {
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        .reason-cell.empty {
-            color: var(--text-tertiary);
-            font-style: italic;
-        }
-        .reason-cell.fail-reason {
-            color: var(--danger);
-        }
-        
-        /* Actions */
+
+        /* ===== Test Item Name ===== */
+        .test-item-name { font-weight: 600; color: var(--text-primary); }
+        .test-item-module { color: var(--text-secondary); font-size: 13px; }
+
+        /* ===== Reason ===== */
+        .reason-cell { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+        .reason-cell.empty { color: var(--text-tertiary); font-style: italic; }
+        .reason-cell.fail-reason { color: var(--danger); }
+
+        /* ===== Actions ===== */
         .actions-bar {
             display: flex;
             gap: 12px;
@@ -440,37 +456,111 @@
             transition: all 0.2s;
             font-family: inherit;
         }
-        .btn-primary {
-            background: var(--accent);
-            color: #fff;
-        }
+        .btn-primary { background: var(--accent); color: #fff; }
         .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary {
-            background: #f3f4f6;
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
+        .btn-secondary { background: #f3f4f6; color: var(--text-primary); border: 1px solid var(--border); }
         .btn-secondary:hover { background: #e5e7eb; }
-        
-        /* Loading */
-        .loading {
+
+        /* ===== Loading with Progress Steps ===== */
+        .loading-card {
             display: none;
             text-align: center;
-            padding: 40px;
+            padding: 48px 40px;
         }
-        .loading.show { display: block; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 3px solid #e0e7ff;
+        .loading-card.show { display: block; }
+        .loading-spinner-container {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+        }
+        .loading-spinner {
+            width: 64px;
+            height: 64px;
+            border: 4px solid #e0e7ff;
             border-top-color: var(--accent);
             border-radius: 50%;
-            margin: 0 auto 16px;
             animation: spin 0.8s linear infinite;
         }
+        .loading-spinner-inner {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 40px;
+            height: 40px;
+            border: 3px solid transparent;
+            border-bottom-color: var(--accent-light);
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite reverse;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading p { color: var(--text-secondary); font-size: 14px; }
-        
-        /* Empty State */
+        .loading-card p.loading-text {
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .loading-card p.loading-subtext {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        .loading-steps {
+            margin-top: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .loading-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            transition: all 0.3s;
+        }
+        .loading-step.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .loading-step.done {
+            color: var(--success);
+        }
+        .loading-step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+        .loading-step.active .loading-step-dot {
+            background: var(--accent);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        .loading-step.done .loading-step-dot {
+            background: var(--success);
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.6; }
+        }
+        .loading-progress-bar {
+            width: 240px;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            margin: 20px auto 0;
+            overflow: hidden;
+        }
+        .loading-progress-fill {
+            height: 100%;
+            background: var(--bg-gradient);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        /* ===== Empty State ===== */
         .empty-state {
             text-align: center;
             padding: 48px 24px;
@@ -478,29 +568,39 @@
         }
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
         .empty-state p { font-size: 14px; }
-        
+
         .hidden { display: none !important; }
-        
-        /* Responsive */
+
+        /* ===== Responsive ===== */
         @media (max-width: 768px) {
             body { padding: 12px; }
             .card { padding: 20px; }
             .upload-card { padding: 40px 20px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .header { padding: 20px 24px; }
+            .header-logo, .header-logo-right { width: 40px; height: 40px; }
+            .header h1 { font-size: 20px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header with Logos -->
         <div class="header">
-            <h1>📋 测试报告分析工具</h1>
-            <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看逐项分析结果</div>
+            <img src="/static/logo_left.jpg" alt="QA Logo" class="header-logo">
+            <div class="header-text">
+                <h1>📋 测试报告分析工具</h1>
+                <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看智能分析结果</div>
+            </div>
+            <img src="/static/logo_right.jpg" alt="Analytics Logo" class="header-logo-right">
         </div>
 
         <!-- 上传区 -->
         <div class="card" id="uploadSection">
-            <div class="card-title">📤 上传测试报告</div>
+            <div class="card-title">
+                <span class="card-title-icon">📤</span>
+                上传测试报告
+            </div>
             <div class="upload-container">
                 <div class="upload-card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
                     <div class="upload-icon">📊</div>
@@ -514,7 +614,10 @@
 
         <!-- Sheet选择区 -->
         <div class="card hidden" id="sheetSection">
-            <div class="card-title">📑 选择Sheet页</div>
+            <div class="card-title">
+                <span class="card-title-icon">📑</span>
+                选择Sheet页
+            </div>
             <div class="sheet-info" id="sheetInfo"></div>
             <div class="sheet-tabs" id="sheetTabs"></div>
             <div class="actions-bar">
@@ -526,44 +629,65 @@
         <div id="resultSection" class="hidden">
             <!-- 项目信息 -->
             <div class="card" id="infoCard">
-                <div class="card-title">📋 项目信息</div>
+                <div class="card-title">
+                    <span class="card-title-icon">📋</span>
+                    项目信息
+                </div>
                 <div class="info-grid" id="infoGrid"></div>
             </div>
 
             <!-- 测试统计 -->
             <div class="card">
-                <div class="card-title">📊 测试统计</div>
+                <div class="card-title">
+                    <span class="card-title-icon">📊</span>
+                    测试统计
+                </div>
                 <div class="stats-grid" id="statsGrid"></div>
             </div>
 
             <!-- 执行摘要 -->
             <div class="card">
-                <div class="card-title">📋 执行摘要</div>
+                <div class="card-title">
+                    <span class="card-title-icon">📋</span>
+                    执行摘要
+                </div>
                 <div id="riskBannerContainer"></div>
                 <div class="summary-banner" id="summaryBanner"></div>
             </div>
 
             <!-- 分类分析 -->
             <div class="card" id="analysisSectionsCard">
-                <div class="card-title">🗂️ 分类分析</div>
+                <div class="card-title">
+                    <span class="card-title-icon">🗂️</span>
+                    分类分析
+                </div>
                 <div id="analysisSections"></div>
             </div>
 
             <!-- 关键发现 -->
             <div class="card" id="keyFindingsCard">
-                <div class="card-title">🔍 关键发现</div>
+                <div class="card-title">
+                    <span class="card-title-icon">🔍</span>
+                    关键发现
+                </div>
                 <div id="keyFindings"></div>
             </div>
 
             <!-- 改进建议 -->
             <div class="card" id="recommendationsCard">
-                <div class="card-title">💡 改进建议</div>
+                <div class="card-title">
+                    <span class="card-title-icon">💡</span>
+                    改进建议
+                </div>
                 <div id="recommendations"></div>
             </div>
 
             <!-- 逐项明细 -->
             <div class="card" id="detailCard">
-                <div class="card-title">📝 逐项明细</div>
+                <div class="card-title">
+                    <span class="card-title-icon">📝</span>
+                    逐项明细
+                </div>
                 <div id="tableContainer"></div>
             </div>
 
@@ -572,10 +696,35 @@
             </div>
         </div>
 
-        <!-- 加载动画 -->
-        <div class="card loading" id="loadingIndicator">
-            <div class="spinner"></div>
-            <p>正在分析报告内容，请稍候...</p>
+        <!-- 加载动画（带进度步骤） -->
+        <div class="card loading-card" id="loadingIndicator">
+            <div class="loading-spinner-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-spinner-inner"></div>
+            </div>
+            <p class="loading-text" id="loadingText">正在分析报告内容</p>
+            <p class="loading-subtext" id="loadingSubtext">请稍候，正在解析您的测试数据...</p>
+            <div class="loading-progress-bar">
+                <div class="loading-progress-fill" id="loadingProgressFill"></div>
+            </div>
+            <div class="loading-steps" id="loadingSteps">
+                <div class="loading-step" data-step="0">
+                    <span class="loading-step-dot"></span>
+                    <span>读取Excel文件</span>
+                </div>
+                <div class="loading-step" data-step="1">
+                    <span class="loading-step-dot"></span>
+                    <span>识别测试项数据</span>
+                </div>
+                <div class="loading-step" data-step="2">
+                    <span class="loading-step-dot"></span>
+                    <span>分类与风险评估</span>
+                </div>
+                <div class="loading-step" data-step="3">
+                    <span class="loading-step-dot"></span>
+                    <span>生成智能分析报告</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -583,6 +732,7 @@
         let currentFileId = null;
         let currentSheetName = null;
         let currentAnalysis = null;
+        let loadingStepInterval = null;
 
         const fileInput = document.getElementById('fileInput');
         const uploadCard = document.getElementById('uploadCard');
@@ -618,7 +768,7 @@
                 return;
             }
 
-            showLoading(true);
+            showLoading(true, '正在上传文件');
             const formData = new FormData();
             formData.append('file', file);
 
@@ -631,6 +781,7 @@
 
                 if (data.status === 'success') {
                     currentFileId = data.data.file_id;
+                    loadingIndicator.classList.remove('show');
                     showSheetSelector(data.data);
                 } else {
                     alert('上传失败: ' + (data.error || '未知错误'));
@@ -649,7 +800,6 @@
             sheetSection.classList.remove('hidden');
             resultSection.classList.add('hidden');
 
-            // 显示文件信息
             sheetInfo.innerHTML = `
                 <div class="file-icon">📄</div>
                 <div class="file-details">
@@ -658,7 +808,6 @@
                 </div>
             `;
 
-            // 显示Sheet列表
             const tabsContainer = document.getElementById('sheetTabs');
             tabsContainer.innerHTML = '';
 
@@ -674,12 +823,11 @@
         async function selectSheet(sheetName) {
             currentSheetName = sheetName;
 
-            // 更新选中状态
             document.querySelectorAll('.sheet-tab').forEach(tab => {
                 tab.classList.toggle('active', tab.textContent === sheetName);
             });
 
-            showLoading(true);
+            showLoading(true, '正在启动分析任务');
 
             try {
                 const response = await fetch('/api/test-report-analyze-sheet', {
@@ -696,12 +844,13 @@
                     throw new Error(data.error || '启动分析失败');
                 }
 
-                // 轮询后台任务状态（避免同步请求超过 Railway 5 分钟超时）
                 const taskId = data.data.task_id;
+                startLoadingSteps();
+
                 let pollCount = 0;
-                const maxPolls = 280; // 约 4.5 分钟
+                const maxPolls = 280;
                 while (pollCount < maxPolls) {
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise(r => setTimeout(r, 1500));
                     const statusResp = await fetch('/api/task-status', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -711,6 +860,7 @@
 
                     if (statusResult.status === 'done') {
                         currentAnalysis = statusResult.data;
+                        stopLoadingSteps();
                         displayResults(statusResult.data);
                         return;
                     } else if (statusResult.status === 'error') {
@@ -720,54 +870,96 @@
                 }
                 throw new Error('分析超时，请重试');
             } catch (err) {
+                stopLoadingSteps();
                 alert('分析失败: ' + (err.message || '未知错误'));
                 showLoading(false);
                 sheetSection.classList.remove('hidden');
             }
         }
 
+        function startLoadingSteps() {
+            const steps = document.querySelectorAll('.loading-step');
+            let currentStep = 0;
+            steps[0].classList.add('active');
+            updateLoadingText('正在读取Excel文件...');
+
+            loadingStepInterval = setInterval(() => {
+                if (currentStep < steps.length - 1) {
+                    steps[currentStep].classList.remove('active');
+                    steps[currentStep].classList.add('done');
+                    currentStep++;
+                    steps[currentStep].classList.add('active');
+                    updateLoadingTextByStep(currentStep);
+                }
+            }, 5000);
+
+            // Progress bar animation
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress = Math.min(progress + 2, 90);
+                document.getElementById('loadingProgressFill').style.width = progress + '%';
+                if (progress >= 90) clearInterval(progressInterval);
+            }, 300);
+        }
+
+        function stopLoadingSteps() {
+            if (loadingStepInterval) {
+                clearInterval(loadingStepInterval);
+                loadingStepInterval = null;
+            }
+            document.getElementById('loadingProgressFill').style.width = '100%';
+            document.querySelectorAll('.loading-step').forEach(s => {
+                s.classList.remove('active');
+                s.classList.add('done');
+            });
+        }
+
+        function updateLoadingText(text) {
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function updateLoadingTextByStep(step) {
+            const texts = [
+                '正在读取Excel文件...',
+                '正在识别测试项数据...',
+                '正在进行分类与风险评估...',
+                '正在生成智能分析报告...'
+            ];
+            const subtexts = [
+                '解析Sheet中的行列数据',
+                '提取测试项名称、模块、结果等信息',
+                '按功能领域分类，评估各模块风险等级',
+                '汇总关键发现和改进建议'
+            ];
+            if (texts[step]) updateLoadingText(texts[step]);
+            if (subtexts[step]) document.getElementById('loadingSubtext').textContent = subtexts[step];
+        }
+
         function displayResults(data) {
             sheetSection.classList.add('hidden');
             resultSection.classList.remove('hidden');
+            loadingIndicator.classList.remove('show');
 
-            // 显示项目信息
             renderProjectInfo(data.project_info);
-            
-            // 显示统计
             renderStats(data.stats);
-            
-            // 显示执行摘要（含风险等级）
             renderSummary(data);
-            
-            // 显示分类分析
             renderAnalysisSections(data.analysis);
-            
-            // 显示关键发现
             renderKeyFindings(data.analysis);
-            
-            // 显示改进建议
             renderRecommendations(data.analysis);
-            
-            // 显示逐项明细
             renderTestItems(data.test_items);
         }
 
         function renderProjectInfo(info) {
             const grid = document.getElementById('infoGrid');
             grid.innerHTML = '';
-
             if (!info || Object.keys(info).length === 0) {
                 grid.innerHTML = '<div style="color:var(--text-tertiary);">未识别到项目信息</div>';
                 return;
             }
-
             Object.entries(info).forEach(([label, value]) => {
                 const item = document.createElement('div');
                 item.className = 'info-item';
-                item.innerHTML = `
-                    <div class="label">${escapeHtml(label)}</div>
-                    <div class="value">${escapeHtml(value)}</div>
-                `;
+                item.innerHTML = `<div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div>`;
                 grid.appendChild(item);
             });
         }
@@ -775,7 +967,6 @@
         function renderStats(stats) {
             const grid = document.getElementById('statsGrid');
             grid.innerHTML = '';
-
             const total = stats.total || 0;
             const pass = stats.pass || 0;
             const fail = stats.fail || 0;
@@ -792,44 +983,26 @@
                 { key: 'pass', label: '通过', value: pass, cls: 'pass' },
                 { key: 'fail', label: '不通过', value: fail, cls: 'fail' },
             ];
-
             if (blocked > 0) items.push({ key: 'blocked', label: '阻塞', value: blocked, cls: 'critical' });
             if (delayed > 0) items.push({ key: 'delayed', label: '已延期', value: delayed, cls: 'major' });
             if (unknown > 0) items.push({ key: 'unknown', label: '未识别', value: unknown, cls: 'trivial' });
-
             items.push({ key: 'rate', label: '通过率', value: passRate, cls: 'rate' });
             if (executed < total && executed > 0) {
                 items.push({ key: 'exec_rate', label: '已执行通过率', value: executedPassRate, cls: 'rate' });
             }
 
-            // Severity统计
             const severity = stats.severity || {};
-            const severityLabels = {
-                blocker: 'Blocker',
-                critical: 'Critical',
-                major: 'Major',
-                minor: 'Minor',
-                trivial: 'Trivial'
-            };
-            
+            const severityLabels = { blocker: 'Blocker', critical: 'Critical', major: 'Major', minor: 'Minor', trivial: 'Trivial' };
             ['blocker', 'critical', 'major', 'minor', 'trivial'].forEach(level => {
                 if (severity[level]) {
-                    items.push({
-                        key: level,
-                        label: severityLabels[level],
-                        value: severity[level],
-                        cls: level
-                    });
+                    items.push({ key: level, label: severityLabels[level], value: severity[level], cls: level });
                 }
             });
 
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'stat-card ' + item.cls;
-                card.innerHTML = `
-                    <div class="number">${item.value}</div>
-                    <div class="label">${item.label}</div>
-                `;
+                card.innerHTML = `<div class="number">${item.value}</div><div class="label">${item.label}</div>`;
                 grid.appendChild(card);
             });
         }
@@ -843,57 +1016,40 @@
 
             if (total === 0) {
                 riskContainer.innerHTML = '';
-                banner.innerHTML = `
-                    <h4>📋 分析总结</h4>
-                    <p>未找到测试项数据，请检查Excel文件格式是否正确。</p>
-                `;
+                banner.innerHTML = `<h4>📋 分析总结</h4><p>未找到测试项数据，请检查Excel文件格式是否正确。</p>`;
                 return;
             }
 
-            // 渲染整体风险等级横幅
             const overallRisk = analysis.overall_risk || '无';
             const riskClassMap = { '高': 'high', '中': 'medium', '低': 'low', '无': 'none' };
             const riskIconMap = { '高': '🔴', '中': '🟡', '低': '🔵', '无': '🟢' };
             const riskCls = riskClassMap[overallRisk] || 'none';
-            riskContainer.innerHTML = `
-                <div class="risk-banner ${riskCls}">
-                    ${riskIconMap[overallRisk] || '🟢'} 整体风险等级：${overallRisk}
-                </div>
-            `;
+            riskContainer.innerHTML = `<div class="risk-banner ${riskCls}">${riskIconMap[overallRisk] || '🟢'} 整体风险等级：${overallRisk}</div>`;
 
-            // 使用智能分析生成的执行摘要
             const execSummary = analysis.executive_summary || '';
-            banner.innerHTML = `
-                <h4>📋 执行摘要</h4>
-                <p>${escapeHtml(execSummary)}</p>
-            `;
+            banner.innerHTML = `<h4>📋 执行摘要</h4><p>${escapeHtml(execSummary)}</p>`;
         }
 
         function renderAnalysisSections(analysis) {
             const container = document.getElementById('analysisSections');
             container.innerHTML = '';
-
             if (!analysis || !analysis.sections || analysis.sections.length === 0) {
                 container.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:20px;">无分类分析数据</div>';
                 return;
             }
-
             const riskClassMap = { '高': 'high', '中': 'medium', '低': 'low', '无': 'none' };
 
-            analysis.sections.forEach((section, idx) => {
+            analysis.sections.forEach((section) => {
                 const riskCls = riskClassMap[section.risk_level] || 'none';
                 const sectionDiv = document.createElement('div');
                 sectionDiv.className = 'analysis-section';
 
-                // 统计文本
                 let statsText = `通过率 ${section.pass_rate}`;
                 if (section.fail > 0) statsText += ` · 不通过 ${section.fail}`;
                 if (section.delayed > 0) statsText += ` · 延期 ${section.delayed}`;
                 if (section.blocked > 0) statsText += ` · 阻塞 ${section.blocked}`;
 
                 let bodyHtml = `<div class="analysis-section-summary">${escapeHtml(section.summary)}</div>`;
-
-                // 问题项列表
                 if (section.problem_items && section.problem_items.length > 0) {
                     bodyHtml += '<ul class="problem-item-list">';
                     section.problem_items.forEach(pi => {
@@ -923,16 +1079,12 @@
                             <span style="color:var(--text-tertiary);">共 ${section.total} 项</span>
                         </div>
                     </div>
-                    <div class="analysis-section-body">
-                        ${bodyHtml}
-                    </div>
+                    <div class="analysis-section-body">${bodyHtml}</div>
                 `;
 
-                // 默认展开高风险项
                 if (section.risk_level === '高') {
                     sectionDiv.querySelector('.analysis-section-body').classList.add('show');
                 }
-
                 container.appendChild(sectionDiv);
             });
         }
@@ -940,12 +1092,10 @@
         function renderKeyFindings(analysis) {
             const container = document.getElementById('keyFindings');
             container.innerHTML = '';
-
             if (!analysis || !analysis.key_findings || analysis.key_findings.length === 0) {
                 container.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:20px;">无关键发现</div>';
                 return;
             }
-
             analysis.key_findings.forEach(finding => {
                 const item = document.createElement('div');
                 let cls = 'info';
@@ -961,12 +1111,10 @@
         function renderRecommendations(analysis) {
             const container = document.getElementById('recommendations');
             container.innerHTML = '';
-
             if (!analysis || !analysis.recommendations || analysis.recommendations.length === 0) {
                 container.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:20px;">暂无建议</div>';
                 return;
             }
-
             analysis.recommendations.forEach(rec => {
                 const item = document.createElement('div');
                 item.className = 'recommendation-item';
@@ -976,79 +1124,46 @@
         }
 
         function getStatusLabel(result) {
-            const labels = {
-                'pass': '通过',
-                'fail': '不通过',
-                'blocked': '阻塞',
-                'delayed': '已延期',
-                'n_a': '不适用',
-                'unknown': '未识别'
-            };
+            const labels = { 'pass': '通过', 'fail': '不通过', 'blocked': '阻塞', 'delayed': '已延期', 'n_a': '不适用', 'unknown': '未识别' };
             return labels[result] || result;
         }
 
         function renderTestItems(items) {
             const container = document.getElementById('tableContainer');
-            
             if (!items || items.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">📭</div>
-                        <p>未找到测试项数据</p>
-                        <p style="font-size:12px;margin-top:8px;">请确保Excel文件包含测试项表格</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>未找到测试项数据</p><p style="font-size:12px;margin-top:8px;">请确保Excel文件包含测试项表格</p></div>`;
                 return;
             }
 
-            // 排序：不通过 > 延期 > 阻塞 > 通过 > 其他
             const resultOrder = { 'fail': 0, 'delayed': 1, 'blocked': 2, 'unknown': 3, 'n_a': 4, 'pass': 5 };
             const sorted = [...items].sort((a, b) => {
                 const orderA = resultOrder[a.result] !== undefined ? resultOrder[a.result] : 3;
                 const orderB = resultOrder[b.result] !== undefined ? resultOrder[b.result] : 3;
                 if (orderA !== orderB) return orderA - orderB;
-                // 不通过项按严重程度排序
                 if (a.result === 'fail' && b.result === 'fail') {
                     const severityOrder = { blocker: 0, critical: 1, major: 2, minor: 3, trivial: 4 };
-                    const sevA = getSeverityLevel(a.severity);
-                    const sevB = getSeverityLevel(b.severity);
-                    return severityOrder[sevA] - severityOrder[sevB];
+                    return severityOrder[getSeverityLevel(a.severity)] - severityOrder[getSeverityLevel(b.severity)];
                 }
                 return 0;
             });
 
-            let html = `
-                <div class="table-wrapper">
-                    <table class="test-items-table">
-                        <thead>
-                            <tr>
-                                <th style="width:50px;">#</th>
-                                <th>测试项</th>
-                                <th>模块</th>
-                                <th>Severity</th>
-                                <th>结果</th>
-                                <th>原因/备注</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            let html = `<div class="table-wrapper"><table class="test-items-table"><thead><tr>
+                <th style="width:50px;">#</th><th>测试项</th><th>模块</th><th>Severity</th><th>结果</th><th>原因/备注</th>
+            </tr></thead><tbody>`;
 
             sorted.forEach((item, idx) => {
                 const resultBadge = getResultBadge(item);
                 const severityTag = getSeverityTag(item.severity);
                 const reason = item.reason || '';
                 const isProblem = item.result === 'fail' || item.result === 'delayed' || item.result === 'blocked';
-                
-                html += `
-                    <tr>
-                        <td style="color:var(--text-tertiary);">${idx + 1}</td>
-                        <td><span class="test-item-name">${escapeHtml(item.name)}</span></td>
-                        <td><span class="test-item-module">${escapeHtml(item.module) || '-'}</span></td>
-                        <td>${severityTag}</td>
-                        <td>${resultBadge}</td>
-                        <td>${reason ? `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(reason)}</span>` : '<span class="reason-cell empty">-</span>'}</td>
-                    </tr>
-                `;
+                html += `<tr>
+                    <td style="color:var(--text-tertiary);">${idx + 1}</td>
+                    <td><span class="test-item-name">${escapeHtml(item.name)}</span></td>
+                    <td><span class="test-item-module">${escapeHtml(item.module) || '-'}</span></td>
+                    <td>${severityTag}</td>
+                    <td>${resultBadge}</td>
+                    <td>${reason ? `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(reason)}</span>` : '<span class="reason-cell empty">-</span>'}</td>
+                </tr>`;
             });
 
             html += '</tbody></table></div>';
@@ -1057,36 +1172,18 @@
 
         function getResultBadge(item) {
             const result = item.result || 'unknown';
-            const statusLabels = {
-                'pass': '通过',
-                'fail': '不通过',
-                'blocked': '阻塞',
-                'delayed': '已延期',
-                'n_a': '不适用',
-                'unknown': '未识别'
-            };
+            const statusLabels = { 'pass': '通过', 'fail': '不通过', 'blocked': '阻塞', 'delayed': '已延期', 'n_a': '不适用', 'unknown': '未识别' };
             const label = statusLabels[result] || item.result_text || result;
-
-            if (result === 'pass') {
-                return `<span class="result-badge pass">${label}</span>`;
-            } else if (result === 'fail') {
-                return `<span class="result-badge fail">${label}</span>`;
-            } else if (result === 'blocked') {
-                return `<span class="result-badge blocked">${label}</span>`;
-            } else if (result === 'delayed') {
-                return `<span class="result-badge delayed">${label}</span>`;
-            } else if (result === 'n_a') {
-                return `<span class="result-badge n_a">${label}</span>`;
+            if (['pass', 'fail', 'blocked', 'delayed', 'n_a'].includes(result)) {
+                return `<span class="result-badge ${result}">${label}</span>`;
             }
             return `<span class="result-badge unknown">${escapeHtml(item.result_text || label)}</span>`;
         }
 
         function getSeverityTag(severity) {
             if (!severity) return '<span style="color:var(--text-tertiary);">-</span>';
-            
             const cls = getSeverityClass(severity);
             const label = severity.charAt(0).toUpperCase() + severity.slice(1);
-            
             return `<span class="severity-tag ${cls}">${escapeHtml(label)}</span>`;
         }
 
@@ -1112,14 +1209,20 @@
             return 'trivial';
         }
 
-        function showLoading(show) {
+        function showLoading(show, text) {
             if (show) {
                 loadingIndicator.classList.add('show');
                 uploadSection.classList.add('hidden');
                 sheetSection.classList.add('hidden');
                 resultSection.classList.add('hidden');
+                if (text) updateLoadingText(text);
+                document.getElementById('loadingProgressFill').style.width = '0%';
+                document.querySelectorAll('.loading-step').forEach(s => {
+                    s.classList.remove('active', 'done');
+                });
             } else {
                 loadingIndicator.classList.remove('show');
+                stopLoadingSteps();
             }
         }
 

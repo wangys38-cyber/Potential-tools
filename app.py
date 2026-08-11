@@ -807,14 +807,18 @@ def api_test_report_analyze_sheet():
 
     def _do_test_report_analysis():
         try:
+            logger.info(f"[分析任务 {task_id}] 开始分析: file={file_path}, sheet={sheet_name}")
             gc.collect()
+            t0 = time.time()
             result = _analyze_sheet_detail(file_path, sheet_name)
+            elapsed = time.time() - t0
+            logger.info(f"[分析任务 {task_id}] 分析完成，耗时 {elapsed:.1f}s, 测试项数={len(result.get('test_items', []))}")
             _background_tasks[task_id]['result'] = result
             _background_tasks[task_id]['status'] = 'done'
             _save_task_meta(task_id, _background_tasks[task_id])
         except Exception as e:
             error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'
-            logger.error(f"测试报告分析失败: {traceback.format_exc()}")
+            logger.error(f"[分析任务 {task_id}] 分析失败: {traceback.format_exc()}")
             _background_tasks[task_id]['error'] = error_detail
             _background_tasks[task_id]['status'] = 'error'
             _save_task_meta(task_id, _background_tasks[task_id])

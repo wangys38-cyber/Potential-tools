@@ -26,5 +26,5 @@ RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
 
 EXPOSE 5001
 
-# 单 worker + 多线程
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300 --max-requests 200 --max-requests-jitter 20"]
+# 单 worker + 多线程（不设max-requests，避免worker回收杀死后台分析线程）
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300"]
