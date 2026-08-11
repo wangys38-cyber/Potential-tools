@@ -807,14 +807,58 @@ def api_test_report_analyze_sheet():
     return jsonify({'status': 'success', 'data': {'task_id': task_id}})
 
 
-def _analyze_sheet_detail(file_path, sheet_name):
+@app.route('/api/test-report-debug', methods=['POST'])
+def api_test_report_debug():
+    """诊断端点：返回Excel解析的详细信息，帮助排查解析为空的问题"""
+    data = request.json or {}
+    file_id = data.get('file_id', '')
+    sheet_name = data.get('sheet_name', '')
+
+    if not file_id:
+        return jsonify({'error': '缺少file_id'}), 400
+
+    file_path = None
+    for ext in ['.xlsx', '.xls']:
+        candidate = os.path.join(app.config['UPLOAD_FOLDER'], f"test_report_{file_id}{ext}")
+        if os.path.exists(candidate):
+            file_path = candidate
+            break
+
+    if not file_path:
+        return jsonify({'error': '文件不存在，可能已过期'}), 404
+
+    try:
+        if not sheet_name:
+            reader = ExcelReader(file_path)
+            reader.open()
+            sheet_name = reader.sheetnames[0] if reader.sheetnames else 'Sheet1'
+            reader.close()
+
+        result = _analyze_sheet_detail(file_path, sheet_name, return_debug=True)
+        return jsonify({'status': 'success', 'data': result})
+    except Exception as e:
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
     """分析单个Sheet的详细内容"""
     reader = ExcelReader(file_path)
     reader.open()
     rows = reader.get_sheet_data(sheet_name)
     reader.close()
+    debug_info = {'sheet_name': sheet_name, 'total_rows': len(rows), 'first_10_rows': [], 'detected_headers': [], 'info_end_row': 0, 'data_rows_count': 0}
 
     if not rows:
+        if return_debug:
+            return {
+                'file_basename': os.path.basename(file_path),
+                'sheet_name': sheet_name,
+                'project_info': {},
+                'test_items': [],
+                'stats': {'total': 0, 'pass': 0, 'fail': 0, 'pass_rate': '0%'},
+                'analysis': {'executive_summary': '未找到测试项数据，请检查Excel文件格式是否正确。', 'overall_risk': '未知', 'key_findings': [], 'recommendations': [], 'sections': []},
+                '_debug': debug_info
+            }
         return {
             'file_basename': os.path.basename(file_path),
             'sheet_name': sheet_name,
@@ -822,6 +866,12 @@ def _analyze_sheet_detail(file_path, sheet_name):
             'test_items': [],
             'stats': {'total': 0, 'pass': 0, 'fail': 0, 'pass_rate': '0%'}
         }
+
+    # 记录前10行用于调试
+    for r in rows[:10]:
+        cells_preview = [str(c).strip() if c is not None else '' for c in r]
+        non_empty_count = sum(1 for c in cells_preview if c)
+        debug_info['first_10_rows'].append({'row': cells_preview[:8], 'non_empty': non_empty_count})
 
     # 1. 识别KV信息区
     project_info = {}
@@ -952,6 +1002,12 @@ def _analyze_sheet_detail(file_path, sheet_name):
     # 3. 检测列索引
     col_indices = _detect_column_indices(headers)
 
+    # 记录调试信息
+    debug_info['detected_headers'] = headers
+    debug_info['info_end_row'] = info_end_row
+    debug_info['data_rows_count'] = len(data_rows)
+    debug_info['col_indices'] = col_indices
+
     # 4. 解析测试项
     for data_row in data_rows:
         cells = data_row['cells']
@@ -1021,7 +1077,7 @@ def _analyze_sheet_detail(file_path, sheet_name):
         'executed_pass_rate': executed_pass_rate
     })
 
-    return {
+    result = {
         'file_basename': os.path.splitext(os.path.basename(file_path))[0],
         'sheet_name': sheet_name,
         'project_info': project_info,
@@ -1041,6 +1097,9 @@ def _analyze_sheet_detail(file_path, sheet_name):
         },
         'analysis': analysis
     }
+    if return_debug:
+        result['_debug'] = debug_info
+    return result
 
 
 def _detect_column_indices(headers):
