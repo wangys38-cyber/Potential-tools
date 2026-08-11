@@ -862,6 +862,347 @@ def api_test_report_debug():
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
+@app.route('/api/test-report-pdf', methods=['POST'])
+def api_test_report_pdf():
+    """将测试报告分析结果导出为PDF（含Motorola水印+日期）"""
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': '请求数据格式错误'}), 400
+
+    analysis_data = data.get('analysis_data', {})
+    file_name = data.get('file_name', '')
+    sheet_name = data.get('sheet_name', '')
+
+    if not analysis_data:
+        return jsonify({'error': '缺少分析数据'}), 400
+
+    try:
+        html_content = _build_test_report_pdf_html(analysis_data, file_name, sheet_name)
+
+        import tempfile as tf
+        with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
+            f.write(html_content)
+            html_path = f.name
+
+        safe_name = re.sub(r'[\\/:*?"<>|]', '_', file_name or 'test_report')
+        pdf_filename = f"{safe_name}_{datetime.now(_CST).strftime('%Y%m%d_%H%M%S')}.pdf"
+        download_name = f"{safe_name}.pdf"
+        pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
+
+        _render_pdf(html_path, pdf_path,
+                    margin={'top': '15mm', 'bottom': '15mm', 'left': '12mm', 'right': '12mm'},
+                    extra_wait_ms=1000)
+
+        try:
+            os.unlink(html_path)
+        except Exception:
+            pass
+
+        return jsonify({
+            'status': 'success',
+            'filename': pdf_filename,
+            'download_name': download_name
+        })
+    except Exception as e:
+        logger.error(f"测试报告PDF生成失败: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/test-report-download/<filename>')
+def api_test_report_download(filename):
+    """下载生成的PDF文件"""
+    safe_name = os.path.basename(filename)
+    pdf_path = os.path.join(app.config['PDF_FOLDER'], safe_name)
+    if not os.path.exists(pdf_path):
+        return jsonify({'error': '文件不存在'}), 404
+    download_name = request.args.get('download_name', safe_name)
+    return send_file(pdf_path, as_attachment=True, download_name=download_name)
+
+
+def _build_test_report_pdf_html(data, file_name, sheet_name):
+    """构建测试报告PDF的HTML（含Motorola水印+日期）"""
+    project_info = data.get('project_info', {})
+    stats = data.get('stats', {})
+    analysis = data.get('analysis', {})
+    test_items = data.get('test_items', [])
+    today = datetime.now(_CST).strftime('%Y-%m-%d')
+
+    # 水印文字
+    watermark_text = f"Motorola {today}"
+
+    # 水印HTML（平铺）
+    watermark_items = []
+    for x in range(0, 800, 200):
+        for y in range(0, 1200, 150):
+            watermark_items.append(
+                f'<div style="position:absolute;left:{x}px;top:{y}px;transform:rotate(-30deg);'
+                f'font-size:18px;font-weight:600;color:rgba(0,113,227,0.08);white-space:nowrap;'
+                f'pointer-events:none;z-index:0;">{watermark_text}</div>'
+            )
+    watermark_html = '\n'.join(watermark_items)
+
+    # 项目信息
+    info_rows = ''
+    for k, v in project_info.items():
+        if v and str(v).strip():
+            info_rows += f'<div class="info-row"><span class="info-label">{k}</span><span class="info-val">{v}</span></div>'
+    if not info_rows:
+        info_rows = '<div class="info-row"><span class="info-val" style="color:#999;">无项目信息</span></div>'
+
+    # 统计数据
+    total = stats.get('total', 0)
+    pass_count = stats.get('pass', 0)
+    fail_count = stats.get('fail', 0)
+    blocked_count = stats.get('blocked', 0)
+    delayed_count = stats.get('delayed', 0)
+    pass_rate = stats.get('pass_rate', '0%')
+    overall_risk = analysis.get('overall_risk', '未知')
+
+    risk_color = {'高': '#dc2626', '中': '#f59e0b', '低': '#3b82f6', '无': '#10b981'}.get(overall_risk, '#6b7280')
+
+    # 关键发现
+    key_findings = analysis.get('key_findings', [])
+    findings_html = ''
+    if key_findings:
+        for f in key_findings:
+            findings_html += f'<div class="finding-item">• {f}</div>'
+    else:
+        findings_html = '<div style="color:#999;">无关键发现</div>'
+
+    # 改进建议
+    recommendations = analysis.get('recommendations', [])
+    recs_html = ''
+    if recommendations:
+        for r in recommendations:
+            recs_html += f'<div class="rec-item">• {r}</div>'
+    else:
+        recs_html = '<div style="color:#999;">无改进建议</div>'
+
+    # 分类分析
+    sections = analysis.get('sections', [])
+    sections_html = ''
+    for s in sections:
+        risk_cls = {'高': 'high', '中': 'medium', '低': 'low', '无': 'none'}.get(s.get('risk_level', ''), 'none')
+        sections_html += f'''
+        <div class="section-block">
+            <div class="section-header">
+                <span class="risk-badge-pdf {risk_cls}">{s.get('risk_level', '')}</span>
+                <span class="section-cat">{s.get('category', '')}</span>
+                <span class="section-stats">通过率 {s.get('pass_rate', '')} · 共 {s.get('total', 0)} 项</span>
+            </div>
+            <div class="section-summary">{s.get('summary', '')}</div>
+        </div>'''
+
+    # 测试项表格
+    result_labels = {'pass': '通过', 'fail': '不通过', 'blocked': '阻塞', 'delayed': '已延期', 'n_a': '不适用', 'unknown': '未识别'}
+    rows_html = ''
+    for item in test_items:
+        result_text = result_labels.get(item.get('result', ''), item.get('result_text', ''))
+        result_cls = item.get('result', 'unknown')
+        target = item.get('target', '')
+        actual = item.get('actual', '')
+        reason = item.get('reason', '')
+        rows_html += f'''<tr>
+            <td>{item.get('name', '')}</td>
+            <td>{item.get('module', '') or '-'}</td>
+            <td><span class="pdf-badge {result_cls}">{result_text}</span></td>
+            <td>{target or '-'}</td>
+            <td>{actual or '-'}</td>
+            <td>{reason or '-'}</td>
+        </tr>'''
+
+    html = f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+@page {{ size: A4; }}
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+body {{
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #1a1a2e;
+    font-size: 12px;
+    position: relative;
+}}
+.watermark-layer {{
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+}}
+.content {{ position: relative; z-index: 1; }}
+
+/* Header */
+.report-header {{
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px 30px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}}
+.report-header h1 {{ font-size: 22px; margin-bottom: 6px; }}
+.report-header .meta {{ font-size: 13px; opacity: 0.9; }}
+
+/* Section */
+.section {{ margin-bottom: 18px; }}
+.section-title {{
+    font-size: 15px; font-weight: 700; margin-bottom: 10px;
+    padding-left: 10px; border-left: 4px solid #4f46e5;
+    color: #1a1a2e;
+}}
+
+/* Info grid */
+.info-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+.info-row {{
+    background: #f9fafb; border-radius: 6px; padding: 8px 14px;
+    border-left: 3px solid #4f46e5; min-width: 200px;
+}}
+.info-label {{ font-size: 11px; color: #6b7280; display: block; }}
+.info-val {{ font-size: 13px; font-weight: 600; }}
+
+/* Stats grid */
+.stats-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+.stat-box {{
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 12px 16px; text-align: center; min-width: 80px;
+}}
+.stat-box .num {{ font-size: 22px; font-weight: 800; }}
+.stat-box .lbl {{ font-size: 11px; color: #6b7280; margin-top: 4px; }}
+
+/* Risk banner */
+.risk-banner {{
+    display: inline-block; padding: 6px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    background: {risk_color}22; color: {risk_color}; border: 1px solid {risk_color};
+}}
+
+/* Executive summary */
+.exec-summary {{
+    background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+    border-radius: 8px; padding: 14px 18px; line-height: 1.7;
+    border: 1px solid #c7d2fe; font-size: 12px;
+}}
+
+/* Findings & recommendations */
+.finding-item, .rec-item {{
+    padding: 6px 0; line-height: 1.6; border-bottom: 1px solid #f3f4f6;
+}}
+.finding-item:last-child, .rec-item:last-child {{ border-bottom: none; }}
+
+/* Analysis sections */
+.section-block {{
+    border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 8px;
+}}
+.section-header {{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }}
+.section-cat {{ font-weight: 600; font-size: 13px; }}
+.section-stats {{ font-size: 11px; color: #6b7280; margin-left: auto; }}
+.section-summary {{ font-size: 11px; color: #4b5563; line-height: 1.5; }}
+.risk-badge-pdf {{
+    padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;
+}}
+.risk-badge-pdf.high {{ background: #fee2e2; color: #991b1b; }}
+.risk-badge-pdf.medium {{ background: #fef3c7; color: #92400e; }}
+.risk-badge-pdf.low {{ background: #dbeafe; color: #1e40af; }}
+.risk-badge-pdf.none {{ background: #d1fae5; color: #065f46; }}
+
+/* Table */
+table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+th {{
+    background: #f9fafb; padding: 8px; text-align: left; font-weight: 600;
+    border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 10px;
+}}
+td {{
+    padding: 6px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top;
+    word-break: break-word;
+}}
+tr:nth-child(even) {{ background: #fafbfc; }}
+.pdf-badge {{
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; white-space: nowrap;
+}}
+.pdf-badge.pass {{ background: #d1fae5; color: #065f46; }}
+.pdf-badge.fail {{ background: #fee2e2; color: #991b1b; }}
+.pdf-badge.blocked {{ background: #fef3c7; color: #92400e; }}
+.pdf-badge.delayed {{ background: #ffedd5; color: #9a3412; }}
+.pdf-badge.n_a {{ background: #f3f4f6; color: #6b7280; }}
+.pdf-badge.unknown {{ background: #f3f4f6; color: #4b5563; }}
+
+/* Footer */
+.report-footer {{
+    margin-top: 20px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+    text-align: center; font-size: 10px; color: #9ca3af;
+}}
+</style>
+</head>
+<body>
+<div class="watermark-layer">{watermark_html}</div>
+<div class="content">
+
+<div class="report-header">
+    <h1>📋 测试报告分析</h1>
+    <div class="meta">
+        文件: {file_name or '未命名'} | Sheet: {sheet_name or '未指定'} | 生成日期: {today}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">项目信息</div>
+    <div class="info-grid">{info_rows}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">测试统计</div>
+    <div class="stats-grid">
+        <div class="stat-box"><div class="num" style="color:#1a1a2e;">{total}</div><div class="lbl">总数</div></div>
+        <div class="stat-box"><div class="num" style="color:#10b981;">{pass_count}</div><div class="lbl">通过</div></div>
+        <div class="stat-box"><div class="num" style="color:#ef4444;">{fail_count}</div><div class="lbl">不通过</div></div>
+        <div class="stat-box"><div class="num" style="color:#f59e0b;">{delayed_count}</div><div class="lbl">已延期</div></div>
+        <div class="stat-box"><div class="num" style="color:#92400e;">{blocked_count}</div><div class="lbl">阻塞</div></div>
+        <div class="stat-box"><div class="num" style="color:#4f46e5;">{pass_rate}</div><div class="lbl">通过率</div></div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">执行摘要</div>
+    <div class="risk-banner">整体风险等级: {overall_risk}</div>
+    <div class="exec-summary">{analysis.get('executive_summary', '无摘要信息')}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">分类分析</div>
+    {sections_html if sections_html else '<div style="color:#999;">无分类分析数据</div>'}
+</div>
+
+<div class="section">
+    <div class="section-title">关键发现</div>
+    {findings_html}
+</div>
+
+<div class="section">
+    <div class="section-title">改进建议</div>
+    {recs_html}
+</div>
+
+<div class="section">
+    <div class="section-title">逐项明细</div>
+    <table>
+        <thead><tr>
+            <th>测试项</th><th>模块</th><th>结果</th><th>目标</th><th>实测</th><th>待办事项</th>
+        </tr></thead>
+        <tbody>{rows_html if rows_html else '<tr><td colspan="6" style="text-align:center;color:#999;">无测试项数据</td></tr>'}</tbody>
+    </table>
+</div>
+
+<div class="report-footer">
+    本报告由测试报告分析工具自动生成 | Motorola Confidential | {today}
+</div>
+
+</div>
+</body>
+</html>'''
+
+    return html
+
+
 def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
     """分析单个Sheet的详细内容"""
     reader = ExcelReader(file_path)

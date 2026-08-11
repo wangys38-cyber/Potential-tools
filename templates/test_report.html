@@ -716,6 +716,7 @@
             </div>
 
             <div class="actions-bar">
+                <button class="btn btn-primary" id="downloadPdfBtn" onclick="downloadPdf()">📄 下载PDF报告</button>
                 <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
             </div>
         </div>
@@ -754,6 +755,7 @@
 
     <script>
         let currentFileId = null;
+        let currentFileName = null;
         let currentSheetName = null;
         let currentAnalysis = null;
         let loadingStepInterval = null;
@@ -805,6 +807,7 @@
 
                 if (data.status === 'success') {
                     currentFileId = data.data.file_id;
+                    currentFileName = data.data.file_basename || data.data.file_name || 'test_report';
                     loadingIndicator.classList.remove('show');
                     showSheetSelector(data.data);
                 } else {
@@ -1277,12 +1280,56 @@
 
         function resetAll() {
             currentFileId = null;
+            currentFileName = null;
             currentSheetName = null;
             currentAnalysis = null;
             fileInput.value = '';
             uploadSection.classList.remove('hidden');
             sheetSection.classList.add('hidden');
             resultSection.classList.add('hidden');
+        }
+
+        async function downloadPdf() {
+            if (!currentAnalysis) {
+                alert('请先完成分析后再下载PDF');
+                return;
+            }
+
+            const btn = document.getElementById('downloadPdfBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 生成中...';
+
+            try {
+                const resp = await fetch('/api/test-report-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        analysis_data: currentAnalysis,
+                        file_name: currentFileName || 'test_report',
+                        sheet_name: currentSheetName || ''
+                    })
+                });
+
+                const result = await resp.json();
+
+                if (result.status === 'success') {
+                    const downloadUrl = `/api/test-report-download/${result.filename}?download_name=${encodeURIComponent(result.download_name)}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = result.download_name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } else {
+                    alert('PDF生成失败: ' + (result.error || '未知错误'));
+                }
+            } catch (err) {
+                alert('PDF生成请求失败: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
         function escapeHtml(text) {
