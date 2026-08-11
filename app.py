@@ -1040,6 +1040,8 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
         severity = _get_cell_value(cells, col_indices.get('severity', -1))
         result_raw = _get_cell_value(cells, col_indices.get('result', -1))
         reason = _get_cell_value(cells, col_indices.get('reason', -1))
+        key_issue = _get_cell_value(cells, col_indices.get('key_issue', -1)) if 'key_issue' in col_indices else ''
+        comment = _get_cell_value(cells, col_indices.get('comment', -1)) if 'comment' in col_indices else ''
 
         # 尝试提取目标值和实测值
         target_val = _get_cell_value(cells, col_indices.get('target', -1)) if 'target' in col_indices else ''
@@ -1074,13 +1076,32 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
         if not actual_val and result_raw:
             actual_val = result_raw
 
+        # 合并 key_issue + comment + reason 为完整备注
+        raw_notes_parts = []
+        if key_issue and key_issue.strip():
+            raw_notes_parts.append(key_issue.strip())
+        if comment and comment.strip():
+            raw_notes_parts.append(comment.strip())
+        if reason and reason.strip():
+            raw_notes_parts.append(reason.strip())
+        raw_notes = '\n'.join(raw_notes_parts)
+
+        # 从备注中提取待办事项
+        action_items = _extract_action_items(raw_notes)
+        # 组合备注：原始备注 + 提取的待办事项
+        if action_items:
+            notes_display = raw_notes + '\n【待办事项】\n' + '\n'.join(action_items)
+        else:
+            notes_display = raw_notes
+
         test_item = {
             'name': name or f'测试项{row_idx + 1}',
             'module': module,
             'severity': severity,
             'result': result_class,
             'result_text': result_text if result_text else result_class,
-            'reason': reason,
+            'reason': notes_display,
+            'action_items': action_items,
             'target': target_val,
             'actual': actual_val,
             'row_index': row_idx + 1
@@ -1172,7 +1193,11 @@ def _detect_column_indices(headers):
             col_map['severity'] = i
         elif any(kw in h for kw in ['结果', 'result', 'pass/fail', '通过', '状态', 'status', '结论', '判定']):
             col_map['result'] = i
-        elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述', '问题', 'issue', '问题描述', '核心问题', 'comment', 'key issue']):
+        elif any(kw in h for kw in ['key issue', '核心问题', '关键问题', '主要问题']):
+            col_map['key_issue'] = i
+        elif any(kw in h for kw in ['comment', '备注', 'remark', 'note', '说明', 'comment.', 'comments']):
+            col_map['comment'] = i
+        elif any(kw in h for kw in ['原因', 'reason', '描述', '问题', 'issue', '问题描述', '问题描述']):
             col_map['reason'] = i
         elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr6 target', 'sr5 target', 'sr4 target', 'sr target', '基线', 'baseline', '阈值', 'threshold']):
             col_map['target'] = i
@@ -1198,6 +1223,13 @@ def _detect_column_indices(headers):
     if 'reason' not in col_map and len(headers) > 0:
         col_map['reason'] = len(headers) - 1
 
+    # 优先使用 SR6 Target 作为目标值（覆盖通用 target 列）
+    # 当存在多个 Target 列（SR4/SR5/SR6）时，优先取 SR6 Target
+    for i, h in enumerate(headers_lower):
+        if 'sr6' in h and ('target' in h or '目标' in h):
+            col_map['target'] = i
+            break
+
     return col_map
 
 
@@ -1205,6 +1237,80 @@ def _get_cell_value(cells, idx):
     if idx < 0 or idx >= len(cells):
         return ''
     return str(cells[idx]).strip() if cells[idx] else ''
+
+
+def _extract_action_items(text):
+    """
+    从 Key issue / Comment 文本中提取待办事项。
+    识别模式：
+    - 显式标记: TODO, 待办, 待跟进, action, 行动项, 下一步, follow up
+    - 动作引导词: 需要, 需, 应, 应当, 建议, 请, 要求, 必须, 需跟进, 待修复, 待验证
+    - 序号列表: 1. 2. 3. 或 ① ② ③ 或 - / * 开头
+    - 时态标记: 将, 计划, 拟, 预计
+    - 状态标记: 未关闭, 未解决, open, pending, in progress, 进行中
+    """
+    if not text or not text.strip():
+        return []
+
+    import re
+    lines = text.replace('\r', '\n').split('\n')
+    action_items = []
+
+    # 待办关键词（行首或独立出现）
+    action_keywords = [
+        'todo', '待办', '待跟进', '待修复', '待验证', '待确认', '待补齐',
+        'action', '行动项', '行动', 'follow up', 'follow-up', 'followup',
+        '下一步', '后续', '计划', '拟', '预计', '将跟进', '将修复',
+        '需要', '需跟进', '需修复', '需验证', '需确认', '需推进',
+        '建议', '应', '应当', '应该', '必须', '请',
+        '未关闭', '未解决', '未完成', '未达标',
+        'open', 'pending', 'in progress', '进行中', '处理中',
+        '跟进', '推进', '修复', '验证', '确认', '闭环', '整改',
+        '负责', 'owner', 'assign',
+    ]
+
+    # 排除词（避免误判）
+    exclude_keywords = ['已通过', '已关闭', '已解决', '已完成', 'pass', 'passed', 'done', 'closed', 'resolved']
+
+    for line in lines:
+        line = line.strip()
+        if not line or len(line) < 3:
+            continue
+
+        line_lower = line.lower()
+
+        # 跳过纯排除词行
+        if any(line_lower == kw for kw in exclude_keywords):
+            continue
+
+        is_action = False
+
+        # 检测序号开头: 1. / 1) / ① / - / * / •
+        if re.match(r'^(\d+[.)\]]|[\u2460-\u2473]|[—\-*/•·])\s+', line):
+            is_action = True
+
+        # 检测待办关键词
+        for kw in action_keywords:
+            if kw in line_lower:
+                # 排除"已通过"等已完成的描述
+                if not any(ex in line_lower for ex in exclude_keywords):
+                    is_action = True
+                    break
+
+        # 检测"XX:XXX"格式中的动作描述 (如 "责任人:张三 待修复")
+        if re.search(r'[:：].*(?:待|需|应|建议|跟进|修复|验证)', line):
+            is_action = True
+
+        if is_action:
+            # 清理前缀符号
+            cleaned = re.sub(r'^(\d+[.)\]]|[\u2460-\u2473]|[—\-*/•·])\s*', '', line)
+            cleaned = re.sub(r'^(todo|action|待办|行动项|下一步|follow\s*up)[:：\s]*', '', cleaned, flags=re.IGNORECASE)
+            if cleaned and len(cleaned) >= 3:
+                # 去重
+                if cleaned not in action_items:
+                    action_items.append(cleaned)
+
+    return action_items
 
 
 def _compare_target_actual(target_val, actual_val):

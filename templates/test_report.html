@@ -375,7 +375,7 @@
         }
         .problem-item-list li:last-child { border-bottom: none; }
         .problem-item-name { font-weight: 600; color: var(--text-primary); }
-        .problem-item-reason { color: var(--text-secondary); font-size: 12px; }
+        .problem-item-reason { color: var(--text-secondary); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
         .problem-item-target { color: var(--accent); font-size: 12px; }
 
         /* ===== Key Findings ===== */
@@ -432,9 +432,27 @@
         .test-item-module { color: var(--text-secondary); font-size: 13px; }
 
         /* ===== Reason ===== */
-        .reason-cell { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+        .reason-cell { color: var(--text-secondary); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
         .reason-cell.empty { color: var(--text-tertiary); font-style: italic; }
         .reason-cell.fail-reason { color: var(--danger); }
+        .action-items-section {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #fff7ed;
+            border-left: 3px solid var(--warning);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #92400e;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .action-items-header {
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
 
         /* ===== Actions ===== */
         .actions-bar {
@@ -1060,7 +1078,7 @@
                             <span class="result-badge ${pi.result}" style="flex-shrink:0;">${statusLabel}</span>
                             <div style="flex:1;">
                                 <div class="problem-item-name">${escapeHtml(pi.name)}</div>
-                                ${pi.reason ? `<div class="problem-item-reason">${escapeHtml(pi.reason)}</div>` : ''}
+                                ${pi.reason ? `<div class="problem-item-reason">${renderReason(pi.reason, true)}</div>` : ''}
                                 <div class="problem-item-target">目标: ${targetDisplay} | 实测: ${actualDisplay}</div>
                             </div>
                         </li>`;
@@ -1187,7 +1205,7 @@
                     <td>${resultBadge}</td>
                     <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">${escapeHtml(targetDisplay)}</td>
                     <td style="font-size:13px;font-weight:600;color:${actualColor};white-space:nowrap;">${escapeHtml(actualDisplay)}</td>
-                    <td>${reason ? `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(reason)}</span>` : '<span class="reason-cell empty">-</span>'}</td>
+                    <td>${renderReason(reason, isProblem)}</td>
                 </tr>`;
             });
 
@@ -1265,6 +1283,27 @@
             const div = document.createElement('div');
             div.textContent = text || '';
             return div.innerHTML;
+        }
+
+        function renderReason(reason, isProblem) {
+            if (!reason || !reason.trim()) return '<span class="reason-cell empty">-</span>';
+
+            // 拆分原始备注和待办事项
+            const parts = reason.split('【待办事项】');
+            const mainText = parts[0].trim();
+            const actionItemsText = parts.length > 1 ? parts[1].trim() : '';
+
+            let html = '';
+            if (mainText) {
+                html += `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(mainText)}</span>`;
+            }
+            if (actionItemsText) {
+                html += `<div class="action-items-section">`;
+                html += `<div class="action-items-header">📋 待办事项</div>`;
+                html += escapeHtml(actionItemsText);
+                html += `</div>`;
+            }
+            return html || '<span class="reason-cell empty">-</span>';
         }
     </script>
 </body>
