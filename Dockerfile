@@ -14,13 +14,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Playwright
 RUN playwright install chromium --with-deps
 
-# 关键：先复制app.py（确保最新代码被复制）
+# 复制应用代码（逐文件复制确保最新代码生效）
 COPY app.py .
 COPY templates/ ./templates/
-COPY static/ ./static/ 2>/dev/null || true
-COPY requirements.txt .
+COPY static/ ./static/
 COPY railway.toml .
-COPY README.md . 2>/dev/null || true
+COPY README.md .
 
 # 创建可写目录
 RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
