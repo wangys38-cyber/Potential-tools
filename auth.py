@@ -8,6 +8,7 @@ import secrets
 import time
 import logging
 import requests
+from urllib.parse import quote, urlencode
 from flask import session, redirect, request, url_for, jsonify
 import db
 
@@ -97,12 +98,16 @@ def feishu_login():
     state = secrets.token_urlsafe(16)
     session['oauth_state'] = state
 
-    auth_url = (
-        f"https://open.feishu.cn/open-apis/authen/v1/index"
-        f"?app_id={FEISHU_APP_ID}"
-        f"&redirect_uri={FEISHU_REDIRECT_URI}"
-        f"&state={state}"
-    )
+    # 保存用户原始请求路径，登录后跳回
+    next_url = request.args.get('next') or session.get('next_url') or '/'
+    session['next_url'] = next_url
+
+    params = urlencode({
+        'app_id': FEISHU_APP_ID,
+        'redirect_uri': FEISHU_REDIRECT_URI,
+        'state': state,
+    })
+    auth_url = f"https://open.feishu.cn/open-apis/authen/v1/index?{params}"
     return redirect(auth_url)
 
 
@@ -189,15 +194,18 @@ def google_login():
     state = secrets.token_urlsafe(16)
     session['oauth_state'] = state
 
-    scope = 'openid email profile'
-    auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth"
-        f"?client_id={GOOGLE_CLIENT_ID}"
-        f"&redirect_uri={GOOGLE_REDIRECT_URI}"
-        f"&response_type=code"
-        f"&scope={scope}"
-        f"&state={state}"
-    )
+    # 保存用户原始请求路径，登录后跳回
+    next_url = request.args.get('next') or session.get('next_url') or '/'
+    session['next_url'] = next_url
+
+    params = urlencode({
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+    })
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{params}"
     return redirect(auth_url)
 
 
