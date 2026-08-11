@@ -14,7 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Playwright
 RUN playwright install chromium --with-deps
 
-# 复制应用代码（逐文件复制确保最新代码生效）
+# Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
+ARG CACHE_BUST=1
+RUN echo "Cache bust: ${CACHE_BUST}"
+
+# 复制应用代码
 COPY app.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
