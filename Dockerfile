@@ -20,6 +20,9 @@ RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 复制应用代码
 COPY app.py .
+COPY auth.py .
+COPY db.py .
+COPY config_oauth.json .
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY railway.toml .

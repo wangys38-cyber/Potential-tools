@@ -4,6 +4,7 @@ __pycache__
 uploads/
 pdfs/
 ai_config.json
+*.db
 test_*.py
 test_*.xlsx
 test_output*

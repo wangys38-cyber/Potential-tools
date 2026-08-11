@@ -1,0 +1,14 @@
+{
+    "feishu": {
+        "app_id": "YOUR_FEISHU_APP_ID",
+        "app_secret": "YOUR_FEISHU_APP_SECRET",
+        "redirect_uri": "https://wangys666.top/auth/feishu/callback"
+    },
+    "google": {
+        "client_id": "YOUR_GOOGLE_CLIENT_ID",
+        "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+        "redirect_uri": "https://wangys666.top/auth/google/callback"
+    },
+    "session_secret": "CHANGE_THIS_TO_RANDOM_STRING_2026",
+    "allow_guest": true
+}

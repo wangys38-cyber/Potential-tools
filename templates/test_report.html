@@ -96,6 +96,95 @@
             border: 1px solid var(--border);
             margin-bottom: 20px;
         }
+
+        /* ===== User Bar ===== */
+        .user-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+        .user-bar .user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+        .user-bar .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .user-bar .user-provider {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-primary);
+        }
+        .user-bar .login-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 8px;
+            background: #eef2ff;
+            transition: all 0.2s;
+        }
+        .user-bar .login-link:hover { background: #e0e7ff; }
+        .user-bar .logout-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .user-bar .logout-link:hover { background: var(--bg-primary); color: var(--danger); }
+
+        /* ===== Saved Reports Dropdown ===== */
+        .saved-reports-btn {
+            position: relative;
+        }
+        .saved-reports-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        .saved-reports-dropdown.show { display: block; }
+        .saved-report-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .saved-report-item:hover { background: #f9fafb; }
+        .saved-report-item:last-child { border-bottom: none; }
+        .saved-report-item .report-title { font-size: 13px; font-weight: 500; }
+        .saved-report-item .report-date { font-size: 11px; color: var(--text-tertiary); }
+        .saved-report-item .delete-btn {
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .saved-report-item .delete-btn:hover { color: var(--danger); background: #fee2e2; }
+        .saved-reports-empty { padding: 20px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
         .card-title {
             font-size: 17px;
             font-weight: 700;
@@ -619,6 +708,11 @@
             <img src="/static/logo_right.jpg" alt="Analytics Logo" class="header-logo-right">
         </div>
 
+        <!-- 用户栏 -->
+        <div class="user-bar" id="userBar">
+            <!-- 动态填充 -->
+        </div>
+
         <!-- 上传区 -->
         <div class="card" id="uploadSection">
             <div class="card-title">
@@ -717,6 +811,11 @@
 
             <div class="actions-bar">
                 <button class="btn btn-primary" id="downloadPdfBtn" onclick="downloadPdf()">📄 下载PDF报告</button>
+                <button class="btn btn-primary" id="saveReportBtn" onclick="saveReport()" style="background:#10b981;display:none;">💾 保存报告</button>
+                <div class="saved-reports-btn" style="position:relative;display:none;" id="savedReportsBtnWrap">
+                    <button class="btn btn-secondary" onclick="toggleSavedReports()">📂 我的报告</button>
+                    <div class="saved-reports-dropdown" id="savedReportsDropdown"></div>
+                </div>
                 <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
             </div>
         </div>
@@ -759,6 +858,7 @@
         let currentSheetName = null;
         let currentAnalysis = null;
         let loadingStepInterval = null;
+        let currentUser = null;
 
         const fileInput = document.getElementById('fileInput');
         const uploadCard = document.getElementById('uploadCard');
@@ -1353,6 +1453,174 @@
             html += '</div>';
             return html;
         }
+
+        // ==================== 用户认证 ====================
+
+        async function loadUserInfo() {
+            try {
+                const resp = await fetch('/api/user/info');
+                const data = await resp.json();
+                updateUserBar(data);
+            } catch (e) {
+                console.error('获取用户信息失败:', e);
+            }
+        }
+
+        function updateUserBar(data) {
+            const bar = document.getElementById('userBar');
+            const saveBtn = document.getElementById('saveReportBtn');
+            const reportsBtn = document.getElementById('savedReportsBtnWrap');
+
+            if (data.logged_in && data.user) {
+                currentUser = data.user;
+                const providerLabels = { feishu: '飞书', google: 'Google' };
+                const providerLabel = providerLabels[data.user.provider] || data.user.provider;
+                let avatarHtml = data.user.avatar
+                    ? `<img src="${data.user.avatar}" class="user-avatar" alt="avatar">`
+                    : `<div class="user-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:600;">${escapeHtml((data.user.name||'?').charAt(0))}</div>`;
+
+                bar.innerHTML = `
+                    ${avatarHtml}
+                    <span class="user-name">${escapeHtml(data.user.name)}</span>
+                    <span class="user-provider">${providerLabel}</span>
+                    <a href="/auth/logout" class="logout-link">退出</a>
+                `;
+                if (saveBtn) saveBtn.style.display = '';
+                if (reportsBtn) reportsBtn.style.display = '';
+            } else {
+                currentUser = null;
+                bar.innerHTML = `<a href="/login" class="login-link">🔑 登录</a>`;
+                if (saveBtn) saveBtn.style.display = 'none';
+                if (reportsBtn) reportsBtn.style.display = 'none';
+            }
+        }
+
+        async function saveReport() {
+            if (!currentAnalysis) {
+                alert('请先完成分析');
+                return;
+            }
+            if (!currentUser) {
+                alert('请先登录');
+                window.location.href = '/login';
+                return;
+            }
+
+            const title = prompt('请输入报告名称：', `${currentFileName || '分析报告'}_${new Date().toLocaleDateString()}`);
+            if (!title) return;
+
+            const btn = document.getElementById('saveReportBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 保存中...';
+
+            try {
+                const resp = await fetch('/api/user/save-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        report_data: currentAnalysis,
+                        title: title
+                    })
+                });
+                const result = await resp.json();
+                if (result.status === 'success') {
+                    btn.innerHTML = '✅ 已保存';
+                    setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+                } else {
+                    alert('保存失败: ' + (result.error || '未知错误'));
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('保存请求失败: ' + e.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function toggleSavedReports() {
+            const dropdown = document.getElementById('savedReportsDropdown');
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            } else {
+                loadSavedReports();
+                dropdown.classList.add('show');
+            }
+        }
+
+        async function loadSavedReports() {
+            const dropdown = document.getElementById('savedReportsDropdown');
+            dropdown.innerHTML = '<div class="saved-reports-empty">加载中...</div>';
+
+            try {
+                const resp = await fetch('/api/user/reports');
+                const data = await resp.json();
+
+                if (!data.reports || data.reports.length === 0) {
+                    dropdown.innerHTML = '<div class="saved-reports-empty">暂无保存的报告</div>';
+                    return;
+                }
+
+                dropdown.innerHTML = data.reports.map(r => {
+                    const date = new Date((r.created_at || 0) * 1000).toLocaleString('zh-CN');
+                    return `
+                        <div class="saved-report-item" onclick="loadSavedReport(${r.id})">
+                            <div>
+                                <div class="report-title">${escapeHtml(r.title)}</div>
+                                <div class="report-date">${date}</div>
+                            </div>
+                            <span class="delete-btn" onclick="deleteSavedReport(event, ${r.id})">🗑️</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                dropdown.innerHTML = `<div class="saved-reports-empty">加载失败: ${e.message}</div>`;
+            }
+        }
+
+        async function loadSavedReport(reportId) {
+            try {
+                const resp = await fetch(`/api/user/report/${reportId}`);
+                const data = await resp.json();
+                if (data.report) {
+                    currentAnalysis = data.report.content;
+                    displayResults(data.report.content);
+                    document.getElementById('savedReportsDropdown').classList.remove('show');
+                }
+            } catch (e) {
+                alert('加载报告失败: ' + e.message);
+            }
+        }
+
+        async function deleteSavedReport(event, reportId) {
+            event.stopPropagation();
+            if (!confirm('确定删除这份报告？')) return;
+
+            try {
+                const resp = await fetch(`/api/user/report/${reportId}`, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    loadSavedReports();
+                } else {
+                    alert('删除失败: ' + (data.error || ''));
+                }
+            } catch (e) {
+                alert('删除请求失败: ' + e.message);
+            }
+        }
+
+        // 点击外部关闭下拉
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('savedReportsDropdown');
+            const btnWrap = document.getElementById('savedReportsBtnWrap');
+            if (dropdown && btnWrap && !btnWrap.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // 页面加载时获取用户信息
+        loadUserInfo();
     </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect
+from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for
 import os
 import sys
 import re
@@ -10,6 +10,11 @@ import time
 import hashlib
 import gc
 from datetime import datetime, timezone, timedelta
+from functools import wraps
+
+# 认证模块
+import auth
+import db
 
 _CST = timezone(timedelta(hours=8))
 
@@ -29,6 +34,7 @@ template_dir = os.path.join(base_dir, 'templates')
 static_dir = os.path.join(base_dir, 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.secret_key = auth.SESSION_SECRET
 
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
@@ -43,10 +49,11 @@ app.config['AI_CONFIG_FILE'] = os.path.join(_runtime_dir, 'ai_config.json')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 
-app.config['AI_CONFIG_FILE'] = os.path.join(_runtime_dir, 'ai_config.json')
-
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
+# 注入模板上下文：当前用户信息
+@app.context_processor
+def inject_user():
+    user = auth.get_current_user()
+    return dict(current_user=user, is_logged_in=user is not None)
 
 
 def normalize_date(date_str):
@@ -635,6 +642,131 @@ def api_save_ai_config():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# ==================== 认证路由 ====================
+
+@app.route('/login')
+def login_page():
+    """登录页面"""
+    error = request.args.get('error', '')
+    return render_template('login.html',
+                           error=error,
+                           feishu_configured=auth.is_configured('feishu'),
+                           google_configured=auth.is_configured('google'))
+
+
+@app.route('/auth/feishu')
+def auth_feishu():
+    """发起飞书OAuth登录"""
+    return auth.feishu_login()
+
+
+@app.route('/auth/feishu/callback')
+def auth_feishu_callback():
+    """飞书OAuth回调"""
+    return auth.feishu_callback()
+
+
+@app.route('/auth/google')
+def auth_google():
+    """发起Google OAuth登录"""
+    return auth.google_login()
+
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    """Google OAuth回调"""
+    return auth.google_callback()
+
+
+@app.route('/auth/logout')
+def auth_logout():
+    """退出登录"""
+    return auth.logout()
+
+
+@app.route('/api/user/info')
+def api_user_info():
+    """获取当前用户信息"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'logged_in': False})
+    return jsonify({
+        'logged_in': True,
+        'user': {
+            'id': user['id'],
+            'name': user['name'],
+            'email': user['email'],
+            'avatar': user['avatar'],
+            'provider': user['provider']
+        }
+    })
+
+
+@app.route('/api/user/save-report', methods=['POST'])
+def api_user_save_report():
+    """保存分析报告到用户账户"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    report_data = data.get('report_data', {})
+    title = data.get('title', f'分析报告_{datetime.now(_CST).strftime("%Y%m%d_%H%M%S")}')
+
+    if not report_data:
+        return jsonify({'error': '缺少报告数据'}), 400
+
+    try:
+        data_id = db.save_user_data(user['id'], 'test_report', title, report_data)
+        return jsonify({'status': 'success', 'id': data_id, 'message': '报告已保存'})
+    except Exception as e:
+        logger.error(f"保存报告失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/user/reports')
+def api_user_reports():
+    """获取用户保存的报告列表"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    reports = db.get_user_data_list(user['id'], 'test_report', limit=50)
+    # 简化返回，不包含完整content
+    result = [{
+        'id': r['id'],
+        'title': r.get('title', ''),
+        'created_at': r.get('created_at', 0)
+    } for r in reports]
+    return jsonify({'reports': result})
+
+
+@app.route('/api/user/report/<int:report_id>')
+def api_user_get_report(report_id):
+    """获取用户保存的某份报告"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    report = db.get_user_data_by_id(user['id'], report_id)
+    if not report:
+        return jsonify({'error': '报告不存在'}), 404
+    return jsonify({'report': report})
+
+
+@app.route('/api/user/report/<int:report_id>', methods=['DELETE'])
+def api_user_delete_report(report_id):
+    """删除用户保存的报告"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    success = db.delete_user_data(user['id'], report_id)
+    if success:
+        return jsonify({'status': 'success', 'message': '已删除'})
+    return jsonify({'error': '删除失败'}), 404
 
 
 @app.route('/test-report')
