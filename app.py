@@ -119,6 +119,7 @@ class ExcelReader:
         self._wb = None
         self._is_xls = self.ext == '.xls'
         self._is_html = False
+        self._read_only = False
         
     def open(self):
         # 检测是否是 HTML 格式的假 Excel 文件
@@ -139,7 +140,9 @@ class ExcelReader:
                 raise ValueError(f'无法读取 .xls 文件: {str(e)}。如果文件是从网页下载的，请转换为 .xlsx 格式后再上传。')
         else:
             from openpyxl import load_workbook
+            # 先尝试 read_only=True（内存效率高），如果读到的行太少则回退到 read_only=False
             self._wb = load_workbook(self.file_path, data_only=True, read_only=True)
+            self._read_only = True
         return self
     
     def close(self):
@@ -169,7 +172,22 @@ class ExcelReader:
             return rows
         else:
             ws = self._wb[sheet_name]
-            return [[str(cell).strip() if cell is not None else '' for cell in row] for row in ws.iter_rows(values_only=True)]
+            rows = [[str(cell).strip() if cell is not None else '' for cell in row] for row in ws.iter_rows(values_only=True)]
+            
+            # read_only=True 模式下某些 Excel 文件只能读到1-2行（openpyxl已知bug）
+            # 检测到行数异常少时，回退到 read_only=False 重新读取
+            if self._read_only and len(rows) <= 2:
+                try:
+                    self._wb.close()
+                except:
+                    pass
+                from openpyxl import load_workbook
+                self._wb = load_workbook(self.file_path, data_only=True, read_only=False)
+                self._read_only = False
+                ws = self._wb[sheet_name]
+                rows = [[str(cell).strip() if cell is not None else '' for cell in row] for row in ws.iter_rows(values_only=True)]
+            
+            return rows
     
     def get_headers_only(self, sheet_name=None):
         """轻量级方法：只读取表头行，不加载全部数据（避免 OOM）"""
@@ -877,7 +895,7 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
     project_info = {}
     info_end_row = 0
     result_keywords = ['pass', 'fail', '通过', '不通过', 'blocker', 'critical', 'major', 'minor', 'trivial']
-    header_keywords = ['test item', 'test case', '测试项', '模块', 'module', 'severity', '结果', 'result', 'status', '状态', 'name', '名称']
+    header_keywords = ['test item', 'test case', '测试项', '模块', 'module', 'component', 'commponent', 'severity', '结果', 'result', 'status', '状态', 'name', '名称', 'category', '分类', 'risk', '风险', 'cwv', 'target', '目标', 'key issue', 'comment', '备注', '指标', '测试内容']
 
     for row_idx, row in enumerate(rows):
         cells = [str(c).strip() if c is not None else '' for c in row]
@@ -1016,22 +1034,48 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
         name = _get_cell_value(cells, col_indices.get('name', -1))
         module = _get_cell_value(cells, col_indices.get('module', -1))
         severity = _get_cell_value(cells, col_indices.get('severity', -1))
-        result = _get_cell_value(cells, col_indices.get('result', -1))
+        result_raw = _get_cell_value(cells, col_indices.get('result', -1))
         reason = _get_cell_value(cells, col_indices.get('reason', -1))
 
-        # 尝试提取目标值和实测值（从 reason 或其他列中）
+        # 尝试提取目标值和实测值
         target_val = _get_cell_value(cells, col_indices.get('target', -1)) if 'target' in col_indices else ''
         actual_val = _get_cell_value(cells, col_indices.get('actual', -1)) if 'actual' in col_indices else ''
 
-        # 使用新的分类函数
-        result_class = _classify_result(result.strip())
+        # 跳过没有名称的行（空行、子标题行）
+        if not name or not name.strip():
+            continue
+
+        # 跳过明显不是测试项的行（纯数字、纯符号、太短）
+        name_stripped = name.strip()
+        if len(name_stripped) < 2 or name_stripped in ['-', '/', 'N/A', 'NA']:
+            continue
+
+        # 智能判断结果状态
+        # 优先级1: 直接从 result 列文本判断
+        result_text = result_raw.strip() if result_raw else ''
+        result_class = _classify_result(result_text)
+
+        # 优先级2: 如果 result 列无法识别，尝试用 CWV/actual 和 target 比较
+        if result_class == 'unknown' and actual_val and target_val:
+            result_class, result_text = _compare_target_actual(target_val, actual_val)
+
+        # 优先级3: 如果 result 列和 actual 列都无法识别，检查 actual_val 是否是 Pass/Fail 文本
+        if result_class == 'unknown' and actual_val:
+            actual_class = _classify_result(actual_val.strip())
+            if actual_class != 'unknown':
+                result_class = actual_class
+                result_text = actual_val.strip()
+
+        # 如果 actual_val 为空但 result_raw 有值，用 result_raw 作为 actual
+        if not actual_val and result_raw:
+            actual_val = result_raw
 
         test_item = {
             'name': name or f'测试项{row_idx + 1}',
             'module': module,
             'severity': severity,
             'result': result_class,
-            'result_text': result.strip() if result.strip() else result_class,
+            'result_text': result_text if result_text else result_class,
             'reason': reason,
             'target': target_val,
             'actual': actual_val,
@@ -1106,25 +1150,37 @@ def _detect_column_indices(headers):
     col_map = {}
     if not headers:
         return col_map
-    headers_lower = [str(h).lower().strip() for h in headers]
+    # 清理表头：去掉换行符、@符号后面的内容、多余空格
+    def clean_header(h):
+        h = str(h).replace('\n', ' ').replace('\r', ' ')
+        # 去掉 @xxx 部分
+        if '@' in h:
+            h = h.split('@')[0].strip()
+        return h.lower().strip()
+    headers_lower = [clean_header(h) for h in headers]
 
     for i, h in enumerate(headers_lower):
-        if any(kw in h for kw in ['测试项', '测试内容', '测试用例', '名称', 'name', 'test item', 'test case', 'case', '指标', '项目', '检查项']):
+        if any(kw in h for kw in ['测试项', '测试内容', '测试用例', '名称', 'name', 'test item', 'test case', 'case', '指标', '项目', '检查项', 'test items']):
             col_map['name'] = i
-        elif any(kw in h for kw in ['模块', 'module', 'component', '组件', '功能', '分类', 'category', '类型', '领域', '专项']):
+        elif any(kw in h for kw in ['模块', 'module', 'component', 'commponent', '组件', '功能', '分类', 'category', '类型', '领域', '专项']):
             col_map['module'] = i
         elif any(kw in h for kw in ['severity', '严重程度', '严重性', '等级', 'level', '优先级', 'priority']):
             col_map['severity'] = i
         elif any(kw in h for kw in ['结果', 'result', 'pass/fail', '通过', '状态', 'status', '结论', '判定']):
             col_map['result'] = i
-        elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述', '问题', 'issue', '问题描述', '核心问题']):
+        elif any(kw in h for kw in ['原因', 'reason', '备注', 'remark', 'note', '说明', '描述', '问题', 'issue', '问题描述', '核心问题', 'comment', 'key issue']):
             col_map['reason'] = i
-        elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr', '基线', 'baseline', '阈值', 'threshold']):
+        elif any(kw in h for kw in ['目标', 'target', '要求', '门槛', '标准值', 'sr6 target', 'sr5 target', 'sr4 target', 'sr target', '基线', 'baseline', '阈值', 'threshold']):
             col_map['target'] = i
-        elif any(kw in h for kw in ['实测', '实际', 'actual', '当前', 'current', '结果值', '测量', 'measured']):
+        elif any(kw in h for kw in ['实测', '实际', 'actual', '当前', 'current', '结果值', '测量', 'measured', 'cwv']):
             col_map['actual'] = i
         elif any(kw in h for kw in ['风险', 'risk']):
             col_map['risk'] = i
+
+    # 如果没有找到 result 列，但有 actual(CWV) 列，用 actual 作为 result
+    # (CWV 值可能是 Pass/Fail 文本或数值，后续通过 _compare_target_actual 判断)
+    if 'result' not in col_map and 'actual' in col_map:
+        col_map['result'] = col_map['actual']
 
     if 'result' not in col_map:
         for i, h in enumerate(headers_lower):
@@ -1145,6 +1201,44 @@ def _get_cell_value(cells, idx):
     if idx < 0 or idx >= len(cells):
         return ''
     return str(cells[idx]).strip() if cells[idx] else ''
+
+
+def _compare_target_actual(target_val, actual_val):
+    """
+    比较目标值和实测值，返回结果类别和文本描述。
+    支持：百分比(1/0.95/95%/100%)、数值、天数等
+    """
+    def parse_number(val):
+        """尝试解析为浮点数，正确处理百分比"""
+        if not val:
+            return None
+        s = str(val).strip()
+        has_percent = '%' in s
+        # 去掉前缀符号和单位
+        s = s.replace('%', '').replace('days', '').replace('day', '').replace('天', '')
+        s = re.sub(r'[>=≤<≥~≈约]', '', s).replace('H', '').replace('h', '').replace('fps', '').strip()
+        # 去掉括号及后面的内容
+        s = re.sub(r'[（(].*$', '', s).strip()
+        try:
+            num = float(s)
+            # 百分比形式：90% -> 0.90, 95% -> 0.95
+            if has_percent and num > 1:
+                num = num / 100.0
+            return num
+        except:
+            return None
+
+    target_num = parse_number(target_val)
+    actual_num = parse_number(actual_val)
+
+    if target_num is None or actual_num is None:
+        return 'unknown', ''
+
+    # 判断通过/不通过
+    if actual_num >= target_num:
+        return 'pass', f'达标 ({actual_val} >= {target_val})'
+    else:
+        return 'fail', f'未达标 ({actual_val} < {target_val})'
 
 
 def _classify_result(text):
