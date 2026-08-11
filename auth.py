@@ -36,7 +36,7 @@ def _load_config():
 _config = _load_config()
 
 SESSION_SECRET = os.environ.get('SESSION_SECRET', _config.get('session_secret', 'default_secret_change_me'))
-ALLOW_GUEST = _config.get('allow_guest', True)
+ALLOW_GUEST = os.environ.get('ALLOW_GUEST', '').lower() in ('1', 'true', 'yes') or _config.get('allow_guest', False)
 
 # 优先使用环境变量（安全），回退到配置文件
 FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
@@ -171,7 +171,8 @@ def feishu_callback():
         session['provider'] = 'feishu'
 
         logger.info(f"飞书用户登录成功: {name} (ID: {user_id})")
-        return redirect(url_for('index'))
+        next_url = session.pop('next_url', None) or url_for('index')
+        return redirect(next_url)
 
     except Exception as e:
         logger.error(f"飞书OAuth回调异常: {e}")
@@ -259,7 +260,8 @@ def google_callback():
         session['provider'] = 'google'
 
         logger.info(f"Google用户登录成功: {name} (ID: {user_id})")
-        return redirect(url_for('index'))
+        next_url = session.pop('next_url', None) or url_for('index')
+        return redirect(next_url)
 
     except Exception as e:
         logger.error(f"Google OAuth回调异常: {e}")
@@ -272,4 +274,4 @@ def logout():
     if user:
         logger.info(f"用户退出登录: {user.get('name')} (ID: {user.get('id')})")
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('login_page'))

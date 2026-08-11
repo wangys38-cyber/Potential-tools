@@ -56,6 +56,46 @@ def inject_user():
     return dict(current_user=user, is_logged_in=user is not None)
 
 
+# ==================== 登录拦截 ====================
+# 允许无需登录即可访问的路径前缀
+_PUBLIC_PATHS = (
+    '/login',
+    '/auth/',
+    '/health',
+    '/static/',
+    '/assets/',
+)
+
+@app.before_request
+def require_login():
+    """全局登录拦截：未登录用户自动跳转到登录页"""
+    # 已登录 — 放行
+    if auth.is_logged_in():
+        return None
+
+    path = request.path
+
+    # 公开路径 — 放行
+    for prefix in _PUBLIC_PATHS:
+        if path.startswith(prefix):
+            return None
+
+    # 如果允许游客模式 — 放行
+    if auth.ALLOW_GUEST:
+        return None
+
+    # 记录用户原始请求路径，登录后跳回
+    if path != '/' and not path.startswith('/api/'):
+        session['next_url'] = path
+    else:
+        session['next_url'] = '/'
+
+    # API 请求返回 401，页面请求 302 跳转
+    if path.startswith('/api/'):
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    return redirect(url_for('login_page'))
+
+
 def normalize_date(date_str):
     """将各种格式的日期字符串统一为 YYYY-MM-DD 格式，便于排序"""
     if not date_str:
