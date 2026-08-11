@@ -1054,12 +1054,14 @@
                     bodyHtml += '<ul class="problem-item-list">';
                     section.problem_items.forEach(pi => {
                         const statusLabel = getStatusLabel(pi.result);
+                        const targetDisplay = formatValue(pi.target);
+                        const actualDisplay = formatValue(pi.actual);
                         bodyHtml += `<li>
                             <span class="result-badge ${pi.result}" style="flex-shrink:0;">${statusLabel}</span>
-                            <div>
+                            <div style="flex:1;">
                                 <div class="problem-item-name">${escapeHtml(pi.name)}</div>
                                 ${pi.reason ? `<div class="problem-item-reason">${escapeHtml(pi.reason)}</div>` : ''}
-                                ${pi.target || pi.actual ? `<div class="problem-item-target">目标: ${escapeHtml(pi.target || '-')} | 实测: ${escapeHtml(pi.actual || '-')}</div>` : ''}
+                                <div class="problem-item-target">目标: ${targetDisplay} | 实测: ${actualDisplay}</div>
                             </div>
                         </li>`;
                     });
@@ -1128,6 +1130,24 @@
             return labels[result] || result;
         }
 
+        function formatValue(val) {
+            if (!val || val === '' || val === '-' || val === 'None' || val === 'null') return '未设置';
+            const s = String(val).trim();
+            // 已带百分号，直接返回
+            if (s.includes('%')) return s;
+            // 纯数字判断
+            const num = parseFloat(s.replace(/[>=≤<≥~≈约]/g, '').trim());
+            if (!isNaN(num)) {
+                // 0~1 之间的小数 → 百分比 (0.7027 → 70.27%)
+                if (num > 0 && num < 1) return (num * 100).toFixed(2) + '%';
+                // 大于1的数，如果像是百分比形式(如 90, 95)也加上%
+                if (num >= 1 && num <= 100 && !s.includes('.') && s.length <= 3) return num + '%';
+                // 其他数值原样返回
+                return s;
+            }
+            return s;
+        }
+
         function renderTestItems(items) {
             const container = document.getElementById('tableContainer');
             if (!items || items.length === 0) {
@@ -1148,7 +1168,7 @@
             });
 
             let html = `<div class="table-wrapper"><table class="test-items-table"><thead><tr>
-                <th style="width:50px;">#</th><th>测试项</th><th>模块</th><th>Severity</th><th>结果</th><th>原因/备注</th>
+                <th style="width:50px;">#</th><th>测试项</th><th>模块</th><th>Severity</th><th>结果</th><th>目标</th><th>实测</th><th>原因/备注</th>
             </tr></thead><tbody>`;
 
             sorted.forEach((item, idx) => {
@@ -1156,12 +1176,17 @@
                 const severityTag = getSeverityTag(item.severity);
                 const reason = item.reason || '';
                 const isProblem = item.result === 'fail' || item.result === 'delayed' || item.result === 'blocked';
+                const targetDisplay = formatValue(item.target);
+                const actualDisplay = formatValue(item.actual);
+                const actualColor = isProblem ? 'var(--danger)' : (item.result === 'pass' ? 'var(--success)' : 'var(--accent)');
                 html += `<tr>
                     <td style="color:var(--text-tertiary);">${idx + 1}</td>
                     <td><span class="test-item-name">${escapeHtml(item.name)}</span></td>
                     <td><span class="test-item-module">${escapeHtml(item.module) || '-'}</span></td>
                     <td>${severityTag}</td>
                     <td>${resultBadge}</td>
+                    <td style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">${escapeHtml(targetDisplay)}</td>
+                    <td style="font-size:13px;font-weight:600;color:${actualColor};white-space:nowrap;">${escapeHtml(actualDisplay)}</td>
                     <td>${reason ? `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(reason)}</span>` : '<span class="reason-cell empty">-</span>'}</td>
                 </tr>`;
             });
