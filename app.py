@@ -1088,11 +1088,11 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
 
         # 从备注中提取待办事项
         action_items = _extract_action_items(raw_notes)
-        # 组合备注：原始备注 + 提取的待办事项
+        # 只保留待办事项，不显示原始备注
         if action_items:
-            notes_display = raw_notes + '\n【待办事项】\n' + '\n'.join(action_items)
+            notes_display = '\n'.join(action_items)
         else:
-            notes_display = raw_notes
+            notes_display = ''
 
         test_item = {
             'name': name or f'测试项{row_idx + 1}',

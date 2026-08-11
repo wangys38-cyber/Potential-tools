@@ -453,6 +453,12 @@
             align-items: center;
             gap: 4px;
         }
+        .action-item-line {
+            padding: 3px 0;
+            line-height: 1.5;
+            border-bottom: 1px dashed rgba(245, 158, 11, 0.2);
+        }
+        .action-item-line:last-child { border-bottom: none; }
 
         /* ===== Actions ===== */
         .actions-bar {
@@ -1288,22 +1294,17 @@
         function renderReason(reason, isProblem) {
             if (!reason || !reason.trim()) return '<span class="reason-cell empty">-</span>';
 
-            // 拆分原始备注和待办事项
-            const parts = reason.split('【待办事项】');
-            const mainText = parts[0].trim();
-            const actionItemsText = parts.length > 1 ? parts[1].trim() : '';
+            // 只显示待办事项
+            const lines = reason.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length === 0) return '<span class="reason-cell empty">-</span>';
 
-            let html = '';
-            if (mainText) {
-                html += `<span class="reason-cell ${isProblem ? 'fail-reason' : ''}">${escapeHtml(mainText)}</span>`;
-            }
-            if (actionItemsText) {
-                html += `<div class="action-items-section">`;
-                html += `<div class="action-items-header">📋 待办事项</div>`;
-                html += escapeHtml(actionItemsText);
-                html += `</div>`;
-            }
-            return html || '<span class="reason-cell empty">-</span>';
+            let html = '<div class="action-items-section">';
+            html += '<div class="action-items-header">📋 待办事项</div>';
+            lines.forEach((line, i) => {
+                html += `<div class="action-item-line">${escapeHtml(line)}</div>`;
+            });
+            html += '</div>';
+            return html;
         }
     </script>
 </body>
