@@ -34,8 +34,10 @@ RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
 EXPOSE 5001
 
 # 性能优化配置：
-# --preload: 预加载应用代码，减少worker启动时间
+# --preload: 预加载应用代码，减少worker启动时间，模板/缓存全局共享
 # --worker-tmp-dir /dev/shm: 使用内存文件系统存储worker心跳，避免磁盘I/O
-# --keep-alive 5: 保持连接5秒，减少TCP握手开销
+# --keep-alive 10: 保持连接10秒，减少TCP握手开销（工具页有prefetch，连接复用频繁）
+# --max-requests 1000: 每1000请求回收worker，防止内存泄漏
+# --max-requests-jitter 50: 随机抖动，避免多worker同时回收
 # 1 worker + 16 threads: 避免多worker CPU竞争（Railway容器CPU有限）
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300 --preload --worker-tmp-dir /dev/shm --keep-alive 5"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300 --preload --worker-tmp-dir /dev/shm --keep-alive 10 --max-requests 1000 --max-requests-jitter 50"]

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for
+from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for, make_response
 import os
 import sys
 import re
@@ -11,6 +11,7 @@ import hashlib
 import gc
 from datetime import datetime, timezone, timedelta
 from functools import wraps
+from jinja2 import BytecodeCache
 
 # 认证模块
 import auth
@@ -71,6 +72,26 @@ app.config['SESSION_COOKIE_SECURE'] = _is_production  # HTTPS环境下启用Secu
 
 # 静态文件缓存 — 浏览器缓存1小时，减少重复请求
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600 if _is_production else 0
+
+# Jinja2 字节码缓存 — 避免每次请求重新解析模板文件（解析速度提升5-10倍）
+_jinja_cache_dir = '/dev/shm/jinja_cache' if _is_production else os.path.join(base_dir, '.jinja_cache')
+os.makedirs(_jinja_cache_dir, exist_ok=True)
+
+class _ShmBytecodeCache(BytecodeCache):
+    """基于内存文件系统的Jinja2字节码缓存"""
+    def __init__(self, directory):
+        self.directory = directory
+    def load_bytecode(self, bucket):
+        f = os.path.join(self.directory, bucket.key)
+        if os.path.exists(f):
+            with open(f, 'rb') as fp:
+                bucket.load_bytecode(fp)
+    def dump_bytecode(self, bucket):
+        f = os.path.join(self.directory, bucket.key)
+        with open(f, 'wb') as fp:
+            bucket.write_bytecode(fp)
+
+app.jinja_env.bytecode_cache = _ShmBytecodeCache(_jinja_cache_dir)
 
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
@@ -147,12 +168,15 @@ def require_login():
 def add_cache_headers(response):
     """为静态资源添加缓存头，减少重复下载"""
     path = request.path
-    # 静态文件缓存1小时
+    # 静态文件缓存1小时（Whitenoise已处理，这里作为后备）
     if path.startswith('/static/') or path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=3600'
     # API 响应不缓存
     elif path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    # HTML页面 — 确保ETag与压缩正确配合
+    elif response.headers.get('ETag'):
+        response.headers['Vary'] = 'Accept-Encoding'
     return response
 
 
@@ -741,7 +765,7 @@ def api_save_ai_config():
 # === 页面路由 ===
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return cached_render('index.html')
 
 
 # ==================== 认证路由 ====================
@@ -869,34 +893,82 @@ def api_user_delete_report(report_id):
     return jsonify({'error': '删除失败'}), 404
 
 
+# ==================== 模板渲染缓存 + ETag ====================
+# 内存缓存已渲染的模板，配合ETag实现304 Not Modified
+# 静态模板（不含current_user）全量缓存；含current_user的按用户缓存
+_template_cache = {}
+
+# 不含动态用户信息的模板 — 可全局缓存
+_STATIC_TEMPLATES = frozenset({
+    'excel_analysis.html', 'project_info.html', 'md2pdf.html',
+    'merit.html', 'plan_generator.html',
+})
+
+def cached_render(template_name, **context):
+    """渲染模板并缓存结果，支持ETag/304。
+    
+    - 静态模板：全局缓存，首次渲染后后续请求直接返回304或缓存内容
+    - 动态模板：按用户缓存，同一用户重复访问直接返回304
+    """
+    if template_name in _STATIC_TEMPLATES:
+        cache_key = template_name
+    else:
+        uid = session.get('user_id', 0)
+        cache_key = f'{template_name}:{uid}'
+
+    cached = _template_cache.get(cache_key)
+    if cached is not None:
+        etag, html = cached
+        # 浏览器发送 If-None-Match — 内容未变，返回304（无body，瞬时响应）
+        if request.headers.get('If-None-Match') == etag:
+            resp = make_response('', 304)
+            resp.headers['ETag'] = etag
+            resp.headers['Cache-Control'] = 'no-cache'  # 必须验证，但304省带宽
+            return resp
+        resp = make_response(html)
+        resp.headers['ETag'] = etag
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
+
+    # 首次渲染
+    html = render_template(template_name, **context)
+    etag = hashlib.md5(html.encode('utf-8')).hexdigest()[:16]
+    _template_cache[cache_key] = (etag, html)
+
+    resp = make_response(html)
+    resp.headers['ETag'] = etag
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
 @app.route('/test-report')
 def test_report():
-    return render_template('test_report.html')
+    return cached_render('test_report.html')
 
 
 @app.route('/excel-analysis')
 def excel_analysis():
-    return render_template('excel_analysis.html')
+    return cached_render('excel_analysis.html')
 
 
 @app.route('/project-info')
 def project_info():
-    return render_template('project_info.html')
+    return cached_render('project_info.html')
 
 
 @app.route('/md2pdf')
 def md2pdf():
-    return render_template('md2pdf.html')
+    return cached_render('md2pdf.html')
 
 
 @app.route('/merit')
 def merit():
-    return render_template('merit.html')
+    return cached_render('merit.html')
 
 
 @app.route('/plan-generator')
 def plan_generator():
-    return render_template('plan_generator.html')
+    return cached_render('plan_generator.html')
 
 
 @app.route('/health')

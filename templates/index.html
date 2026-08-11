@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具集</title>
+    <!-- DNS预解析：提前解析CDN域名，减少首次连接延迟 -->
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <!-- 页面预加载：浏览器空闲时后台预取工具页面，点击时秒开 -->
+    <link rel="prefetch" href="/test-report">
+    <link rel="prefetch" href="/excel-analysis">
+    <link rel="prefetch" href="/project-info">
+    <link rel="prefetch" href="/md2pdf">
+    <link rel="prefetch" href="/plan-generator">
+    <link rel="prefetch" href="/merit">
     <script>
         function openTool(url) {
             window.open(url, '_blank');
