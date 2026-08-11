@@ -35,6 +35,7 @@ EXPOSE 5001
 
 # 性能优化配置：
 # --preload: 预加载应用代码，减少worker启动时间
-# --workers 2: 两个worker提高并发（后台任务状态通过磁盘持久化，跨worker安全）
-# 不设max-requests：避免worker回收杀死后台分析线程
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 2 --threads 8 --timeout 300 --preload"]
+# --worker-tmp-dir /dev/shm: 使用内存文件系统存储worker心跳，避免磁盘I/O
+# --keep-alive 5: 保持连接5秒，减少TCP握手开销
+# 1 worker + 16 threads: 避免多worker CPU竞争（Railway容器CPU有限）
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300 --preload --worker-tmp-dir /dev/shm --keep-alive 5"]
