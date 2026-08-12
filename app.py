@@ -2485,11 +2485,9 @@ def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
     for item in test_items:
         sev = item.get('severity', '').strip()
         if sev:
-            sev_lower = sev.lower()
-            for level in ['blocker', 'critical', 'major', 'minor', 'trivial']:
-                if level in sev_lower:
-                    severity_stats[level] = severity_stats.get(level, 0) + 1
-                    break
+            matched = _match_severity_level(sev)
+            if matched:
+                severity_stats[matched] = severity_stats.get(matched, 0) + 1
 
     # 6. 生成智能分析报告
     analysis = _generate_intelligent_analysis(test_items, project_info, {
@@ -3688,6 +3686,55 @@ def _analyze_issue_sheet(file_path, sheet_name):
         logger.info(f"Fix Version header: {headers[col_map['fix_version']]}")
     logger.info(f"所有 headers: {headers}")
 
+    # Severity 列有效性检测：如果检测到的 severity 列值不像 severity 等级，尝试查找其他列
+    severity_warning = ''
+    severity_col_idx = col_map.get('severity', -1)
+    if severity_col_idx >= 0:
+        # 采样前 30 行检查 severity 值是否有效
+        sample_sev_values = []
+        for row in data_rows[:30]:
+            cells = [str(c).strip() if c else '' for c in row]
+            sv = _safe_get(cells, severity_col_idx)
+            if sv:
+                sample_sev_values.append(sv)
+        valid_count = sum(1 for v in sample_sev_values if _is_valid_severity_value(v))
+        total_sampled = len(sample_sev_values)
+        logger.info(f"[Severity检测] 列={headers[severity_col_idx]}, 采样={total_sampled}, 有效={valid_count}")
+
+        if total_sampled > 0 and valid_count == 0:
+            # 所有采样值都不是有效的 severity 等级 → 可能列识别错误
+            old_header = headers[severity_col_idx]
+            old_col_idx = severity_col_idx
+            logger.warning(f"[Severity检测] 列 '{old_header}' 的值不像 severity 等级，尝试查找其他列")
+
+            # 遍历所有列，找到值匹配 severity 等级的列
+            best_col = -1
+            best_valid_ratio = 0
+            for ci in range(len(headers)):
+                if ci == old_col_idx:
+                    continue
+                col_values = []
+                for row in data_rows[:30]:
+                    cells = [str(c).strip() if c else '' for c in row]
+                    val = _safe_get(cells, ci)
+                    if val:
+                        col_values.append(val)
+                if not col_values:
+                    continue
+                col_valid = sum(1 for v in col_values if _is_valid_severity_value(v))
+                col_ratio = col_valid / len(col_values)
+                if col_ratio > 0.5 and col_ratio > best_valid_ratio:
+                    best_valid_ratio = col_ratio
+                    best_col = ci
+
+            if best_col >= 0:
+                col_map['severity'] = best_col
+                severity_warning = f"原 Severity 列 '{old_header}' 的值不是有效的严重等级，已自动切换到 '{headers[best_col]}' 列"
+                logger.info(f"[Severity检测] 自动切换到列 '{headers[best_col]}' (有效率={best_valid_ratio:.0%})")
+            else:
+                severity_warning = f"Severity 列 '{old_header}' 的值（如: {sample_sev_values[:3]}）不是标准的严重等级，无法自动匹配。支持: Blocker/Critical/Major/Minor/Trivial, P0-P4, 1-5, 严重/重要/一般/轻微/提示"
+                logger.warning(f"[Severity检测] 未找到有效的 severity 列，保留原列")
+
     issues = []
     for row in data_rows:
         cells = [str(c).strip() if c else '' for c in row]
@@ -3725,16 +3772,15 @@ def _analyze_issue_sheet(file_path, sheet_name):
     has_severity_col = col_map.get('severity', -1) >= 0
     
     for issue in issues:
-        # Severity 统计
-        sev = issue.get('severity', '').lower().strip()
+        # Severity 统计 — 使用增强匹配函数
+        sev_raw = issue.get('severity', '').strip()
         current_severity_level = ''
-        if sev:
-            severity_values.add(issue.get('severity', '').strip())
-            for level in ['blocker', 'critical', 'major', 'minor', 'trivial']:
-                if level in sev:
-                    by_severity[level] += 1
-                    current_severity_level = level
-                    break
+        if sev_raw:
+            severity_values.add(sev_raw)
+            matched = _match_severity_level(sev_raw)
+            if matched:
+                by_severity[matched] += 1
+                current_severity_level = matched
 
         # 模块统计
         mod = issue.get('module', '').strip()
@@ -3798,9 +3844,10 @@ def _analyze_issue_sheet(file_path, sheet_name):
         bc_resolved = 0
         # 计算 B+C 已解决数
         for issue in issues:
-            sev = issue.get('severity', '').lower()
+            sev = issue.get('severity', '').strip()
             status = issue.get('status', '').lower()
-            if ('blocker' in sev or 'critical' in sev) and any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭']):
+            matched = _match_severity_level(sev)
+            if matched in ('blocker', 'critical') and any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭']):
                 bc_resolved += 1
         return bc_total, round(bc_resolved / bc_total * 100, 1) if bc_total > 0 else 0
 
@@ -3907,12 +3954,12 @@ def _analyze_issue_sheet(file_path, sheet_name):
         # 3. Blocker/Critical 问题
         bc_unresolved = sum(
             1 for issue in issues
-            if any(kw in issue.get('severity', '').lower() for kw in ['blocker', 'critical'])
+            if _match_severity_level(issue.get('severity', '')) in ('blocker', 'critical')
             and not any(kw in issue.get('status', '').lower() for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'])
         )
         bc_total = sum(
             1 for issue in issues
-            if any(kw in issue.get('severity', '').lower() for kw in ['blocker', 'critical'])
+            if _match_severity_level(issue.get('severity', '')) in ('blocker', 'critical')
         )
         if bc_total > 0:
             suggestions.append({
@@ -4052,6 +4099,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
         'summary': summary,
         'severity_values': list(severity_values)[:20],
         'severity_detected': has_severity_col and len(severity_values) > 0,
+        'severity_warning': severity_warning,
         'module_stats': module_stats,
         'stability_stats': stability_stats,
         'all_issues': all_issues_brief,
@@ -4066,6 +4114,93 @@ def _analyze_issue_sheet(file_path, sheet_name):
         'sample_data': sample_data,
         'headers': headers,
     }
+
+
+# Severity 级别匹配模式 — 支持多种格式
+_SEVERITY_PATTERNS = {
+    'blocker': [
+        'blocker', 'block', 'fatal', '致命', '阻断', 'P0', 'S0',
+        'urgent', '紧急', 'immediate', 'showstopper',
+    ],
+    'critical': [
+        'critical', 'crit', '严重', '高', 'P1', 'S1',
+        'high', '重要', 'major-high',
+    ],
+    'major': [
+        'major', 'main', '中等', '一般', 'normal', 'P2', 'S2',
+        'medium', 'moderate', '普通',
+    ],
+    'minor': [
+        'minor', '低', '轻微', 'small', 'P3', 'S3',
+        'low', 'less', 'minor-issue',
+    ],
+    'trivial': [
+        'trivial', 'triv', '很小', '微小', '提示', 'P4', 'S4',
+        'cosmetic', 'info', 'informational', 'suggestion', '建议',
+    ],
+}
+
+# 数字 → severity 映射（1=最高, 5=最低）
+_SEVERITY_NUM_MAP = {
+    '1': 'blocker', '2': 'critical', '3': 'major', '4': 'minor', '5': 'trivial',
+}
+
+# 优先级 → severity 映射
+_SEVERITY_PRIORITY_MAP = {
+    'p0': 'blocker', 'p1': 'critical', 'p2': 'major', 'p3': 'minor', 'p4': 'trivial',
+    's0': 'blocker', 's1': 'critical', 's2': 'major', 's3': 'minor', 's4': 'trivial',
+    'highest': 'blocker', 'high': 'critical', 'medium': 'major', 'low': 'minor', 'lowest': 'trivial',
+    '紧急': 'blocker', '高': 'critical', '中': 'major', '低': 'minor', '最低': 'trivial',
+    '严重': 'critical', '一般': 'major', '轻微': 'minor', '提示': 'trivial',
+}
+
+
+def _match_severity_level(value):
+    """
+    将 severity 字段值匹配到标准级别。
+    支持：英文关键词、中文、数字 1-5、P0-P4/S0-S4、High/Medium/Low
+    返回: 'blocker'/'critical'/'major'/'minor'/'trivial' 或 None
+    """
+    if not value:
+        return None
+    v = str(value).strip()
+    if not v:
+        return None
+    v_lower = v.lower().strip()
+
+    # 1. 精确优先级映射 (P0-P4, S0-S4, High/Medium/Low 等)
+    if v_lower in _SEVERITY_PRIORITY_MAP:
+        return _SEVERITY_PRIORITY_MAP[v_lower]
+
+    # 2. 纯数字 1-5
+    if v.isdigit() and v in _SEVERITY_NUM_MAP:
+        return _SEVERITY_NUM_MAP[v]
+
+    # 3. 包含 P0-P4 / S0-S4 模式
+    import re
+    p_match = re.match(r'^[ps](\d)$', v_lower)
+    if p_match:
+        num = p_match.group(1)
+        if num in _SEVERITY_NUM_MAP:
+            return _SEVERITY_NUM_MAP[num]
+
+    # 4. 关键词包含匹配
+    for level, keywords in _SEVERITY_PATTERNS.items():
+        for kw in keywords:
+            if kw in v_lower:
+                return level
+
+    # 5. 中文数字
+    cn_num_map = {'一': 'blocker', '二': 'critical', '三': 'major', '四': 'minor', '五': 'trivial'}
+    if v in cn_num_map:
+        return cn_num_map[v]
+
+    return None
+
+
+def _is_valid_severity_value(value):
+    """检查值是否是有效的 severity 等级（能匹配到标准级别）"""
+    return _match_severity_level(value) is not None
 
 
 def _detect_issue_columns(headers):

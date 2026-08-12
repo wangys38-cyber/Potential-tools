@@ -1280,12 +1280,18 @@
             if (sevInfo) {
                 const sv = d.severity_values || [];
                 const sd = d.severity_detected || false;
+                const sw = d.severity_warning || '';
+                let warningHtml = '';
+                if (sw) {
+                    warningHtml = `<div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;color:#856404;font-size:12px;">⚠️ ${sw}</div>`;
+                }
                 sevInfo.style.display = 'block';
                 sevInfo.innerHTML = `
                     <div style="background:#f5f5f7;border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:13px;">
                         <div style="font-weight:600;margin-bottom:8px;">🔍 Severity检测</div>
                         <div style="color:#666;margin-bottom:6px;">字段: ${sd ? '<span style="color:#34c759;">✓ 已识别Severity</span>' : '<span style="color:#ff3b30;">✗ 未识别</span>'}</div>
                         <div style="color:#666;">实际值: <code style="background:#fff;padding:2px 6px;border-radius:4px;">${sv.length ? sv.join(', ') : '(无数据)'}</code></div>
+                        ${warningHtml}
                     </div>
                 `;
             }
