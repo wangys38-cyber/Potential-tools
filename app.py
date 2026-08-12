@@ -102,6 +102,7 @@ else:
 app.config['UPLOAD_FOLDER'] = os.path.join(_runtime_dir, 'uploads')
 app.config['PDF_FOLDER'] = os.path.join(_runtime_dir, 'pdfs')
 app.config['AI_CONFIG_FILE'] = os.path.join(_runtime_dir, 'ai_config.json')
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB - 音频文件上传限制
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
@@ -1126,7 +1127,7 @@ def api_generate_minutes():
 
 @app.route('/api/upload-audio', methods=['POST'])
 def api_upload_audio():
-    """上传音频文件，提交DashScope Paraformer转写任务"""
+    """上传音频文件 — 异步处理：先保存文件，后台线程上传DashScope并提交转写"""
     user = auth.get_current_user()
     if not user:
         return jsonify({'error': '请先登录'}), 401
@@ -1143,12 +1144,12 @@ def api_upload_audio():
     if not audio_file.filename:
         return jsonify({'error': '文件名为空'}), 400
 
-    # 检查文件大小（限制100MB）
+    # 检查文件大小（限制200MB）
     audio_file.seek(0, 2)
     file_size = audio_file.tell()
     audio_file.seek(0)
-    if file_size > 100 * 1024 * 1024:
-        return jsonify({'error': '文件过大，最大支持100MB'}), 400
+    if file_size > 200 * 1024 * 1024:
+        return jsonify({'error': '文件过大，最大支持200MB'}), 400
 
     # 检查文件类型
     allowed_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.wma', '.webm'}
@@ -1157,89 +1158,132 @@ def api_upload_audio():
         return jsonify({'error': f'不支持的文件格式: {ext}，支持: {", ".join(allowed_extensions)}'}), 400
 
     try:
-        import requests as req
+        import uuid as _uuid
 
-        # Step 1: 上传文件到DashScope文件服务
-        logger.info(f"上传音频文件到DashScope: {audio_file.filename}, {file_size} bytes")
+        # Step 1: 保存文件到磁盘（快速操作）
+        task_id = f"asr_{_uuid.uuid4().hex[:16]}"
+        saved_filename = f"{task_id}{ext}"
+        saved_path = os.path.join(app.config['UPLOAD_FOLDER'], saved_filename)
+        audio_file.save(saved_path)
+        logger.info(f"音频文件已保存: {saved_filename}, {file_size} bytes, task={task_id}")
 
-        upload_resp = req.post(
-            'https://dashscope.aliyuncs.com/api/v1/uploads',
-            headers={
-                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
-            },
-            files={
-                'file': (audio_file.filename, audio_file.read(), 'application/octet-stream'),
-                'model': (None, 'paraformer-v2'),
-                'action': (None, 'put'),
-            },
-            timeout=120
-        )
+        # Step 2: 创建后台任务记录
+        db.create_task(task_id, 'audio_transcription')
+        db.update_task(task_id, status='uploading', progress=10)
 
-        if upload_resp.status_code != 200:
-            logger.error(f"DashScope上传失败: {upload_resp.status_code} - {upload_resp.text[:300]}")
-            return jsonify({'error': f'文件上传失败({upload_resp.status_code})'}), 502
+        # Step 3: 启动后台线程处理 DashScope 上传 + 转写提交
+        api_key = ai_config.get('api_key', '')
+        orig_filename = audio_file.filename
 
-        upload_data = upload_resp.json()
-        file_url = upload_data.get('output', {}).get('upload_url', '')
-        if not file_url:
-            # 有些情况下返回的是 data 结构
-            file_url = upload_data.get('data', {}).get('url', '')
+        def _background_process():
+            """后台线程：上传文件到DashScope → 提交转写任务"""
+            try:
+                import requests as req
 
-        if not file_url:
-            logger.error(f"DashScope上传返回异常: {upload_data}")
-            return jsonify({'error': '文件上传返回异常'}), 502
+                # Step A: 上传文件到 DashScope 文件服务
+                db.update_task(task_id, status='uploading', progress=20)
+                logger.info(f"[后台] 开始上传到DashScope: {task_id}")
 
-        logger.info(f"文件上传成功: {file_url[:80]}...")
+                with open(saved_path, 'rb') as f:
+                    upload_resp = req.post(
+                        'https://dashscope.aliyuncs.com/api/v1/uploads',
+                        headers={'Authorization': f'Bearer {api_key}'},
+                        files={
+                            'file': (orig_filename, f, 'application/octet-stream'),
+                            'model': (None, 'paraformer-v2'),
+                            'action': (None, 'put'),
+                        },
+                        timeout=300  # 5分钟超时，大文件需要更长时间
+                    )
 
-        # Step 2: 提交转写任务
-        transcription_resp = req.post(
-            'https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription',
-            headers={
-                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
-                'Content-Type': 'application/json',
-                'X-DashScope-Async': 'enable',
-            },
-            json={
-                'model': 'paraformer-v2',
-                'input': {
-                    'file_urls': [file_url]
-                },
-                'parameters': {
-                    'language_hints': ['zh', 'en'],
-                    'disfluency_removal': True,
-                    'paragraph': True,
-                }
-            },
-            timeout=30
-        )
+                if upload_resp.status_code != 200:
+                    logger.error(f"[后台] DashScope上传失败: {upload_resp.status_code} - {upload_resp.text[:300]}")
+                    db.update_task(task_id, status='failed', error=f'文件上传失败({upload_resp.status_code})')
+                    return
 
-        if transcription_resp.status_code != 200:
-            logger.error(f"DashScope转写提交失败: {transcription_resp.status_code} - {transcription_resp.text[:300]}")
-            return jsonify({'error': f'转写任务提交失败({transcription_resp.status_code})'}), 502
+                upload_data = upload_resp.json()
+                file_url = upload_data.get('output', {}).get('upload_url', '')
+                if not file_url:
+                    file_url = upload_data.get('data', {}).get('url', '')
 
-        task_data = transcription_resp.json()
-        task_id = task_data.get('output', {}).get('task_id', '')
+                if not file_url:
+                    logger.error(f"[后台] DashScope上传返回异常: {upload_data}")
+                    db.update_task(task_id, status='failed', error='文件上传返回异常')
+                    return
 
-        if not task_id:
-            logger.error(f"转写任务提交返回异常: {task_data}")
-            return jsonify({'error': '转写任务提交返回异常'}), 502
+                logger.info(f"[后台] 文件上传成功: {file_url[:80]}...")
 
-        logger.info(f"转写任务已提交: {task_id}")
+                # Step B: 提交转写任务
+                db.update_task(task_id, status='submitting', progress=50)
+
+                transcription_resp = req.post(
+                    'https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription',
+                    headers={
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json',
+                        'X-DashScope-Async': 'enable',
+                    },
+                    json={
+                        'model': 'paraformer-v2',
+                        'input': {'file_urls': [file_url]},
+                        'parameters': {
+                            'language_hints': ['zh', 'en'],
+                            'disfluency_removal': True,
+                            'paragraph': True,
+                        }
+                    },
+                    timeout=30
+                )
+
+                if transcription_resp.status_code != 200:
+                    logger.error(f"[后台] 转写提交失败: {transcription_resp.status_code} - {transcription_resp.text[:300]}")
+                    db.update_task(task_id, status='failed', error=f'转写任务提交失败({transcription_resp.status_code})')
+                    return
+
+                task_data = transcription_resp.json()
+                dashscope_task_id = task_data.get('output', {}).get('task_id', '')
+
+                if not dashscope_task_id:
+                    logger.error(f"[后台] 转写任务提交返回异常: {task_data}")
+                    db.update_task(task_id, status='failed', error='转写任务提交返回异常')
+                    return
+
+                logger.info(f"[后台] 转写任务已提交: {dashscope_task_id}")
+                db.update_task(task_id, status='transcribing', progress=60,
+                               result={'dashscope_task_id': dashscope_task_id})
+
+            except req.exceptions.Timeout:
+                logger.error(f"[后台] DashScope上传超时: {task_id}")
+                db.update_task(task_id, status='failed', error='文件上传超时，请尝试较小的文件')
+            except Exception as e:
+                logger.error(f"[后台] 音频处理失败: {traceback.format_exc()}")
+                db.update_task(task_id, status='failed', error=str(e))
+            finally:
+                # 清理临时文件
+                try:
+                    if os.path.exists(saved_path):
+                        os.remove(saved_path)
+                except Exception:
+                    pass
+
+        # 启动后台线程
+        thread = threading.Thread(target=_background_process, daemon=True)
+        thread.start()
+
+        # 立即返回任务ID
         return jsonify({
             'status': 'success',
             'task_id': task_id
         })
 
-    except req.exceptions.Timeout:
-        return jsonify({'error': '文件上传超时，请尝试较小的文件'}), 504
     except Exception as e:
-        logger.error(f"音频上传转写失败: {traceback.format_exc()}")
+        logger.error(f"音频上传失败: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/transcription-status/<task_id>')
 def api_transcription_status(task_id):
-    """查询转写任务状态"""
+    """查询转写任务状态 — 支持后台任务 + DashScope双重状态查询"""
     user = auth.get_current_user()
     if not user:
         return jsonify({'error': '请先登录'}), 401
@@ -1249,64 +1293,124 @@ def api_transcription_status(task_id):
         return jsonify({'error': 'AI功能未配置'}), 503
 
     try:
-        import requests as req
+        # Step 1: 查询本地后台任务状态
+        local_task = db.get_task(task_id)
+        if not local_task:
+            return jsonify({'error': '任务不存在'}), 404
 
-        resp = req.get(
-            f'https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}',
-            headers={
-                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
-            },
-            timeout=15
-        )
+        local_status = local_task.get('status', 'unknown')
+        local_progress = local_task.get('progress', 0)
+        local_error = local_task.get('error')
 
-        if resp.status_code != 200:
-            return jsonify({'error': f'查询失败({resp.status_code})'}), 502
+        # 如果任务失败，返回错误
+        if local_status == 'failed':
+            return jsonify({
+                'status': 'FAILED',
+                'task_id': task_id,
+                'error': local_error or '处理失败'
+            })
 
-        data = resp.json()
-        task_status = data.get('output', {}).get('task_status', 'UNKNOWN')
+        # 如果还在上传/提交阶段，返回中间状态
+        if local_status in ('uploading', 'submitting', 'pending'):
+            status_map = {
+                'pending': 'UPLOADING',
+                'uploading': 'UPLOADING',
+                'submitting': 'SUBMITTING',
+            }
+            return jsonify({
+                'status': status_map.get(local_status, 'PENDING'),
+                'task_id': task_id,
+                'progress': local_progress
+            })
 
-        result = {
-            'status': task_status,
-            'task_id': task_id,
-        }
+        # 如果已经开始转写，查询 DashScope 状态
+        if local_status == 'transcribing':
+            result_data = local_task.get('result', {})
+            if isinstance(result_data, str):
+                try:
+                    result_data = json.loads(result_data)
+                except (json.JSONDecodeError, TypeError):
+                    result_data = {}
 
-        # 转写完成，获取结果
-        if task_status == 'SUCCEEDED':
-            results = data.get('output', {}).get('results', [])
-            transcript_text = ''
+            dashscope_task_id = result_data.get('dashscope_task_id', '')
+            if not dashscope_task_id:
+                return jsonify({'status': 'PENDING', 'task_id': task_id, 'progress': 60})
 
-            for r in results:
-                transcription_url = r.get('transcription_url', '')
-                if transcription_url:
-                    # 下载转写结果JSON
-                    try:
-                        tr_resp = req.get(transcription_url, timeout=15)
-                        if tr_resp.status_code == 200:
-                            tr_data = tr_resp.json()
-                            # 提取转写文本
-                            transcripts = tr_data.get('transcripts', [])
-                            for t in transcripts:
-                                transcript_text += t.get('text', '') + '\n'
+            # 查询 DashScope 转写状态
+            import requests as req
+            resp = req.get(
+                f'https://dashscope.aliyuncs.com/api/v1/tasks/{dashscope_task_id}',
+                headers={'Authorization': f'Bearer {ai_config.get("api_key", "")}'},
+                timeout=15
+            )
 
-                            # 如果没有 transcripts，尝试其他格式
-                            if not transcript_text:
-                                sentences = tr_data.get('sentences', [])
-                                for s in sentences:
-                                    transcript_text += s.get('text', '') + '\n'
+            if resp.status_code != 200:
+                return jsonify({'error': f'查询失败({resp.status_code})'}), 502
 
-                            # 最后尝试直接取 text 字段
-                            if not transcript_text and tr_data.get('text'):
-                                transcript_text = tr_data['text']
-                    except Exception as e:
-                        logger.warning(f"获取转写结果失败: {e}")
+            data = resp.json()
+            task_status = data.get('output', {}).get('task_status', 'UNKNOWN')
 
-            result['transcript'] = transcript_text.strip()
-            logger.info(f"转写完成，文本长度: {len(transcript_text)}")
+            result = {
+                'status': task_status,
+                'task_id': task_id,
+                'progress': 80
+            }
 
-        elif task_status == 'FAILED':
-            result['error'] = data.get('output', {}).get('message', '转写失败')
+            # 转写完成，获取结果
+            if task_status == 'SUCCEEDED':
+                results = data.get('output', {}).get('results', [])
+                transcript_text = ''
 
-        return jsonify(result)
+                for r in results:
+                    transcription_url = r.get('transcription_url', '')
+                    if transcription_url:
+                        try:
+                            tr_resp = req.get(transcription_url, timeout=15)
+                            if tr_resp.status_code == 200:
+                                tr_data = tr_resp.json()
+                                # 提取转写文本 — 尝试多种格式
+                                transcripts = tr_data.get('transcripts', [])
+                                for t in transcripts:
+                                    transcript_text += t.get('text', '') + '\n'
+
+                                if not transcript_text:
+                                    sentences = tr_data.get('sentences', [])
+                                    for s in sentences:
+                                        transcript_text += s.get('text', '') + '\n'
+
+                                if not transcript_text and tr_data.get('text'):
+                                    transcript_text = tr_data['text']
+                        except Exception as e:
+                            logger.warning(f"获取转写结果失败: {e}")
+
+                result['transcript'] = transcript_text.strip()
+                result['progress'] = 100
+                db.update_task(task_id, status='completed', progress=100,
+                               result={'dashscope_task_id': dashscope_task_id, 'transcript': transcript_text.strip()})
+                logger.info(f"转写完成，文本长度: {len(transcript_text)}")
+
+            elif task_status == 'FAILED':
+                result['error'] = data.get('output', {}).get('message', '转写失败')
+                db.update_task(task_id, status='failed', error=result['error'])
+
+            return jsonify(result)
+
+        # 如果已完成，从数据库返回结果
+        if local_status == 'completed':
+            result_data = local_task.get('result', {})
+            if isinstance(result_data, str):
+                try:
+                    result_data = json.loads(result_data)
+                except (json.JSONDecodeError, TypeError):
+                    result_data = {}
+            return jsonify({
+                'status': 'SUCCEEDED',
+                'task_id': task_id,
+                'progress': 100,
+                'transcript': result_data.get('transcript', '')
+            })
+
+        return jsonify({'status': 'UNKNOWN', 'task_id': task_id})
 
     except Exception as e:
         logger.error(f"查询转写状态失败: {traceback.format_exc()}")

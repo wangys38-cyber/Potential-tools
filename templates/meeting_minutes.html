@@ -564,7 +564,7 @@
             const barEl = document.getElementById('uploadProgressBar');
             const progressEl = document.getElementById('uploadProgress');
 
-            const maxAttempts = 120; // 最多轮询10分钟
+            const maxAttempts = 240; // 最多轮询20分钟（大文件需要更长时间）
             let attempts = 0;
 
             const poll = async () => {
@@ -599,12 +599,19 @@
                         return;
                     }
 
-                    // 仍在处理中
+                    // 仍在处理中 — 根据不同阶段显示不同状态
                     if (attempts < maxAttempts) {
-                        const pct = Math.min(50 + Math.floor(attempts / 2), 95);
+                        const progress = data.progress || 0;
+                        let statusText = '处理中...';
+                        if (data.status === 'UPLOADING') statusText = '上传到AI服务中...';
+                        else if (data.status === 'SUBMITTING') statusText = '提交转写任务...';
+                        else if (data.status === 'PENDING') statusText = '等待处理...';
+                        else if (data.status === 'TRANSCRIBING' || data.status === 'RUNNING') statusText = 'AI语音识别中...';
+
+                        const pct = Math.min(progress + Math.floor(attempts / 3), 95);
                         percentEl.textContent = pct + '%';
                         barEl.style.width = pct + '%';
-                        statusEl.textContent = `AI语音识别中... (${attempts}s)`;
+                        statusEl.textContent = `${statusText} (${attempts * 5}s)`;
                         setTimeout(poll, 5000); // 每5秒轮询一次
                     } else {
                         progressEl.classList.remove('show');
@@ -616,7 +623,7 @@
                 }
             };
 
-            setTimeout(poll, 3000); // 3秒后开始轮询
+            setTimeout(poll, 2000); // 2秒后开始轮询
         }
 
         // ==================== 麦克风录音模式 ====================
