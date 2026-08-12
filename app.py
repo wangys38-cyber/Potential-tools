@@ -132,6 +132,7 @@ _PUBLIC_PATHS = (
     '/login',
     '/auth/',
     '/health',
+    '/favicon.ico',
 )
 
 @app.before_request
@@ -974,6 +975,16 @@ def plan_generator():
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'pid': os.getpid()})
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """浏览器默认请求的favicon — 返回工具箱emoji SVG"""
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>"
+    resp = make_response(svg, 200)
+    resp.headers['Content-Type'] = 'image/svg+xml'
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
 
 
 @app.route('/api/debug')
