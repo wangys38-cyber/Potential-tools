@@ -452,10 +452,26 @@ class ExcelReader:
             # 优先从 thead > tr > th 提取
             thead = table.find('thead')
             if thead is not None:
-                for th in thead.iter('th'):
-                    text = html_module.unescape(lxml_html.tostring(th, encoding='unicode', method='text').strip())
-                    if text:
-                        all_headers.append(text)
+                # 处理多行表头：取最后一行（通常是实际列头），并展开 colspan
+                thead_rows = thead.findall('tr')
+                if thead_rows:
+                    # 选择 th 最多的一行作为表头行（通常是最后一行）
+                    best_row = max(thead_rows, key=lambda r: len(r.findall('th')))
+                    for th in best_row.findall('th'):
+                        text = html_module.unescape(lxml_html.tostring(th, encoding='unicode', method='text').strip())
+                        # 处理 colspan：重复表头文本填满列数
+                        colspan = th.get('colspan', '1')
+                        try:
+                            span = int(colspan)
+                        except (ValueError, TypeError):
+                            span = 1
+                        for _ in range(span):
+                            all_headers.append(text if text else '')
+                else:
+                    for th in thead.iter('th'):
+                        text = html_module.unescape(lxml_html.tostring(th, encoding='unicode', method='text').strip())
+                        if text:
+                            all_headers.append(text)
             # 回退：从第一行 td 提取
             if not all_headers:
                 first_tr = table.find('.//tr')
@@ -568,7 +584,17 @@ class ExcelReader:
 
             th_pattern = re.compile(r'<th[^>]*>(.*?)</th>', re.IGNORECASE | re.DOTALL)
             th_matches = th_pattern.findall(head_chunk)
-            all_headers = [clean_html_text(m) for m in th_matches if clean_html_text(m)]
+            # 处理 colspan 属性
+            th_full_pattern = re.compile(r'<th([^>]*)>(.*?)</th>', re.IGNORECASE | re.DOTALL)
+            th_full_matches = th_full_pattern.findall(head_chunk)
+            all_headers = []
+            for attrs_str, content in th_full_matches:
+                text = clean_html_text(content)
+                # 解析 colspan
+                colspan_match = re.search(r'colspan\s*=\s*["\']?(\d+)', attrs_str, re.IGNORECASE)
+                span = int(colspan_match.group(1)) if colspan_match else 1
+                for _ in range(span):
+                    all_headers.append(text)
 
             if not all_headers:
                 tr_pattern = re.compile(r'<tr[^>]*>(.*?)</tr>', re.IGNORECASE | re.DOTALL)
@@ -3677,6 +3703,12 @@ def _analyze_issue_sheet(file_path, sheet_name):
     gc.collect()
     _log_mem(f"表头提取：{len(headers)}列 x {len(data_rows)}数据行")
 
+    # 调试日志：输出表头和前3行数据（所有列），帮助排查列错位问题
+    logger.info(f"[调试] 表头({len(headers)}列): {headers}")
+    for di in range(min(3, len(data_rows))):
+        sample = [str(c).strip() if c else '' for c in data_rows[di]]
+        logger.info(f"[调试] 数据行{di}({len(sample)}列): {sample}")
+
     col_map = _detect_issue_columns(headers)
     
     # 调试日志：显示识别到的字段
@@ -3699,18 +3731,20 @@ def _analyze_issue_sheet(file_path, sheet_name):
                 sample_sev_values.append(sv)
         valid_count = sum(1 for v in sample_sev_values if _is_valid_severity_value(v))
         total_sampled = len(sample_sev_values)
-        logger.info(f"[Severity检测] 列={headers[severity_col_idx]}, 采样={total_sampled}, 有效={valid_count}")
+        logger.info(f"[Severity检测] 列={headers[severity_col_idx]}(idx={severity_col_idx}), 采样={total_sampled}, 有效={valid_count}, 样本={sample_sev_values[:5]}")
 
         if total_sampled > 0 and valid_count == 0:
-            # 所有采样值都不是有效的 severity 等级 → 可能列识别错误
-            old_header = headers[severity_col_idx]
+            # 所有采样值都不是有效的 severity 等级 → 可能列识别错误（HTML colspan/多行表头导致错位）
+            old_header = headers[severity_col_idx] if severity_col_idx < len(headers) else f'列{severity_col_idx}'
             old_col_idx = severity_col_idx
-            logger.warning(f"[Severity检测] 列 '{old_header}' 的值不像 severity 等级，尝试查找其他列")
+            logger.warning(f"[Severity检测] 列 '{old_header}' 的值不像 severity 等级（样本: {sample_sev_values[:3]}），扫描所有列查找正确的 severity 数据")
 
-            # 遍历所有列，找到值匹配 severity 等级的列
+            # 遍历所有列（包括超出 headers 长度的列），找到值匹配 severity 等级的列
+            max_cols = max((len(data_rows[i]) for i in range(min(30, len(data_rows)))), default=len(headers))
+            max_cols = max(max_cols, len(headers))
             best_col = -1
             best_valid_ratio = 0
-            for ci in range(len(headers)):
+            for ci in range(max_cols):
                 if ci == old_col_idx:
                     continue
                 col_values = []
@@ -3726,14 +3760,44 @@ def _analyze_issue_sheet(file_path, sheet_name):
                 if col_ratio > 0.5 and col_ratio > best_valid_ratio:
                     best_valid_ratio = col_ratio
                     best_col = ci
+                    logger.info(f"[Severity检测] 候选列 {ci} ({headers[ci] if ci < len(headers) else '无表头'}): 有效率={col_ratio:.0%}, 样本={col_values[:3]}")
 
             if best_col >= 0:
                 col_map['severity'] = best_col
-                severity_warning = f"原 Severity 列 '{old_header}' 的值不是有效的严重等级，已自动切换到 '{headers[best_col]}' 列"
-                logger.info(f"[Severity检测] 自动切换到列 '{headers[best_col]}' (有效率={best_valid_ratio:.0%})")
+                new_header = headers[best_col] if best_col < len(headers) else f'列{best_col}'
+                severity_warning = f"原 Severity 列 '{old_header}' 的值不是有效的严重等级（如: {sample_sev_values[:2]}），已自动切换到 '{new_header}' 列"
+                logger.info(f"[Severity检测] ✅ 自动切换到列 {best_col} '{new_header}' (有效率={best_valid_ratio:.0%})")
             else:
-                severity_warning = f"Severity 列 '{old_header}' 的值（如: {sample_sev_values[:3]}）不是标准的严重等级，无法自动匹配。支持: Blocker/Critical/Major/Minor/Trivial, P0-P4, 1-5, 严重/重要/一般/轻微/提示"
-                logger.warning(f"[Severity检测] 未找到有效的 severity 列，保留原列")
+                severity_warning = f"Severity 列 '{old_header}' 的值（如: {sample_sev_values[:3]}）不是标准的严重等级。支持: Blocker/Critical/Major/Minor/Trivial, P0-P4, 1-5, 严重/重要/一般/轻微/提示"
+                logger.warning(f"[Severity检测] ❌ 未找到有效的 severity 列，保留原列")
+    else:
+        # 没有检测到 Severity 列 → 扫描所有列查找包含 severity 等级值的列
+        logger.info("[Severity检测] 表头中未找到 Severity 列，扫描所有列查找 severity 数据")
+        max_cols = max((len(data_rows[i]) for i in range(min(30, len(data_rows)))), default=0)
+        max_cols = max(max_cols, len(headers))
+        best_col = -1
+        best_valid_ratio = 0
+        for ci in range(max_cols):
+            col_values = []
+            for row in data_rows[:30]:
+                cells = [str(c).strip() if c else '' for c in row]
+                val = _safe_get(cells, ci)
+                if val:
+                    col_values.append(val)
+            if not col_values:
+                continue
+            col_valid = sum(1 for v in col_values if _is_valid_severity_value(v))
+            col_ratio = col_valid / len(col_values)
+            if col_ratio > 0.5 and col_ratio > best_valid_ratio:
+                best_valid_ratio = col_ratio
+                best_col = ci
+                logger.info(f"[Severity检测] 候选列 {ci} ({headers[ci] if ci < len(headers) else '无表头'}): 有效率={col_ratio:.0%}, 样本={col_values[:3]}")
+
+        if best_col >= 0:
+            col_map['severity'] = best_col
+            new_header = headers[best_col] if best_col < len(headers) else f'列{best_col}'
+            severity_warning = f"表头中未找到 Severity 列，已自动识别 '{new_header}' 列为严重程度数据"
+            logger.info(f"[Severity检测] ✅ 自动识别列 {best_col} '{new_header}' 为 severity (有效率={best_valid_ratio:.0%})")
 
     issues = []
     for row in data_rows:
