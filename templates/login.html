@@ -5,7 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1e;
+            --bg-card: #2c2c30;
+            --text-primary: #f0f0f2;
+            --text-secondary: #9b9ba3;
+            --accent: #0a84ff;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -16,6 +26,7 @@
             justify-content: center;
             -webkit-font-smoothing: antialiased;
         }
+        body { transition: background-color 0.3s ease, color 0.3s ease; }
         .login-card {
             background: #fff;
             border-radius: 24px;
@@ -147,6 +158,7 @@
     </style>
 </head>
 <body>
+    <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="position:fixed;top:20px;right:20px;z-index:1000;">🌙</button>
     <div class="login-card">
         <div class="login-icon">🛠️</div>
         <h1>欢迎登录</h1>
@@ -200,5 +212,6 @@
         </div>
         {% endif %}
     </div>
+    <script src="/static/js/components.js"></script>
 </body>
 </html>

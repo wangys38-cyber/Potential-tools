@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR问题分析工具</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css">
     <!-- DNS预解析 + 资源预连接：减少Chart.js CDN连接延迟 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -32,6 +33,27 @@
             --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
         }
 
+        [data-theme="dark"] {
+            --bg: #1a1a1e;
+            --card: #2c2c30;
+            --text: #f0f0f2;
+            --text-secondary: #9b9ba3;
+            --text-tertiary: #6b6b73;
+            --accent: #0a84ff;
+            --accent-light: rgba(10, 132, 255, 0.15);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.15);
+            --success: #30d158;
+            --success-light: rgba(48, 209, 88, 0.15);
+            --warning: #ffd60a;
+            --warning-light: rgba(255, 214, 10, 0.15);
+            --danger: #ff453a;
+            --danger-light: rgba(255, 69, 58, 0.15);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -41,6 +63,7 @@
             color: var(--text);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .header {
@@ -556,7 +579,8 @@
             <h1>📊 CR问题分析工具</h1>
             <p>上传Excel文档，自动分析CR问题数据，生成可视化报告与PDF</p>
         </div>
-        <div style="text-align: right;">
+        <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
+            <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="border:1px solid var(--border);background:var(--card);color:var(--text);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;">🌙</button>
             <button class="btn btn-secondary" onclick="resetAll()">重新开始</button>
         </div>
     </div>
@@ -2068,5 +2092,6 @@
             `;
         }
     </script>
+    <script src="/static/js/components.js"></script>
 </body>
 </html>

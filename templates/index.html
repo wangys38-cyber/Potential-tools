@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css">
     <!-- DNS预解析：提前解析CDN域名，减少首次连接延迟 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <!-- 页面预加载：浏览器空闲时后台预取工具页面，点击时秒开 -->
@@ -39,6 +40,16 @@
             --radius-full: 980px;
         }
 
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1e;
+            --bg-card: #2c2c30;
+            --text-primary: #f0f0f2;
+            --text-secondary: #9b9ba3;
+            --accent: #0a84ff;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -51,6 +62,8 @@
             min-height: 100vh;
             color: var(--text-primary);
         }
+
+        body { transition: background-color 0.3s ease, color 0.3s ease; }
 
         .header {
             background: rgba(255, 255, 255, 0.72);
@@ -289,6 +302,7 @@
                 {% endif %}
                 <span class="name">{{ current_user.name }}</span>
                 <span class="provider-tag">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
+                <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">🌙</button>
                 <a href="/auth/logout" class="logout-btn">退出</a>
             {% endif %}
         </div>
@@ -407,7 +421,8 @@
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v1.0</p>
+        <p>Powered by Yongshuo | 工具集 v2.0</p>
     </div>
+    <script src="/static/js/components.js"></script>
 </body>
 </html>

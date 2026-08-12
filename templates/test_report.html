@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>测试报告分析工具</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css">
     <style>
         :root {
             --bg-primary: #f0f2f5;
@@ -29,6 +30,26 @@
             --radius-md: 14px;
             --radius-lg: 20px;
         }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1e;
+            --bg-card: #2c2c30;
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%);
+            --text-primary: #f0f0f2;
+            --text-secondary: #9b9ba3;
+            --text-tertiary: #6b6b73;
+            --accent: #0a84ff;
+            --accent-hover: #3a9eff;
+            --accent-light: rgba(10, 132, 255, 0.15);
+            --danger: #ff453a;
+            --success: #30d158;
+            --warning: #ffd60a;
+            --info: #64d2ff;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.15);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -37,6 +58,7 @@
             min-height: 100vh;
             padding: 20px;
             -webkit-font-smoothing: antialiased;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .container { max-width: 1200px; margin: 0 auto; }
 
@@ -707,6 +729,7 @@
                 <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看智能分析结果</div>
             </div>
             <img src="/static/logo_right.jpg" alt="Analytics Logo" class="header-logo-right">
+            <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="position:relative;z-index:2;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;">🌙</button>
         </div>
 
         <!-- 用户栏 -->
@@ -1609,5 +1632,6 @@
         // 页面加载时获取用户信息
         loadUserInfo();
     </script>
+    <script src="/static/js/components.js"></script>
 </body>
 </html>

@@ -133,6 +133,8 @@ _PUBLIC_PATHS = (
     '/auth/',
     '/health',
     '/favicon.ico',
+    '/api/merit',          # v2.0: 功德查询允许匿名访问
+    '/api/user/preferences', # v2.0: 偏好查询允许匿名访问
 )
 
 @app.before_request
@@ -707,15 +709,11 @@ def read_excel_file(file_path, sheet_name=None):
     reader.close()
     return sheet_names, sheet_data
 
-# === AI 配置管理 ===
+# === AI 配置管理（v2.0: 使用 SQLite 替代 JSON 文件） ===
 def get_ai_config():
-    config = {}
-    try:
-        if os.path.exists(app.config['AI_CONFIG_FILE']):
-            with open(app.config['AI_CONFIG_FILE'], 'r', encoding='utf-8') as f:
-                config = json.load(f)
-    except Exception as e:
-        logger.warning(f"加载 AI 配置失败: {e}")
+    config = db.get_config('ai_config', {}) or {}
+    if not isinstance(config, dict):
+        config = {}
     config['api_key'] = os.environ.get('AI_API_KEY', config.get('api_key', ''))
     config['base_url'] = os.environ.get('AI_BASE_URL', config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1'))
     config['model'] = os.environ.get('AI_MODEL', config.get('model', 'qwen-turbo'))
@@ -743,13 +741,9 @@ def api_save_ai_config():
     data = request.get_json()
     if not data:
         return jsonify({'error': '无效的配置数据'}), 400
-    config = {}
-    if os.path.exists(app.config['AI_CONFIG_FILE']):
-        try:
-            with open(app.config['AI_CONFIG_FILE'], 'r', encoding='utf-8') as f:
-                config = json.load(f)
-        except Exception:
-            pass
+    config = db.get_config('ai_config', {}) or {}
+    if not isinstance(config, dict):
+        config = {}
     if 'api_key' in data:
         config['api_key'] = data['api_key'].strip()
     if 'base_url' in data:
@@ -757,8 +751,7 @@ def api_save_ai_config():
     if 'model' in data:
         config['model'] = data['model'].strip()
     try:
-        with open(app.config['AI_CONFIG_FILE'], 'w', encoding='utf-8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
+        db.set_config('ai_config', config)
         return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -827,6 +820,63 @@ def api_user_info():
             'provider': user['provider']
         }
     })
+
+
+# ==================== v2.0 新增 API ====================
+
+@app.route('/api/user/preferences', methods=['GET', 'POST'])
+def api_user_preferences():
+    """用户偏好设置（主题模式等）"""
+    user = auth.get_current_user()
+
+    if request.method == 'GET':
+        if not user:
+            return jsonify({'theme': 'auto', 'language': 'zh-CN'})
+        prefs = db.get_user_preferences(user['id'])
+        return jsonify(prefs)
+
+    if request.method == 'POST':
+        if not user:
+            return jsonify({'error': '请先登录'}), 401
+        data = request.get_json(silent=True) or {}
+        theme = data.get('theme')
+        language = data.get('language')
+        try:
+            db.set_user_preferences(user['id'], theme=theme, language=language)
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/merit')
+def api_get_merit():
+    """获取功德数据"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'total_count': 0, 'today_count': 0, 'today_date': ''})
+    data = db.get_merit(user['id'])
+    return jsonify({
+        'total_count': data.get('total_count', 0),
+        'today_count': data.get('today_count', 0),
+        'today_date': data.get('today_date', '')
+    })
+
+
+@app.route('/api/merit/increment', methods=['POST'])
+def api_increment_merit():
+    """功德+1"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+    try:
+        data = db.increment_merit(user['id'])
+        return jsonify({
+            'total_count': data.get('total_count', 0),
+            'today_count': data.get('today_count', 0),
+            'today_date': data.get('today_date', '')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/user/save-report', methods=['POST'])
@@ -2373,72 +2423,51 @@ def _generate_intelligent_analysis(test_items, project_info, stats):
 
 
 # === 分块上传 API（绕过预览代理的请求体大小限制）===
-# 使用磁盘持久化存储分块上传元数据（兼容 Railway --max-requests 导致的 worker 重启）
-import fcntl
+# v2.0: 使用 SQLite 持久化存储分块上传元数据（替代 JSON 文件 + fcntl 文件锁）
 
 _chunk_uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], '_chunk_meta')
 os.makedirs(_chunk_uploads_dir, exist_ok=True)
 
-def _chunk_meta_path(upload_id):
-    return os.path.join(_chunk_uploads_dir, f"{upload_id}.json")
-
-def _chunk_lock_path(upload_id):
-    return os.path.join(_chunk_uploads_dir, f"{upload_id}.lock")
-
+# v2.0: 分块上传元数据使用 SQLite，替代 JSON 文件 + 文件锁
 def _load_chunk_meta(upload_id):
-    """从磁盘加载分块上传元数据"""
-    meta_path = _chunk_meta_path(upload_id)
-    if not os.path.exists(meta_path):
+    """从数据库加载分块上传元数据"""
+    session = db.get_upload_session(upload_id)
+    if not session:
         return None
-    try:
-        with open(meta_path, 'r') as f:
-            meta = json.load(f)
-        meta['received_chunks'] = set(meta.get('received_chunks', []))
-        return meta
-    except Exception:
-        return None
+    filename = session['filename']
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ('.xlsx', '.xls'):
+        ext = '.xlsx'
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"excel_{upload_id}{ext}")
+    return {
+        'upload_id': upload_id,
+        'filename': filename,
+        'file_path': file_path,
+        'ext': ext,
+        'total_chunks': session['total_chunks'],
+        'chunk_size': session['chunk_size'],
+        'file_size': session['file_size'],
+        'total_size': session['file_size'],
+        'received_chunks': session.get('received_set', set()),
+    }
 
 def _save_chunk_meta(upload_id, meta):
-    """持久化分块上传元数据到磁盘（使用文件锁防止并发覆盖）"""
-    meta_to_save = dict(meta)
-    meta_to_save['received_chunks'] = list(meta.get('received_chunks', set()))
-    lock_path = _chunk_lock_path(upload_id)
-    with open(lock_path, 'w') as lock_f:
-        fcntl.flock(lock_f, fcntl.LOCK_EX)  # 排他锁，阻塞等待其他进程释放
-        try:
-            with open(_chunk_meta_path(upload_id), 'w') as f:
-                json.dump(meta_to_save, f)
-        finally:
-            fcntl.flock(lock_f, fcntl.LOCK_UN)
+    """创建/更新分块上传会话到数据库"""
+    db.create_upload_session(
+        upload_id,
+        meta.get('filename', ''),
+        meta.get('total_chunks', 0),
+        meta.get('chunk_size', 2 * 1024 * 1024),
+        meta.get('total_size', meta.get('file_size', 0))
+    )
 
 def _add_received_chunk(upload_id, chunk_index):
-    """线程安全地添加已接收分块（读取-修改-写入原子操作）"""
-    lock_path = _chunk_lock_path(upload_id)
-    with open(lock_path, 'w') as lock_f:
-        fcntl.flock(lock_f, fcntl.LOCK_EX)
-        try:
-            meta = _load_chunk_meta(upload_id)
-            if meta is None:
-                return None
-            meta['received_chunks'].add(chunk_index)
-            meta_to_save = dict(meta)
-            meta_to_save['received_chunks'] = list(meta.get('received_chunks', set()))
-            with open(_chunk_meta_path(upload_id), 'w') as f:
-                json.dump(meta_to_save, f)
-            return meta
-        finally:
-            fcntl.flock(lock_f, fcntl.LOCK_UN)
+    """线程安全地添加已接收分块（SQLite 事务保证原子性）"""
+    return db.add_received_chunk(upload_id, chunk_index)
 
 def _delete_chunk_meta(upload_id):
-    """删除分块上传元数据"""
-    try:
-        os.unlink(_chunk_meta_path(upload_id))
-    except Exception:
-        pass
-    try:
-        os.unlink(_chunk_lock_path(upload_id))
-    except Exception:
-        pass
+    """删除分块上传会话"""
+    db.delete_upload_session(upload_id)
 
 @app.route('/api/upload-init', methods=['POST'])
 def api_upload_init():
@@ -2678,34 +2707,39 @@ _background_tasks = {}
 _background_tasks_dir = os.path.join(app.config['UPLOAD_FOLDER'], '_task_meta')
 os.makedirs(_background_tasks_dir, exist_ok=True)
 
-def _task_meta_path(task_id):
-    return os.path.join(_background_tasks_dir, f"{task_id}.json")
-
+# v2.0: 后台任务元数据使用 SQLite，替代 JSON 文件
 def _load_task_meta(task_id):
-    """从磁盘加载任务元数据"""
-    meta_path = _task_meta_path(task_id)
-    if not os.path.exists(meta_path):
+    """从数据库加载任务元数据"""
+    task = db.get_task(task_id)
+    if not task:
         return None
-    try:
-        with open(meta_path, 'r') as f:
-            return json.load(f)
-    except Exception:
-        return None
+    return {
+        'task_id': task_id,
+        'task_type': task.get('task_type', ''),
+        'status': task.get('status', 'pending'),
+        'progress': task.get('progress', 0),
+        'result': task.get('result'),
+        'error': task.get('error'),
+    }
 
 def _save_task_meta(task_id, task_data):
-    """持久化任务元数据到磁盘"""
-    try:
-        with open(_task_meta_path(task_id), 'w') as f:
-            json.dump(task_data, f, default=str)
-    except Exception:
-        pass
+    """持久化任务元数据到数据库"""
+    status = task_data.get('status', 'pending')
+    progress = task_data.get('progress', 0)
+    result = task_data.get('result')
+    error = task_data.get('error')
+
+    # 检查任务是否已存在
+    existing = db.get_task(task_id)
+    if existing:
+        db.update_task(task_id, status=status, progress=progress, result=result, error=error)
+    else:
+        db.create_task(task_id, task_data.get('task_type', 'unknown'))
+        db.update_task(task_id, status=status, progress=progress, result=result, error=error)
 
 def _delete_task_meta(task_id):
     """删除任务元数据"""
-    try:
-        os.unlink(_task_meta_path(task_id))
-    except Exception:
-        pass
+    db.delete_task(task_id)
 
 import threading
 
