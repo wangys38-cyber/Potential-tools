@@ -430,9 +430,13 @@
                 isSystemRecording = true;
                 startTime = Date.now();
 
-                // 使用 MediaRecorder 录音
-                const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
-                mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : {});
+                // 使用 MediaRecorder 录音 — 低码率64kbps，1分钟约500KB
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+                    : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    ...(mimeType ? { mimeType } : {}),
+                    audioBitsPerSecond: 64000
+                });
                 mediaRecorder.ondataavailable = (e) => {
                     if (e.data.size > 0) audioChunks.push(e.data);
                 };
@@ -522,40 +526,97 @@
         }
 
         // ==================== 上传音频并转写 ====================
-        async function uploadAudioForTranscription(audioBlob, filename) {
+        function uploadAudioForTranscription(audioBlob, filename) {
             const progressEl = document.getElementById('uploadProgress');
             const statusEl = document.getElementById('uploadStatus');
             const percentEl = document.getElementById('uploadPercent');
             const barEl = document.getElementById('uploadProgressBar');
 
+            // 显示文件大小
+            const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2);
             progressEl.classList.add('show');
-            statusEl.textContent = '上传中...';
+            statusEl.textContent = `上传中... (${sizeMB}MB)`;
             percentEl.textContent = '0%';
             barEl.style.width = '0%';
 
             const formData = new FormData();
             formData.append('audio', audioBlob, filename);
 
-            try {
-                const resp = await fetch('/api/upload-audio', {
-                    method: 'POST',
-                    body: formData
-                });
+            // 使用 XMLHttpRequest 替代 fetch — 支持上传进度和超时控制
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/upload-audio', true);
+                xhr.timeout = 120000; // 2分钟超时
 
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                // 上传进度
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        percentEl.textContent = pct + '%';
+                        barEl.style.width = pct + '%';
+                        statusEl.textContent = `上传中... ${pct}% (${sizeMB}MB)`;
+                    }
+                };
 
-                // 上传成功，开始轮询转写状态
-                statusEl.textContent = 'AI语音识别中...';
-                percentEl.textContent = '50%';
-                barEl.style.width = '50%';
+                xhr.upload.onerror = () => {
+                    progressEl.classList.remove('show');
+                    reject(new Error('网络错误，上传失败。请检查网络连接后重试'));
+                };
 
-                await pollTranscriptionStatus(data.task_id);
+                xhr.upload.ontimeout = () => {
+                    progressEl.classList.remove('show');
+                    reject(new Error('上传超时（2分钟），文件可能过大。请尝试缩短录音时间'));
+                };
 
-            } catch (err) {
-                progressEl.classList.remove('show');
-                showToast('上传失败: ' + err.message, 'error', 5000);
-            }
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            if (data.error) {
+                                progressEl.classList.remove('show');
+                                reject(new Error(data.error));
+                            } else {
+                                // 上传成功，开始轮询转写状态
+                                statusEl.textContent = 'AI语音识别中...';
+                                percentEl.textContent = '50%';
+                                barEl.style.width = '50%';
+                                pollTranscriptionStatus(data.task_id).then(resolve).catch(reject);
+                            }
+                        } catch (e) {
+                            progressEl.classList.remove('show');
+                            reject(new Error('解析服务器响应失败'));
+                        }
+                    } else if (xhr.status === 401) {
+                        progressEl.classList.remove('show');
+                        reject(new Error('登录已过期，请重新登录后再试'));
+                    } else if (xhr.status === 413) {
+                        progressEl.classList.remove('show');
+                        reject(new Error('文件过大，服务器拒绝接收。请缩短录音时间'));
+                    } else {
+                        progressEl.classList.remove('show');
+                        let errMsg = `服务器错误 (${xhr.status})`;
+                        try {
+                            const errData = JSON.parse(xhr.responseText);
+                            if (errData.error) errMsg = errData.error;
+                        } catch (e) {}
+                        reject(new Error(errMsg));
+                    }
+                };
+
+                xhr.onerror = () => {
+                    progressEl.classList.remove('show');
+                    reject(new Error('网络连接失败，请检查网络后重试'));
+                };
+
+                xhr.ontimeout = () => {
+                    progressEl.classList.remove('show');
+                    reject(new Error('上传超时（2分钟），文件可能过大。请尝试缩短录音时间'));
+                };
+
+                xhr.send(formData);
+            }).catch(err => {
+                showToast('上传失败: ' + err.message, 'error', 6000);
+            });
         }
 
         async function pollTranscriptionStatus(taskId) {

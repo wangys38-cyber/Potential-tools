@@ -136,6 +136,8 @@ _PUBLIC_PATHS = (
     '/favicon.ico',
     '/api/merit',          # v2.0: 功德查询允许匿名访问
     '/api/user/preferences', # v2.0: 偏好查询允许匿名访问
+    '/api/upload-audio',     # API端点自行检查认证，避免302重定向导致JSON解析失败
+    '/api/transcription-status', # 同上
 )
 
 @app.before_request
