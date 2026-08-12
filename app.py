@@ -1122,9 +1122,195 @@ def api_generate_minutes():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/health')
-def health():
-    return jsonify({'status': 'ok', 'pid': os.getpid()})
+# ==================== 音频转写 API（DashScope Paraformer ASR） ====================
+
+@app.route('/api/upload-audio', methods=['POST'])
+def api_upload_audio():
+    """上传音频文件，提交DashScope Paraformer转写任务"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请联系管理员设置API Key'}), 503
+
+    # 获取上传的文件
+    if 'audio' not in request.files:
+        return jsonify({'error': '未收到音频文件'}), 400
+
+    audio_file = request.files['audio']
+    if not audio_file.filename:
+        return jsonify({'error': '文件名为空'}), 400
+
+    # 检查文件大小（限制100MB）
+    audio_file.seek(0, 2)
+    file_size = audio_file.tell()
+    audio_file.seek(0)
+    if file_size > 100 * 1024 * 1024:
+        return jsonify({'error': '文件过大，最大支持100MB'}), 400
+
+    # 检查文件类型
+    allowed_extensions = {'.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.wma', '.webm'}
+    ext = os.path.splitext(audio_file.filename)[1].lower()
+    if ext not in allowed_extensions:
+        return jsonify({'error': f'不支持的文件格式: {ext}，支持: {", ".join(allowed_extensions)}'}), 400
+
+    try:
+        import requests as req
+
+        # Step 1: 上传文件到DashScope文件服务
+        logger.info(f"上传音频文件到DashScope: {audio_file.filename}, {file_size} bytes")
+
+        upload_resp = req.post(
+            'https://dashscope.aliyuncs.com/api/v1/uploads',
+            headers={
+                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+            },
+            files={
+                'file': (audio_file.filename, audio_file.read(), 'application/octet-stream'),
+                'model': (None, 'paraformer-v2'),
+                'action': (None, 'put'),
+            },
+            timeout=120
+        )
+
+        if upload_resp.status_code != 200:
+            logger.error(f"DashScope上传失败: {upload_resp.status_code} - {upload_resp.text[:300]}")
+            return jsonify({'error': f'文件上传失败({upload_resp.status_code})'}), 502
+
+        upload_data = upload_resp.json()
+        file_url = upload_data.get('output', {}).get('upload_url', '')
+        if not file_url:
+            # 有些情况下返回的是 data 结构
+            file_url = upload_data.get('data', {}).get('url', '')
+
+        if not file_url:
+            logger.error(f"DashScope上传返回异常: {upload_data}")
+            return jsonify({'error': '文件上传返回异常'}), 502
+
+        logger.info(f"文件上传成功: {file_url[:80]}...")
+
+        # Step 2: 提交转写任务
+        transcription_resp = req.post(
+            'https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription',
+            headers={
+                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+                'Content-Type': 'application/json',
+                'X-DashScope-Async': 'enable',
+            },
+            json={
+                'model': 'paraformer-v2',
+                'input': {
+                    'file_urls': [file_url]
+                },
+                'parameters': {
+                    'language_hints': ['zh', 'en'],
+                    'disfluency_removal': True,
+                    'paragraph': True,
+                }
+            },
+            timeout=30
+        )
+
+        if transcription_resp.status_code != 200:
+            logger.error(f"DashScope转写提交失败: {transcription_resp.status_code} - {transcription_resp.text[:300]}")
+            return jsonify({'error': f'转写任务提交失败({transcription_resp.status_code})'}), 502
+
+        task_data = transcription_resp.json()
+        task_id = task_data.get('output', {}).get('task_id', '')
+
+        if not task_id:
+            logger.error(f"转写任务提交返回异常: {task_data}")
+            return jsonify({'error': '转写任务提交返回异常'}), 502
+
+        logger.info(f"转写任务已提交: {task_id}")
+        return jsonify({
+            'status': 'success',
+            'task_id': task_id
+        })
+
+    except req.exceptions.Timeout:
+        return jsonify({'error': '文件上传超时，请尝试较小的文件'}), 504
+    except Exception as e:
+        logger.error(f"音频上传转写失败: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/transcription-status/<task_id>')
+def api_transcription_status(task_id):
+    """查询转写任务状态"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置'}), 503
+
+    try:
+        import requests as req
+
+        resp = req.get(
+            f'https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}',
+            headers={
+                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+            },
+            timeout=15
+        )
+
+        if resp.status_code != 200:
+            return jsonify({'error': f'查询失败({resp.status_code})'}), 502
+
+        data = resp.json()
+        task_status = data.get('output', {}).get('task_status', 'UNKNOWN')
+
+        result = {
+            'status': task_status,
+            'task_id': task_id,
+        }
+
+        # 转写完成，获取结果
+        if task_status == 'SUCCEEDED':
+            results = data.get('output', {}).get('results', [])
+            transcript_text = ''
+
+            for r in results:
+                transcription_url = r.get('transcription_url', '')
+                if transcription_url:
+                    # 下载转写结果JSON
+                    try:
+                        tr_resp = req.get(transcription_url, timeout=15)
+                        if tr_resp.status_code == 200:
+                            tr_data = tr_resp.json()
+                            # 提取转写文本
+                            transcripts = tr_data.get('transcripts', [])
+                            for t in transcripts:
+                                transcript_text += t.get('text', '') + '\n'
+
+                            # 如果没有 transcripts，尝试其他格式
+                            if not transcript_text:
+                                sentences = tr_data.get('sentences', [])
+                                for s in sentences:
+                                    transcript_text += s.get('text', '') + '\n'
+
+                            # 最后尝试直接取 text 字段
+                            if not transcript_text and tr_data.get('text'):
+                                transcript_text = tr_data['text']
+                    except Exception as e:
+                        logger.warning(f"获取转写结果失败: {e}")
+
+            result['transcript'] = transcript_text.strip()
+            logger.info(f"转写完成，文本长度: {len(transcript_text)}")
+
+        elif task_status == 'FAILED':
+            result['error'] = data.get('output', {}).get('message', '转写失败')
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"查询转写状态失败: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/favicon.ico')
