@@ -20,6 +20,9 @@ import db
 # 性能优化：Whingoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
 from flask_compress import Compress
+# 实时语音识别：flask-sock 提供 WebSocket 支持
+from flask_sock import Sock
+import websocket as _ws_client  # websocket-client，连接 DashScope
 
 _CST = timezone(timedelta(hours=8))
 
@@ -38,6 +41,9 @@ else:
 template_dir = os.path.join(base_dir, 'templates')
 static_dir = os.path.join(base_dir, 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+
+# 实时语音识别 WebSocket 支持
+sock = Sock(app)
 
 # 启用 gzip 压缩（HTML/JSON/CSS/JS 响应自动压缩，减少传输量 60-80%）
 Compress(app)
@@ -138,6 +144,7 @@ _PUBLIC_PATHS = (
     '/api/user/preferences', # v2.0: 偏好查询允许匿名访问
     '/api/upload-audio',     # API端点自行检查认证，避免302重定向导致JSON解析失败
     '/api/transcription-status', # 同上
+    '/ws/',                  # WebSocket端点自行检查认证
 )
 
 @app.before_request
@@ -1417,6 +1424,257 @@ def api_transcription_status(task_id):
     except Exception as e:
         logger.error(f"查询转写状态失败: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
+
+
+# ==================== 实时语音识别 WebSocket 代理 ====================
+
+@sock.route('/ws/realtime-asr')
+def realtime_asr_proxy(ws):
+    """
+    WebSocket 代理：浏览器 ↔ 后端 ↔ DashScope Paraformer 实时ASR
+    流程：
+    1. 浏览器连接 → 后端连接 DashScope WebSocket → 发送 run-task
+    2. 浏览器发送 PCM 音频块 → 后端转发到 DashScope
+    3. DashScope 返回识别结果 → 后端转发到浏览器
+    4. 浏览器发送 stop → 后端发送 finish-task → 关闭连接
+    """
+    import threading
+    import uuid as _uuid
+
+    # Step 1: 认证
+    user = auth.get_current_user()
+    if not user:
+        try:
+            ws.send(json.dumps({'type': 'error', 'message': '请先登录'}))
+        except Exception:
+            pass
+        ws.close()
+        return
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        try:
+            ws.send(json.dumps({'type': 'error', 'message': 'AI功能未配置，请联系管理员'}))
+        except Exception:
+            pass
+        ws.close()
+        return
+
+    api_key = ai_config.get('api_key', '')
+    task_id = str(_uuid.uuid4())
+
+    # Step 2: 连接 DashScope WebSocket
+    ds_url = 'wss://dashscope.aliyuncs.com/api-ws/v1/inference/'
+    try:
+        ds_ws = _ws_client.create_connection(
+            ds_url,
+            header=[f'Authorization: Bearer {api_key}'],
+            timeout=15,
+            enable_multithread=True,
+        )
+    except Exception as e:
+        logger.error(f"连接DashScope WebSocket失败: {e}")
+        try:
+            ws.send(json.dumps({'type': 'error', 'message': f'连接AI服务失败: {str(e)}'}))
+        except Exception:
+            pass
+        ws.close()
+        return
+
+    # Step 3: 发送 run-task 指令
+    run_task_msg = {
+        'header': {
+            'action': 'run-task',
+            'task_id': task_id,
+            'streaming': 'duplex',
+        },
+        'payload': {
+            'task_group': 'audio',
+            'task': 'asr',
+            'function': 'recognition',
+            'model': 'paraformer-realtime-v2',
+            'input': {},
+            'parameters': {
+                'format': 'pcm',
+                'sample_rate': 16000,
+                'language_hints': ['zh', 'en'],
+                'semantic_punctuation_enabled': True,
+                'disfluency_removal_enabled': True,
+                'punctuation_prediction_enabled': True,
+                'inverse_text_normalization_enabled': True,
+                'heartbeat': True,
+            }
+        }
+    }
+
+    try:
+        ds_ws.send(json.dumps(run_task_msg))
+    except Exception as e:
+        logger.error(f"发送run-task失败: {e}")
+        try:
+            ws.send(json.dumps({'type': 'error', 'message': '启动识别任务失败'}))
+        except Exception:
+            pass
+        ds_ws.close()
+        ws.close()
+        return
+
+    # Step 4: 等待 task-started 事件
+    try:
+        resp = ds_ws.recv()
+        resp_data = json.loads(resp)
+        event = resp_data.get('header', {}).get('event', '')
+        if event != 'task-started':
+            err_msg = resp_data.get('header', {}).get('error_message', '任务启动失败')
+            logger.error(f"DashScope task-started 异常: {resp_data}")
+            try:
+                ws.send(json.dumps({'type': 'error', 'message': err_msg}))
+            except Exception:
+                pass
+            ds_ws.close()
+            ws.close()
+            return
+    except Exception as e:
+        logger.error(f"等待task-started失败: {e}")
+        try:
+            ws.send(json.dumps({'type': 'error', 'message': '等待AI服务响应超时'}))
+        except Exception:
+            pass
+        ds_ws.close()
+        ws.close()
+        return
+
+    # 通知浏览器：可以开始发送音频
+    try:
+        ws.send(json.dumps({'type': 'ready', 'message': '实时识别已就绪'}))
+    except Exception:
+        ds_ws.close()
+        return
+
+    logger.info(f"[实时ASR] 任务已启动: {task_id}")
+
+    # Step 5: 启动接收线程 — DashScope → 浏览器
+    ws_closed = threading.Event()
+
+    def _dashscope_receiver():
+        """接收 DashScope 的识别结果，转发给浏览器"""
+        try:
+            while not ws_closed.is_set():
+                try:
+                    resp = ds_ws.recv()
+                except _ws_client.WebSocketTimeoutException:
+                    continue
+                except _ws_client.WebSocketConnectionClosedException:
+                    break
+                except Exception:
+                    break
+
+                if isinstance(resp, bytes):
+                    continue
+
+                try:
+                    data = json.loads(resp)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
+                event = data.get('header', {}).get('event', '')
+
+                if event == 'result-generated':
+                    sentence = data.get('payload', {}).get('output', {}).get('sentence', {})
+                    text = sentence.get('text', '')
+                    is_final = sentence.get('sentence_end', False)
+                    # 跳过心跳包
+                    if sentence.get('heartbeat'):
+                        continue
+                    try:
+                        ws.send(json.dumps({
+                            'type': 'transcript',
+                            'text': text,
+                            'is_final': is_final,
+                            'begin_time': sentence.get('begin_time', 0),
+                            'end_time': sentence.get('end_time', 0),
+                        }))
+                    except Exception:
+                        break
+
+                elif event == 'task-finished':
+                    try:
+                        ws.send(json.dumps({'type': 'finished'}))
+                    except Exception:
+                        pass
+                    break
+
+                elif event == 'task-failed':
+                    err_msg = data.get('header', {}).get('error_message', '识别失败')
+                    logger.error(f"[实时ASR] 任务失败: {err_msg}")
+                    try:
+                        ws.send(json.dumps({'type': 'error', 'message': err_msg}))
+                    except Exception:
+                        pass
+                    break
+
+        except Exception as e:
+            logger.error(f"[实时ASR] 接收线程异常: {e}")
+        finally:
+            ws_closed.set()
+
+    receiver_thread = threading.Thread(target=_dashscope_receiver, daemon=True)
+    receiver_thread.start()
+
+    # Step 6: 主循环 — 接收浏览器消息，转发音频到 DashScope
+    try:
+        while not ws_closed.is_set():
+            try:
+                message = ws.receive()
+            except Exception:
+                break
+
+            if message is None:
+                # 浏览器断开连接
+                break
+
+            if isinstance(message, bytes):
+                # PCM 音频块 → 转发到 DashScope
+                try:
+                    ds_ws.send_binary(message)
+                except Exception:
+                    logger.warning("[实时ASR] 转发音频失败，连接可能已断开")
+                    break
+
+            elif isinstance(message, str):
+                try:
+                    data = json.loads(message)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
+                if data.get('type') == 'stop':
+                    # 发送 finish-task 指令
+                    finish_msg = {
+                        'header': {
+                            'action': 'finish-task',
+                            'task_id': task_id,
+                            'streaming': 'duplex',
+                        },
+                        'payload': {
+                            'input': {}
+                        }
+                    }
+                    try:
+                        ds_ws.send(json.dumps(finish_msg))
+                    except Exception:
+                        break
+                    # 等待 task-finished 后由接收线程关闭
+                    break
+
+    except Exception as e:
+        logger.error(f"[实时ASR] 主循环异常: {e}")
+    finally:
+        ws_closed.set()
+        try:
+            ds_ws.close()
+        except Exception:
+            pass
+        logger.info(f"[实时ASR] 任务结束: {task_id}")
 
 
 @app.route('/health')

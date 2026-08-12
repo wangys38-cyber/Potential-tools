@@ -226,8 +226,8 @@
                 <div class="mode-tab" onclick="switchMode('mic')" id="modeMic">
                     <span class="mode-tab-icon">🎤</span>
                     <div>
-                        <div>麦克风录音</div>
-                        <div style="font-size:12px;opacity:0.7;">实时语音转写</div>
+                        <div>实时语音转写</div>
+                        <div style="font-size:12px;opacity:0.7;">麦克风实时捕捉声音转文字</div>
                     </div>
                 </div>
             </div>
@@ -299,7 +299,7 @@
             </div>
         </div>
 
-        <!-- 麦克风模式 -->
+        <!-- 麦克风实时转写模式 -->
         <div id="micMode" style="display:none;">
             <div class="recording-bar">
                 <div class="recording-status">
@@ -311,13 +311,20 @@
                 </div>
                 <div class="recording-controls">
                     <button class="btn btn-primary" id="micStartBtn" onclick="startMicRecording()">
-                        🎤 开始录音
+                        🎤 开始实时转写
                     </button>
                     <button class="btn btn-danger" id="micStopBtn" onclick="stopMicRecording()" disabled>
                         ⏹️ 停止
                     </button>
                     <button class="btn btn-ghost btn-sm" onclick="toggleManualInput()" id="manualBtn">✏️ 手动输入</button>
                 </div>
+            </div>
+            <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                <strong>使用说明：</strong><br>
+                1. 点击"开始实时转写"，允许浏览器使用麦克风权限<br>
+                2. 说话时文字会<strong>实时显示</strong>在左侧转写区域，支持中文和英文<br>
+                3. 识别结果由 DashScope Paraformer 实时语音识别引擎提供，无需安装任何插件<br>
+                4. 点击"停止"结束转写，随后可点击"生成会议纪要"
             </div>
             <div class="manual-input-area" id="manualInputArea">
                 <textarea class="form-input" id="manualText" rows="3" placeholder="输入会议内容后点击添加..."></textarea>
@@ -380,10 +387,20 @@
         let startTime = 0;
         let timerInterval = null;
 
-        // 麦克风模式
+        // 麦克风模式 — Web Speech API（备用）
         let recognition = null;
         let isRecording = false;
         let currentInterim = '';
+
+        // 麦克风模式 — DashScope 实时 ASR（主方案）
+        let rtAudioContext = null;
+        let rtProcessor = null;
+        let rtSourceNode = null;
+        let rtStream = null;
+        let rtWebSocket = null;
+        let rtIsRecording = false;
+        let rtUseFallback = false; // 是否使用 Web Speech API 备用方案
+        let rtCurrentSentenceId = null; // 当前句子ID，用于区分中间/最终结果
 
         // 系统音频模式
         let displayStream = null;
@@ -687,17 +704,278 @@
             setTimeout(poll, 2000); // 2秒后开始轮询
         }
 
-        // ==================== 麦克风录音模式 ====================
-        function initSpeechRecognition() {
+        // ==================== 实时语音转写（DashScope WebSocket） ====================
+
+        /**
+         * 启动实时语音转写
+         * 主方案：DashScope Paraformer 实时ASR（通过后端WebSocket代理）
+         * 备用方案：浏览器内置 Web Speech API
+         */
+        async function startMicRecording() {
+            if (rtIsRecording || isRecording) return;
+
+            try {
+                // Step 1: 获取麦克风权限
+                rtStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    }
+                });
+
+                // Step 2: 连接后端 WebSocket 代理
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsProtocol}//${window.location.host}/ws/realtime-asr`;
+
+                rtWebSocket = new WebSocket(wsUrl);
+                rtWebSocket.binaryType = 'arraybuffer';
+
+                // 连接超时检测（5秒内未连上则降级到备用方案）
+                const wsTimeout = setTimeout(() => {
+                    if (rtWebSocket.readyState !== WebSocket.OPEN) {
+                        rtWebSocket.close();
+                        showToast('WebSocket连接超时，切换到浏览器内置识别', 'warning');
+                        _fallbackToWebSpeech();
+                    }
+                }, 5000);
+
+                rtWebSocket.onopen = () => {
+                    clearTimeout(wsTimeout);
+                    // 连接成功，等待后端返回 'ready' 消息后开始发送音频
+                };
+
+                rtWebSocket.onmessage = (event) => {
+                    let data;
+                    try { data = JSON.parse(event.data); } catch(e) { return; }
+
+                    if (data.type === 'ready') {
+                        // 后端已连接 DashScope 并启动任务，开始发送音频
+                        _startAudioCapture();
+                        showToast('实时转写已开始，请说话...', 'info');
+
+                    } else if (data.type === 'transcript') {
+                        // 实时识别结果
+                        if (data.is_final) {
+                            // 最终结果 — 添加到转写列表
+                            if (data.text && data.text.trim()) {
+                                addTranscriptEntry(data.text.trim());
+                                currentInterim = '';
+                                updateTranscriptDisplay();
+                            }
+                        } else {
+                            // 中间结果 — 实时更新显示
+                            currentInterim = data.text || '';
+                            updateTranscriptDisplay();
+                        }
+
+                    } else if (data.type === 'error') {
+                        showToast('识别错误: ' + (data.message || '未知错误'), 'error', 5000);
+                        stopMicRecording();
+
+                    } else if (data.type === 'finished') {
+                        // 任务正常结束
+                        if (rtIsRecording) {
+                            stopMicRecording();
+                            showToast('实时转写已结束', 'success');
+                        }
+                    }
+                };
+
+                rtWebSocket.onerror = (error) => {
+                    clearTimeout(wsTimeout);
+                    console.error('WebSocket error:', error);
+                    if (!rtIsRecording) {
+                        // 连接阶段就失败 → 降级到 Web Speech API
+                        showToast('实时ASR连接失败，切换到浏览器内置识别', 'warning');
+                        _fallbackToWebSpeech();
+                    }
+                };
+
+                rtWebSocket.onclose = () => {
+                    clearTimeout(wsTimeout);
+                    if (rtIsRecording) {
+                        // 意外断开
+                        stopMicRecording();
+                    }
+                };
+
+                // 更新 UI — 等待连接
+                document.getElementById('micRecDot').classList.add('active');
+                document.getElementById('micRecLabel').textContent = '正在连接AI服务...';
+                document.getElementById('micStartBtn').disabled = true;
+                document.getElementById('micStopBtn').disabled = false;
+                startTime = Date.now();
+                timerInterval = setInterval(updateMicTimer, 1000);
+
+            } catch (err) {
+                if (err.name === 'NotAllowedError') {
+                    showToast('麦克风权限被拒绝，请在浏览器设置中允许', 'error');
+                } else {
+                    showToast('启动录音失败: ' + err.message, 'error');
+                }
+                // 清理
+                if (rtStream) { rtStream.getTracks().forEach(t => t.stop()); rtStream = null; }
+                if (rtWebSocket) { try { rtWebSocket.close(); } catch(e){} rtWebSocket = null; }
+                document.getElementById('micRecDot').classList.remove('active');
+                document.getElementById('micRecLabel').textContent = '未开始录音';
+                document.getElementById('micStartBtn').disabled = false;
+                document.getElementById('micStopBtn').disabled = true;
+                clearInterval(timerInterval);
+            }
+        }
+
+        /**
+         * 开始音频采集 — 在 WebSocket 连接就绪后调用
+         * 使用 AudioContext + ScriptProcessorNode 采集 PCM 16kHz 单声道
+         */
+        function _startAudioCapture() {
+            rtIsRecording = true;
+            rtUseFallback = false;
+
+            // 创建 AudioContext — 尝试 16kHz
+            try {
+                rtAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            } catch(e) {
+                rtAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const actualSampleRate = rtAudioContext.sampleRate;
+            rtSourceNode = rtAudioContext.createMediaStreamSource(rtStream);
+
+            // ScriptProcessorNode — 缓冲区 4096 样本
+            rtProcessor = rtAudioContext.createScriptProcessor(4096, 1, 1);
+
+            rtProcessor.onaudioprocess = (e) => {
+                if (!rtIsRecording) return;
+                if (!rtWebSocket || rtWebSocket.readyState !== WebSocket.OPEN) return;
+
+                const inputData = e.inputBuffer.getChannelData(0);
+
+                // 如果 AudioContext 不是 16kHz，需要降采样
+                let pcmData;
+                if (actualSampleRate !== 16000) {
+                    pcmData = _downsample(inputData, actualSampleRate, 16000);
+                } else {
+                    pcmData = inputData;
+                }
+
+                // Float32 → Int16 PCM
+                const pcm16 = new Int16Array(pcmData.length);
+                for (let i = 0; i < pcmData.length; i++) {
+                    const s = Math.max(-1, Math.min(1, pcmData[i]));
+                    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
+
+                // 发送二进制 PCM 数据
+                rtWebSocket.send(pcm16.buffer);
+            };
+
+            rtSourceNode.connect(rtProcessor);
+            rtProcessor.connect(rtAudioContext.destination);
+
+            // 更新 UI
+            document.getElementById('micRecDot').classList.add('active');
+            document.getElementById('micRecLabel').textContent = '正在聆听... 请说话';
+            document.getElementById('micStartBtn').disabled = true;
+            document.getElementById('micStopBtn').disabled = false;
+
+            // 初始化转写区域
+            const area = document.getElementById('transcriptArea');
+            area.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation: pulse 1.5s ease-in-out infinite;">🎤</div><div class="empty-state-text">正在聆听... 请开始说话</div></div>';
+        }
+
+        /**
+         * 简单降采样 — 线性插值
+         */
+        function _downsample(buffer, fromRate, toRate) {
+            if (fromRate === toRate) return buffer;
+            const ratio = fromRate / toRate;
+            const newLength = Math.round(buffer.length / ratio);
+            const result = new Float32Array(newLength);
+            let offsetResult = 0;
+            let offsetBuffer = 0;
+            while (offsetResult < newLength) {
+                const nextOffsetBuffer = Math.round((offsetResult + 1) * ratio);
+                let accum = 0, count = 0;
+                for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+                    accum += buffer[i];
+                    count++;
+                }
+                result[offsetResult] = count > 0 ? accum / count : 0;
+                offsetResult++;
+                offsetBuffer = nextOffsetBuffer;
+            }
+            return result;
+        }
+
+        /**
+         * 停止实时语音转写
+         */
+        function stopMicRecording() {
+            if (rtUseFallback) {
+                _stopWebSpeech();
+                return;
+            }
+
+            rtIsRecording = false;
+
+            // 发送 stop 指令到后端
+            if (rtWebSocket && rtWebSocket.readyState === WebSocket.OPEN) {
+                try {
+                    rtWebSocket.send(JSON.stringify({ type: 'stop' }));
+                } catch(e) {}
+            }
+
+            // 清理音频
+            _cleanupAudio();
+
+            // 更新 UI
+            document.getElementById('micRecDot').classList.remove('active');
+            document.getElementById('micRecLabel').textContent = '转写已停止';
+            document.getElementById('micStartBtn').disabled = false;
+            document.getElementById('micStopBtn').disabled = true;
+            if (transcriptEntries.length > 0) document.getElementById('generateBtn').disabled = false;
+            clearInterval(timerInterval);
+
+            // 延迟关闭 WebSocket（等待 finished 消息）
+            setTimeout(() => {
+                if (rtWebSocket) {
+                    try { rtWebSocket.close(); } catch(e) {}
+                    rtWebSocket = null;
+                }
+            }, 3000);
+        }
+
+        /**
+         * 清理音频资源
+         */
+        function _cleanupAudio() {
+            if (rtProcessor) { try { rtProcessor.disconnect(); } catch(e){} rtProcessor = null; }
+            if (rtSourceNode) { try { rtSourceNode.disconnect(); } catch(e){} rtSourceNode = null; }
+            if (rtAudioContext) { try { rtAudioContext.close(); } catch(e){} rtAudioContext = null; }
+            if (rtStream) { rtStream.getTracks().forEach(t => t.stop()); rtStream = null; }
+        }
+
+        // ==================== Web Speech API 备用方案 ====================
+
+        function _fallbackToWebSpeech() {
+            rtUseFallback = true;
+            _cleanupAudio();
+
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) {
-                if (currentMode === 'mic') {
-                    document.getElementById('compatWarning').classList.add('show');
-                    document.getElementById('compatText').innerHTML = '您的浏览器不支持实时语音识别。建议使用 <strong>Chrome</strong> 或 <strong>Edge</strong>。<br>您可以使用"系统音频捕获"或"音频文件上传"模式替代。';
-                    document.getElementById('micStartBtn').disabled = true;
-                }
-                return false;
+                document.getElementById('compatWarning').classList.add('show');
+                document.getElementById('compatText').innerHTML = '您的浏览器不支持语音识别。建议使用 <strong>Chrome</strong> 或 <strong>Edge</strong>，或使用"系统音频捕获"/"音频文件上传"模式。';
+                document.getElementById('micRecDot').classList.remove('active');
+                document.getElementById('micRecLabel').textContent = '不支持语音识别';
+                document.getElementById('micStartBtn').disabled = false;
+                document.getElementById('micStopBtn').disabled = true;
+                clearInterval(timerInterval);
+                return;
             }
+
             recognition = new SR();
             recognition.continuous = true;
             recognition.interimResults = true;
@@ -706,7 +984,7 @@
                 let interim = '';
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     const t = e.results[i][0].transcript;
-                    if (e.results[i].isFinal) addTranscriptEntry(t);
+                    if (e.results[i].isFinal) { addTranscriptEntry(t); updateTranscriptDisplay(); }
                     else interim += t;
                 }
                 currentInterim = interim;
@@ -714,37 +992,30 @@
             };
             recognition.onerror = (e) => {
                 if (e.error === 'no-speech') return;
-                if (e.error === 'not-allowed') { showToast('麦克风权限被拒绝', 'error'); stopMicRecording(); }
+                if (e.error === 'not-allowed') { showToast('麦克风权限被拒绝', 'error'); _stopWebSpeech(); }
                 else if (e.error === 'aborted') {}
                 else showToast('语音识别错误: ' + e.error, 'warning');
             };
             recognition.onend = () => { if (isRecording) try { recognition.start(); } catch(e) {} };
-            return true;
-        }
 
-        function startMicRecording() {
-            if (!recognition && !initSpeechRecognition()) return;
             isRecording = true;
-            startTime = Date.now();
             try { recognition.start(); } catch(e) {}
             document.getElementById('micRecDot').classList.add('active');
-            document.getElementById('micRecLabel').textContent = '正在录音...';
+            document.getElementById('micRecLabel').textContent = '正在聆听（浏览器内置识别）...';
             document.getElementById('micStartBtn').disabled = true;
             document.getElementById('micStopBtn').disabled = false;
-            timerInterval = setInterval(updateMicTimer, 1000);
-            showToast('录音已开始', 'info');
         }
 
-        function stopMicRecording() {
+        function _stopWebSpeech() {
             isRecording = false;
             if (recognition) recognition.stop();
             document.getElementById('micRecDot').classList.remove('active');
-            document.getElementById('micRecLabel').textContent = '录音已停止';
+            document.getElementById('micRecLabel').textContent = '转写已停止';
             document.getElementById('micStartBtn').disabled = false;
             document.getElementById('micStopBtn').disabled = true;
             if (transcriptEntries.length > 0) document.getElementById('generateBtn').disabled = false;
             clearInterval(timerInterval);
-            showToast('录音已停止', 'success');
+            showToast('转写已停止', 'success');
         }
 
         function updateMicTimer() {
@@ -888,7 +1159,6 @@
 
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', () => {
-            initSpeechRecognition();
             const now = new Date();
             document.getElementById('meetingTitle').value = `会议_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
             document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
