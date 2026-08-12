@@ -18,7 +18,7 @@ RUN playwright install chromium --with-deps
 ARG CACHE_BUST=1
 RUN echo "Cache bust: ${CACHE_BUST}"
 
-# 复制应用代码
+# 复制应用代码（COPY 层会根据文件内容自动失效缓存）
 COPY app.py .
 COPY auth.py .
 COPY db.py .
