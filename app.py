@@ -2374,11 +2374,16 @@ def _generate_intelligent_analysis(test_items, project_info, stats):
 
 # === 分块上传 API（绕过预览代理的请求体大小限制）===
 # 使用磁盘持久化存储分块上传元数据（兼容 Railway --max-requests 导致的 worker 重启）
+import fcntl
+
 _chunk_uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], '_chunk_meta')
 os.makedirs(_chunk_uploads_dir, exist_ok=True)
 
 def _chunk_meta_path(upload_id):
     return os.path.join(_chunk_uploads_dir, f"{upload_id}.json")
+
+def _chunk_lock_path(upload_id):
+    return os.path.join(_chunk_uploads_dir, f"{upload_id}.lock")
 
 def _load_chunk_meta(upload_id):
     """从磁盘加载分块上传元数据"""
@@ -2394,16 +2399,44 @@ def _load_chunk_meta(upload_id):
         return None
 
 def _save_chunk_meta(upload_id, meta):
-    """持久化分块上传元数据到磁盘"""
+    """持久化分块上传元数据到磁盘（使用文件锁防止并发覆盖）"""
     meta_to_save = dict(meta)
     meta_to_save['received_chunks'] = list(meta.get('received_chunks', set()))
-    with open(_chunk_meta_path(upload_id), 'w') as f:
-        json.dump(meta_to_save, f)
+    lock_path = _chunk_lock_path(upload_id)
+    with open(lock_path, 'w') as lock_f:
+        fcntl.flock(lock_f, fcntl.LOCK_EX)  # 排他锁，阻塞等待其他进程释放
+        try:
+            with open(_chunk_meta_path(upload_id), 'w') as f:
+                json.dump(meta_to_save, f)
+        finally:
+            fcntl.flock(lock_f, fcntl.LOCK_UN)
+
+def _add_received_chunk(upload_id, chunk_index):
+    """线程安全地添加已接收分块（读取-修改-写入原子操作）"""
+    lock_path = _chunk_lock_path(upload_id)
+    with open(lock_path, 'w') as lock_f:
+        fcntl.flock(lock_f, fcntl.LOCK_EX)
+        try:
+            meta = _load_chunk_meta(upload_id)
+            if meta is None:
+                return None
+            meta['received_chunks'].add(chunk_index)
+            meta_to_save = dict(meta)
+            meta_to_save['received_chunks'] = list(meta.get('received_chunks', set()))
+            with open(_chunk_meta_path(upload_id), 'w') as f:
+                json.dump(meta_to_save, f)
+            return meta
+        finally:
+            fcntl.flock(lock_f, fcntl.LOCK_UN)
 
 def _delete_chunk_meta(upload_id):
     """删除分块上传元数据"""
     try:
         os.unlink(_chunk_meta_path(upload_id))
+    except Exception:
+        pass
+    try:
+        os.unlink(_chunk_lock_path(upload_id))
     except Exception:
         pass
 
@@ -2477,7 +2510,7 @@ def api_upload_chunk():
     chunk_index = int(chunk_index)
 
     if chunk_index in meta['received_chunks']:
-        return jsonify({'status': 'success', 'data': {'chunk_index': chunk_index, 'duplicate': True}})
+        return jsonify({'status': 'success', 'data': {'chunk_index': chunk_index, 'duplicate': True, 'received': len(meta['received_chunks']), 'total': meta['total_chunks']}})
 
     # 读取分块数据，按 offset 写入正确位置（支持并发乱序上传）
     chunk_data = chunk_file.read()
@@ -2489,16 +2522,19 @@ def api_upload_chunk():
         f.seek(offset)
         f.write(chunk_data)
 
-    meta['received_chunks'].add(chunk_index)
-    _save_chunk_meta(upload_id, meta)
-    logger.info(f"分块上传: upload_id={upload_id}, chunk={chunk_index}/{meta['total_chunks'] - 1}, size={len(chunk_data)}")
+    # 原子操作：加锁更新 received_chunks（防止并发覆盖导致丢块）
+    updated_meta = _add_received_chunk(upload_id, chunk_index)
+    if updated_meta is None:
+        return jsonify({'error': '更新分块元数据失败'}), 500
+
+    logger.info(f"分块上传: upload_id={upload_id}, chunk={chunk_index}/{updated_meta['total_chunks'] - 1}, size={len(chunk_data)}, received={len(updated_meta['received_chunks'])}")
 
     return jsonify({
         'status': 'success',
         'data': {
             'chunk_index': chunk_index,
-            'received': len(meta['received_chunks']),
-            'total': meta['total_chunks']
+            'received': len(updated_meta['received_chunks']),
+            'total': updated_meta['total_chunks']
         }
     })
 
@@ -2518,8 +2554,13 @@ def api_upload_complete():
         return jsonify({'error': '无效的 upload_id'}), 400
 
     if len(meta['received_chunks']) != meta['total_chunks']:
+        # 返回缺失的分块索引，前端可自动补传
+        missing = sorted(set(range(meta['total_chunks'])) - meta['received_chunks'])
         return jsonify({
-            'error': f'分块不完整: 已收到 {len(meta["received_chunks"])}/{meta["total_chunks"]}'
+            'error': f'分块不完整: 已收到 {len(meta["received_chunks"])}/{meta["total_chunks"]}',
+            'missing_chunks': missing,
+            'total_chunks': meta['total_chunks'],
+            'received_chunks': len(meta['received_chunks'])
         }), 400
 
     file_path = meta['file_path']

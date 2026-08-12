@@ -823,8 +823,10 @@
 
         // 分块大小：2MB（平衡吞吐量与请求体大小限制）
         const CHUNK_SIZE = 2 * 1024 * 1024;
-        // 并发上传数：3 路（避免过多并发增加服务器压力）
-        const UPLOAD_CONCURRENCY = 3;
+        // 并发上传数：2 路（降低并发避免竞态和服务器压力）
+        const UPLOAD_CONCURRENCY = 2;
+        // 单块最大重试次数
+        const MAX_CHUNK_RETRIES = 3;
 
         async function uploadFileChunked(file) {
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -845,30 +847,43 @@
             }
             const uploadId = initResult.data.upload_id;
 
-            // 2. 并发上传分块（UPLOAD_CONCURRENCY 路同时上传）
+            // 2. 上传单个分块（带重试）
             let uploadedCount = 0;
             const uploadSingleChunk = async (i) => {
                 const start = i * CHUNK_SIZE;
                 const end = Math.min(start + CHUNK_SIZE, file.size);
                 const chunk = file.slice(start, end);
 
-                const formData = new FormData();
-                formData.append('upload_id', uploadId);
-                formData.append('chunk_index', i);
-                formData.append('offset', start);
-                formData.append('chunk', chunk, `chunk_${i}`);
+                let lastError;
+                for (let attempt = 0; attempt < MAX_CHUNK_RETRIES; attempt++) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('upload_id', uploadId);
+                        formData.append('chunk_index', i);
+                        formData.append('offset', start);
+                        formData.append('chunk', chunk, `chunk_${i}`);
 
-                const chunkResp = await fetch('/api/upload-chunk', {
-                    method: 'POST',
-                    body: formData
-                });
-                const chunkResult = await chunkResp.json();
-                if (!chunkResp.ok || chunkResult.status !== 'success') {
-                    throw new Error(chunkResult.error || `分块 ${i} 上传失败`);
+                        const chunkResp = await fetch('/api/upload-chunk', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const chunkResult = await chunkResp.json();
+                        if (!chunkResp.ok || chunkResult.status !== 'success') {
+                            throw new Error(chunkResult.error || `分块 ${i} 上传失败`);
+                        }
+                        uploadedCount++;
+                        const progress = Math.round(uploadedCount / totalChunks * 100);
+                        analyzing.querySelector('p').textContent = `正在上传文件... ${progress}%`;
+                        return; // 成功则退出重试循环
+                    } catch (err) {
+                        lastError = err;
+                        // 等待后重试（指数退避：1s, 2s, 4s）
+                        if (attempt < MAX_CHUNK_RETRIES - 1) {
+                            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                        }
+                    }
                 }
-                uploadedCount++;
-                const progress = Math.round(uploadedCount / totalChunks * 100);
-                analyzing.querySelector('p').textContent = `正在上传文件... ${progress}%`;
+                throw lastError || new Error(`分块 ${i} 上传失败（重试${MAX_CHUNK_RETRIES}次后仍失败）`);
             };
 
             // 分批并发：每批 UPLOAD_CONCURRENCY 个
@@ -880,13 +895,29 @@
                 await Promise.all(batch);
             }
 
-            // 3. 完成上传
-            const completeResp = await fetch('/api/upload-complete', {
+            // 3. 完成上传（支持自动补传缺失分块）
+            let completeResp = await fetch('/api/upload-complete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ upload_id: uploadId })
             });
-            const completeResult = await completeResp.json();
+            let completeResult = await completeResp.json();
+
+            // 如果有缺失分块，自动补传后重试
+            if (!completeResp.ok && completeResult.missing_chunks && completeResult.missing_chunks.length > 0) {
+                analyzing.querySelector('p').textContent = `补传缺失分块... (${completeResult.missing_chunks.length}个)`;
+                for (const idx of completeResult.missing_chunks) {
+                    await uploadSingleChunk(idx);
+                }
+                // 重新完成
+                completeResp = await fetch('/api/upload-complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ upload_id: uploadId })
+                });
+                completeResult = await completeResp.json();
+            }
+
             if (!completeResp.ok || completeResult.status !== 'success') {
                 throw new Error(completeResult.error || '文件组装失败');
             }
