@@ -432,7 +432,8 @@ class ExcelReader:
                 tree = lxml_html.fromstring(f.read())
 
             # 找到主 table（取第一个含 thead 或行数最多的 table）
-            tables = tree.cssselect('table') if hasattr(tree, 'cssselect') else tree.xpath('//table')
+            # 直接使用 xpath（cssselect 可能因缺少依赖而抛异常）
+            tables = tree.xpath('//table')
             if not tables:
                 # 没有 table，回退到正则方式
                 return self._parse_html_excel_regex()
@@ -560,7 +561,7 @@ class ExcelReader:
                 text = re.sub(r'&#x([0-9a-fA-F]+);', lambda m: chr(int(m.group(1), 16)) if int(m.group(1), 16) < 65536 else '', text)
                 return text.strip()
 
-            READ_SIZE = 200 * 1024
+            READ_SIZE = 1024 * 1024  # 1MB — 确保读取所有 <th> 标签（Jira导出156列约需500KB+）
             with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 head_chunk = f.read(READ_SIZE)
 
