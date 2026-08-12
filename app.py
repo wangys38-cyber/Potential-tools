@@ -1313,6 +1313,11 @@ def api_transcription_status(task_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok', 'pid': os.getpid()})
+
+
 @app.route('/favicon.ico')
 def favicon():
     """浏览器默认请求的favicon — 返回工具箱emoji SVG"""
