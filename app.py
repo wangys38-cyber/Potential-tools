@@ -497,28 +497,10 @@ class ExcelReader:
                 if ('fix version' in h_lower or 'fixversion' in h_lower) and 'fix_version_col' not in thead_col_map:
                     thead_col_map['fix_version_col'] = idx
 
-            # 只保留前15列 + 3个特殊列
-            MAX_BASE_COLS = 15
-            base_count = min(len(all_headers), MAX_BASE_COLS)
-            keep_cols = list(range(base_count))
-            extra_cols = []
-            for col_key in ['severity_col', 'component_col', 'fix_version_col']:
-                col_idx = thead_col_map.get(col_key)
-                if col_idx is not None and col_idx not in keep_cols:
-                    keep_cols.append(col_idx)
-                    extra_cols.append((col_idx, col_key))
-
-            full_headers = list(all_headers[:base_count])
-            for col_idx, col_key in extra_cols:
-                label = all_headers[col_idx] if col_idx < len(all_headers) else {
-                    'severity_col': 'Severity', 'component_col': 'Component/s',
-                    'fix_version_col': 'Fix Version/s'
-                }.get(col_key, '')
-                if label and label not in full_headers:
-                    full_headers.append(label)
-
-            keep_cols_sorted = sorted(keep_cols)
-            _log_mem(f"HTML lxml解析：保留{len(keep_cols)}列，表头{len(full_headers)}个")
+            # 保留所有列（之前只保留前15列+3特殊列，导致列错位时severity数据丢失）
+            full_headers = list(all_headers)
+            keep_cols_sorted = list(range(len(all_headers)))
+            _log_mem(f"HTML lxml解析：保留全部{len(full_headers)}列")
 
             # === 第三步：提取数据行（tbody 中的 tr > td） ===
             result_rows = [full_headers]
@@ -619,27 +601,10 @@ class ExcelReader:
                 if ('fix version' in h_lower or 'fixversion' in h_lower) and 'fix_version_col' not in thead_col_map:
                     thead_col_map['fix_version_col'] = idx
 
-            MAX_BASE_COLS = 15
-            base_count = min(len(all_headers), MAX_BASE_COLS)
-            keep_cols = list(range(base_count))
-            extra_cols = []
-            for col_key in ['severity_col', 'component_col', 'fix_version_col']:
-                col_idx = thead_col_map.get(col_key)
-                if col_idx is not None and col_idx not in keep_cols:
-                    keep_cols.append(col_idx)
-                    extra_cols.append((col_idx, col_key))
-
-            full_headers = list(all_headers[:base_count])
-            for col_idx, col_key in extra_cols:
-                label = all_headers[col_idx] if col_idx < len(all_headers) else {
-                    'severity_col': 'Severity', 'component_col': 'Component/s',
-                    'fix_version_col': 'Fix Version/s'
-                }.get(col_key, '')
-                if label and label not in full_headers:
-                    full_headers.append(label)
-
-            keep_cols_sorted = sorted(keep_cols)
-            _log_mem(f"HTML正则解析：保留{len(keep_cols)}列，表头{len(full_headers)}个")
+            # 保留所有列（与 lxml 路径保持一致）
+            full_headers = list(all_headers)
+            keep_cols_sorted = list(range(len(all_headers)))
+            _log_mem(f"HTML正则解析：保留全部{len(full_headers)}列")
 
             result_rows = [full_headers]
             row_count = 0
