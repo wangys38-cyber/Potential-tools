@@ -1022,6 +1022,106 @@ def plan_generator():
     return cached_render('plan_generator.html')
 
 
+@app.route('/meeting-minutes')
+def meeting_minutes():
+    return cached_render('meeting_minutes.html')
+
+
+@app.route('/api/generate-minutes', methods=['POST'])
+def api_generate_minutes():
+    """AI生成会议纪要"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    transcript = data.get('transcript', '').strip()
+    title = data.get('title', '未命名会议')
+    attendees = data.get('attendees', '未填写')
+    date = data.get('date', '')
+
+    if not transcript or len(transcript) < 10:
+        return jsonify({'error': '转写内容太少，无法生成纪要'}), 400
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请联系管理员设置API Key'}), 503
+
+    try:
+        import requests as req
+
+        # 构建提示词
+        prompt = f"""请根据以下会议语音转写内容，生成一份结构化的会议纪要。
+
+会议信息：
+- 主题：{title}
+- 日期：{date}
+- 参会人员：{attendees}
+
+会议转写内容：
+{transcript[:8000]}
+
+请生成会议纪要，使用HTML格式，包含以下部分：
+1. <h2>会议概要</h2> - 简要说明会议目的和主要内容（2-3句话）
+2. <h2>讨论要点</h2> - 列出讨论的主要议题和关键观点，使用<ul><li>格式
+3. <h2>决议事项</h2> - 列出会议达成的决定，使用<ol><li>格式
+4. <h2>待办事项</h2> - 列出需要后续跟进的任务，如有责任人请标注，使用<table>格式（列：序号、任务、责任人、截止时间）
+
+要求：
+- 直接输出HTML内容，不要包含```html标记
+- 语言简洁专业
+- 如果转写内容不清晰，合理推断并标注
+- 只输出HTML，不要其他文字"""
+
+        response = req.post(
+            f"{ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')}/services/aigc/text-generation/generation",
+            headers={
+                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': ai_config.get('model', 'qwen-turbo'),
+                'input': {
+                    'messages': [
+                        {'role': 'system', 'content': '你是一个专业的会议纪要撰写助手。请根据会议转写内容生成结构清晰、内容准确的会议纪要。'},
+                        {'role': 'user', 'content': prompt}
+                    ]
+                },
+                'parameters': {
+                    'result_format': 'message',
+                    'max_tokens': 3000,
+                    'temperature': 0.3
+                }
+            },
+            timeout=60
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            minutes_html = result.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', '')
+
+            # 清理可能的markdown标记
+            if '```html' in minutes_html:
+                minutes_html = minutes_html.split('```html')[1].split('```')[0]
+            elif '```' in minutes_html:
+                minutes_html = minutes_html.split('```')[1].split('```')[0]
+            minutes_html = minutes_html.strip()
+
+            return jsonify({
+                'status': 'success',
+                'minutes': minutes_html
+            })
+        else:
+            logger.error(f"AI生成纪要失败: {response.status_code} - {response.text[:200]}")
+            return jsonify({'error': f'AI服务返回错误({response.status_code})'}), 502
+
+    except req.exceptions.Timeout:
+        return jsonify({'error': 'AI服务响应超时，请稍后重试'}), 504
+    except Exception as e:
+        logger.error(f"生成会议纪要失败: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok', 'pid': os.getpid()})
