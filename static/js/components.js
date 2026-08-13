@@ -659,18 +659,29 @@ const ToolboxAIChat = (function() {
     }
 
     async function loadModels() {
+        var select = document.getElementById('tb-aichat-model-select');
+        if (!select) return;
         try {
             var resp = await fetch('/api/ai-models');
+            if (resp.status === 401) {
+                select.innerHTML = '<option value="">请先登录后使用</option>';
+                return;
+            }
             var data = await resp.json();
-            var select = document.getElementById('tb-aichat-model-select');
-            if (data.models) {
+            if (data.models && data.models.length > 0) {
                 select.innerHTML = data.models.map(function(m) {
                     var sel = m.id === data.current ? 'selected' : '';
                     return '<option value="' + m.id + '" ' + sel + '>' + m.name + ' — ' + m.desc + '</option>';
                 }).join('');
                 currentModel = data.current || (data.models[0] && data.models[0].id) || '';
+            } else if (data.error) {
+                select.innerHTML = '<option value="">⚠ ' + data.error + '</option>';
+            } else {
+                select.innerHTML = '<option value="">暂无可用模型</option>';
             }
-        } catch(e) {}
+        } catch(e) {
+            select.innerHTML = '<option value="">⚠ 加载失败，请检查网络</option>';
+        }
     }
 
     function toggle() {
