@@ -479,6 +479,81 @@ a{color:var(--accent);text-decoration:none}
 }
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
+/* ===== Wiki Links ===== */
+.wikilink{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);padding:0 2px;transition:all .12s;cursor:pointer}
+.wikilink:hover{background:var(--accent-light);border-bottom-style:solid;border-radius:3px}
+.wikilink.self{color:var(--text-3);border-bottom-color:var(--text-3);cursor:default}
+.wikilink.self:hover{background:none}
+.wikilink.ghost{color:var(--text-3);border-bottom:1px dashed var(--text-3);font-style:italic}
+.wikilink.ghost:hover{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-light)}
+
+/* ===== Backlinks / Outbound Links ===== */
+.link-section{margin-top:32px;padding-top:20px;border-top:1px solid var(--border-light)}
+.link-section-title{
+  font-size:13px;font-weight:600;color:var(--text-2);
+  display:flex;align-items:center;gap:6px;margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.03em;
+}
+.backlink-list{display:flex;flex-direction:column;gap:8px}
+.backlink-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;
+  transition:all .12s;
+}
+.backlink-item:hover{box-shadow:var(--shadow);border-color:var(--text-3);transform:translateX(2px)}
+.backlink-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.backlink-preview{font-size:12px;color:var(--text-3);line-height:1.5}
+.ghost-link{border-style:dashed;opacity:.7}
+.ghost-link:hover{opacity:1}
+
+/* ===== Graph View ===== */
+.graph-view{
+  position:fixed;inset:0;background:var(--bg);z-index:50;
+  display:flex;flex-direction:column;
+}
+.graph-header{
+  display:flex;align-items:center;gap:16px;
+  padding:16px 24px;border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.graph-header h2{font-size:18px;font-weight:700;flex:1}
+.graph-controls{display:flex;gap:8px;align-items:center}
+.graph-canvas{
+  flex:1;position:relative;overflow:hidden;
+  background:var(--bg);
+  background-image:radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size:20px 20px;
+}
+.graph-canvas svg{width:100%;height:100%;cursor:grab}
+.graph-canvas svg:active{cursor:grabbing}
+.graph-node{cursor:pointer;transition:filter .15s}
+.graph-node:hover{filter:drop-shadow(0 0 6px var(--accent))}
+.graph-node-circle{transition:r .15s,stroke-width .15s}
+.graph-node:hover .graph-node-circle{r:10;stroke-width:3}
+.graph-edge{stroke:var(--border);stroke-width:1.5;fill:none;transition:stroke .15s}
+.graph-edge.highlight{stroke:var(--accent);stroke-width:2.5}
+.graph-label{
+  font-size:11px;fill:var(--text-2);pointer-events:none;
+  text-anchor:middle;font-family:var(--font);
+  transition:fill .15s,font-size .15s;
+}
+.graph-node:hover .graph-label{fill:var(--accent);font-size:12px;font-weight:600}
+.graph-legend{
+  position:absolute;bottom:16px;left:16px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 16px;
+  box-shadow:var(--shadow);font-size:12px;
+}
+.graph-legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.graph-legend-item:last-child{margin-bottom:0}
+.graph-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.graph-stats{
+  position:absolute;top:16px;right:16px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 14px;
+  box-shadow:var(--shadow);font-size:12px;color:var(--text-2);
+}
+
 /* ===== Responsive ===== */
 @media(max-width:768px){
   .sidebar{display:none}
@@ -523,6 +598,11 @@ a{color:var(--accent);text-decoration:none}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
         有截止日期
         <span class="nav-count" id="count-starred">0</span>
+      </button>
+      <button class="nav-item" data-filter="graph" onclick="showGraphView()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M8.5 7.5L10 16M15.5 7.5L14 16M9 6h6" stroke-linecap="round"/></svg>
+        关系图谱
+        <span class="nav-count" id="count-links">0</span>
       </button>
     </div>
     <div class="nav-section">
@@ -798,9 +878,20 @@ function showToast(msg){
   t._timer = setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
-function renderMarkdown(text){
+function renderMarkdown(text, currentNoteId){
   if(!text) return '';
   let html = escapeHtml(text);
+  // Wiki-style bidirectional links: [[页面名]] or [[页面名|显示文本]]
+  html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, target, label)=>{
+    const displayText = label || target;
+    const targetNote = state.notes.find(n=>(n.title||'').toLowerCase().trim()===target.toLowerCase().trim());
+    if(targetNote){
+      const cls = targetNote.id===currentNoteId ? 'wikilink self' : 'wikilink';
+      return `<a class="${cls}" href="javascript:void(0)" onclick="openDetail('${targetNote.id}')">${escapeHtml(displayText)}</a>`;
+    }
+    // Target note doesn't exist yet — show as "ghost link" (click to create)
+    return `<a class="wikilink ghost" href="javascript:void(0)" onclick="createNoteFromLink('${target.replace(/'/g,"\\'")}')">${escapeHtml(displayText)}</a>`;
+  });
   html = html.replace(/```([\s\S]*?)```/g, (m,c)=>`<pre><code>${c.trim()}</code></pre>`);
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
@@ -819,6 +910,56 @@ function renderMarkdown(text){
     return '<p>' + p.replace(/\n/g,'<br>') + '</p>';
   }).join('');
   return html;
+}
+
+// Extract [[links]] from text for graph/backlinks
+function extractWikiLinks(text){
+  if(!text) return [];
+  const links = [];
+  const re = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
+  let m;
+  while((m=re.exec(text))!==null){
+    links.push(m[1].trim());
+  }
+  return links;
+}
+
+// Find all notes that link TO the given note title
+function findBacklinks(noteId){
+  const note = state.notes.find(n=>n.id===noteId);
+  if(!note) return [];
+  const title = (note.title||'').toLowerCase().trim();
+  return state.notes.filter(n=>{
+    if(n.id===noteId) return false;
+    const links = extractWikiLinks(n.content||'');
+    return links.some(l=>l.toLowerCase().trim()===title);
+  });
+}
+
+// Find all notes that this note links TO
+function findOutboundLinks(noteId){
+  const note = state.notes.find(n=>n.id===noteId);
+  if(!note) return [];
+  const links = extractWikiLinks(note.content||'');
+  return links.map(target=>{
+    const targetNote = state.notes.find(n=>(n.title||'').toLowerCase().trim()===target.toLowerCase().trim());
+    return {title:target, note:targetNote};
+  });
+}
+
+// Create a new note from a ghost [[link]]
+function createNoteFromLink(title){
+  const existing = state.notes.find(n=>(n.title||'').toLowerCase().trim()===title.toLowerCase().trim());
+  if(existing){
+    openDetail(existing.id);
+    return;
+  }
+  const now = new Date().toISOString();
+  const newNote = {id:Date.now().toString(), title, content:'', tags:[], color:selectedColor, dueDate:null, pinned:false, createdAt:now, updatedAt:now};
+  state.notes.unshift(newNote);
+  saveState();
+  openDetail(newNote.id);
+  showToast('已创建笔记: ' + title);
 }
 
 /* ===== Rendering ===== */
@@ -863,6 +1004,10 @@ function render(){
   document.getElementById('count-all').textContent = state.notes.length;
   document.getElementById('count-pinned').textContent = state.notes.filter(n=>n.pinned).length;
   document.getElementById('count-starred').textContent = state.notes.filter(n=>n.dueDate).length;
+  // Count notes with wiki links
+  const linkedCount = state.notes.filter(n=>extractWikiLinks(n.content||'').length>0).length;
+  const linksEl = document.getElementById('count-links');
+  if(linksEl) linksEl.textContent = linkedCount;
   document.getElementById('stats').textContent = `${notes.length} 篇笔记`;
 
   if(notes.length === 0){
@@ -922,6 +1067,59 @@ function renderDetail(){
   const tags = (n.tags||[]).map(t=>`<span class="note-tag" style="--tag-bg:${color.light};--tag-color:${color.hex}">${escapeHtml(t)}</span>`).join('');
   const area = document.getElementById('notes-area');
 
+  // Compute backlinks and outbound links
+  const backlinks = findBacklinks(n.id);
+  const outbound = findOutboundLinks(n.id);
+
+  // Backlinks HTML
+  let backlinksHtml = '';
+  if(backlinks.length > 0){
+    backlinksHtml = `
+      <div class="link-section">
+        <div class="link-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          反向链接 (${backlinks.length})
+        </div>
+        <div class="backlink-list">
+          ${backlinks.map(b=>{
+            const bColor = COLORS[b.color||'pink'] || COLORS.pink;
+            return `<div class="backlink-item" onclick="openDetail('${b.id}')">
+              <div class="backlink-title" style="border-left:3px solid ${bColor.hex};padding-left:8px">${escapeHtml(b.title||'无标题')}</div>
+              <div class="backlink-preview">${escapeHtml((b.content||'').substring(0,80))}${b.content&&b.content.length>80?'...':''}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+
+  // Outbound links HTML
+  let outboundHtml = '';
+  if(outbound.length > 0){
+    outboundHtml = `
+      <div class="link-section">
+        <div class="link-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          链接到 (${outbound.length})
+        </div>
+        <div class="backlink-list">
+          ${outbound.map(o=>{
+            if(o.note){
+              const oColor = COLORS[o.note.color||'pink'] || COLORS.pink;
+              return `<div class="backlink-item" onclick="openDetail('${o.note.id}')">
+                <div class="backlink-title" style="border-left:3px solid ${oColor.hex};padding-left:8px">${escapeHtml(o.title)}</div>
+                <div class="backlink-preview">${escapeHtml((o.note.content||'').substring(0,60))}${o.note.content&&o.note.content.length>60?'...':''}</div>
+              </div>`;
+            }else{
+              return `<div class="backlink-item ghost-link" onclick="createNoteFromLink('${o.title.replace(/'/g,"\\'")}')">
+                <div class="backlink-title" style="border-left:3px dashed var(--text-3);padding-left:8px">${escapeHtml(o.title)}</div>
+                <div class="backlink-preview" style="color:var(--text-3)">点击创建此笔记</div>
+              </div>`;
+            }
+          }).join('')}
+        </div>
+      </div>`;
+  }
+
   area.innerHTML = `
     <div style="max-width:720px;margin:0 auto">
       <button class="detail-back" onclick="closeDetail()">
@@ -944,7 +1142,9 @@ function renderDetail(){
         ${n.dueDate ? `<span class="note-due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>截止: ${fmtDate(n.dueDate)}</span>` : ''}
       </div>
       ${tags ? `<div class="detail-tags" style="margin-bottom:24px">${tags}</div>` : ''}
-      <div class="detail-content md-preview">${renderMarkdown(n.content||'')}</div>
+      <div class="detail-content md-preview">${renderMarkdown(n.content||'', n.id)}</div>
+      ${outboundHtml}
+      ${backlinksHtml}
     </div>`;
 }
 
@@ -1205,6 +1405,213 @@ function clearAllData(){
   showToast('全部数据已清空');
 }
 
+/* ===== Graph View ===== */
+let graphViewState = {pan:{x:0,y:0},zoom:1,isDragging:false,dragStart:null};
+
+function showGraphView(){
+  // Remove existing graph view
+  const existing = document.getElementById('graph-view-overlay');
+  if(existing) existing.remove();
+
+  // Build graph data
+  const nodes = state.notes.map(n=>{
+    const color = COLORS[n.color||'pink'] || COLORS.pink;
+    const linkCount = extractWikiLinks(n.content||'').length;
+    const backlinkCount = findBacklinks(n.id).length;
+    return {
+      id:n.id, title:n.title||'无标题', color:color.hex,
+      linkCount, backlinkCount,
+      connections:linkCount+backlinkCount
+    };
+  });
+
+  // Build edges
+  const edges = [];
+  const nodeMap = new Map(nodes.map(n=>[n.id,n]));
+  state.notes.forEach(n=>{
+    const links = extractWikiLinks(n.content||'');
+    links.forEach(target=>{
+      const targetNote = state.notes.find(x=>(x.title||'').toLowerCase().trim()===target.toLowerCase().trim());
+      if(targetNote && n.id!==targetNote.id){
+        // Avoid duplicate edges
+        const exists = edges.some(e=>(e.source===n.id&&e.target===targetNote.id)||(e.source===targetNote.id&&e.target===n.id));
+        if(!exists){
+          edges.push({source:n.id, target:targetNote.id});
+        }
+      }
+    });
+  });
+
+  // Layout: circular with force-directed adjustment
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const cx = W/2, cy = H/2;
+  const radius = Math.min(W,H)/3;
+
+  // Simple force-directed layout
+  const positions = new Map();
+  // Initialize in a circle
+  nodes.forEach((n,i)=>{
+    const angle = (i/nodes.length)*Math.PI*2;
+    positions.set(n.id, {x:cx+Math.cos(angle)*radius, y:cy+Math.sin(angle)*radius, vx:0, vy:0});
+  });
+
+  // Iterate force-directed
+  for(let iter=0; iter<80; iter++){
+    // Repulsion between nodes
+    nodes.forEach(a=>{
+      nodes.forEach(b=>{
+        if(a.id===b.id) return;
+        const pa = positions.get(a.id), pb = positions.get(b.id);
+        let dx = pa.x-pb.x, dy = pa.y-pb.y;
+        let dist = Math.sqrt(dx*dx+dy*dy)||1;
+        const force = 3000/(dist*dist);
+        pa.vx += (dx/dist)*force;
+        pa.vy += (dy/dist)*force;
+      });
+    });
+    // Attraction along edges
+    edges.forEach(e=>{
+      const pa = positions.get(e.source), pb = positions.get(e.target);
+      let dx = pb.x-pa.x, dy = pb.y-pa.y;
+      let dist = Math.sqrt(dx*dx+dy*dy)||1;
+      const force = (dist-120)*0.05;
+      pa.vx += (dx/dist)*force;
+      pa.vy += (dy/dist)*force;
+      pb.vx -= (dx/dist)*force;
+      pb.vy -= (dy/dist)*force;
+    });
+    // Apply velocity with damping
+    positions.forEach(p=>{
+      p.x += p.vx*0.5;
+      p.y += p.vy*0.5;
+      p.vx *= 0.7;
+      p.vy *= 0.7;
+      // Keep within bounds
+      p.x = Math.max(50, Math.min(W-50, p.x));
+      p.y = Math.max(50, Math.min(H-50, p.y));
+    });
+  }
+
+  // Render SVG
+  const overlay = document.createElement('div');
+  overlay.id = 'graph-view-overlay';
+  overlay.className = 'graph-view';
+  overlay.innerHTML = `
+    <div class="graph-header">
+      <h2>关系图谱</h2>
+      <div class="graph-controls">
+        <button class="btn btn-secondary" onclick="relayoutGraph()">重新布局</button>
+        <button class="btn btn-secondary" onclick="closeGraphView()">关闭</button>
+      </div>
+    </div>
+    <div class="graph-canvas" id="graph-canvas">
+      <svg id="graph-svg" viewBox="0 0 ${W} ${H}">
+        <g id="graph-transform">
+          <g id="graph-edges">${edges.map(e=>{
+            const pa = positions.get(e.source), pb = positions.get(e.target);
+            return `<line class="graph-edge" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" data-source="${e.source}" data-target="${e.target}"/>`;
+          }).join('')}</g>
+          <g id="graph-nodes">${nodes.map(n=>{
+            const p = positions.get(n.id);
+            const r = 5 + Math.min(n.connections*2, 10);
+            return `<g class="graph-node" data-id="${n.id}" onclick="graphNodeClick('${n.id}')" transform="translate(${p.x},${p.y})">
+              <circle class="graph-node-circle" r="${r}" fill="${n.color}" stroke="var(--surface)" stroke-width="2"/>
+              <text class="graph-label" y="${r+14}">${escapeHtml(n.title.substring(0,12))}${n.title.length>12?'…':''}</text>
+            </g>`;
+          }).join('')}</g>
+        </g>
+      </svg>
+      <div class="graph-stats">
+        <strong>${nodes.length}</strong> 节点 · <strong>${edges.length}</strong> 连接
+      </div>
+      <div class="graph-legend">
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:var(--accent)"></div>笔记节点（大小=连接数）</div>
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:var(--border);width:20px;height:2px;border-radius:0"></div>双向链接</div>
+        <div class="graph-legend-item" style="color:var(--text-3)">点击节点查看笔记</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Setup pan & zoom
+  setupGraphPanZoom();
+
+  // Highlight edges on node hover
+  document.querySelectorAll('.graph-node').forEach(node=>{
+    node.addEventListener('mouseenter', ()=>{
+      const id = node.dataset.id;
+      document.querySelectorAll('.graph-edge').forEach(edge=>{
+        if(edge.dataset.source===id || edge.dataset.target===id){
+          edge.classList.add('highlight');
+        }
+      });
+    });
+    node.addEventListener('mouseleave', ()=>{
+      document.querySelectorAll('.graph-edge').forEach(e=>e.classList.remove('highlight'));
+    });
+  });
+}
+
+function graphNodeClick(id){
+  closeGraphView();
+  openDetail(id);
+}
+
+function closeGraphView(){
+  const overlay = document.getElementById('graph-view-overlay');
+  if(overlay) overlay.remove();
+}
+
+function relayoutGraph(){
+  closeGraphView();
+  showGraphView();
+}
+
+function setupGraphPanZoom(){
+  const svg = document.getElementById('graph-svg');
+  const g = document.getElementById('graph-transform');
+  if(!svg||!g) return;
+
+  let isPanning = false;
+  let startPan = {x:0,y:0};
+  let currentTransform = {x:0,y:0,scale:1};
+
+  function updateTransform(){
+    g.setAttribute('transform', `translate(${currentTransform.x},${currentTransform.y}) scale(${currentTransform.scale})`);
+  }
+
+  svg.addEventListener('mousedown', e=>{
+    if(e.target.tagName==='line'||e.target.tagName==='circle'||e.target.tagName==='text'||e.target.tagName==='g'){
+      if(!e.target.classList.contains('graph-node')&&!e.target.closest('.graph-node')){
+        isPanning = true;
+        startPan = {x:e.clientX-currentTransform.x, y:e.clientY-currentTransform.y};
+      }
+    }else{
+      isPanning = true;
+      startPan = {x:e.clientX-currentTransform.x, y:e.clientY-currentTransform.y};
+    }
+  });
+
+  svg.addEventListener('mousemove', e=>{
+    if(isPanning){
+      currentTransform.x = e.clientX-startPan.x;
+      currentTransform.y = e.clientY-startPan.y;
+      updateTransform();
+    }
+  });
+
+  svg.addEventListener('mouseup', ()=>{isPanning=false});
+  svg.addEventListener('mouseleave', ()=>{isPanning=false});
+
+  svg.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const delta = e.deltaY>0 ? 0.9 : 1.1;
+    currentTransform.scale = Math.max(0.3, Math.min(3, currentTransform.scale*delta));
+    updateTransform();
+  });
+}
+
 /* ===== Init ===== */
 function initColorFilters(){
   const el = document.getElementById('color-filters');
@@ -1216,7 +1623,8 @@ function initColorFilters(){
 // keyboard shortcuts
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
-    if(document.getElementById('settings-modal').classList.contains('show')) closeSettings();
+    if(document.getElementById('graph-view-overlay')) closeGraphView();
+    else if(document.getElementById('settings-modal').classList.contains('show')) closeSettings();
     else if(document.getElementById('editor-modal').classList.contains('show')) closeEditor();
     else if(currentNoteId) closeDetail();
     document.getElementById('sort-menu')?.classList.remove('show');
