@@ -717,6 +717,16 @@
             .header-logo, .header-logo-right { width: 40px; height: 40px; }
             .header h1 { font-size: 20px; }
         }
+
+        /* ===== Dark mode overrides for inline-styled elements ===== */
+        [data-theme="dark"] table { background: var(--bg-card) !important; }
+        [data-theme="dark"] thead { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
+        [data-theme="dark"] tr:hover td { background: rgba(10,132,255,0.08) !important; }
+        [data-theme="dark"] select { background: var(--bg-card) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .finding-item { opacity: 0.9; }
+        [data-theme="dark"] .sheet-btn { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] code { background: var(--bg-secondary) !important; color: var(--text-primary) !important; }
     </style>
 </head>
 <body>
@@ -729,7 +739,6 @@
                 <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看智能分析结果</div>
             </div>
             <img src="/static/logo_right.jpg" alt="Analytics Logo" class="header-logo-right">
-            <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="position:relative;z-index:2;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;">🌙</button>
         </div>
 
         <!-- 用户栏 -->

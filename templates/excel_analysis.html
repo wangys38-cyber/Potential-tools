@@ -562,6 +562,22 @@
         .suggestion-card.danger .sug-title { color: var(--danger); }
         .suggestion-card.info { background: linear-gradient(135deg, #e6f0fb, #d0e3ff); border-color: var(--accent); }
         .suggestion-card.info .sug-title { color: var(--accent); }
+
+        /* ===== Dark mode overrides for inline-styled elements ===== */
+        [data-theme="dark"] table { background: var(--bg-card) !important; }
+        [data-theme="dark"] thead { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
+        [data-theme="dark"] tr:hover td { background: rgba(10,132,255,0.08) !important; }
+        [data-theme="dark"] select { background: var(--bg-card) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .summary-card { opacity: 0.9; }
+        [data-theme="dark"] .suggestion-card { opacity: 0.85; }
+        [data-theme="dark"] .chart-card { background: var(--bg-card) !important; }
+        [data-theme="dark"] .detected-info table td { background: var(--bg-card) !important; }
+        [data-theme="dark"] .detected-info table { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] code { background: var(--bg-secondary) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .file-info { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] .upload-area { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] .upload-area .icon { color: var(--text-secondary) !important; }
     </style>
     <script>
         window.__APP_CONFIG__ = {
@@ -580,7 +596,6 @@
             <p>上传Excel文档，自动分析CR问题数据，生成可视化报告与PDF</p>
         </div>
         <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
-            <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="border:1px solid var(--border);background:var(--card);color:var(--text);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;">🌙</button>
             <button class="btn btn-secondary" onclick="resetAll()">重新开始</button>
         </div>
     </div>

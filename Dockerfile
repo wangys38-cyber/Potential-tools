@@ -16,14 +16,13 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260812-v13-lxml-fix
+ARG CACHE_BUST=20260813-v3-db-migration
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 复制应用代码（COPY 层会根据文件内容自动失效缓存）
 COPY app.py .
 COPY auth.py .
 COPY db.py .
-COPY config_oauth.json .
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY railway.toml .

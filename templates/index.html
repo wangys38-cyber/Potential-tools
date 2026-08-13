@@ -6,26 +6,14 @@
     <title>工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css">
-    <!-- DNS预解析：提前解析CDN域名，减少首次连接延迟 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-    <!-- 页面预加载：浏览器空闲时后台预取工具页面，点击时秒开 -->
     <link rel="prefetch" href="/test-report">
     <link rel="prefetch" href="/excel-analysis">
     <link rel="prefetch" href="/project-info">
     <link rel="prefetch" href="/md2pdf">
     <link rel="prefetch" href="/plan-generator">
     <link rel="prefetch" href="/merit">
-    <script>
-        function openTool(url) {
-            window.open(url, '_blank');
-        }
-        
-        function handleCardClick(e, url) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.open(url, '_blank');
-        }
-    </script>
+    <link rel="prefetch" href="/meeting-minutes">
     <style>
         :root {
             --bg-primary: #f5f5f7;
@@ -35,11 +23,11 @@
             --accent: #0071e3;
             --border: rgba(0, 0, 0, 0.06);
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
             --radius-md: 12px;
             --radius-lg: 16px;
             --radius-full: 980px;
         }
-
         [data-theme="dark"] {
             --bg-primary: #1a1a1e;
             --bg-card: #2c2c30;
@@ -48,394 +36,451 @@
             --accent: #0a84ff;
             --border: rgba(255, 255, 255, 0.08);
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg-primary);
             min-height: 100vh;
             color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        body { transition: background-color 0.3s ease, color 0.3s ease; }
-
+        /* ===== Header ===== */
         .header {
             background: rgba(255, 255, 255, 0.72);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
-            padding: 20px 40px;
+            padding: 18px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
         }
+        [data-theme="dark"] .header { background: rgba(28, 28, 32, 0.72); }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header h1 { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .header p { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
 
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--text-primary);
+        .theme-toggle {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--bg-card);
+            cursor: pointer; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; flex-shrink: 0;
         }
+        .theme-toggle:hover { transform: scale(1.08); }
 
-        .header p {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        /* ===== 用户信息 ===== */
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .user-info .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--border);
-        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-info .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
         .user-info .avatar-placeholder {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--accent);
-            color: #fff;
-            font-weight: 600;
-            font-size: 15px;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--accent); color: #fff; font-weight: 600; font-size: 15px;
         }
-        .user-info .name {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-        .user-info .provider-tag {
-            font-size: 11px;
-            color: var(--text-secondary);
-            padding: 2px 8px;
-            border-radius: 10px;
-            background: var(--bg-primary);
-        }
+        .user-info .name { font-weight: 600; font-size: 14px; }
+        .user-info .provider-tag { font-size: 11px; color: var(--text-secondary); padding: 2px 8px; border-radius: 10px; background: var(--bg-primary); }
         .user-info .logout-btn {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 12px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            border: 1px solid var(--border);
+            color: var(--text-secondary); text-decoration: none; font-size: 12px;
+            padding: 6px 12px; border-radius: 8px; transition: all 0.2s; border: 1px solid var(--border);
         }
-        .user-info .logout-btn:hover {
-            background: #fee2e2;
-            color: #dc2626;
-            border-color: #fecaca;
-        }
+        .user-info .logout-btn:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
 
-        .container {
-            max-width: 1200px;
-            margin: 60px auto;
-            padding: 0 20px;
+        /* ===== Search & Filter ===== */
+        .toolbar {
+            max-width: 1200px; margin: 32px auto 0; padding: 0 20px;
+            display: flex; flex-direction: column; gap: 16px;
         }
+        .search-box {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 18px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: var(--radius-full);
+            transition: border-color 0.2s;
+        }
+        .search-box:focus-within { border-color: var(--accent); }
+        .search-box svg { width: 18px; height: 18px; color: var(--text-secondary); flex-shrink: 0; }
+        .search-box input {
+            flex: 1; border: none; outline: none; background: none;
+            font-size: 15px; color: var(--text-primary); font-family: inherit;
+        }
+        .search-box input::placeholder { color: var(--text-secondary); }
+        .search-count { font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
 
+        .category-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .category-chip {
+            padding: 6px 16px; border-radius: var(--radius-full);
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            background: var(--bg-card); color: var(--text-secondary);
+            border: 1px solid var(--border); transition: all 0.2s;
+            font-family: inherit;
+        }
+        .category-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+        .category-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        /* ===== Tools Grid ===== */
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
         }
-
         .tool-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 40px 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            position: relative;
-            overflow: hidden;
+            background: var(--bg-card); border-radius: var(--radius-lg);
+            padding: 28px 24px; cursor: pointer;
+            transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border); position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
         }
-
+        .tool-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
         .tool-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: var(--border);
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: var(--card-accent, var(--accent));
+            transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
         }
+        .tool-card:hover::before { transform: scaleX(1); }
 
-        .tool-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
-
+        .tool-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
         .tool-icon {
-            font-size: 64px;
-            margin-bottom: 25px;
-            transition: transform 0.3s ease;
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; flex-shrink: 0;
+            background: var(--card-bg, rgba(0, 113, 227, 0.08));
         }
-
-        .tool-card:hover .tool-icon {
-            transform: scale(1.1);
+        .tool-card h2 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+        .tool-badge {
+            font-size: 10px; padding: 2px 8px; border-radius: 10px;
+            font-weight: 600; margin-top: 3px; display: inline-block;
+            background: var(--card-bg, rgba(0, 113, 227, 0.08));
+            color: var(--card-accent, var(--accent));
         }
-
-        .tool-card h2 {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 15px;
-        }
-
         .tool-card p {
-            font-size: 14px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 25px;
+            font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px; flex: 1;
         }
-
-        .tool-btn {
-            display: inline-block;
-            padding: 12px 36px;
-            background: var(--accent);
-            color: #fff;
-            border-radius: var(--radius-full);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .tool-btn:hover {
-            background: #0077ed;
-            transform: translateY(-1px);
-        }
-
-        .footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-secondary);
-            font-size: 13px;
-            margin-top: 60px;
-        }
-
-        .feature-list {
-            text-align: left;
-            padding-left: 20px;
-            margin-bottom: 25px;
-            list-style: none;
-        }
-
+        .feature-list { list-style: none; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
         .feature-list li {
-            font-size: 13px;
+            font-size: 11px; padding: 3px 10px; border-radius: 20px;
+            background: var(--bg-primary); color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .tool-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 24px; background: var(--accent); color: #fff;
+            border-radius: var(--radius-full); text-decoration: none;
+            font-weight: 500; font-size: 14px; border: none; cursor: pointer;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .tool-btn:hover { background: #0077ed; transform: translateY(-1px); }
+        [data-theme="dark"] .tool-btn:hover { background: #3a9eff; }
+        .tool-btn svg { width: 16px; height: 16px; }
+
+        .tool-shortcut {
+            margin-left: auto;
+            width: 24px; height: 24px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 600;
             color: var(--text-secondary);
-            margin-bottom: 8px;
-            list-style: none;
-            position: relative;
-            padding-left: 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
         }
 
-        .feature-list li::before {
-            content: '';
-            position: absolute;
-            left: 4px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--text-secondary);
+        .search-hint {
+            font-size: 12px; color: var(--text-secondary);
+            padding: 4px 0 0 4px;
         }
+        .search-hint kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        /* ===== Stats Banner ===== */
+        .stats-bar {
+            display: flex; gap: 24px; padding: 20px 24px;
+            background: var(--bg-card); border-radius: var(--radius-lg);
+            border: 1px solid var(--border); margin-bottom: 24px;
+        }
+        .stat-item { display: flex; align-items: center; gap: 10px; }
+        .stat-icon { font-size: 24px; }
+        .stat-text { display: flex; flex-direction: column; }
+        .stat-num { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+        .stat-label { font-size: 12px; color: var(--text-secondary); }
+        .stat-divider { width: 1px; background: var(--border); }
+
+        /* ===== Footer ===== */
+        .footer {
+            text-align: center; padding: 30px; color: var(--text-secondary);
+            font-size: 13px; margin-top: 40px;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+
+        /* ===== No Results ===== */
+        .no-results {
+            text-align: center; padding: 80px 20px; color: var(--text-secondary);
+        }
+        .no-results-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
 
         @media (max-width: 768px) {
-            .header {
-                padding: 15px 20px;
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .container {
-                margin: 30px auto;
-            }
-
-            .tools-grid {
-                gap: 20px;
-            }
-
-            .tool-card {
-                padding: 30px 20px;
-            }
-
-            .tool-icon {
-                font-size: 50px;
-            }
+            .header { padding: 14px 20px; flex-direction: column; gap: 10px; }
+            .header h1 { font-size: 20px; }
+            .container { margin: 16px auto; }
+            .tools-grid { grid-template-columns: 1fr; gap: 16px; }
+            .stats-bar { flex-wrap: wrap; gap: 16px; }
+            .stat-divider { display: none; }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div>
-            <h1>🛠️ 我的工具集</h1>
-            <p>一站式工具平台，集成多种实用工具</p>
+        <div class="header-left">
+            <div>
+                <h1>🛠️ 我的工具集</h1>
+                <p>一站式工具平台，集成多种实用工具</p>
+            </div>
         </div>
-        <div class="user-info">
-            {% if current_user %}
-                {% if current_user.avatar %}
-                    <img src="{{ current_user.avatar }}" class="avatar" alt="avatar">
-                {% else %}
-                    <div class="avatar-placeholder">{{ current_user.name[:1] if current_user.name else '?' }}</div>
+        <div class="header-right">
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
+            <div class="user-info">
+                {% if current_user %}
+                    {% if current_user.avatar %}
+                        <img src="{{ current_user.avatar }}" class="avatar" alt="avatar">
+                    {% else %}
+                        <div class="avatar-placeholder">{{ current_user.name[:1] if current_user.name else '?' }}</div>
+                    {% endif %}
+                    <span class="name">{{ current_user.name }}</span>
+                    <span class="provider-tag">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
+                    <a href="/auth/logout" class="logout-btn">退出</a>
                 {% endif %}
-                <span class="name">{{ current_user.name }}</span>
-                <span class="provider-tag">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
-                <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">🌙</button>
-                <a href="/auth/logout" class="logout-btn">退出</a>
-            {% endif %}
+            </div>
         </div>
     </div>
 
+    <div class="toolbar">
+        <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+            <input type="text" id="search-input" placeholder="搜索工具名称或功能..." oninput="filterTools()">
+            <span class="search-count" id="search-count"></span>
+        </div>
+        <div class="category-bar" id="category-bar">
+            <button class="category-chip active" data-cat="all" onclick="setCategory('all')">全部</button>
+            <button class="category-chip" data-cat="notes" onclick="setCategory('notes')">笔记记录</button>
+            <button class="category-chip" data-cat="convert" onclick="setCategory('convert')">格式转换</button>
+            <button class="category-chip" data-cat="analysis" onclick="setCategory('analysis')">数据分析</button>
+            <button class="category-chip" data-cat="manage" onclick="setCategory('manage')">项目管理</button>
+            <button class="category-chip" data-cat="fun" onclick="setCategory('fun')">趣味工具</button>
+        </div>
+        <div class="search-hint">按 <kbd>/</kbd> 搜索，按 <kbd>1</kbd>-<kbd>8</kbd> 快速打开工具，工具内按 <kbd>Esc</kbd> 返回首页</div>
+    </div>
+
     <div class="container">
-        <div class="tools-grid">
-            <div class="tool-card" onclick="openTool('/noteNB')">
-                <div class="tool-icon">📝</div>
-                <h2>牛马笔记</h2>
-                <p>强大的记事本应用，支持Markdown编辑、标签管理、主题切换等功能</p>
-                <ul class="feature-list">
-                    <li>笔记CRUD操作</li>
-                    <li>Markdown实时预览</li>
-                    <li>标签云分类</li>
-                    <li>多主题切换</li>
-                    <li>完成时间管理</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/noteNB')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/md2pdf')">
-                <div class="tool-icon">📄</div>
-                <h2>PDF快转</h2>
-                <p>支持Markdown和Word文件转换为PDF，自动添加自定义水印</p>
-                <ul class="feature-list">
-                    <li>Markdown转PDF</li>
-                    <li>Word转PDF</li>
-                    <li>批量转换功能</li>
-                    <li>自定义水印</li>
-                    <li>公式渲染支持</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/md2pdf')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/plan-generator')">
-                <div class="tool-icon">📅</div>
-                <h2>软件计划生成器</h2>
-                <p>输入项目类型和起始节点，一键生成完整的软件计划时间节点表</p>
-                <ul class="feature-list">
-                    <li>支持多项目类型</li>
-                    <li>自动计算节点时间</li>
-                    <li>里程碑标记</li>
-                    <li>导出CSV/复制/打印</li>
-                    <li>周数自动统计</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/plan-generator')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/project-info')">
-                <div class="tool-icon">📊</div>
-                <h2>项目信息收集</h2>
-                <p>收集和管理软件项目的完整技术规格信息</p>
-                <ul class="feature-list">
-                    <li>项目基本信息管理</li>
-                    <li>硬件参数记录</li>
-                    <li>性能指标追踪</li>
-                    <li>功能特性管理</li>
-                    <li>数据导入导出</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/project-info')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/excel-analysis')">
-                <div class="tool-icon">📊</div>
-                <h2>CR问题分析</h2>
-                <p>上传问题清单Excel，自动按模块/研发/日期分析，生成带水印PDF报告</p>
-                <ul class="feature-list">
-                    <li>模块问题统计</li>
-                    <li>研发问题统计</li>
-                    <li>每日新增/解决趋势</li>
-                    <li>自动字段识别</li>
-                    <li>PDF报告生成</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/excel-analysis')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/merit')">
-                <div class="tool-icon">🔔</div>
-                <h2>功德+1</h2>
-                <p>敲击木鱼，积攒功德，修身养性，净化心灵</p>
-                <ul class="feature-list">
-                    <li>点击木鱼敲击</li>
-                    <li>功德+1动态弹窗</li>
-                    <li>总功德与今日功德统计</li>
-                    <li>自动保存进度</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/merit')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/test-report')">
-                <div class="tool-icon">📋</div>
-                <h2>测试报告分析</h2>
-                <p>上传测试报告Excel，自动提取软件版本、测试内容、测试结论、测试标准</p>
-                <ul class="feature-list">
-                    <li>自动识别关键字段</li>
-                    <li>多Sheet支持</li>
-                    <li>Pass/Fail统计</li>
-                    <li>拖拽上传</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/test-report')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card" onclick="openTool('/meeting-minutes')">
-                <div class="tool-icon">🎙️</div>
-                <h2>会议纪要</h2>
-                <p>实时语音转写会议内容，AI自动生成结构化会议纪要</p>
-                <ul class="feature-list">
-                    <li>实时语音识别</li>
-                    <li>AI智能摘要</li>
-                    <li>待办事项提取</li>
-                    <li>一键导出</li>
-                </ul>
-                <button onclick="handleCardClick(event, '/meeting-minutes')" class="tool-btn">进入使用</button>
-            </div>
-
-            <div class="tool-card">
-                <div class="tool-icon">🔮</div>
-                <h2>更多工具</h2>
-                <p>后续将添加更多实用工具，敬请期待...</p>
-                <ul class="feature-list">
-                    <li>待开发</li>
-                    <li>敬请期待</li>
-                    <li>持续更新</li>
-                </ul>
-                <span class="tool-btn" style="opacity: 0.5; cursor: not-allowed;">开发中</span>
-            </div>
+        <div class="stats-bar">
+            <div class="stat-item"><span class="stat-icon">🧰</span><div class="stat-text"><span class="stat-num">9</span><span class="stat-label">可用工具</span></div></div>
+            <div class="stat-divider"></div>
+            <div class="stat-item"><span class="stat-icon">⚡</span><div class="stat-text"><span class="stat-num">100%</span><span class="stat-label">免费使用</span></div></div>
+            <div class="stat-divider"></div>
+            <div class="stat-item"><span class="stat-icon">🔒</span><div class="stat-text"><span class="stat-num">本地</span><span class="stat-label">数据存储</span></div></div>
+            <div class="stat-divider"></div>
+            <div class="stat-item"><span class="stat-icon">🌙</span><div class="stat-text"><span class="stat-num">暗黑</span><span class="stat-label">模式支持</span></div></div>
+        </div>
+        <div id="recent-bar" class="tb-recent-bar" style="display:none">
+            <div class="tb-recent-title">🕐 最近使用 <a href="javascript:void(0)" onclick="clearRecent()" style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px;text-decoration:none;">清除记录</a></div>
+            <div class="tb-recent-list" id="recent-list"></div>
+        </div>
+        <div class="tools-grid" id="tools-grid"></div>
+        <div class="no-results" id="no-results" style="display:none">
+            <div class="no-results-icon">🔍</div>
+            <p>没有找到匹配的工具，试试其他关键词</p>
         </div>
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v2.0</p>
+        <p>Powered by Yongshuo | 工具集 v2.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
     </div>
+
     <script src="/static/js/components.js"></script>
+    <script>
+    // ===== Tool data =====
+    const TOOLS = [
+        {id:'noteNB', icon:'📝', name:'牛马笔记', cat:'notes', accent:'#e8833a', bg:'rgba(232,131,58,0.1)',
+         desc:'强大的记事本应用，支持Markdown编辑、标签管理、多主题切换',
+         features:['Markdown','标签管理','多主题','置顶笔记','导入导出'], badge:'已升级'},
+        {id:'md2pdf', icon:'📄', name:'PDF快转', cat:'convert', accent:'#8b5cf6', bg:'rgba(139,92,246,0.1)',
+         desc:'支持Markdown和Word文件转换为PDF，自动添加自定义水印',
+         features:['Markdown转PDF','Word转PDF','批量转换','自定义水印','公式渲染']},
+        {id:'plan-generator', icon:'📅', name:'软件计划生成器', cat:'manage', accent:'#0ea5e9', bg:'rgba(14,165,233,0.1)',
+         desc:'输入项目类型和起始节点，一键生成完整的软件计划时间节点表',
+         features:['多项目类型','自动计算','里程碑标记','导出CSV','周数统计']},
+        {id:'project-info', icon:'📊', name:'项目信息收集', cat:'manage', accent:'#16a34a', bg:'rgba(22,163,74,0.1)',
+         desc:'收集和管理软件项目的完整技术规格信息',
+         features:['项目管理','硬件参数','性能指标','功能特性','导入导出']},
+        {id:'excel-analysis', icon:'📊', name:'CR问题分析', cat:'analysis', accent:'#ef4444', bg:'rgba(239,68,68,0.1)',
+         desc:'上传问题清单Excel，自动按模块/研发/日期分析，生成带水印PDF报告',
+         features:['模块统计','研发统计','趋势分析','字段识别','PDF报告']},
+        {id:'merit', icon:'🔔', name:'功德+1', cat:'fun', accent:'#f59e0b', bg:'rgba(245,158,11,0.1)',
+         desc:'敲击木鱼，积攒功德，修身养性，净化心灵',
+         features:['木鱼敲击','功德弹窗','今日统计','自动保存','音效']},
+        {id:'test-report', icon:'📋', name:'测试报告分析', cat:'analysis', accent:'#4f46e5', bg:'rgba(79,70,229,0.1)',
+         desc:'上传测试报告Excel，自动提取软件版本、测试内容、测试结论',
+         features:['字段识别','多Sheet','Pass/Fail','拖拽上传','PDF导出']},
+        {id:'meeting-minutes', icon:'🎙️', name:'会议纪要', cat:'notes', accent:'#ec4899', bg:'rgba(236,72,153,0.1)',
+         desc:'实时语音转写会议内容，AI自动生成结构化会议纪要',
+         features:['语音识别','AI摘要','待办提取','一键导出','多模型'], badge:'已升级'},
+        {id:'weekly-report', icon:'📋', name:'智能周报', cat:'notes', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
+         desc:'输入本周工作素材，AI自动生成结构化周报，支持多模型选择',
+         features:['AI生成','多模型','一键导出','工作总结','下周计划'], badge:'新'},
+    ];
+
+    let currentCategory = 'all';
+
+    // ===== Render tools =====
+    function renderTools() {
+        const grid = document.getElementById('tools-grid');
+        const noResults = document.getElementById('no-results');
+        const query = document.getElementById('search-input').value.toLowerCase().trim();
+        const countEl = document.getElementById('search-count');
+
+        let filtered = TOOLS.filter(t => {
+            const catMatch = currentCategory === 'all' || t.cat === currentCategory;
+            const qMatch = !query ||
+                t.name.toLowerCase().includes(query) ||
+                t.desc.toLowerCase().includes(query) ||
+                t.features.some(f => f.toLowerCase().includes(query));
+            return catMatch && qMatch;
+        });
+
+        countEl.textContent = query || currentCategory !== 'all' ? `${filtered.length} 个结果` : '';
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '';
+            noResults.style.display = 'block';
+            return;
+        }
+        noResults.style.display = 'none';
+
+        grid.innerHTML = filtered.map((t, i) => {
+            const origIdx = TOOLS.indexOf(t);
+            return `
+            <div class="tool-card" style="--card-accent:${t.accent};--card-bg:${t.bg}" onclick="openTool('/${t.id}')">
+                <div class="tool-header">
+                    <div class="tool-icon">${t.icon}</div>
+                    <div>
+                        <h2>${t.name}</h2>
+                        ${t.badge ? `<span class="tool-badge">${t.badge}</span>` : ''}
+                    </div>
+                    <span class="tool-shortcut" title="快捷键 ${origIdx + 1}">${origIdx + 1}</span>
+                </div>
+                <p>${t.desc}</p>
+                <ul class="feature-list">
+                    ${t.features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+                <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">
+                    进入使用
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function filterTools() { renderTools(); }
+
+    function setCategory(cat) {
+        currentCategory = cat;
+        document.querySelectorAll('.category-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+        renderTools();
+    }
+
+    function openTool(url) {
+        // Record recently used
+        const toolId = url.replace('/', '');
+        const tool = TOOLS.find(t => t.id === toolId);
+        if (tool && window.ToolboxRecent) {
+            ToolboxRecent.record(tool.id, tool.name, tool.icon);
+        }
+        window.open(url, '_blank');
+    }
+    function handleCardClick(e, url) { e.preventDefault(); e.stopPropagation(); openTool(url); }
+
+    // ===== Recently Used =====
+    function renderRecent() {
+        if (!window.ToolboxRecent) return;
+        const recent = ToolboxRecent.getAll();
+        const bar = document.getElementById('recent-bar');
+        const list = document.getElementById('recent-list');
+        if (recent.length === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = 'block';
+        list.innerHTML = recent.map(r => {
+            const tool = TOOLS.find(t => t.id === r.id);
+            if (!tool) return '';
+            const mins = Math.floor((Date.now() - r.time) / 60000);
+            const timeStr = mins < 1 ? '刚刚' : mins < 60 ? mins + '分钟前' : Math.floor(mins/60) + '小时前';
+            return `<a href="/${r.id}" target="_blank" class="tb-recent-item" onclick="event.preventDefault();openTool('/${r.id}')">
+                <span class="tb-recent-item-icon">${r.icon}</span>
+                <span>${r.name}</span>
+                <span class="tb-recent-item-time">${timeStr}</span>
+            </a>`;
+        }).join('');
+    }
+
+    function clearRecent() {
+        if (window.ToolboxRecent) ToolboxRecent.clear();
+        renderRecent();
+    }
+
+    // ===== Theme =====
+    function toggleTheme() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const next = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
+        try { localStorage.setItem('toolbox_theme', next); } catch(e) {}
+    }
+
+    // init theme early
+    (function() {
+        let saved = 'auto';
+        try { saved = localStorage.getItem('toolbox_theme') || 'auto'; } catch(e) {}
+        const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = saved === 'dark' || (saved === 'auto' && sysDark);
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
+        });
+    })();
+
+    // keyboard shortcut: / to focus search, number keys 1-9 for quick access
+    document.addEventListener('keydown', e => {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault();
+            document.getElementById('search-input').focus();
+        }
+        if (e.key === 'Escape') document.getElementById('search-input').blur();
+        // Number keys 1-9 to open tools
+        if (document.activeElement.tagName !== 'INPUT' && /^[1-9]$/.test(e.key)) {
+            const idx = parseInt(e.key) - 1;
+            if (TOOLS[idx]) {
+                openTool('/' + TOOLS[idx].id);
+            }
+        }
+    });
+
+    renderTools();
+    renderRecent();
+    // Update recent list when returning to this tab
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) renderRecent();
+    });
+    </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for, make_response
+from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for, make_response, Response, stream_with_context
 import os
 import sys
 import re
@@ -9,6 +9,7 @@ import tempfile
 import time
 import hashlib
 import gc
+import requests
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from jinja2 import BytecodeCache
@@ -723,6 +724,229 @@ def get_ai_config():
     return config
 
 
+# === v3.0 统一 AI 调用函数 ===
+def _call_ai(messages, model=None, max_tokens=2000, temperature=0.7, timeout=60):
+    """统一的 AI 文本生成调用（非流式），支持 DashScope 和 OpenAI 兼容格式"""
+    import requests as req
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        raise ValueError('AI功能未配置')
+
+    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
+    api_key = ai_config.get('api_key', '')
+    use_model = model or ai_config.get('model', 'qwen-turbo')
+    is_openai = 'dashscope' not in base_url
+
+    if is_openai:
+        # OpenAI 兼容格式（火山引擎/豆包等）
+        response = req.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': use_model,
+                'messages': messages,
+                'max_tokens': max_tokens,
+                'temperature': temperature
+            },
+            timeout=timeout
+        )
+        if response.status_code == 200:
+            result = response.json()
+            return result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        else:
+            raise RuntimeError(f'AI服务返回错误({response.status_code}): {response.text[:300]}')
+    else:
+        # DashScope 格式（阿里云百炼）
+        response = req.post(
+            f"{base_url}/services/aigc/text-generation/generation",
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': use_model,
+                'input': {'messages': messages},
+                'parameters': {
+                    'result_format': 'message',
+                    'max_tokens': max_tokens,
+                    'temperature': temperature
+                }
+            },
+            timeout=timeout
+        )
+        if response.status_code == 200:
+            result = response.json()
+            return result.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', '')
+        else:
+            raise RuntimeError(f'AI服务返回错误({response.status_code}): {response.text[:300]}')
+
+
+def _call_ai_stream(messages, model=None, max_tokens=2000, temperature=0.7):
+    """统一的 AI 文本生成调用（流式 SSE），支持 DashScope 和 OpenAI 兼容格式"""
+    import requests as req
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        yield 'data: {"error": "AI功能未配置"}\n\n'
+        return
+
+    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
+    api_key = ai_config.get('api_key', '')
+    use_model = model or ai_config.get('model', 'qwen-turbo')
+    is_openai = 'dashscope' not in base_url
+
+    if is_openai:
+        # OpenAI 兼容格式流式
+        response = req.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': use_model,
+                'messages': messages,
+                'max_tokens': max_tokens,
+                'temperature': temperature,
+                'stream': True
+            },
+            stream=True,
+            timeout=120
+        )
+        if response.status_code != 200:
+            err_text = response.text[:200] if hasattr(response, 'text') else ''
+            yield f'data: {json.dumps({"error": f"AI服务错误({response.status_code}): {err_text}"})}\n\n'
+            return
+        for line in response.iter_lines():
+            if not line:
+                continue
+            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+            if not line_str.startswith('data:'):
+                continue
+            json_str = line_str[5:].strip()
+            if json_str == '[DONE]':
+                break
+            try:
+                data = json.loads(json_str)
+                # 统一转换为 DashScope 格式输出，前端无需修改
+                choices = data.get('choices', [])
+                if choices:
+                    delta = choices[0].get('delta', {})
+                    content = delta.get('content', '')
+                    if content:
+                        normalized = {'output': {'choices': [{'message': {'content': content}}]}}
+                        yield f'data: {json.dumps(normalized, ensure_ascii=False)}\n\n'
+            except json.JSONDecodeError:
+                continue
+    else:
+        # DashScope 格式流式
+        response = req.post(
+            f"{base_url}/services/aigc/text-generation/generation",
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json',
+                'X-DashScope-SSE': 'enable'
+            },
+            json={
+                'model': use_model,
+                'input': {'messages': messages},
+                'parameters': {
+                    'result_format': 'message',
+                    'max_tokens': max_tokens,
+                    'temperature': temperature,
+                    'incremental_output': True
+                }
+            },
+            stream=True,
+            timeout=120
+        )
+        if response.status_code != 200:
+            yield f'data: {json.dumps({"error": f"AI服务错误({response.status_code})"})}\n\n'
+            return
+        for line in response.iter_lines():
+            if not line:
+                continue
+            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
+            if line_str.startswith('data:'):
+                yield line_str + '\n\n'
+            elif line_str.startswith('{'):
+                yield f'data: {line_str}\n\n'
+
+
+# === v3.0 AI 对话助手 API ===
+@app.route('/api/ai-chat', methods=['POST'])
+def api_ai_chat():
+    """AI 对话助手 — SSE 流式输出"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    messages = data.get('messages', [])
+    model = data.get('model')
+
+    if not messages or not isinstance(messages, list):
+        return jsonify({'error': '消息不能为空'}), 400
+
+    # 注入系统提示
+    system_prompt = {
+        'role': 'system',
+        'content': '你是工具集内置的AI助手。你可以帮助用户回答问题、编写文案、分析数据、生成代码等。请用中文回复，回答要简洁实用。'
+    }
+    full_messages = [system_prompt] + messages[-20:]  # 最多保留最近 20 条上下文
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请在设置中配置API Key'}), 503
+
+    return Response(
+        stream_with_context(_call_ai_stream(full_messages, model=model)),
+        content_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        }
+    )
+
+
+@app.route('/api/ai-models', methods=['GET'])
+def api_ai_models():
+    """获取可用模型列表（根据 API 提供商自动适配）"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
+    is_openai = 'dashscope' not in base_url
+
+    if is_openai:
+        # OpenAI 兼容格式（火山引擎/豆包）— 模型 ID 来源: 火山方舟模型列表
+        models = [
+            {'id': 'doubao-seed-1-6-250615', 'name': 'Doubao Seed 1.6', 'desc': '旗舰模型，支持图文视频，深度思考可关闭'},
+            {'id': 'doubao-seed-1-6-flash-250828', 'name': 'Doubao Seed 1.6 Flash', 'desc': '极速响应，支持图文，日常使用'},
+            {'id': 'doubao-seed-1-6-lite-251015', 'name': 'Doubao Seed 1.6 Lite', 'desc': '轻量版，性价比高'},
+            {'id': 'deepseek-v3-1-terminus', 'name': 'DeepSeek V3.1', 'desc': '深度思考，强推理能力'},
+        ]
+        default_model = ai_config.get('model', 'doubao-seed-1-6-250615')
+    else:
+        # DashScope（阿里云百炼）
+        models = [
+            {'id': 'qwen-turbo', 'name': '通义千问 Turbo', 'desc': '快速响应，日常使用'},
+            {'id': 'qwen-plus', 'name': '通义千问 Plus', 'desc': '均衡质量与速度'},
+            {'id': 'qwen-max', 'name': '通义千问 Max', 'desc': '最强推理能力'},
+        ]
+        default_model = ai_config.get('model', 'qwen-turbo')
+
+    return jsonify({
+        'models': models,
+        'current': default_model
+    })
+
+
 @app.route('/api/ai-config', methods=['GET'])
 def api_get_ai_config():
     config = get_ai_config()
@@ -1041,6 +1265,7 @@ def api_generate_minutes():
     title = data.get('title', '未命名会议')
     attendees = data.get('attendees', '未填写')
     date = data.get('date', '')
+    model = data.get('model')  # v3.0: 支持前端指定模型
 
     if not transcript or len(transcript) < 10:
         return jsonify({'error': '转写内容太少，无法生成纪要'}), 400
@@ -1050,8 +1275,6 @@ def api_generate_minutes():
         return jsonify({'error': 'AI功能未配置，请联系管理员设置API Key'}), 503
 
     try:
-        import requests as req
-
         # 构建提示词
         prompt = f"""请根据以下会议语音转写内容，生成一份结构化的会议纪要。
 
@@ -1075,52 +1298,234 @@ def api_generate_minutes():
 - 如果转写内容不清晰，合理推断并标注
 - 只输出HTML，不要其他文字"""
 
-        response = req.post(
-            f"{ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')}/services/aigc/text-generation/generation",
-            headers={
-                'Authorization': f'Bearer {ai_config.get("api_key", "")}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': ai_config.get('model', 'qwen-turbo'),
-                'input': {
-                    'messages': [
-                        {'role': 'system', 'content': '你是一个专业的会议纪要撰写助手。请根据会议转写内容生成结构清晰、内容准确的会议纪要。'},
-                        {'role': 'user', 'content': prompt}
-                    ]
-                },
-                'parameters': {
-                    'result_format': 'message',
-                    'max_tokens': 3000,
-                    'temperature': 0.3
-                }
-            },
-            timeout=60
+        minutes_html = _call_ai(
+            messages=[
+                {'role': 'system', 'content': '你是一个专业的会议纪要撰写助手。请根据会议转写内容生成结构清晰、内容准确的会议纪要。'},
+                {'role': 'user', 'content': prompt}
+            ],
+            model=model,
+            max_tokens=3000,
+            temperature=0.3,
+            timeout=90
         )
 
-        if response.status_code == 200:
-            result = response.json()
-            minutes_html = result.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', '')
+        # 清理可能的markdown标记
+        if '```html' in minutes_html:
+            minutes_html = minutes_html.split('```html')[1].split('```')[0]
+        elif '```' in minutes_html:
+            minutes_html = minutes_html.split('```')[1].split('```')[0]
+        minutes_html = minutes_html.strip()
 
-            # 清理可能的markdown标记
-            if '```html' in minutes_html:
-                minutes_html = minutes_html.split('```html')[1].split('```')[0]
-            elif '```' in minutes_html:
-                minutes_html = minutes_html.split('```')[1].split('```')[0]
-            minutes_html = minutes_html.strip()
+        return jsonify({
+            'status': 'success',
+            'minutes': minutes_html
+        })
 
-            return jsonify({
-                'status': 'success',
-                'minutes': minutes_html
-            })
-        else:
-            logger.error(f"AI生成纪要失败: {response.status_code} - {response.text[:200]}")
-            return jsonify({'error': f'AI服务返回错误({response.status_code})'}), 502
-
-    except req.exceptions.Timeout:
+    except requests.exceptions.Timeout:
         return jsonify({'error': 'AI服务响应超时，请稍后重试'}), 504
     except Exception as e:
         logger.error(f"生成会议纪要失败: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+# === v3.0 OCR 图片文字识别 ===
+@app.route('/api/ocr', methods=['POST'])
+def api_ocr():
+    """OCR 图片文字识别 — 使用 qwen-vl 多模态模型"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    # 支持 base64 图片或文件上传
+    import base64
+    import requests as req
+
+    image_data_url = None
+    prompt = '请识别图片中的所有文字内容，保持原有格式和排版。如果图片中包含表格，请用 Markdown 表格格式输出。只输出识别到的文字，不要其他说明。'
+
+    if 'file' in request.files:
+        file = request.files['file']
+        img_bytes = file.read()
+        if len(img_bytes) > 10 * 1024 * 1024:
+            return jsonify({'error': '图片不能超过 10MB'}), 400
+        b64 = base64.b64encode(img_bytes).decode('utf-8')
+        mime = file.content_type or 'image/png'
+        image_data_url = f'data:{mime};base64,{b64}'
+    elif request.is_json:
+        data = request.get_json(silent=True) or {}
+        image_data_url = data.get('image')
+        custom_prompt = data.get('prompt')
+        if custom_prompt:
+            prompt = custom_prompt
+    else:
+        return jsonify({'error': '请上传图片或提供 base64 图片数据'}), 400
+
+    if not image_data_url:
+        return jsonify({'error': '图片数据为空'}), 400
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置'}), 503
+
+    try:
+        is_openai = 'dashscope' not in ai_config.get('base_url', '')
+        if is_openai:
+            # OpenAI 兼容格式（火山引擎/豆包视觉模型）
+            response = req.post(
+                f"{ai_config.get('base_url', '').rstrip('/')}/chat/completions",
+                headers={
+                    'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': ai_config.get('vision_model', 'doubao-seed-1-6-250615'),
+                    'messages': [
+                        {
+                            'role': 'user',
+                            'content': [
+                                {'type': 'image_url', 'image_url': {'url': image_data_url}},
+                                {'type': 'text', 'text': prompt}
+                            ]
+                        }
+                    ],
+                    'max_tokens': 2000
+                },
+                timeout=60
+            )
+            if response.status_code == 200:
+                result = response.json()
+                text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+                return jsonify({'status': 'success', 'text': text.strip()})
+            else:
+                logger.error(f"OCR失败: {response.status_code} - {response.text[:200]}")
+                return jsonify({'error': f'OCR服务错误({response.status_code}): {response.text[:100]}'}), 502
+        else:
+            # DashScope 格式（qwen-vl 多模态）
+            response = req.post(
+                f"{ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')}/services/aigc/multimodal-generation/generation",
+                headers={
+                    'Authorization': f'Bearer {ai_config.get("api_key", "")}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'qwen-vl-plus',
+                    'input': {
+                        'messages': [
+                            {
+                                'role': 'user',
+                                'content': [
+                                    {'image': image_data_url},
+                                    {'text': prompt}
+                                ]
+                            }
+                        ]
+                    }
+                },
+                timeout=60
+            )
+            if response.status_code == 200:
+                result = response.json()
+                text = result.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', [{}])
+                if isinstance(text, list):
+                    text = ''.join(item.get('text', '') if isinstance(item, dict) else str(item) for item in text)
+                return jsonify({'status': 'success', 'text': text.strip()})
+            else:
+                logger.error(f"OCR失败: {response.status_code} - {response.text[:200]}")
+                return jsonify({'error': f'OCR服务错误({response.status_code})'}), 502
+
+    except req.exceptions.Timeout:
+        return jsonify({'error': 'OCR服务响应超时'}), 504
+    except Exception as e:
+        logger.error(f"OCR异常: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+# === v3.0 智能周报生成 ===
+@app.route('/weekly-report')
+def weekly_report():
+    return cached_render('weekly_report.html')
+
+
+@app.route('/api/weekly-report', methods=['POST'])
+def api_weekly_report():
+    """AI 智能周报生成"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    notes = data.get('notes', '').strip()
+    meetings = data.get('meetings', '').strip()
+    cr_issues = data.get('cr_issues', '').strip()
+    extra = data.get('extra', '').strip()
+    model = data.get('model')
+    name = data.get('name', '')
+    week_range = data.get('week_range', '')
+
+    # 至少需要一项内容
+    if not any([notes, meetings, cr_issues, extra]):
+        return jsonify({'error': '请至少填写一项本周工作内容'}), 400
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置'}), 503
+
+    sections = []
+    if name:
+        sections.append(f'汇报人：{name}')
+    if week_range:
+        sections.append(f'汇报周期：{week_range}')
+    if notes:
+        sections.append(f'【工作笔记/记录】\n{notes[:3000]}')
+    if meetings:
+        sections.append(f'【会议内容摘要】\n{meetings[:3000]}')
+    if cr_issues:
+        sections.append(f'【问题/CR记录】\n{cr_issues[:3000]}')
+    if extra:
+        sections.append(f'【其他补充】\n{extra[:2000]}')
+
+    content_block = '\n\n'.join(sections)
+
+    prompt = f"""请根据以下本周工作素材，生成一份结构化的周报。
+
+素材内容：
+{content_block}
+
+请生成周报，使用 HTML 格式，包含以下部分：
+1. <h2>本周工作总结</h2> — 概括本周主要工作内容（3-5 条要点）
+2. <h2>关键成果</h2> — 本周取得的关键成果或进展
+3. <h2>问题与风险</h2> — 遇到的问题、风险及应对措施
+4. <h2>下周计划</h2> — 下周工作重点和计划安排
+
+要求：
+- 直接输出 HTML，不要 ```html 标记
+- 语言简洁专业
+- 合理归纳整理，不要简单罗列原文
+- 只输出 HTML 内容"""
+
+    try:
+        result = _call_ai(
+            messages=[
+                {'role': 'system', 'content': '你是一个专业的项目汇报助手。请根据用户提供的素材，生成结构清晰、内容准确的周报。'},
+                {'role': 'user', 'content': prompt}
+            ],
+            model=model,
+            max_tokens=3000,
+            temperature=0.3,
+            timeout=90
+        )
+
+        # 清理 markdown 标记
+        if '```html' in result:
+            result = result.split('```html')[1].split('```')[0]
+        elif '```' in result:
+            result = result.split('```')[1].split('```')[0]
+        result = result.strip()
+
+        return jsonify({'status': 'success', 'report': result})
+
+    except Exception as e:
+        logger.error(f"周报生成失败: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1732,7 +2137,8 @@ def api_debug():
             'upload_folder': upload_dir,
             'pdf_folder': app.config['PDF_FOLDER'],
             'is_cloud': bool(os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT')),
-        }
+        },
+        'database': db.check_db(),
     })
 
 # === 测试报告分析 API ===

@@ -1,17 +1,1258 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>牛马笔记</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/noteNB/assets/index-BXaTaQpt.js"></script>
-    <link rel="stylesheet" crossorigin href="/noteNB/assets/index-C9wlhvwb.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>牛马笔记</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;
+  --surface:#ffffff;
+  --surface-hover:#f3f2ef;
+  --border:#e8e6e1;
+  --border-light:#f0eeea;
+  --text:#1a1a1a;
+  --text-2:#555;
+  --text-3:#999;
+  --accent:#e8833a;
+  --accent-light:#fdf4ec;
+  --accent-hover:#d9732a;
+  --danger:#d4453a;
+  --danger-light:#fdf0ee;
+  --success:#3a9d6e;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.06);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'SF Mono','Fira Code',Consolas,'Liberation Mono',monospace;
+  --font-scale:1;
+}
+
+/* ===== Themes: Light ===== */
+[data-theme="ocean"]{
+  --accent:#0ea5e9;--accent-light:#e0f2fe;--accent-hover:#0284c7;
+}
+[data-theme="forest"]{
+  --accent:#16a34a;--accent-light:#dcfce7;--accent-hover:#15803d;
+}
+[data-theme="grape"]{
+  --accent:#8b5cf6;--accent-light:#ede9fe;--accent-hover:#7c3aed;
+}
+[data-theme="rose"]{
+  --accent:#f43f5e;--accent-light:#ffe4e6;--accent-hover:#e11d48;
+}
+[data-theme="indigo"]{
+  --accent:#6366f1;--accent-light:#e0e7ff;--accent-hover:#4f46e5;
+}
+
+/* ===== Theme: Dark ===== */
+[data-theme="dark"]{
+  --bg:#1a1a1a;
+  --surface:#262626;
+  --surface-hover:#333;
+  --border:#3a3a3a;
+  --border-light:#2e2e2e;
+  --text:#e8e8e8;
+  --text-2:#a0a0a0;
+  --text-3:#707070;
+  --accent:#e8833a;
+  --accent-light:#2d2218;
+  --accent-hover:#f0a050;
+  --danger:#f87171;
+  --danger-light:#2a1a1a;
+  --success:#4ade80;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+}
+[data-theme="dark-ocean"]{
+  --bg:#0f172a;--surface:#1e293b;--surface-hover:#334155;
+  --border:#334155;--border-light:#1e293b;
+  --text:#e2e8f0;--text-2:#94a3b8;--text-3:#64748b;
+  --accent:#0ea5e9;--accent-light:#0c1e2e;--accent-hover:#38bdf8;
+  --danger:#f87171;--danger-light:#2a1a1a;--success:#4ade80;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+}
+
+html{font-size:calc(15px * var(--font-scale));-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;transition:background .2s,color .2s}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea{font-family:inherit;outline:none;border:none;background:none;color:inherit}
+a{color:var(--accent);text-decoration:none}
+::selection{background:var(--accent-light)}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-3)}
+
+/* ===== Layout ===== */
+.app{display:flex;min-height:100vh}
+
+/* ===== Sidebar ===== */
+.sidebar{
+  width:240px;flex-shrink:0;background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:20px 14px;
+  position:sticky;top:0;height:100vh;
+}
+.logo{display:flex;align-items:center;gap:10px;padding:0 8px 20px}
+.logo-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-hover));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#fff;flex-shrink:0;
+}
+.logo-text{font-size:16px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+
+.new-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:10px 16px;margin-bottom:16px;
+  background:var(--accent);color:#fff;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:600;transition:background .15s;
+}
+.new-btn:hover{background:var(--accent-hover)}
+.new-btn:active{transform:scale(.98)}
+.new-btn svg{width:18px;height:18px}
+
+.nav-section{margin-bottom:20px}
+.nav-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;padding:0 8px;margin-bottom:6px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:var(--radius-sm);
+  font-size:14px;color:var(--text-2);transition:all .12s;
+  width:100%;text-align:left;
+}
+.nav-item:hover{background:var(--surface-hover);color:var(--text)}
+.nav-item.active{background:var(--accent-light);color:var(--accent);font-weight:600}
+.nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-count{margin-left:auto;font-size:12px;color:var(--text-3);font-weight:400}
+
+.sidebar-footer{
+  margin-top:auto;padding-top:14px;border-top:1px solid var(--border-light);
+  display:flex;align-items:center;gap:6px;
+}
+.view-toggle{display:flex;gap:2px;background:var(--bg);border-radius:var(--radius-sm);padding:3px}
+.view-toggle button{
+  width:32px;height:28px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all .12s;
+}
+.view-toggle button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.view-toggle svg{width:16px;height:16px}
+.settings-btn{
+  width:32px;height:28px;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all .12s;
+}
+.settings-btn:hover{background:var(--surface-hover);color:var(--text)}
+.settings-btn svg{width:16px;height:16px;transition:transform .3s}
+.settings-btn:hover svg{transform:rotate(45deg)}
+
+/* ===== Main Content ===== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.main-header{
+  display:flex;align-items:center;gap:16px;
+  padding:16px 32px;border-bottom:1px solid var(--border);
+  background:var(--bg);position:sticky;top:0;z-index:10;
+}
+.search-bar{
+  flex:1;max-width:420px;display:flex;align-items:center;gap:8px;
+  padding:8px 14px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  transition:border-color .15s;
+}
+.search-bar:focus-within{border-color:var(--accent)}
+.search-bar svg{width:16px;height:16px;color:var(--text-3);flex-shrink:0}
+.search-bar input{flex:1;font-size:14px}
+.search-bar input::placeholder{color:var(--text-3)}
+
+.sort-dropdown{position:relative;flex-shrink:0}
+.sort-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 12px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:13px;color:var(--text-2);transition:all .12s;
+}
+.sort-btn:hover{border-color:var(--accent)}
+.sort-btn svg{width:15px;height:15px}
+.sort-menu{
+  position:absolute;top:calc(100% + 4px);right:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);
+  min-width:160px;padding:4px;z-index:20;
+  opacity:0;pointer-events:none;transform:translateY(-4px);transition:all .15s;
+}
+.sort-menu.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+.sort-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:6px;font-size:13px;
+  color:var(--text-2);transition:all .1s;width:100%;text-align:left;
+}
+.sort-item:hover{background:var(--surface-hover)}
+.sort-item.active{color:var(--accent);font-weight:600}
+.sort-item svg{width:14px;height:14px;opacity:.6}
+.sort-item.active svg{opacity:1}
+
+.main-stats{font-size:13px;color:var(--text-3);margin-left:auto;white-space:nowrap}
+
+/* ===== Notes Grid ===== */
+.notes-area{flex:1;padding:24px 32px 80px;overflow-y:auto}
+.notes-grid{display:grid;gap:16px}
+.notes-grid.grid-view{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.notes-grid.list-view{grid-template-columns:1fr;max-width:720px;margin:0 auto}
+
+/* ===== Note Card ===== */
+.note-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;cursor:pointer;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.note-card:hover{box-shadow:var(--shadow-lg);border-color:var(--text-3);transform:translateY(-1px)}
+.note-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--note-color,var(--accent));
+}
+.note-card.pinned::after{
+  content:'📌';position:absolute;top:8px;right:10px;font-size:13px;
+}
+.note-card-header{display:flex;align-items:start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.note-card.pinned .note-card-header{padding-right:20px}
+.note-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.4;flex:1;word-break:break-word}
+.note-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.note-card:hover .note-actions{opacity:1}
+.note-action-btn{
+  width:28px;height:28px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all .12s;
+}
+.note-action-btn:hover{background:var(--surface-hover);color:var(--text)}
+.note-action-btn.delete:hover{background:var(--danger-light);color:var(--danger)}
+.note-action-btn.pinned{color:var(--accent);opacity:1}
+.note-action-btn svg{width:15px;height:15px}
+
+.note-content{
+  font-size:13px;color:var(--text-2);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;margin-bottom:12px;word-break:break-word;
+}
+.note-content:empty::after{content:'暂无内容';color:var(--text-3)}
+
+.note-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.note-tag{
+  font-size:11px;padding:2px 9px;border-radius:20px;
+  background:var(--tag-bg,var(--accent-light));color:var(--tag-color,var(--accent));
+  font-weight:500;
+}
+.note-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.note-date{font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:4px}
+.note-date svg{width:13px;height:13px}
+.note-due{
+  font-size:11px;padding:2px 8px;border-radius:4px;
+  background:var(--accent-light);color:var(--accent);font-weight:500;
+  display:flex;align-items:center;gap:3px;
+}
+.note-due svg{width:12px;height:12px}
+
+/* List view adjustments */
+.list-view .note-card{display:flex;align-items:center;gap:16px;padding:14px 18px}
+.list-view .note-card::before{width:3px;border-radius:0 3px 3px 0}
+.list-view .note-card-header{margin-bottom:0;flex:1}
+.list-view .note-content{margin-bottom:0;-webkit-line-clamp:1;flex:1}
+.list-view .note-tags{margin-bottom:0}
+.list-view .note-footer{margin-bottom:0;flex-shrink:0}
+
+/* ===== Empty State ===== */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 20px;text-align:center;
+}
+.empty-icon{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--surface);border:2px dashed var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin-bottom:20px;
+}
+.empty-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-desc{font-size:14px;color:var(--text-3);max-width:300px;line-height:1.5}
+
+/* ===== Modal ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.3);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;opacity:0;pointer-events:none;
+  transition:opacity .2s;backdrop-filter:blur(2px);
+}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{
+  background:var(--surface);border-radius:var(--radius);
+  width:100%;max-width:560px;max-height:85vh;
+  display:flex;flex-direction:column;
+  box-shadow:var(--shadow-lg);transform:scale(.96);transition:transform .2s;
+}
+.modal-overlay.show .modal{transform:scale(1)}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;border-bottom:1px solid var(--border-light);
+}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:all .12s;
+}
+.modal-close:hover{background:var(--surface-hover);color:var(--text)}
+.modal-close svg{width:18px;height:18px}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-footer{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:16px 22px;border-top:1px solid var(--border-light);
+}
+
+/* ===== Form Elements ===== */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:6px}
+.form-input,.form-textarea{
+  width:100%;padding:10px 14px;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;transition:border-color .15s;color:var(--text);
+}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent);background:var(--surface)}
+.form-textarea{resize:vertical;min-height:120px;line-height:1.6}
+
+.color-picker{display:flex;flex-wrap:wrap;gap:8px}
+.color-dot{
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:all .15s;position:relative;
+}
+.color-dot:hover{transform:scale(1.1)}
+.color-dot.selected{border-color:var(--surface);box-shadow:0 0 0 2px var(--text-3)}
+.color-dot.selected::after{
+  content:'';position:absolute;inset:0;display:flex;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") center/14px no-repeat;
+}
+
+.btn{
+  padding:9px 18px;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:600;transition:all .15s;
+}
+.btn-secondary{background:var(--bg);color:var(--text-2);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface-hover)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:active{transform:scale(.98)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{opacity:.9}
+
+/* ===== Settings Panel ===== */
+.settings-section{margin-bottom:24px}
+.settings-section:last-child{margin-bottom:0}
+.settings-section-title{
+  font-size:12px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;
+}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.theme-card{
+  border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px;cursor:pointer;transition:all .15s;text-align:center;
+  background:var(--surface);
+}
+.theme-card:hover{border-color:var(--text-3)}
+.theme-card.active{border-color:var(--accent)}
+.theme-preview{
+  width:100%;height:36px;border-radius:6px;margin-bottom:8px;
+  display:flex;overflow:hidden;
+}
+.theme-preview span{flex:1}
+.theme-name{font-size:12px;font-weight:600;color:var(--text)}
+.theme-desc{font-size:11px;color:var(--text-3);margin-top:2px}
+
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--border-light);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:14px;color:var(--text);font-weight:500}
+.setting-desc{font-size:12px;color:var(--text-3);margin-top:2px}
+.setting-control{flex-shrink:0;margin-left:16px}
+
+/* Toggle Switch */
+.toggle{
+  position:relative;width:42px;height:24px;
+  background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:20px;height:20px;border-radius:50%;background:#fff;
+  transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle.on::after{transform:translateX(18px)}
+
+/* Slider */
+.range-input{
+  -webkit-appearance:none;width:120px;height:4px;
+  background:var(--border);border-radius:2px;outline:none;
+}
+.range-input::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--accent);cursor:pointer;
+}
+.range-value{font-size:13px;color:var(--text-2);margin-left:8px;min-width:36px;text-align:right}
+
+/* Stats Grid */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.stat-card{
+  background:var(--bg);border-radius:var(--radius-sm);padding:14px;text-align:center;
+}
+.stat-value{font-size:22px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:12px;color:var(--text-3);margin-top:4px}
+
+/* Data buttons */
+.data-btns{display:flex;flex-direction:column;gap:8px}
+.data-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);font-size:13px;color:var(--text-2);
+  transition:all .12s;width:100%;text-align:left;
+}
+.data-btn:hover{background:var(--surface-hover);border-color:var(--accent)}
+.data-btn svg{width:16px;height:16px;flex-shrink:0;color:var(--accent)}
+.data-btn.danger{color:var(--danger)}
+.data-btn.danger svg{color:var(--danger)}
+.data-btn.danger:hover{border-color:var(--danger);background:var(--danger-light)}
+
+/* ===== Detail Page ===== */
+.detail-back{
+  display:flex;align-items:center;gap:6px;
+  font-size:14px;color:var(--text-3);transition:color .12s;
+  margin-bottom:16px;
+}
+.detail-back:hover{color:var(--accent)}
+.detail-back svg{width:18px;height:18px}
+.detail-header{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.detail-title{font-size:26px;font-weight:700;line-height:1.3;flex:1;word-break:break-word}
+.detail-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.detail-date{font-size:13px;color:var(--text-3);display:flex;align-items:center;gap:5px}
+.detail-date svg{width:14px;height:14px}
+.detail-tags{display:flex;flex-wrap:wrap;gap:6px}
+.detail-content{
+  font-size:15px;line-height:1.8;color:var(--text);
+  max-width:720px;white-space:pre-wrap;word-break:break-word;
+}
+.detail-content:empty::after{content:'这篇笔记还没有内容';color:var(--text-3)}
+.detail-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* ===== Markdown Preview ===== */
+.md-preview h1{font-size:1.6em;font-weight:700;margin:.6em 0 .3em}
+.md-preview h2{font-size:1.35em;font-weight:700;margin:.6em 0 .3em;border-bottom:1px solid var(--border-light);padding-bottom:.2em}
+.md-preview h3{font-size:1.15em;font-weight:600;margin:.5em 0 .2em}
+.md-preview p{margin-bottom:.8em}
+.md-preview ul,.md-preview ol{margin-bottom:.8em;padding-left:1.5em}
+.md-preview li{margin-bottom:.3em}
+.md-preview code{font-family:var(--mono);background:var(--bg);padding:.15em .4em;border-radius:4px;font-size:.9em;color:var(--danger)}
+.md-preview pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;overflow-x:auto;margin-bottom:.8em}
+.md-preview pre code{background:none;padding:0;color:var(--text);font-size:.85em}
+.md-preview blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--text-2);margin-bottom:.8em;font-style:italic}
+.md-preview a{color:var(--accent);text-decoration:underline}
+.md-preview strong{font-weight:700}
+.md-preview table{width:100%;border-collapse:collapse;margin-bottom:.8em;font-size:.9em}
+.md-preview th,.md-preview td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.md-preview th{background:var(--bg);font-weight:600}
+.md-preview hr{border:none;border-top:1px solid var(--border);margin:1.5em 0}
+.md-preview img{max-width:100%;border-radius:var(--radius-sm)}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--text);color:var(--bg);padding:10px 20px;
+  border-radius:var(--radius-sm);font-size:14px;font-weight:500;
+  z-index:200;opacity:0;transition:all .3s;box-shadow:var(--shadow-lg);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main-header{padding:12px 16px;flex-wrap:wrap}
+  .notes-area{padding:16px 16px 80px}
+  .notes-grid.grid-view{grid-template-columns:1fr}
+  .modal{max-width:100%;max-height:90vh}
+  .detail-title{font-size:20px}
+  .theme-grid{grid-template-columns:repeat(2,1fr)}
+  .sort-dropdown{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📝</div>
+      <div>
+        <div class="logo-text">牛马笔记</div>
+        <div class="logo-sub">牛马专属记事本</div>
+      </div>
+    </div>
+    <button class="new-btn" onclick="openEditor()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      新建笔记
+    </button>
+    <div class="nav-section">
+      <div class="nav-label">笔记</div>
+      <button class="nav-item active" data-filter="all" onclick="setFilter('all')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M3 12h18M3 19h18" stroke-linecap="round"/></svg>
+        全部笔记
+        <span class="nav-count" id="count-all">0</span>
+      </button>
+      <button class="nav-item" data-filter="pinned" onclick="setFilter('pinned')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6.5 7 1-5 5 1.5 7L12 18l-6.5 3.5L7 14.5l-5-5 7-1z" stroke-linejoin="round"/></svg>
+        置顶笔记
+        <span class="nav-count" id="count-pinned">0</span>
+      </button>
+      <button class="nav-item" data-filter="starred" onclick="setFilter('starred')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+        有截止日期
+        <span class="nav-count" id="count-starred">0</span>
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">颜色</div>
+      <div id="color-filters" style="display:flex;flex-wrap:wrap;gap:6px;padding:0 4px"></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="view-toggle">
+        <button id="view-grid" class="active" onclick="setViewMode('grid')" title="网格视图">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <button id="view-list" onclick="setViewMode('list')" title="列表视图">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <button class="settings-btn" onclick="openSettings()" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="main-header">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+        <input type="text" id="search" placeholder="搜索笔记..." oninput="render()">
+      </div>
+      <div class="sort-dropdown">
+        <button class="sort-btn" onclick="toggleSortMenu()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M10 18h4" stroke-linecap="round"/></svg>
+          <span id="sort-label">更新时间</span>
+        </button>
+        <div class="sort-menu" id="sort-menu">
+          <button class="sort-item active" data-sort="updated" onclick="setSort('updated','更新时间')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" stroke-linejoin="round"/></svg>
+            更新时间
+          </button>
+          <button class="sort-item" data-sort="created" onclick="setSort('created','创建时间')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" stroke-linejoin="round"/></svg>
+            创建时间
+          </button>
+          <button class="sort-item" data-sort="title" onclick="setSort('title','标题')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" stroke-linejoin="round"/></svg>
+            标题字母
+          </button>
+        </div>
+      </div>
+      <div class="main-stats" id="stats"></div>
+    </div>
+    <div class="notes-area" id="notes-area"></div>
+  </main>
+</div>
+
+<!-- Editor Modal -->
+<div class="modal-overlay" id="editor-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="editor-title">新建笔记</div>
+      <button class="modal-close" onclick="closeEditor()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">标题</label>
+        <input type="text" class="form-input" id="edit-title" placeholder="输入笔记标题...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">内容（支持 Markdown）</label>
+        <textarea class="form-textarea" id="edit-content" placeholder="开始写下你的想法..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">标签（逗号分隔）</label>
+        <input type="text" class="form-input" id="edit-tags" placeholder="工作, 学习, 灵感...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">颜色标签</label>
+        <div class="color-picker" id="color-picker"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">截止日期（可选）</label>
+        <input type="date" class="form-input" id="edit-due" style="max-width:220px">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditor()">取消</button>
+      <button class="btn btn-primary" onclick="saveNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">设置</div>
+      <button class="modal-close" onclick="closeSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!-- Theme -->
+      <div class="settings-section">
+        <div class="settings-section-title">皮肤主题</div>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-section">
+        <div class="settings-section-title">外观</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">字体大小</div>
+            <div class="setting-desc">调整全局文字大小</div>
+          </div>
+          <div class="setting-control" style="display:flex;align-items:center">
+            <input type="range" class="range-input" id="font-scale" min="85" max="125" step="5" value="100" oninput="setFontScale(this.value)">
+            <span class="range-value" id="font-scale-value">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="settings-section">
+        <div class="settings-section-title">数据统计</div>
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+
+      <!-- Data -->
+      <div class="settings-section">
+        <div class="settings-section-title">数据管理</div>
+        <div class="data-btns">
+          <button class="data-btn" onclick="exportData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            导出全部笔记（JSON）
+          </button>
+          <button class="data-btn" onclick="document.getElementById('import-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            导入笔记（JSON）
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="data-btn danger" onclick="clearAllData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            清空全部数据
+          </button>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-section">
+        <div class="settings-section-title">关于</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.6">
+          牛马笔记 v2.0 — 牛马专属记事本<br>
+          数据存储在浏览器本地，不会上传服务器<br>
+          快捷键：Ctrl+N 新建 / Esc 关闭弹窗
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== Data Layer ===== */
+const STORAGE_KEY = 'cyber-notes-storage';
+const SETTINGS_KEY = 'notenb-settings';
+const COLORS = {
+  pink:{hex:'#ec4899',light:'#fdf2f8'},
+  blue:{hex:'#06b6d4',light:'#ecfeff'},
+  green:{hex:'#22c55e',light:'#f0fdf4'},
+  orange:{hex:'#f97316',light:'#fff7ed'},
+  purple:{hex:'#a855f7',light:'#faf5ff'},
+  red:{hex:'#ef4444',light:'#fef2f2'},
+  yellow:{hex:'#eab308',light:'#fefce8'},
+  indigo:{hex:'#6366f1',light:'#eef2ff'},
+  teal:{hex:'#14b8a6',light:'#f0fdfa'},
+  rose:{hex:'#f43f5e',light:'#fff1f2'},
+  amber:{hex:'#f59e0b',light:'#fffbeb'},
+  cyan:{hex:'#22d3ee',light:'#ecfeff'},
+  lime:{hex:'#84cc16',light:'#f7fee7'},
+  emerald:{hex:'#10b981',light:'#ecfdf5'},
+  violet:{hex:'#8b5cf6',light:'#f5f3ff'},
+  fuchsia:{hex:'#d946ef',light:'#fdf4ff'},
+  slate:{hex:'#64748b',light:'#f8fafc'}
+};
+
+const THEMES = [
+  {id:'default',name:'暖橙',desc:'温暖纸质感',accent:'#e8833a',bg:'#f7f6f3',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'ocean',name:'海洋',desc:'清爽蓝调',accent:'#0ea5e9',bg:'#f0f7fa',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'forest',name:'森林',desc:'自然绿意',accent:'#16a34a',bg:'#f4f8f5',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'grape',name:'葡萄',desc:'优雅紫调',accent:'#8b5cf6',bg:'#f7f5fa',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'rose',name:'玫瑰',desc:'浪漫粉红',accent:'#f43f5e',bg:'#faf5f6',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'indigo',name:'靛蓝',desc:'沉稳蓝紫',accent:'#6366f1',bg:'#f5f6fa',surface:'#ffffff',text:'#1a1a1a',dark:false},
+  {id:'dark',name:'墨黑',desc:'暗黑橙调',accent:'#e8833a',bg:'#1a1a1a',surface:'#262626',text:'#e8e8e8',dark:true},
+  {id:'dark-ocean',name:'深海',desc:'暗黑蓝调',accent:'#0ea5e9',bg:'#0f172a',surface:'#1e293b',text:'#e2e8f0',dark:true},
+];
+
+let state = {notes:[], searchQuery:'', viewMode:'grid', filter:'all', colorFilter:null, sortBy:'updated'};
+let settings = {theme:'default', fontScale:100};
+let editingId = null;
+let selectedColor = 'pink';
+let currentNoteId = null;
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const s = parsed.state || parsed;
+      state.notes = s.notes || [];
+      state.viewMode = s.viewMode || 'grid';
+    }
+  }catch(e){console.warn('Failed to load state',e)}
+  try{
+    const rawS = localStorage.getItem(SETTINGS_KEY);
+    if(rawS) settings = {...settings, ...JSON.parse(rawS)};
+  }catch(e){}
+}
+
+function saveState(){
+  const data = {state:{notes:state.notes, currentTheme:settings.theme, searchQuery:state.searchQuery, viewMode:state.viewMode}, version:0};
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+/* ===== Theme ===== */
+function applyTheme(themeId){
+  document.body.setAttribute('data-theme', themeId);
+  settings.theme = themeId;
+  saveSettings();
+  // update theme grid active state
+  document.querySelectorAll('.theme-card').forEach(c=>{
+    c.classList.toggle('active', c.dataset.theme===themeId);
+  });
+}
+
+/* ===== Utils ===== */
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if(diff < 60000) return '刚刚';
+  if(diff < 3600000) return Math.floor(diff/60000) + '分钟前';
+  if(diff < 86400000) return Math.floor(diff/3600000) + '小时前';
+  if(diff < 604800000) return Math.floor(diff/86400000) + '天前';
+  return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function fmtFullDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function escapeHtml(s){
+  const div = document.createElement('div');
+  div.textContent = s || '';
+  return div.innerHTML;
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function renderMarkdown(text){
+  if(!text) return '';
+  let html = escapeHtml(text);
+  html = html.replace(/```([\s\S]*?)```/g, (m,c)=>`<pre><code>${c.trim()}</code></pre>`);
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/^---$/gm, '<hr>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  html = html.split(/\n\n+/).map(p=>{
+    if(p.startsWith('<') && p.endsWith('>')) return p;
+    return '<p>' + p.replace(/\n/g,'<br>') + '</p>';
+  }).join('');
+  return html;
+}
+
+/* ===== Rendering ===== */
+function getFilteredNotes(){
+  let notes = [...state.notes];
+  const q = document.getElementById('search')?.value.toLowerCase() || '';
+  if(q){
+    notes = notes.filter(n=>
+      (n.title||'').toLowerCase().includes(q) ||
+      (n.content||'').toLowerCase().includes(q) ||
+      (n.tags||[]).some(t=>t.toLowerCase().includes(q))
+    );
+  }
+  if(state.filter === 'starred'){
+    notes = notes.filter(n=>n.dueDate);
+  }
+  if(state.filter === 'pinned'){
+    notes = notes.filter(n=>n.pinned);
+  }
+  if(state.colorFilter){
+    notes = notes.filter(n=>(n.color||'pink')===state.colorFilter);
+  }
+  // sort: pinned first, then by sortBy
+  notes.sort((a,b)=>{
+    if(a.pinned && !b.pinned) return -1;
+    if(!a.pinned && b.pinned) return 1;
+    if(state.sortBy==='title') return (a.title||'').localeCompare(b.title||'');
+    if(state.sortBy==='created') return new Date(b.createdAt)-new Date(a.createdAt);
+    return new Date(b.updatedAt)-new Date(a.updatedAt);
+  });
+  return notes;
+}
+
+function render(){
+  if(currentNoteId){
+    renderDetail();
+    return;
+  }
+  const area = document.getElementById('notes-area');
+  const notes = getFilteredNotes();
+
+  document.getElementById('count-all').textContent = state.notes.length;
+  document.getElementById('count-pinned').textContent = state.notes.filter(n=>n.pinned).length;
+  document.getElementById('count-starred').textContent = state.notes.filter(n=>n.dueDate).length;
+  document.getElementById('stats').textContent = `${notes.length} 篇笔记`;
+
+  if(notes.length === 0){
+    area.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">${state.notes.length === 0 ? '还没有笔记' : '没有找到匹配的笔记'}</div>
+        <div class="empty-desc">${state.notes.length === 0 ? '点击"新建笔记"开始记录你的想法' : '试试调整搜索关键词或筛选条件'}</div>
+      </div>`;
+    return;
+  }
+
+  const viewClass = state.viewMode === 'grid' ? 'grid-view' : 'list-view';
+  area.innerHTML = `<div class="notes-grid ${viewClass}">${notes.map(n=>renderCard(n)).join('')}</div>`;
+}
+
+function renderCard(n){
+  const color = COLORS[n.color||'pink'] || COLORS.pink;
+  const tags = (n.tags||[]).map(t=>{
+    return `<span class="note-tag" style="--tag-bg:${color.light};--tag-color:${color.hex}">${escapeHtml(t)}</span>`;
+  }).join('');
+  const due = n.dueDate ? `<span class="note-due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>${fmtDate(n.dueDate)}</span>` : '';
+  const content = state.viewMode === 'list' ? escapeHtml((n.content||'').substring(0,100)) : escapeHtml(n.content||'');
+
+  return `
+    <div class="note-card ${n.pinned?'pinned':''}" style="--note-color:${color.hex}" onclick="openDetail('${n.id}')">
+      <div class="note-card-header">
+        <div class="note-title">${escapeHtml(n.title||'无标题')}</div>
+        <div class="note-actions" onclick="event.stopPropagation()">
+          <button class="note-action-btn ${n.pinned?'pinned':''}" onclick="togglePin('${n.id}')" title="${n.pinned?'取消置顶':'置顶'}">
+            <svg viewBox="0 0 24 24" fill="${n.pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6.5 7 1-5 5 1.5 7L12 18l-6.5 3.5L7 14.5l-5-5 7-1z" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="note-action-btn" onclick="openEditor('${n.id}')" title="编辑">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="note-action-btn delete" onclick="deleteNote('${n.id}')" title="删除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      ${tags ? `<div class="note-tags">${tags}</div>` : ''}
+      <div class="note-content">${content}</div>
+      <div class="note-footer">
+        <span class="note-date">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+          ${fmtDate(n.updatedAt)}
+        </span>
+        ${due}
+      </div>
+    </div>`;
+}
+
+function renderDetail(){
+  const n = state.notes.find(x=>x.id===currentNoteId);
+  if(!n){currentNoteId=null;render();return}
+  const color = COLORS[n.color||'pink'] || COLORS.pink;
+  const tags = (n.tags||[]).map(t=>`<span class="note-tag" style="--tag-bg:${color.light};--tag-color:${color.hex}">${escapeHtml(t)}</span>`).join('');
+  const area = document.getElementById('notes-area');
+
+  area.innerHTML = `
+    <div style="max-width:720px;margin:0 auto">
+      <button class="detail-back" onclick="closeDetail()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        返回全部笔记
+      </button>
+      <div class="detail-header">
+        <h1 class="detail-title" style="border-left:4px solid ${color.hex};padding-left:14px">${escapeHtml(n.title||'无标题')}</h1>
+        <div class="detail-actions">
+          <button class="btn btn-secondary" onclick="togglePin('${n.id}');renderDetail()">${n.pinned?'取消置顶':'置顶'}</button>
+          <button class="btn btn-secondary" onclick="openEditor('${n.id}')">编辑</button>
+          <button class="btn btn-secondary" style="color:var(--danger)" onclick="deleteNote('${n.id}')">删除</button>
+        </div>
+      </div>
+      <div class="detail-meta">
+        <span class="detail-date">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+          创建于 ${fmtFullDate(n.createdAt)} · 更新于 ${fmtFullDate(n.updatedAt)}
+        </span>
+        ${n.dueDate ? `<span class="note-due"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>截止: ${fmtDate(n.dueDate)}</span>` : ''}
+      </div>
+      ${tags ? `<div class="detail-tags" style="margin-bottom:24px">${tags}</div>` : ''}
+      <div class="detail-content md-preview">${renderMarkdown(n.content||'')}</div>
+    </div>`;
+}
+
+/* ===== Actions ===== */
+function openEditor(id){
+  editingId = id || null;
+  const modal = document.getElementById('editor-modal');
+  document.getElementById('editor-title').textContent = id ? '编辑笔记' : '新建笔记';
+
+  const picker = document.getElementById('color-picker');
+  picker.innerHTML = Object.entries(COLORS).map(([k,v])=>
+    `<div class="color-dot ${k==='pink'?'selected':''}" style="background:${v.hex}" data-color="${k}" onclick="selectColor('${k}')"></div>`
+  ).join('');
+
+  if(id){
+    const n = state.notes.find(x=>x.id===id);
+    if(n){
+      document.getElementById('edit-title').value = n.title || '';
+      document.getElementById('edit-content').value = n.content || '';
+      document.getElementById('edit-tags').value = (n.tags||[]).join(', ');
+      document.getElementById('edit-due').value = n.dueDate ? n.dueDate.substring(0,10) : '';
+      selectedColor = n.color || 'pink';
+      picker.querySelectorAll('.color-dot').forEach(d=>{
+        d.classList.toggle('selected', d.dataset.color === selectedColor);
+      });
+    }
+  } else {
+    document.getElementById('edit-title').value = '';
+    document.getElementById('edit-content').value = '';
+    document.getElementById('edit-tags').value = '';
+    document.getElementById('edit-due').value = '';
+    selectedColor = 'pink';
+  }
+
+  modal.classList.add('show');
+  setTimeout(()=>document.getElementById('edit-title').focus(), 100);
+}
+
+function closeEditor(){
+  document.getElementById('editor-modal').classList.remove('show');
+  editingId = null;
+}
+
+function selectColor(c){
+  selectedColor = c;
+  document.querySelectorAll('#color-picker .color-dot').forEach(d=>{
+    d.classList.toggle('selected', d.dataset.color === c);
+  });
+}
+
+function saveNote(){
+  const title = document.getElementById('edit-title').value.trim();
+  const content = document.getElementById('edit-content').value.trim();
+  const tags = document.getElementById('edit-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const dueDate = document.getElementById('edit-due').value || null;
+
+  if(!title && !content){
+    showToast('请输入标题或内容');
+    return;
+  }
+
+  const now = new Date().toISOString();
+  if(editingId){
+    const idx = state.notes.findIndex(n=>n.id===editingId);
+    if(idx>=0){
+      state.notes[idx] = {...state.notes[idx], title, content, tags, color:selectedColor, dueDate, updatedAt:now};
+    }
+  } else {
+    state.notes.unshift({id:Date.now().toString(), title, content, tags, color:selectedColor, dueDate, pinned:false, createdAt:now, updatedAt:now});
+  }
+  saveState();
+  closeEditor();
+  render();
+  showToast(editingId ? '笔记已更新' : '笔记已创建');
+}
+
+function deleteNote(id){
+  if(!confirm('确定删除这篇笔记吗？')) return;
+  state.notes = state.notes.filter(n=>n.id!==id);
+  saveState();
+  if(currentNoteId===id) currentNoteId=null;
+  render();
+  showToast('笔记已删除');
+}
+
+function togglePin(id){
+  const n = state.notes.find(x=>x.id===id);
+  if(n){
+    n.pinned = !n.pinned;
+    saveState();
+    render();
+    showToast(n.pinned ? '已置顶' : '已取消置顶');
+  }
+}
+
+function openDetail(id){
+  currentNoteId = id;
+  render();
+}
+
+function closeDetail(){
+  currentNoteId = null;
+  render();
+}
+
+function setFilter(f){
+  state.filter = f;
+  state.colorFilter = null;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`[data-filter="${f}"]`)?.classList.add('active');
+  document.querySelectorAll('#color-filters .color-dot').forEach(d=>d.classList.remove('selected'));
+  render();
+}
+
+function setColorFilter(c){
+  if(state.colorFilter===c){
+    state.colorFilter=null;
+    setFilter('all');
+    return;
+  }
+  state.colorFilter=c;
+  state.filter='all';
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector('[data-filter="all"]')?.classList.add('active');
+  document.querySelectorAll('#color-filters .color-dot').forEach(d=>{
+    d.classList.toggle('selected', d.dataset.color===c);
+  });
+  render();
+}
+
+function setViewMode(m){
+  state.viewMode=m;
+  document.getElementById('view-grid').classList.toggle('active', m==='grid');
+  document.getElementById('view-list').classList.toggle('active', m==='list');
+  saveState();
+  render();
+}
+
+/* ===== Sort ===== */
+function toggleSortMenu(){
+  document.getElementById('sort-menu').classList.toggle('show');
+}
+
+function setSort(key, label){
+  state.sortBy = key;
+  document.getElementById('sort-label').textContent = label;
+  document.querySelectorAll('.sort-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.sort-item[data-sort="${key}"]`)?.classList.add('active');
+  document.getElementById('sort-menu').classList.remove('show');
+  render();
+}
+
+/* ===== Settings ===== */
+function openSettings(){
+  renderThemeGrid();
+  renderStats();
+  document.getElementById('font-scale').value = settings.fontScale;
+  document.getElementById('font-scale-value').textContent = settings.fontScale + '%';
+  document.getElementById('settings-modal').classList.add('show');
+}
+
+function closeSettings(){
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+function renderThemeGrid(){
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = THEMES.map(t=>{
+    const bgStyle = t.dark ? `background:${t.bg}` : `background:${t.bg}`;
+    return `
+      <div class="theme-card ${settings.theme===t.id?'active':''}" data-theme="${t.id}" onclick="applyTheme('${t.id}')">
+        <div class="theme-preview">
+          <span style="${bgStyle}"></span>
+          <span style="background:${t.surface}"></span>
+          <span style="background:${t.accent}"></span>
+        </div>
+        <div class="theme-name">${t.name}</div>
+        <div class="theme-desc">${t.desc}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderStats(){
+  const grid = document.getElementById('stats-grid');
+  const totalNotes = state.notes.length;
+  const totalTags = new Set(state.notes.flatMap(n=>n.tags||[])).size;
+  const pinnedCount = state.notes.filter(n=>n.pinned).length;
+  const dueCount = state.notes.filter(n=>n.dueDate).length;
+  const totalChars = state.notes.reduce((s,n)=>s + (n.content||'').length + (n.title||'').length, 0);
+
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-value">${totalNotes}</div><div class="stat-label">总笔记数</div></div>
+    <div class="stat-card"><div class="stat-value">${totalTags}</div><div class="stat-label">不同标签</div></div>
+    <div class="stat-card"><div class="stat-value">${pinnedCount}</div><div class="stat-label">置顶笔记</div></div>
+    <div class="stat-card"><div class="stat-value">${totalChars}</div><div class="stat-label">总字数</div></div>`;
+}
+
+function setFontScale(val){
+  settings.fontScale = parseInt(val);
+  document.documentElement.style.setProperty('--font-scale', settings.fontScale/100);
+  document.getElementById('font-scale-value').textContent = settings.fontScale + '%';
+  saveSettings();
+}
+
+/* ===== Data Import/Export ===== */
+function exportData(){
+  const data = {
+    app: '牛马笔记',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    notes: state.notes
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `notenb-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`已导出 ${state.notes.length} 篇笔记`);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      const imported = data.notes || data.state?.notes || [];
+      if(!Array.isArray(imported)) throw new Error('Invalid format');
+      let count = 0;
+      imported.forEach(n=>{
+        if(!state.notes.find(x=>x.id===n.id)){
+          state.notes.push({...n, pinned: n.pinned||false});
+          count++;
+        }
+      });
+      saveState();
+      render();
+      renderStats();
+      showToast(`成功导入 ${count} 篇笔记`);
+    }catch(err){
+      showToast('导入失败：文件格式不正确');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData(){
+  if(!confirm(`确定清空全部 ${state.notes.length} 篇笔记吗？此操作不可恢复！`)) return;
+  if(!confirm('再次确认：真的要删除所有数据吗？')) return;
+  state.notes = [];
+  saveState();
+  render();
+  renderStats();
+  showToast('全部数据已清空');
+}
+
+/* ===== Init ===== */
+function initColorFilters(){
+  const el = document.getElementById('color-filters');
+  el.innerHTML = Object.entries(COLORS).map(([k,v])=>
+    `<div class="color-dot" style="background:${v.hex};width:22px;height:22px" data-color="${k}" onclick="setColorFilter('${k}')" title="${k}"></div>`
+  ).join('');
+}
+
+// keyboard shortcuts
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('settings-modal').classList.contains('show')) closeSettings();
+    else if(document.getElementById('editor-modal').classList.contains('show')) closeEditor();
+    else if(currentNoteId) closeDetail();
+    document.getElementById('sort-menu')?.classList.remove('show');
+  }
+  if((e.metaKey||e.ctrlKey) && e.key==='n'){
+    e.preventDefault();
+    openEditor();
+  }
+  if((e.metaKey||e.ctrlKey) && e.key===','){
+    e.preventDefault();
+    openSettings();
+  }
+});
+
+// close modals on overlay click
+document.getElementById('editor-modal').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeEditor();
+});
+document.getElementById('settings-modal').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeSettings();
+});
+
+// close sort menu on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.sort-dropdown')){
+    document.getElementById('sort-menu')?.classList.remove('show');
+  }
+});
+
+// init
+loadState();
+applyTheme(settings.theme);
+document.documentElement.style.setProperty('--font-scale', settings.fontScale/100);
+initColorFilters();
+render();
+</script>
+<script src="/static/js/components.js"></script>
+</body>
 </html>

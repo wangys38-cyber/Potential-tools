@@ -1,0 +1,543 @@
+/* ============================================================
+   牛马笔记 - 微软 Fluent Design 风格覆盖
+   将赛博朋克霓虹主题改造为 Microsoft Fluent Design
+   ============================================================ */
+
+/* === 基础重置：背景、字体、文字颜色 === */
+body {
+  background-color: #faf9f8 !important;
+  color: #201F1E !important;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    "Noto Sans CJK SC", "Microsoft YaHei", sans-serif !important;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: #faf9f8 !important;
+}
+
+/* React 主容器：覆盖内联黑色背景 */
+.min-h-screen {
+  background-color: #faf9f8 !important;
+  min-height: 100vh;
+}
+
+/* Header 渐变覆盖 */
+.relative.z-10.py-4,
+header.relative.z-10 {
+  background-image: none !important;
+  background-color: transparent !important;
+  border-bottom: 1px solid #edebe9;
+}
+
+/* 所有带渐变背景的按钮覆盖 */
+button[class*="font-orbitron"][class*="text-black"],
+button.w-full.py-3.rounded-xl,
+button.w-16.h-16.rounded-full,
+button.w-14.h-14.rounded-full,
+button.fixed.bottom-24.right-8 {
+  background-image: none !important;
+}
+
+/* 装饰性模糊背景层移除 */
+.absolute.inset-0.rounded-2xl.blur-md.opacity-40 {
+  display: none !important;
+}
+
+/* === 字体覆盖：移除 Orbitron / Rajdhani === */
+.font-orbitron,
+.font-rajdhani {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    "Noto Sans CJK SC", "Microsoft YaHei", sans-serif !important;
+  letter-spacing: normal !important;
+}
+
+/* === 滚动条：Fluent 风格 === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f3f2f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c8c6c4 !important;
+  border-radius: 4px !important;
+  border: 2px solid #f3f2f1 !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a19f9d !important;
+}
+
+/* === 移除所有霓虹动画效果 === */
+.neon-text,
+.neon-border,
+.neon-border::before,
+.card-hover-glow,
+.card-hover-glow:hover,
+.glass-effect,
+.border-flow,
+.shimmer,
+.pulse-glow,
+.float-gentle,
+.rotate-slow {
+  animation: none !important;
+  background: none !important;
+  border: 1px solid #edebe9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+}
+
+.neon-border::before {
+  display: none !important;
+}
+
+/* === 文字颜色覆盖 === */
+.text-white {
+  color: #201F1E !important;
+}
+.text-gray-300 {
+  color: #605E5C !important;
+}
+.text-gray-400 {
+  color: #605E5C !important;
+}
+.text-gray-500 {
+  color: #8A8886 !important;
+}
+.text-gray-600 {
+  color: #8A8886 !important;
+}
+.text-green-400,
+.text-green-400\/80 {
+  color: #107C10 !important;
+}
+.text-red-400 {
+  color: #D13438 !important;
+}
+.text-black {
+  color: #ffffff !important;
+}
+
+/* === 背景颜色覆盖 === */
+.bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+.bg-gray-900\/80,
+.bg-gray-900\/95 {
+  background-color: #ffffff !important;
+}
+.bg-gray-800\/30,
+.bg-gray-800\/50 {
+  background-color: #f5f5f5 !important;
+}
+.bg-white\/10,
+.bg-white\/5 {
+  background-color: #f3f2f1 !important;
+}
+.bg-transparent {
+  background-color: transparent !important;
+}
+
+/* === 主按钮：Fluent Primary Button === */
+.font-orbitron.font-bold.text-black,
+.font-orbitron.text-2xl.font-bold + * .font-orbitron.font-bold.text-black {
+  background-color: #0078D4 !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+.font-orbitron.font-bold.text-black:hover {
+  background-color: #106EBE !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.font-orbitron.font-bold.text-black:active {
+  background-color: #005A9E !important;
+  transform: none !important;
+}
+
+/* === 次级按钮：Fluent Secondary Button === */
+.bg-gray-800\/50.rounded-lg.border,
+.bg-gray-800\/50.rounded-xl.border,
+.bg-gray-800\/50.rounded-lg {
+  background-color: #ffffff !important;
+  border-color: #d2d0ce !important;
+  color: #201F1E !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.bg-gray-800\/50.rounded-lg.border:hover,
+.bg-gray-800\/50.rounded-xl.border:hover,
+.bg-gray-800\/50.rounded-lg:hover {
+  background-color: #f3f2f1 !important;
+  border-color: #0078D4 !important;
+}
+
+/* === 悬停效果覆盖 === */
+.hover\:bg-gray-700\/50:hover {
+  background-color: #f3f2f1 !important;
+}
+.hover\:bg-white\/10:hover,
+.hover\:bg-white\/5:hover {
+  background-color: #f3f2f1 !important;
+}
+.hover\:text-gray-200:hover,
+.hover\:text-gray-300:hover,
+.hover\:text-white:hover {
+  color: #201F1E !important;
+}
+.hover\:text-red-400:hover {
+  color: #D13438 !important;
+}
+.hover\:scale-105:hover,
+.hover\:scale-110:hover,
+.hover\:scale-\[1\.02\]:hover,
+.hover\:-translate-y-0\.5:hover {
+  transform: none !important;
+}
+.active\:scale-95:active,
+.active\:scale-\[0\.98\]:active {
+  transform: none !important;
+}
+
+/* === 卡片：Fluent Card 风格 === */
+.backdrop-blur-xl,
+.backdrop-blur-md,
+.backdrop-blur-sm {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: #ffffff !important;
+  border: 1px solid #edebe9 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 0 2px rgba(0,0,0,0.04) !important;
+}
+
+/* === 边框颜色覆盖 === */
+.border-gray-700\/50,
+.border-gray-800 {
+  border-color: #edebe9 !important;
+}
+
+/* === 输入框：Fluent TextField === */
+.bg-gray-800\/50.rounded-lg.border.text-white,
+.flex-1.px-4.py-2.bg-gray-800\/50 {
+  background-color: #ffffff !important;
+  border: 1px solid #d2d0ce !important;
+  color: #201F1E !important;
+  border-radius: 4px !important;
+}
+.flex-1.px-4.py-2.bg-gray-800\/50::placeholder,
+.placeholder-gray-500::placeholder,
+.placeholder-gray-500::-moz-placeholder {
+  color: #A19F9D !important;
+}
+.flex-1.px-4.py-2.bg-gray-800\/50:focus {
+  border-color: #0078D4 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* === 搜索框图标 === */
+.text-gray-400.hover\:text-white {
+  color: #605E5C !important;
+}
+.text-gray-400.hover\:text-white:hover {
+  color: #0078D4 !important;
+  background-color: #f3f2f1 !important;
+}
+
+/* === 绿色/红色操作按钮 === */
+.bg-green-500\/20,
+.bg-green-500\/20.fade-in-scale {
+  background-color: #DFF6DD !important;
+  border-color: #107C10 !important;
+  color: #107C10 !important;
+  border-radius: 4px !important;
+}
+.bg-green-500\/20:hover,
+.hover\:bg-green-500\/30:hover {
+  background-color: #C6EFC4 !important;
+}
+.bg-red-500\/20 {
+  background-color: #FDE7E9 !important;
+  border-color: #D13438 !important;
+  color: #D13438 !important;
+  border-radius: 4px !important;
+}
+.bg-red-500\/20:hover,
+.hover\:bg-red-500\/20:hover,
+.hover\:bg-red-500\/30:hover {
+  background-color: #F5D5D8 !important;
+}
+
+/* === 标签颜色：Fluent 柔和色 === */
+.bg-amber-500\/10 { background-color: #FFF4CE !important; }
+.border-amber-500 { border-color: #F7D060 !important; }
+
+.bg-cyan-400\/10, .bg-cyan-500\/10 { background-color: #C7EDF8 !important; }
+.border-cyan-400, .border-cyan-500 { border-color: #4FB8E0 !important; }
+
+.bg-emerald-500\/10 { background-color: #DFF6DD !important; }
+.border-emerald-500 { border-color: #107C10 !important; }
+
+.bg-fuchsia-500\/10 { background-color: #F5D9F7 !important; }
+.border-fuchsia-500 { border-color: #B83798 !important; }
+
+.bg-gray-500\/10 { background-color: #F3F2F1 !important; }
+.border-gray-500 { border-color: #A19F9D !important; }
+
+.bg-green-500\/10 { background-color: #DFF6DD !important; }
+.border-green-500, .border-green-500\/50 { border-color: #107C10 !important; }
+
+.bg-indigo-500\/10 { background-color: #DCE5F9 !important; }
+.border-indigo-500 { border-color: #4A5BD4 !important; }
+
+.bg-lime-500\/10 { background-color: #EAF7C7 !important; }
+.border-lime-500 { border-color: #8BBF26 !important; }
+
+.bg-orange-500\/10 { background-color: #FDE0C5 !important; }
+.border-orange-500 { border-color: #E8732A !important; }
+
+.bg-pink-500\/10 { background-color: #FADBE5 !important; }
+.border-pink-500 { border-color: #E04B86 !important; }
+
+.bg-purple-500\/10 { background-color: #EAD9F7 !important; }
+.border-purple-500 { border-color: #8B5CD0 !important; }
+
+.bg-red-500\/10 { background-color: #FDE7E9 !important; }
+.border-red-500, .border-red-500\/50 { border-color: #D13438 !important; }
+
+.bg-rose-500\/10 { background-color: #FADBE3 !important; }
+.border-rose-500 { border-color: #D45070 !important; }
+
+.bg-slate-500\/10 { background-color: #E6EAEE !important; }
+.border-slate-500 { border-color: #6B7A8E !important; }
+
+.bg-teal-500\/10 { background-color: #C7EDE9 !important; }
+.border-teal-500 { border-color: #18A997 !important; }
+
+.bg-violet-500\/10 { background-color: #E2D5F7 !important; }
+.border-violet-500 { border-color: #7B4FE0 !important; }
+
+.bg-yellow-500\/10 { background-color: #FFF4CE !important; }
+.border-yellow-500 { border-color: #F3C623 !important; }
+
+/* === 模态遮罩 === */
+.bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+}
+
+/* === 模态框卡片 === */
+.fixed.inset-0.z-50 .backdrop-blur-xl {
+  background-color: #ffffff !important;
+  border: 1px solid #edebe9 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6.4px 14.4px rgba(0,0,0,0.12), 0 1.2px 3.6px rgba(0,0,0,0.08) !important;
+}
+
+/* === 进度条 === */
+.bg-green-500\/20,
+.h-1.bg-green-500\/20 {
+  background-color: #0078D4 !important;
+}
+
+/* === Markdown 预览：Fluent 浅色 === */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview strong {
+  color: #201F1E !important;
+}
+.markdown-preview h2 {
+  border-bottom: 1px solid #edebe9 !important;
+}
+.markdown-preview p,
+.markdown-preview li {
+  color: #323130 !important;
+}
+.markdown-preview em {
+  color: #605E5C !important;
+}
+.markdown-preview del {
+  color: #A19F9D !important;
+}
+.markdown-preview code {
+  background: #f3f2f1 !important;
+  color: #D13438 !important;
+  border-radius: 3px !important;
+}
+.markdown-preview pre {
+  background: #f5f5f5 !important;
+  border: 1px solid #edebe9 !important;
+  border-radius: 4px !important;
+}
+.markdown-preview pre code {
+  color: #201F1E !important;
+}
+.markdown-preview blockquote {
+  border-left: 4px solid #0078D4 !important;
+  color: #605E5C !important;
+}
+.markdown-preview a {
+  color: #0078D4 !important;
+}
+.markdown-preview table th {
+  background: #f3f2f1 !important;
+  color: #201F1E !important;
+}
+.markdown-preview table th,
+.markdown-preview table td {
+  border: 1px solid #edebe9 !important;
+}
+.markdown-preview hr {
+  border-top: 1px solid #edebe9 !important;
+}
+
+/* === 卡片预览 / 列表预览 === */
+.card-preview strong,
+.list-preview strong {
+  color: #201F1E !important;
+}
+.card-preview em,
+.list-preview em {
+  color: #605E5C !important;
+}
+.card-preview del,
+.list-preview del {
+  color: #A19F9D !important;
+}
+.card-preview code,
+.list-preview code {
+  background: #f3f2f1 !important;
+  color: #D13438 !important;
+  border-radius: 3px !important;
+}
+
+/* === 底部导航栏 === */
+.fixed.bottom-0.left-0.right-0.lg\:hidden.z-50 {
+  background-color: #ffffff !important;
+  border-top: 1px solid #edebe9 !important;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.04) !important;
+}
+
+/* === 浮动添加按钮 (FAB) === */
+.fixed.bottom-8.right-8.z-50,
+.fixed.bottom-20.right-4.z-50,
+.fixed.bottom-24.right-4.z-50 {
+  background-color: #0078D4 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+  color: #ffffff !important;
+}
+.fixed.bottom-8.right-8.z-50:hover,
+.fixed.bottom-20.right-4.z-50:hover,
+.fixed.bottom-24.right-4.z-50:hover {
+  background-color: #106EBE !important;
+  transform: none !important;
+}
+
+/* === 标题区域 === */
+.font-orbitron.text-4xl.font-bold {
+  color: #201F1E !important;
+  font-size: 2rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.5px !important;
+}
+.font-orbitron.text-2xl.font-bold,
+.font-orbitron.text-xl.font-bold,
+.font-orbitron.text-lg.font-bold,
+.font-orbitron.text-base.font-bold {
+  color: #201F1E !important;
+  font-weight: 600 !important;
+}
+
+/* === 空状态文字 === */
+.font-orbitron.text-xl.font-bold.text-gray-400 {
+  color: #605E5C !important;
+  font-weight: 400 !important;
+}
+
+/* === 进度条容器 === */
+.flex-1.h-3.rounded-full {
+  background-color: #edebe9 !important;
+  border-radius: 999px !important;
+}
+
+/* === 渐变模糊背景移除 === */
+.absolute.inset-0.rounded-2xl.blur-md {
+  display: none !important;
+}
+
+/* === 移除标题文字阴影（霓虹残留） === */
+h1, h2, h3, h4, h5, h6,
+.font-orbitron {
+  text-shadow: none !important;
+}
+
+/* === 所有文字阴影移除 === */
+* {
+  text-shadow: none !important;
+}
+
+/* === 动画过渡 === */
+.fade-in-scale,
+.slide-up {
+  animation: ms-fade-in 0.2s ease-out forwards !important;
+}
+@keyframes ms-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === ripple 效果移除 === */
+.ripple-effect::after {
+  display: none !important;
+}
+
+/* === 顶部进度条 === */
+.absolute.top-0.left-0.right-0.h-1 {
+  background-color: #0078D4 !important;
+}
+
+/* === 分隔线 === */
+.border-t.border-gray-800,
+.border-b.border-gray-700\/50 {
+  border-color: #edebe9 !important;
+}
+
+/* === 链接颜色 === */
+a {
+  color: #0078D4 !important;
+}
+
+/* === 设置页面卡片 === */
+.rounded-2xl.border {
+  border-radius: 8px !important;
+  border-color: #edebe9 !important;
+}
+
+/* === 视图切换按钮组 === */
+.flex.items-center.gap-1.p-1.rounded-xl,
+.flex.flex-wrap.items-center.gap-1.p-2.rounded-xl {
+  background-color: #f3f2f1 !important;
+  border-radius: 4px !important;
+}
+
+/* === 移动端底部导航激活态 === */
+.flex.flex-1.flex-col.items-center {
+  color: #605E5C !important;
+}
+.flex.flex-1.flex-col.items-center:first-child {
+  color: #0078D4 !important;
+}

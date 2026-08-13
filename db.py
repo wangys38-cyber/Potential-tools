@@ -1,51 +1,88 @@
 """
-数据库模块 v2.0 - SQLite
-统一管理所有数据存储：用户、配置、功德、上传会话、后台任务
+数据库模块 v3.0 - 双数据库支持
+支持 PostgreSQL（生产环境）和 SQLite（本地开发）
+通过 DATABASE_URL 环境变量自动切换
 
-升级说明：
-- 新增 app_config 表：替代 ai_config.json 文件存储
-- 新增 merit_records 表：功德计数持久化（替代 localStorage）
-- 新增 upload_sessions 表：分块上传元数据（替代 JSON 文件 + 文件锁）
-- 新增 background_tasks 表：后台任务元数据（替代 JSON 文件）
-- 新增 user_preferences 表：用户偏好（主题模式等）
-- 保留原有 users 和 user_data 表，完全向下兼容
+升级说明（v3.0）：
+- 从 sqlite3 原生驱动迁移到 SQLAlchemy 引擎
+- 支持 PostgreSQL（生产）和 SQLite（本地）双模式
+- 所有 SQL 使用命名参数（:param），跨数据库兼容
+- 连接池管理，提升并发性能
+- 保持 v2.0 全部 API 不变，向下兼容
 """
 import os
-import sqlite3
 import json
 import time
 import logging
+from sqlalchemy import create_engine, text
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-# 数据库路径
-_RUNTIME_DIR = os.environ.get('DB_DIR', '/tmp/toolbox')
-os.makedirs(_RUNTIME_DIR, exist_ok=True)
-DB_PATH = os.path.join(_RUNTIME_DIR, 'users.db')
+# ==================== 数据库引擎初始化 ====================
 
-# 连接级线程安全：每个请求/线程获取独立连接
-_db_local = None
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+if DATABASE_URL:
+    # PostgreSQL（生产环境 — Railway / Heroku 等）
+    # Railway 提供 postgres:// 前缀，SQLAlchemy 需要 postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,      # 连接前检查有效性，防止使用已断开的连接
+        pool_size=5,             # 连接池大小
+        max_overflow=10,         # 允许超出连接池的临时连接数
+        pool_recycle=300,        # 5 分钟回收连接，防止数据库端超时断开
+    )
+    DB_TYPE = 'postgresql'
+    logger.info("数据库: PostgreSQL (生产模式)")
+else:
+    # SQLite（本地开发）
+    _RUNTIME_DIR = os.environ.get('DB_DIR', '/tmp/toolbox')
+    os.makedirs(_RUNTIME_DIR, exist_ok=True)
+    _SQLITE_PATH = os.path.join(_RUNTIME_DIR, 'users.db')
+    engine = create_engine(
+        f'sqlite:///{_SQLITE_PATH}',
+        pool_pre_ping=True,
+        connect_args={'timeout': 10, 'check_same_thread': False},
+    )
+    DB_TYPE = 'sqlite'
+    logger.info(f"数据库: SQLite (本地模式) — {_SQLITE_PATH}")
+
+# 自增主键类型（数据库差异）
+_PK_TYPE = 'SERIAL PRIMARY KEY' if DB_TYPE == 'postgresql' else 'INTEGER PRIMARY KEY AUTOINCREMENT'
 
 
-def get_db():
-    """获取数据库连接（WAL模式，支持并发读）"""
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    return conn
+def _row_to_dict(row):
+    """将 SQLAlchemy Row 转为 dict"""
+    if row is None:
+        return None
+    return dict(row._mapping)
+
+
+def check_db():
+    """检查数据库连接是否正常"""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {'status': 'ok', 'type': DB_TYPE}
+    except Exception as e:
+        return {'status': 'error', 'type': DB_TYPE, 'error': str(e)}
 
 
 def init_db():
     """初始化所有数据库表"""
-    conn = get_db()
-    try:
-        # ==================== 原有表 ====================
+    with engine.begin() as conn:
+        # SQLite 专属优化
+        if DB_TYPE == 'sqlite':
+            conn.execute(text("PRAGMA journal_mode = WAL"))
+            conn.execute(text("PRAGMA busy_timeout = 5000"))
 
-        # 用户表
-        conn.execute('''
+        # ==================== 用户表 ====================
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id {_PK_TYPE},
                 provider TEXT NOT NULL,
                 provider_uid TEXT NOT NULL,
                 name TEXT,
@@ -55,12 +92,12 @@ def init_db():
                 last_login REAL DEFAULT 0,
                 UNIQUE(provider, provider_uid)
             )
-        ''')
+        """))
 
-        # 用户数据表（分析记录、设置等）
-        conn.execute('''
+        # ==================== 用户数据表 ====================
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS user_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id {_PK_TYPE},
                 user_id INTEGER NOT NULL,
                 data_type TEXT NOT NULL,
                 title TEXT,
@@ -68,23 +105,21 @@ def init_db():
                 created_at REAL DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
-        ''')
+        """))
 
-        # ==================== v2.0 新增表 ====================
-
-        # 应用配置表（替代 ai_config.json）
-        conn.execute('''
+        # ==================== 应用配置表 ====================
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS app_config (
                 key TEXT PRIMARY KEY,
                 value TEXT,
                 updated_at REAL DEFAULT 0
             )
-        ''')
+        """))
 
-        # 功德记录表（替代 localStorage）
-        conn.execute('''
+        # ==================== 功德记录表 ====================
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS merit_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id {_PK_TYPE},
                 user_id INTEGER NOT NULL,
                 total_count INTEGER DEFAULT 0,
                 today_count INTEGER DEFAULT 0,
@@ -92,10 +127,10 @@ def init_db():
                 updated_at REAL DEFAULT 0,
                 UNIQUE(user_id)
             )
-        ''')
+        """))
 
-        # 上传会话表（替代 {upload_id}.json + 文件锁）
-        conn.execute('''
+        # ==================== 上传会话表 ====================
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS upload_sessions (
                 upload_id TEXT PRIMARY KEY,
                 filename TEXT NOT NULL,
@@ -106,10 +141,10 @@ def init_db():
                 created_at REAL DEFAULT 0,
                 updated_at REAL DEFAULT 0
             )
-        ''')
+        """))
 
-        # 后台任务表（替代 {task_id}.json）
-        conn.execute('''
+        # ==================== 后台任务表 ====================
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS background_tasks (
                 task_id TEXT PRIMARY KEY,
                 task_type TEXT NOT NULL,
@@ -120,289 +155,277 @@ def init_db():
                 created_at REAL DEFAULT 0,
                 updated_at REAL DEFAULT 0
             )
-        ''')
+        """))
 
-        # 用户偏好表（主题模式、语言等）
-        conn.execute('''
+        # ==================== 用户偏好表 ====================
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS user_preferences (
                 user_id INTEGER PRIMARY KEY,
                 theme TEXT DEFAULT 'auto',
                 language TEXT DEFAULT 'zh-CN',
                 updated_at REAL DEFAULT 0
             )
-        ''')
+        """))
 
-        # 创建索引
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_user_data ON user_data(user_id, data_type)')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_uid)')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_merit_user ON merit_records(user_id)')
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_tasks_status ON background_tasks(status)')
+        # ==================== 索引 ====================
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data ON user_data(user_id, data_type)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_uid)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_merit_user ON merit_records(user_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_tasks_status ON background_tasks(status)"))
 
-        conn.commit()
-        logger.info("数据库 v2.0 初始化完成")
-    finally:
-        conn.close()
+    logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 
-# ==================== 用户相关（原有，保持兼容） ====================
+# ==================== 用户相关 ====================
 
 def upsert_user(provider, provider_uid, name, email, avatar):
     """创建或更新用户，返回用户ID"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
-        cursor = conn.execute(
-            'SELECT id FROM users WHERE provider=? AND provider_uid=?',
-            (provider, provider_uid)
-        )
-        row = cursor.fetchone()
+        row = conn.execute(
+            text("SELECT id FROM users WHERE provider = :provider AND provider_uid = :provider_uid"),
+            {'provider': provider, 'provider_uid': provider_uid}
+        ).fetchone()
 
         if row:
-            user_id = row['id']
+            user_id = row[0]
             conn.execute(
-                'UPDATE users SET name=?, email=?, avatar=?, last_login=? WHERE id=?',
-                (name, email, avatar, now, user_id)
+                text("UPDATE users SET name = :name, email = :email, avatar = :avatar, last_login = :last_login WHERE id = :id"),
+                {'name': name, 'email': email, 'avatar': avatar, 'last_login': now, 'id': user_id}
             )
+            return user_id
         else:
-            conn.execute(
-                'INSERT INTO users (provider, provider_uid, name, email, avatar, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (provider, provider_uid, name, email, avatar, now, now)
+            result = conn.execute(
+                text("""
+                    INSERT INTO users (provider, provider_uid, name, email, avatar, created_at, last_login)
+                    VALUES (:provider, :provider_uid, :name, :email, :avatar, :created_at, :last_login)
+                    RETURNING id
+                """),
+                {'provider': provider, 'provider_uid': provider_uid, 'name': name, 'email': email,
+                 'avatar': avatar, 'created_at': now, 'last_login': now}
             )
-            user_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-
-        conn.commit()
-        return user_id
-    finally:
-        conn.close()
+            return result.scalar()
 
 
 def get_user_by_id(user_id):
     """根据ID获取用户信息"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT * FROM users WHERE id=?', (user_id,)).fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM users WHERE id = :id"),
+            {'id': user_id}
+        ).fetchone()
+        return _row_to_dict(row)
 
 
 def save_user_data(user_id, data_type, title, content):
-    """保存用户数据"""
-    conn = get_db()
-    try:
+    """保存用户数据，返回新记录ID"""
+    with engine.begin() as conn:
         now = time.time()
         content_str = json.dumps(content, ensure_ascii=False) if isinstance(content, (dict, list)) else str(content)
-        conn.execute(
-            'INSERT INTO user_data (user_id, data_type, title, content, created_at) VALUES (?, ?, ?, ?, ?)',
-            (user_id, data_type, title, content_str, now)
+        result = conn.execute(
+            text("""
+                INSERT INTO user_data (user_id, data_type, title, content, created_at)
+                VALUES (:user_id, :data_type, :title, :content, :created_at)
+                RETURNING id
+            """),
+            {'user_id': user_id, 'data_type': data_type, 'title': title,
+             'content': content_str, 'created_at': now}
         )
-        conn.commit()
-        return conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-    finally:
-        conn.close()
+        return result.scalar()
 
 
 def get_user_data_list(user_id, data_type=None, limit=20):
     """获取用户数据列表"""
-    conn = get_db()
-    try:
+    with engine.connect() as conn:
         if data_type:
-            cursor = conn.execute(
-                'SELECT * FROM user_data WHERE user_id=? AND data_type=? ORDER BY created_at DESC LIMIT ?',
-                (user_id, data_type, limit)
-            )
+            rows = conn.execute(
+                text("SELECT * FROM user_data WHERE user_id = :user_id AND data_type = :data_type ORDER BY created_at DESC LIMIT :limit"),
+                {'user_id': user_id, 'data_type': data_type, 'limit': limit}
+            ).fetchall()
         else:
-            cursor = conn.execute(
-                'SELECT * FROM user_data WHERE user_id=? ORDER BY created_at DESC LIMIT ?',
-                (user_id, limit)
-            )
-        rows = cursor.fetchall()
+            rows = conn.execute(
+                text("SELECT * FROM user_data WHERE user_id = :user_id ORDER BY created_at DESC LIMIT :limit"),
+                {'user_id': user_id, 'limit': limit}
+            ).fetchall()
+
         result = []
         for row in rows:
-            item = dict(row)
+            item = _row_to_dict(row)
             try:
                 item['content'] = json.loads(item['content'])
             except (json.JSONDecodeError, TypeError):
                 pass
             result.append(item)
         return result
-    finally:
-        conn.close()
 
 
 def get_user_data_by_id(user_id, data_id):
     """获取单条用户数据"""
-    conn = get_db()
-    try:
+    with engine.connect() as conn:
         row = conn.execute(
-            'SELECT * FROM user_data WHERE id=? AND user_id=?',
-            (data_id, user_id)
+            text("SELECT * FROM user_data WHERE id = :id AND user_id = :user_id"),
+            {'id': data_id, 'user_id': user_id}
         ).fetchone()
         if not row:
             return None
-        item = dict(row)
+        item = _row_to_dict(row)
         try:
             item['content'] = json.loads(item['content'])
         except (json.JSONDecodeError, TypeError):
             pass
         return item
-    finally:
-        conn.close()
 
 
 def delete_user_data(user_id, data_id):
     """删除用户数据"""
-    conn = get_db()
-    try:
-        conn.execute('DELETE FROM user_data WHERE id=? AND user_id=?', (data_id, user_id))
-        conn.commit()
-        return conn.total_changes > 0
-    finally:
-        conn.close()
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("DELETE FROM user_data WHERE id = :id AND user_id = :user_id"),
+            {'id': data_id, 'user_id': user_id}
+        )
+        return result.rowcount > 0
 
 
-# ==================== 应用配置（替代 ai_config.json） ====================
+# ==================== 应用配置 ====================
 
 def get_config(key, default=None):
     """读取应用配置"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT value FROM app_config WHERE key=?', (key,)).fetchone()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT value FROM app_config WHERE key = :key"),
+            {'key': key}
+        ).fetchone()
         if not row:
             return default
         try:
-            return json.loads(row['value'])
+            return json.loads(row[0])
         except (json.JSONDecodeError, TypeError):
-            return row['value']
-    finally:
-        conn.close()
+            return row[0]
 
 
 def set_config(key, value):
     """写入应用配置（自动序列化 dict/list）"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
         value_str = json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value)
         conn.execute(
-            'INSERT INTO app_config (key, value, updated_at) VALUES (?, ?, ?) '
-            'ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at',
-            (key, value_str, now)
+            text("""
+                INSERT INTO app_config (key, value, updated_at) VALUES (:key, :value, :updated_at)
+                ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
+            """),
+            {'key': key, 'value': value_str, 'updated_at': now}
         )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def delete_config(key):
     """删除应用配置"""
-    conn = get_db()
-    try:
-        conn.execute('DELETE FROM app_config WHERE key=?', (key,))
-        conn.commit()
-    finally:
-        conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM app_config WHERE key = :key"), {'key': key})
 
 
-# ==================== 功德计数（替代 localStorage） ====================
+# ==================== 功德计数 ====================
 
 def get_merit(user_id):
     """获取用户功德数据"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT * FROM merit_records WHERE user_id=?', (user_id,)).fetchone()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT total_count, today_count, today_date FROM merit_records WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
         if not row:
             return {'total_count': 0, 'today_count': 0, 'today_date': ''}
-        return dict(row)
-    finally:
-        conn.close()
+        m = row._mapping
+        return {'total_count': m['total_count'], 'today_count': m['today_count'], 'today_date': m['today_date']}
 
 
 def increment_merit(user_id):
     """功德+1（原子操作，自动处理日期切换）"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
         today = time.strftime('%Y-%m-%d', time.localtime(now))
 
-        # 尝试更新已有记录
-        row = conn.execute('SELECT * FROM merit_records WHERE user_id=?', (user_id,)).fetchone()
+        row = conn.execute(
+            text("SELECT today_date FROM merit_records WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
+
         if row:
-            # 日期切换：今日计数归零
-            if row['today_date'] != today:
+            if row[0] != today:
                 conn.execute(
-                    'UPDATE merit_records SET total_count=total_count+1, today_count=1, today_date=?, updated_at=? WHERE user_id=?',
-                    (today, now, user_id)
+                    text("UPDATE merit_records SET total_count = total_count + 1, today_count = 1, today_date = :today, updated_at = :updated_at WHERE user_id = :user_id"),
+                    {'today': today, 'updated_at': now, 'user_id': user_id}
                 )
             else:
                 conn.execute(
-                    'UPDATE merit_records SET total_count=total_count+1, today_count=today_count+1, updated_at=? WHERE user_id=?',
-                    (now, user_id)
+                    text("UPDATE merit_records SET total_count = total_count + 1, today_count = today_count + 1, updated_at = :updated_at WHERE user_id = :user_id"),
+                    {'updated_at': now, 'user_id': user_id}
                 )
         else:
             conn.execute(
-                'INSERT INTO merit_records (user_id, total_count, today_count, today_date, updated_at) VALUES (?, 1, 1, ?, ?)',
-                (user_id, today, now)
+                text("INSERT INTO merit_records (user_id, total_count, today_count, today_date, updated_at) VALUES (:user_id, 1, 1, :today, :updated_at)"),
+                {'user_id': user_id, 'today': today, 'updated_at': now}
             )
 
-        conn.commit()
-
-        # 返回更新后的数据
-        row = conn.execute('SELECT * FROM merit_records WHERE user_id=?', (user_id,)).fetchone()
-        return dict(row) if row else {'total_count': 1, 'today_count': 1, 'today_date': today}
-    finally:
-        conn.close()
+    # 返回更新后的数据（事务已提交，新连接可见）
+    return get_merit(user_id)
 
 
-# ==================== 上传会话（替代 {upload_id}.json + 文件锁） ====================
+# ==================== 上传会话 ====================
 
 def create_upload_session(upload_id, filename, total_chunks, chunk_size, file_size):
     """创建上传会话"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
         conn.execute(
-            'INSERT OR REPLACE INTO upload_sessions (upload_id, filename, total_chunks, chunk_size, file_size, received_chunks, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (upload_id, filename, total_chunks, chunk_size, file_size, '[]', now, now)
+            text("""
+                INSERT INTO upload_sessions (upload_id, filename, total_chunks, chunk_size, file_size, received_chunks, created_at, updated_at)
+                VALUES (:upload_id, :filename, :total_chunks, :chunk_size, :file_size, :received_chunks, :created_at, :updated_at)
+                ON CONFLICT (upload_id) DO UPDATE SET
+                    filename = EXCLUDED.filename,
+                    total_chunks = EXCLUDED.total_chunks,
+                    chunk_size = EXCLUDED.chunk_size,
+                    file_size = EXCLUDED.file_size,
+                    received_chunks = EXCLUDED.received_chunks,
+                    created_at = EXCLUDED.created_at,
+                    updated_at = EXCLUDED.updated_at
+            """),
+            {'upload_id': upload_id, 'filename': filename, 'total_chunks': total_chunks,
+             'chunk_size': chunk_size, 'file_size': file_size, 'received_chunks': '[]',
+             'created_at': now, 'updated_at': now}
         )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def get_upload_session(upload_id):
     """获取上传会话"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT * FROM upload_sessions WHERE upload_id=?', (upload_id,)).fetchone()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM upload_sessions WHERE upload_id = :upload_id"),
+            {'upload_id': upload_id}
+        ).fetchone()
         if not row:
             return None
-        data = dict(row)
+        data = _row_to_dict(row)
         try:
             data['received_chunks'] = json.loads(data.get('received_chunks', '[]'))
         except (json.JSONDecodeError, TypeError):
             data['received_chunks'] = []
         data['received_set'] = set(data['received_chunks'])
         return data
-    finally:
-        conn.close()
 
 
 def add_received_chunk(upload_id, chunk_index):
-    """添加已接收分块（原子操作，替代文件锁）"""
-    conn = get_db()
-    try:
+    """添加已接收分块（事务保护，替代文件锁）"""
+    with engine.begin() as conn:
         now = time.time()
-        # SQLite 原子读取-修改-写入：使用事务
-        conn.execute('BEGIN IMMEDIATE')
-        row = conn.execute('SELECT received_chunks FROM upload_sessions WHERE upload_id=?', (upload_id,)).fetchone()
+        row = conn.execute(
+            text("SELECT received_chunks FROM upload_sessions WHERE upload_id = :upload_id"),
+            {'upload_id': upload_id}
+        ).fetchone()
         if not row:
-            conn.execute('ROLLBACK')
             return None
 
         try:
-            chunks = json.loads(row['received_chunks'])
+            chunks = json.loads(row[0])
         except (json.JSONDecodeError, TypeError):
             chunks = []
 
@@ -410,165 +433,156 @@ def add_received_chunk(upload_id, chunk_index):
             chunks.append(chunk_index)
 
         conn.execute(
-            'UPDATE upload_sessions SET received_chunks=?, updated_at=? WHERE upload_id=?',
-            (json.dumps(chunks), now, upload_id)
+            text("UPDATE upload_sessions SET received_chunks = :chunks, updated_at = :updated_at WHERE upload_id = :upload_id"),
+            {'chunks': json.dumps(chunks), 'updated_at': now, 'upload_id': upload_id}
         )
-        conn.execute('COMMIT')
 
-        # 返回完整会话信息
-        return get_upload_session(upload_id)
-    except Exception:
-        try:
-            conn.execute('ROLLBACK')
-        except Exception:
-            pass
-        return None
-    finally:
-        conn.close()
+    # 返回完整会话信息（事务已提交）
+    return get_upload_session(upload_id)
 
 
 def delete_upload_session(upload_id):
     """删除上传会话"""
-    conn = get_db()
-    try:
-        conn.execute('DELETE FROM upload_sessions WHERE upload_id=?', (upload_id,))
-        conn.commit()
-    finally:
-        conn.close()
+    with engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM upload_sessions WHERE upload_id = :upload_id"),
+            {'upload_id': upload_id}
+        )
 
 
-# ==================== 后台任务（替代 {task_id}.json） ====================
+# ==================== 后台任务 ====================
 
 def create_task(task_id, task_type):
     """创建后台任务"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
         conn.execute(
-            'INSERT OR REPLACE INTO background_tasks (task_id, task_type, status, progress, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?)',
-            (task_id, task_type, 'pending', 0, now, now)
+            text("""
+                INSERT INTO background_tasks (task_id, task_type, status, progress, created_at, updated_at)
+                VALUES (:task_id, :task_type, 'pending', 0, :created_at, :updated_at)
+                ON CONFLICT (task_id) DO UPDATE SET
+                    task_type = EXCLUDED.task_type,
+                    status = 'pending',
+                    progress = 0,
+                    result = NULL,
+                    error = NULL,
+                    created_at = EXCLUDED.created_at,
+                    updated_at = EXCLUDED.updated_at
+            """),
+            {'task_id': task_id, 'task_type': task_type, 'created_at': now, 'updated_at': now}
         )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def update_task(task_id, status=None, progress=None, result=None, error=None):
     """更新后台任务状态"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
-        updates = ['updated_at=?']
-        params = [now]
+        updates = ['updated_at = :updated_at']
+        params = {'updated_at': now, 'task_id': task_id}
 
         if status is not None:
-            updates.append('status=?')
-            params.append(status)
+            updates.append('status = :status')
+            params['status'] = status
         if progress is not None:
-            updates.append('progress=?')
-            params.append(progress)
+            updates.append('progress = :progress')
+            params['progress'] = progress
         if result is not None:
             result_str = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
-            updates.append('result=?')
-            params.append(result_str)
+            updates.append('result = :result')
+            params['result'] = result_str
         if error is not None:
-            updates.append('error=?')
-            params.append(error)
+            updates.append('error = :error')
+            params['error'] = error
 
-        params.append(task_id)
         conn.execute(
-            f'UPDATE background_tasks SET {", ".join(updates)} WHERE task_id=?',
+            text(f"UPDATE background_tasks SET {', '.join(updates)} WHERE task_id = :task_id"),
             params
         )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def get_task(task_id):
     """获取后台任务"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT * FROM background_tasks WHERE task_id=?', (task_id,)).fetchone()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM background_tasks WHERE task_id = :task_id"),
+            {'task_id': task_id}
+        ).fetchone()
         if not row:
             return None
-        data = dict(row)
+        data = _row_to_dict(row)
         if data.get('result'):
             try:
                 data['result'] = json.loads(data['result'])
             except (json.JSONDecodeError, TypeError):
                 pass
         return data
-    finally:
-        conn.close()
 
 
 def delete_task(task_id):
     """删除后台任务"""
-    conn = get_db()
-    try:
-        conn.execute('DELETE FROM background_tasks WHERE task_id=?', (task_id,))
-        conn.commit()
-    finally:
-        conn.close()
+    with engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM background_tasks WHERE task_id = :task_id"),
+            {'task_id': task_id}
+        )
 
 
 def cleanup_old_tasks(max_age_hours=24):
     """清理过期任务"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         cutoff = time.time() - max_age_hours * 3600
-        conn.execute('DELETE FROM background_tasks WHERE updated_at < ? AND status IN (?, ?)', (cutoff, 'done', 'error'))
-        conn.execute('DELETE FROM upload_sessions WHERE updated_at < ?', (cutoff,))
-        conn.commit()
-    finally:
-        conn.close()
+        conn.execute(
+            text("DELETE FROM background_tasks WHERE updated_at < :cutoff AND status IN ('done', 'error')"),
+            {'cutoff': cutoff}
+        )
+        conn.execute(
+            text("DELETE FROM upload_sessions WHERE updated_at < :cutoff"),
+            {'cutoff': cutoff}
+        )
 
 
-# ==================== 用户偏好（主题模式等） ====================
+# ==================== 用户偏好 ====================
 
 def get_user_preferences(user_id):
     """获取用户偏好"""
-    conn = get_db()
-    try:
-        row = conn.execute('SELECT * FROM user_preferences WHERE user_id=?', (user_id,)).fetchone()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT theme, language FROM user_preferences WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
         if not row:
             return {'theme': 'auto', 'language': 'zh-CN'}
-        return dict(row)
-    finally:
-        conn.close()
+        m = row._mapping
+        return {'theme': m['theme'], 'language': m['language']}
 
 
 def set_user_preferences(user_id, theme=None, language=None):
     """更新用户偏好"""
-    conn = get_db()
-    try:
+    with engine.begin() as conn:
         now = time.time()
-        # 先检查是否存在
-        row = conn.execute('SELECT user_id FROM user_preferences WHERE user_id=?', (user_id,)).fetchone()
+        row = conn.execute(
+            text("SELECT user_id FROM user_preferences WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
+
         if row:
-            updates = ['updated_at=?']
-            params = [now]
+            updates = ['updated_at = :updated_at']
+            params = {'updated_at': now, 'user_id': user_id}
             if theme is not None:
-                updates.append('theme=?')
-                params.append(theme)
+                updates.append('theme = :theme')
+                params['theme'] = theme
             if language is not None:
-                updates.append('language=?')
-                params.append(language)
-            params.append(user_id)
+                updates.append('language = :language')
+                params['language'] = language
             conn.execute(
-                f'UPDATE user_preferences SET {", ".join(updates)} WHERE user_id=?',
+                text(f"UPDATE user_preferences SET {', '.join(updates)} WHERE user_id = :user_id"),
                 params
             )
         else:
             conn.execute(
-                'INSERT INTO user_preferences (user_id, theme, language, updated_at) VALUES (?, ?, ?, ?)',
-                (user_id, theme or 'auto', language or 'zh-CN', now)
+                text("INSERT INTO user_preferences (user_id, theme, language, updated_at) VALUES (:user_id, :theme, :language, :updated_at)"),
+                {'user_id': user_id, 'theme': theme or 'auto', 'language': language or 'zh-CN', 'updated_at': now}
             )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 # ==================== JSON 文件迁移 ====================
@@ -578,10 +592,9 @@ def migrate_json_config(config_path, config_key):
     if not os.path.exists(config_path):
         return False
 
-    # 检查数据库是否已有该配置
     existing = get_config(config_key)
     if existing is not None:
-        return False  # 已迁移过
+        return False
 
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -594,11 +607,13 @@ def migrate_json_config(config_path, config_key):
         return False
 
 
-# 启动时初始化
+# ==================== 启动时初始化 ====================
+
 init_db()
 
 # 执行 JSON 文件迁移（静默失败，不影响启动）
-_runtime_config_path = os.path.join(_RUNTIME_DIR, 'ai_config.json')
+_runtime_dir = os.environ.get('DB_DIR', '/tmp/toolbox')
+_runtime_config_path = os.path.join(_runtime_dir, 'ai_config.json')
 if not os.path.exists(_runtime_config_path):
     _runtime_config_path = os.path.join(os.path.dirname(__file__), 'ai_config.json')
 migrate_json_config(_runtime_config_path, 'ai_config')

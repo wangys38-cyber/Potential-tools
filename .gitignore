@@ -4,6 +4,8 @@ __pycache__/
 uploads/
 pdfs/
 ai_config.json
+config_oauth.json
+.env
 test_*.py
 test_*.xlsx
 test_output*
@@ -14,3 +16,4 @@ switch_to_weasyprint.py
 *.spec
 .DS_Store
 *.log
+.jinja_cache/

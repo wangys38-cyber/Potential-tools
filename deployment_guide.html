@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potential Tools - D盘本地部署指南</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --code-bg: #1c2128;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 0;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 48px 24px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: var(--text-dim); font-size: 1.05em; }
+        .container { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+        .card h2 {
+            font-size: 1.4em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card h3 { font-size: 1.1em; margin: 20px 0 10px; color: var(--accent); }
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.85em;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+            font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .code-block .comment { color: var(--text-dim); }
+        .code-block .cmd { color: var(--green); }
+        .code-block .flag { color: var(--yellow); }
+        .code-block .str { color: #a5d6ff; }
+        code.inline {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: 'Cascadia Code', Consolas, monospace;
+            font-size: 0.88em;
+            color: var(--accent);
+        }
+        .alert {
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            border-left: 4px solid;
+        }
+        .alert-info { background: rgba(88,166,255,0.08); border-color: var(--accent); }
+        .alert-warn { background: rgba(210,153,34,0.08); border-color: var(--yellow); }
+        .alert-success { background: rgba(63,185,80,0.08); border-color: var(--green); }
+        .alert strong { display: block; margin-bottom: 4px; }
+        .alert-info strong { color: var(--accent); }
+        .alert-warn strong { color: var(--yellow); }
+        .alert-success strong { color: var(--green); }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--accent); font-weight: 600; }
+        td code { color: var(--yellow); font-family: monospace; }
+        .toc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+        }
+        .toc h2 { font-size: 1.1em; margin-bottom: 12px; }
+        .toc ol { padding-left: 20px; }
+        .toc li { margin: 6px 0; }
+        .toc a { color: var(--accent); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+        .feature-item { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .feature-item .icon { font-size: 1.5em; }
+        .feature-item .name { font-weight: 600; margin: 4px 0; }
+        .feature-item .desc { font-size: 0.85em; color: var(--text-dim); }
+        .footer { text-align: center; padding: 32px; color: var(--text-dim); border-top: 1px solid var(--border); }
+        .big-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            color: #fff;
+            padding: 12px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Potential Tools - D盘本地部署指南</h1>
+        <p>将 wangys38-cyber/Potential-tools 部署到 Windows D 盘</p>
+    </div>
+
+    <div class="container">
+        <div class="toc">
+            <h2>目录</h2>
+            <ol>
+                <li><a href="#prereq">环境准备</a></li>
+                <li><a href="#quick">一键部署（推荐）</a></li>
+                <li><a href="#manual">手动部署</a></li>
+                <li><a href="#config">配置说明</a></li>
+                <li><a href="#run">启动与访问</a></li>
+                <li><a href="#troubleshoot">常见问题</a></li>
+            </ol>
+        </div>
+
+        <div class="card" id="prereq">
+            <h2><span class="step-badge">1</span> 环境准备</h2>
+            <p>部署前需要安装以下软件（如已安装可跳过）：</p>
+            <table>
+                <tr><th>软件</th><th>版本要求</th><th>下载地址</th></tr>
+                <tr><td>Python</td><td>3.10+</td><td><code>https://www.python.org/downloads/</code></td></tr>
+                <tr><td>Git</td><td>任意版本</td><td><code>https://git-scm.com/download/win</code></td></tr>
+            </table>
+            <div class="alert alert-warn">
+                <strong>安装 Python 时注意</strong>
+                勾选 "Add Python to PATH" 选项，否则命令行无法识别 python 命令。
+            </div>
+        </div>
+
+        <div class="card" id="quick">
+            <h2><span class="step-badge">2</span> 一键部署（推荐）</h2>
+            <p>本项目附带一键部署脚本 <code class="inline">deploy_D_drive.bat</code>，双击即可完成全部部署。</p>
+            <div class="alert alert-info">
+                <strong>使用方法</strong>
+                双击运行 <code class="inline">deploy_D_drive.bat</code>，脚本会自动完成：创建目录 → 克隆代码 → 创建虚拟环境 → 安装依赖 → 安装Chromium → 生成启动脚本
+            </div>
+            <p>部署完成后，双击 <code class="inline">start_app.bat</code> 即可启动应用。</p>
+            <div class="alert alert-success">
+                <strong>部署结果</strong>
+                代码目录：<code>D:\Potential-tools</code><br>
+                访问地址：<code>http://localhost:5001</code>
+            </div>
+        </div>
+
+        <div class="card" id="manual">
+            <h2><span class="step-badge">3</span> 手动部署</h2>
+            <p>如需手动操作，按以下步骤执行：</p>
+
+            <h3>3.1 克隆代码</h3>
+            <div class="code-block">
+<span class="comment">:: 打开命令提示符 (Win+R 输入 cmd)</span><br>
+<span class="cmd">cd</span> D:\<br>
+<span class="cmd">git</span> clone https://github.com/wangys38-cyber/Potential-tools.git<br>
+<span class="cmd">cd</span> Potential-tools
+            </div>
+
+            <h3>3.2 创建虚拟环境</h3>
+            <div class="code-block">
+<span class="cmd">python</span> <span class="flag">-m</span> venv venv<br>
+<span class="cmd">call</span> venv\Scripts\activate.bat
+            </div>
+
+            <h3>3.3 安装依赖</h3>
+            <div class="code-block">
+<span class="cmd">pip</span> install <span class="flag">-r</span> requirements.txt
+            </div>
+
+            <h3>3.4 安装 Playwright Chromium（PDF功能需要）</h3>
+            <div class="code-block">
+<span class="cmd">playwright</span> install chromium
+            </div>
+            <div class="alert alert-warn">
+                <strong>注意</strong>
+                Chromium 安装包约 150MB，下载时间取决于网络速度。如果跳过此步，PDF转换功能将不可用，其他功能正常。
+            </div>
+        </div>
+
+        <div class="card" id="config">
+            <h2><span class="step-badge">4</span> 配置说明</h2>
+
+            <h3>4.1 访客模式（本地推荐）</h3>
+            <p>本地使用无需配置 OAuth，开启访客模式即可访问所有功能：</p>
+            <div class="code-block">
+<span class="comment">:: 在启动前设置环境变量</span><br>
+<span class="cmd">set</span> ALLOW_GUEST=true<br>
+<span class="cmd">python</span> app.py
+            </div>
+
+            <h3>4.2 OAuth 登录（可选）</h3>
+            <p>如需飞书/Google 登录，编辑 <code class="inline">config_oauth.json</code>：</p>
+            <div class="code-block">
+{<br>
+&nbsp;&nbsp;<span class="str">"feishu"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"app_id"</span>: <span class="str">"你的飞书AppID"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"app_secret"</span>: <span class="str">"你的飞书AppSecret"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"redirect_uri"</span>: <span class="str">"http://localhost:5001/auth/feishu/callback"</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span class="str">"allow_guest"</span>: true<br>
+}
+            </div>
+
+            <h3>4.3 环境变量</h3>
+            <table>
+                <tr><th>变量名</th><th>默认值</th><th>说明</th></tr>
+                <tr><td><code>PORT</code></td><td>5001</td><td>服务监听端口</td></tr>
+                <tr><td><code>ALLOW_GUEST</code></td><td>false</td><td>是否允许访客访问</td></tr>
+                <tr><td><code>DB_DIR</code></td><td>/tmp/toolbox</td><td>数据存储目录（Windows下建议改为项目目录）</td></tr>
+                <tr><td><code>SESSION_SECRET</code></td><td>default_secret</td><td>Session加密密钥</td></tr>
+            </table>
+        </div>
+
+        <div class="card" id="run">
+            <h2><span class="step-badge">5</span> 启动与访问</h2>
+
+            <h3>方式一：双击启动脚本</h3>
+            <p>双击 <code class="inline">D:\Potential-tools\start_app.bat</code></p>
+
+            <h3>方式二：命令行启动</h3>
+            <div class="code-block">
+<span class="cmd">cd</span> D:\Potential-tools<br>
+<span class="cmd">call</span> venv\Scripts\activate.bat<br>
+<span class="cmd">set</span> ALLOW_GUEST=true<br>
+<span class="cmd">python</span> app.py
+            </div>
+
+            <h3>访问应用</h3>
+            <p>启动后，在浏览器中打开：</p>
+            <div class="code-block" style="text-align:center; font-size:1.1em;">
+<a href="http://localhost:5001" style="color: var(--accent); text-decoration: none;">http://localhost:5001</a>
+            </div>
+
+            <h3>功能列表</h3>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="icon">📝</div>
+                    <div class="name">牛马笔记</div>
+                    <div class="desc">Markdown编辑器，标签管理</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">📄</div>
+                    <div class="name">PDF快转</div>
+                    <div class="desc">MD/Word转PDF，带水印</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">📅</div>
+                    <div class="name">软件计划生成器</div>
+                    <div class="desc">一键生成项目计划表</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">📊</div>
+                    <div class="name">项目信息收集</div>
+                    <div class="desc">技术规格信息管理</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">📊</div>
+                    <div class="name">CR问题分析</div>
+                    <div class="desc">Excel分析+PDF报告</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">🔔</div>
+                    <div class="name">功德+1</div>
+                    <div class="desc">电子木鱼，自动保存</div>
+                </div>
+                <div class="feature-item">
+                    <div class="icon">📋</div>
+                    <div class="name">测试报告分析</div>
+                    <div class="desc">提取测试报告关键字段</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="troubleshoot">
+            <h2><span class="step-badge">6</span> 常见问题</h2>
+
+            <h3>Q: 端口 5001 被占用？</h3>
+            <div class="code-block">
+<span class="cmd">set</span> PORT=8080<br>
+<span class="cmd">python</span> app.py
+            </div>
+
+            <h3>Q: pip install 报错？</h3>
+            <p>尝试升级 pip 后重装：</p>
+            <div class="code-block">
+<span class="cmd">python</span> <span class="flag">-m</span> pip install <span class="flag">--upgrade</span> pip<br>
+<span class="cmd">pip</span> install <span class="flag">-r</span> requirements.txt
+            </div>
+
+            <h3>Q: Playwright 安装失败？</h3>
+            <p>手动指定镜像源安装：</p>
+            <div class="code-block">
+<span class="cmd">set</span> PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright<br>
+<span class="cmd">playwright</span> install chromium
+            </div>
+
+            <h3>Q: PDF转换功能不工作？</h3>
+            <p>确保已安装 Chromium：运行 <code class="inline">playwright install chromium</code>。如仍失败，检查系统是否缺少 Visual C++ 运行库。</p>
+
+            <h3>Q: 数据存储在哪里？</h3>
+            <p>默认存储在 <code class="inline">/tmp/toolbox/</code>。Windows 建议设置 <code class="inline">DB_DIR</code> 环境变量指向项目目录：</p>
+            <div class="code-block">
+<span class="cmd">set</span> DB_DIR=D:\Potential-tools\data<br>
+<span class="cmd">python</span> app.py
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Potential Tools | GitHub: <a href="https://github.com/wangys38-cyber/Potential-tools" style="color:var(--accent);">wangys38-cyber/Potential-tools</a> | MIT License</p>
+        </div>
+    </div>
+</body>
+</html>

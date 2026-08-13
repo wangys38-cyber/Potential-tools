@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能周报生成 - 工具集</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v3">
+    <style>
+        /* ==================== 主题变量（与全站一致，支持暗色模式） ==================== */
+        :root {
+            --bg-primary: #f5f5f7; --bg-card: #ffffff; --bg-secondary: #fafafa;
+            --text-primary: #1d1d1f; --text-secondary: #86868b; --text-tertiary: #aeaeae;
+            --accent: #0071e3; --accent-hover: #0077ed; --accent-light: rgba(0,113,227,0.1);
+            --danger: #ff3b30; --danger-light: rgba(255,59,48,0.1);
+            --success: #34c759; --success-light: rgba(52,199,89,0.1);
+            --warning: #ff9500; --warning-light: rgba(255,149,0,0.1);
+            --border: rgba(0,0,0,0.06); --border-strong: rgba(0,0,0,0.12);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 2px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 980px;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1e; --bg-card: #2c2c30; --bg-secondary: #242428;
+            --text-primary: #f0f0f2; --text-secondary: #9b9ba3; --text-tertiary: #6b6b73;
+            --accent: #0a84ff; --accent-hover: #3a9eff; --accent-light: rgba(10,132,255,0.15);
+            --danger: #ff453a; --danger-light: rgba(255,69,58,0.15);
+            --success: #30d158; --success-light: rgba(48,209,88,0.15);
+            --warning: #ffd60a; --warning-light: rgba(255,214,10,0.15);
+            --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.15);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary); min-height: 100vh; color: var(--text-primary);
+            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .page { max-width: 1080px; margin: 0 auto; padding: 24px; }
+
+        /* ==================== 页面头部 ==================== */
+        .header {
+            background: var(--bg-card); border-radius: var(--radius-lg); padding: 26px 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.3px; }
+        .header .subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; line-height: 1.6; }
+        .header .header-meta { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .meta-chip {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+            font-size: 12px; border-radius: var(--radius-full);
+            background: var(--accent-light); color: var(--accent);
+        }
+
+        /* ==================== 卡片 ==================== */
+        .card {
+            background: var(--bg-card); border-radius: var(--radius-lg); padding: 26px 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 16px; font-weight: 600; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-title .step-num {
+            width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
+            font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        /* ==================== 表单 ==================== */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-label {
+            font-size: 13px; font-weight: 600; color: var(--text-primary);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .form-label .req { color: var(--danger); }
+        .form-input, .form-select {
+            padding: 11px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+            background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; font-family: inherit;
+            outline: none; transition: all 0.15s ease; width: 100%;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); background: var(--bg-card);
+        }
+        .form-select { cursor: pointer; appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px;
+        }
+        .form-input::placeholder { color: var(--text-tertiary); }
+
+        /* 4 个文本域 —— 卡片网格 */
+        .textarea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .field-card {
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md);
+            padding: 14px 16px; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .field-card:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+        .field-card .form-label { margin-bottom: 4px; }
+        .field-textarea {
+            width: 100%; border: none; background: transparent; color: var(--text-primary);
+            font-size: 14px; font-family: inherit; outline: none; resize: vertical;
+            min-height: 108px; line-height: 1.7; padding: 2px 0 0;
+        }
+        .field-textarea::placeholder { color: var(--text-tertiary); }
+        .field-textarea:focus { box-shadow: none; }
+
+        /* 操作行：模型选择 + 生成按钮 */
+        .action-row {
+            display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-top: 22px;
+            padding-top: 20px; border-top: 1px solid var(--border);
+        }
+        .action-row .model-group { flex: 1; min-width: 240px; }
+        .action-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 10px; }
+
+        /* ==================== 按钮 ==================== */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 28px; border: none; border-radius: var(--radius-full); cursor: pointer;
+            font-size: 15px; font-weight: 600; transition: all 0.2s ease; font-family: inherit; white-space: nowrap;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-strong); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-sm { padding: 8px 18px; font-size: 13px; font-weight: 500; }
+        .btn-spinner {
+            width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+        }
+        .btn.loading .btn-spinner { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ==================== 结果区 ==================== */
+        .result-card { min-height: 220px; }
+        .result-toolbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 12px; }
+        .toolbar-right { display: flex; gap: 8px; }
+        .result-badge {
+            font-size: 12px; padding: 3px 12px; border-radius: var(--radius-full);
+            background: var(--success-light); color: var(--success);
+            display: none; align-items: center; gap: 5px; font-weight: 500;
+        }
+        .result-badge.show { display: inline-flex; }
+
+        /* AI 报告内容渲染样式 */
+        .report-content { line-height: 1.8; color: var(--text-primary); font-size: 14px; word-break: break-word; }
+        .report-content > *:first-child { margin-top: 0; }
+        .report-content h1, .report-content h2, .report-content h3, .report-content h4 {
+            margin: 20px 0 10px; font-weight: 600; line-height: 1.4;
+        }
+        .report-content h1 { font-size: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+        .report-content h2 { font-size: 17px; color: var(--accent); }
+        .report-content h3 { font-size: 15px; }
+        .report-content p { margin-bottom: 10px; }
+        .report-content ul, .report-content ol { padding-left: 22px; margin-bottom: 10px; }
+        .report-content li { margin-bottom: 5px; }
+        .report-content strong { font-weight: 600; }
+        .report-content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        .report-content th, .report-content td { padding: 8px 12px; border: 1px solid var(--border-strong); text-align: left; }
+        .report-content th { background: var(--bg-secondary); font-weight: 600; }
+        .report-content blockquote {
+            border-left: 3px solid var(--accent); padding: 6px 14px; margin: 10px 0;
+            background: var(--bg-secondary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary);
+        }
+        .report-content code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        .report-content hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+        /* ==================== 加载 / 空状态 / 错误状态 ==================== */
+        .loading-container { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 56px 20px; }
+        .spinner {
+            width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        .loading-text { font-size: 15px; color: var(--text-secondary); text-align: center; }
+        .loading-subtext { font-size: 13px; color: var(--text-tertiary); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
+        .empty-state-icon { font-size: 52px; margin-bottom: 14px; opacity: 0.5; }
+        .empty-state-text { font-size: 15px; }
+        .empty-state-hint { font-size: 13px; margin-top: 8px; }
+
+        .error-state { text-align: center; padding: 48px 20px; }
+        .error-state-icon { font-size: 44px; margin-bottom: 12px; }
+        .error-state-text { font-size: 15px; color: var(--danger); margin-bottom: 6px; }
+        .error-state-hint { font-size: 13px; color: var(--text-tertiary); }
+
+        .footer { text-align: center; padding: 20px; font-size: 13px; color: var(--text-tertiary); }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 768px) {
+            .page { padding: 14px; }
+            .form-row { grid-template-columns: 1fr; }
+            .textarea-grid { grid-template-columns: 1fr; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 21px; }
+            .card { padding: 20px; }
+            .action-row { flex-direction: column; align-items: stretch; }
+            .action-row .btn { width: 100%; }
+        }
+
+        /* ==================== 打印 / 导出 ==================== */
+        @media print {
+            .tb-nav-bar, .tb-aichat-fab, .tb-aichat-panel, .tb-aichat-backdrop,
+            .no-print, .header, .input-card, .result-toolbar, .footer { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .page { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+            .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .report-content { color: #000 !important; }
+            .report-content h1, .report-content h2, .report-content h3,
+            .report-content p, .report-content li, .report-content td, .report-content th { color: #000 !important; }
+            .report-content h1 { border-color: #000 !important; }
+            .report-content h2 { color: #000 !important; }
+            .report-content th { background: #f0f0f0 !important; }
+            .report-content blockquote { background: #f7f7f7 !important; color: #333 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- 页面头部 -->
+        <div class="header">
+            <h1>📋 智能周报生成</h1>
+            <p class="subtitle">输入本周工作记录、会议、问题等素材，AI 自动整理为结构清晰、重点突出的工作周报</p>
+            <div class="header-meta">
+                <span class="meta-chip">🤖 通义千问</span>
+                <span class="meta-chip">📝 一键生成</span>
+                <span class="meta-chip">🖨️ 支持导出打印</span>
+            </div>
+        </div>
+
+        <!-- 输入表单卡片 -->
+        <div class="card input-card">
+            <div class="card-title"><span class="step-num">1</span> 填写周报素材</div>
+
+            <!-- 汇报人 + 汇报周期 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="name">汇报人 <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="name" placeholder="请输入姓名，如：张三" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="weekRange">汇报周期</label>
+                    <input type="text" class="form-input" id="weekRange" placeholder="如：2026-08-11 ~ 2026-08-17" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- 4 个文本域 -->
+            <div class="textarea-grid">
+                <div class="field-card">
+                    <label class="form-label" for="notes">📝 工作笔记 / 记录</label>
+                    <textarea class="field-textarea" id="notes" placeholder="本周完成的主要工作、进展、产出等...&#10;例：完成登录模块开发；修复 3 个线上 Bug；输出接口文档。"></textarea>
+                </div>
+                <div class="field-card">
+                    <label class="form-label" for="meetings">💬 会议内容摘要</label>
+                    <textarea class="field-textarea" id="meetings" placeholder="本周参加的会议、讨论结论、待办事项...&#10;例：周一项目周会，确认下版排期；周三需求评审。"></textarea>
+                </div>
+                <div class="field-card">
+                    <label class="form-label" for="crIssues">🐛 问题 / CR 记录</label>
+                    <textarea class="field-textarea" id="crIssues" placeholder="遇到的问题、风险、变更记录(CR)...&#10;例：联调阶段接口字段不一致，已反馈后端；CR-1024 审批中。"></textarea>
+                </div>
+                <div class="field-card">
+                    <label class="form-label" for="extra">📎 其他补充</label>
+                    <textarea class="field-textarea" id="extra" placeholder="下周计划、学习收获、需协调的资源等补充信息..."></textarea>
+                </div>
+            </div>
+
+            <!-- 模型选择 + 生成按钮 -->
+            <div class="action-row">
+                <div class="form-group model-group">
+                    <label class="form-label" for="model">🧠 AI 模型</label>
+                    <select class="form-select" id="model">
+                        <option value="">加载中...</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">✨ 生成周报</span>
+                </button>
+            </div>
+            <div class="action-hint">提示：至少填写一项素材内容；快捷键 Ctrl/⌘ + Enter 可快速生成。</div>
+        </div>
+
+        <!-- 结果卡片 -->
+        <div class="card result-card">
+            <div class="result-toolbar no-print">
+                <div class="toolbar-left">
+                    <span class="card-title" style="margin:0;"><span class="step-num">2</span> 周报结果</span>
+                    <span class="result-badge" id="resultBadge">✓ 已生成</span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-secondary btn-sm" onclick="copyReport()">📋 复制</button>
+                    <button class="btn btn-primary btn-sm" onclick="exportReport()">🖨️ 导出</button>
+                </div>
+            </div>
+            <div class="report-content" id="reportArea">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📄</div>
+                    <div class="empty-state-text">填写上方素材后点击「生成周报」</div>
+                    <div class="empty-state-hint">AI 将自动归纳本周工作，生成结构化周报</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer no-print"><p>Powered by Yongshuo | 工具集 v3.0</p></div>
+    </div>
+
+    <script src="/static/js/components.js?v3"></script>
+    <script>
+        // ==================== 全局状态 ====================
+        let reportHTML = '';
+        let isGenerating = false;
+
+        // ==================== 工具函数 ====================
+        function fmt(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+        }
+
+        // 计算当前周（周一 ~ 周日）
+        function getCurrentWeekRange() {
+            const today = new Date();
+            const day = today.getDay(); // 0=周日 ... 6=周六
+            const diffToMonday = (day === 0 ? -6 : 1 - day); // 回到本周一
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diffToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return fmt(monday) + ' ~ ' + fmt(sunday);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        function showToast(msg, type, duration) {
+            if (window.ToolboxToast) {
+                ToolboxToast.show(msg, type || 'info', duration || 3000);
+                return;
+            }
+            // 兜底：使用浏览器原生提示
+            alert(msg);
+        }
+
+        // ==================== 生成周报 ====================
+        async function generateReport() {
+            if (isGenerating) return;
+
+            const name = document.getElementById('name').value.trim();
+            const weekRange = document.getElementById('weekRange').value.trim();
+            const notes = document.getElementById('notes').value.trim();
+            const meetings = document.getElementById('meetings').value.trim();
+            const crIssues = document.getElementById('crIssues').value.trim();
+            const extra = document.getElementById('extra').value.trim();
+            const model = document.getElementById('model').value;
+
+            // 校验
+            if (!name) {
+                showToast('请填写汇报人', 'warning');
+                document.getElementById('name').focus();
+                return;
+            }
+            if (!notes && !meetings && !crIssues && !extra) {
+                showToast('请至少填写一项周报素材内容', 'warning');
+                document.getElementById('notes').focus();
+                return;
+            }
+
+            // 进入加载状态
+            isGenerating = true;
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.querySelector('.btn-text').textContent = '生成中...';
+
+            const area = document.getElementById('reportArea');
+            area.innerHTML =
+                '<div class="loading-container">' +
+                    '<div class="spinner"></div>' +
+                    '<div class="loading-text">AI 正在整理你的周报，请稍候...</div>' +
+                    '<div class="loading-subtext">通常需要 10-30 秒</div>' +
+                '</div>';
+            document.getElementById('resultBadge').classList.remove('show');
+
+            try {
+                const resp = await fetch('/api/weekly-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        week_range: weekRange,
+                        notes: notes,
+                        meetings: meetings,
+                        cr_issues: crIssues,
+                        extra: extra,
+                        model: model
+                    })
+                });
+
+                const data = await resp.json();
+
+                // 处理错误
+                if (data.error) throw new Error(data.error);
+                if (resp.status === 401) throw new Error('登录已过期，请重新登录后再试');
+
+                // 处理成功
+                if (data.status === 'success' && data.report) {
+                    reportHTML = data.report;
+                    area.innerHTML = reportHTML;
+                    document.getElementById('resultBadge').classList.add('show');
+                    showToast('周报已生成', 'success');
+                    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    throw new Error('返回数据格式异常');
+                }
+            } catch (err) {
+                reportHTML = '';
+                area.innerHTML =
+                    '<div class="error-state">' +
+                        '<div class="error-state-icon">⚠️</div>' +
+                        '<div class="error-state-text">生成失败：' + escapeHtml(err.message) + '</div>' +
+                        '<div class="error-state-hint">请检查网络或稍后重试</div>' +
+                    '</div>';
+                showToast('生成失败：' + err.message, 'error', 5000);
+            } finally {
+                isGenerating = false;
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.querySelector('.btn-text').textContent = '✨ 生成周报';
+            }
+        }
+
+        // ==================== 复制周报 ====================
+        function copyReport() {
+            if (!reportHTML) {
+                showToast('暂无周报内容可复制', 'warning');
+                return;
+            }
+            const temp = document.createElement('div');
+            temp.innerHTML = reportHTML;
+            const text = temp.innerText;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast('已复制周报内容', 'success'))
+                    .catch(() => showToast('复制失败', 'error'));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); showToast('已复制周报内容', 'success'); }
+                catch (e) { showToast('复制失败', 'error'); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        // ==================== 导出（浏览器打印） ====================
+        function exportReport() {
+            if (!reportHTML) {
+                showToast('暂无周报内容，请先生成', 'warning');
+                return;
+            }
+            window.print();
+        }
+
+        // ==================== 快捷键 ====================
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                generateReport();
+            }
+        });
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // 默认填充当前周（周一 ~ 周日）
+            document.getElementById('weekRange').value = getCurrentWeekRange();
+
+            // 记录最近使用（由 components.js 提供）
+            if (window.ToolboxRecent) {
+                ToolboxRecent.record('weekly_report', '智能周报生成', '📋');
+            }
+
+            // 动态加载 AI 模型列表
+            fetch('/api/ai-models').then(r => r.json()).then(data => {
+                const sel = document.getElementById('model');
+                sel.innerHTML = '';
+                (data.models || []).forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = `${m.name} — ${m.desc}`;
+                    if (m.id === data.current) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }).catch(() => {
+                document.getElementById('model').innerHTML = '<option value="">模型加载失败</option>';
+            });
+        });
+    </script>
+</body>
+</html>

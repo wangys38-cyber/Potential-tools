@@ -423,6 +423,506 @@ const ToolboxUtils = {
     }
 };
 
+// ==================== 统一导航栏 ====================
+const ToolboxNav = (function() {
+    /**
+     * 自动注入浮动导航栏到页面
+     * @param {Object} opts - 配置
+     *   - title: 页面标题（可选，默认从 <title> 或 <h1> 获取）
+     *   - showHome: 是否显示返回首页按钮（默认 true）
+     *   - showTheme: 是否显示主题切换（默认 true）
+     *   - extraActions: 额外按钮数组 [{html, onClick}]
+     */
+    function init(opts) {
+        opts = opts || {};
+        // 避免重复注入
+        if (document.getElementById('tb-nav-bar')) return;
+
+        var isHome = window.location.pathname === '/' || window.location.pathname === '/index';
+
+        var bar = document.createElement('nav');
+        bar.id = 'tb-nav-bar';
+        bar.className = 'tb-nav-bar';
+
+        var leftHtml = '';
+        if (opts.showHome !== false && !isHome) {
+            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页 (Esc)">← 首页</a>';
+        }
+        if (opts.title) {
+            leftHtml += '<span class="tb-nav-title">' + escapeHtml(opts.title) + '</span>';
+        }
+
+        var rightHtml = '';
+        if (opts.extraActions) {
+            opts.extraActions.forEach(function(a) {
+                rightHtml += a.html;
+            });
+        }
+        if (opts.showTheme !== false) {
+            rightHtml += '<button class="tb-nav-theme" id="tb-nav-theme-btn" title="切换主题">🌙</button>';
+        }
+
+        bar.innerHTML =
+            '<div class="tb-nav-left">' + leftHtml + '</div>' +
+            '<div class="tb-nav-right">' + rightHtml + '</div>';
+
+        document.body.insertBefore(bar, document.body.firstChild);
+
+        // 主题按钮事件
+        var themeBtn = document.getElementById('tb-nav-theme-btn');
+        if (themeBtn) {
+            function updateThemeIcon() {
+                themeBtn.textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+            }
+            updateThemeIcon();
+            themeBtn.addEventListener('click', function() {
+                ToolboxTheme.setTheme(ToolboxTheme.isDark() ? 'light' : 'dark');
+                updateThemeIcon();
+            });
+            document.addEventListener('themechange', updateThemeIcon);
+        }
+
+        // 额外按钮事件
+        if (opts.extraActions) {
+            opts.extraActions.forEach(function(a, i) {
+                if (a.onClick) {
+                    var el = bar.querySelectorAll('.tb-nav-right button, .tb-nav-right a')[i];
+                    if (el) el.addEventListener('click', a.onClick);
+                }
+            });
+        }
+
+        // Esc 返回首页
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !isHome) {
+                var tag = document.activeElement.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                    // 检查是否有模态框打开
+                    var modal = document.querySelector('.tb-modal-overlay.tb-modal-show, .modal[style*="display: block"], .overlay[style*="display: flex"]');
+                    if (!modal) {
+                        window.location.href = '/';
+                    }
+                }
+            }
+        });
+
+        // 给 body 添加 padding-top 避免遮挡内容
+        document.body.style.paddingTop = (parseInt(getComputedStyle(document.body).paddingTop) || 0) + 0 + 'px';
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    return { init: init };
+})();
+
+// ==================== 最近使用工具追踪 ====================
+const ToolboxRecent = (function() {
+    var STORAGE_KEY = 'toolbox_recent_tools';
+    var MAX_ITEMS = 6;
+
+    function record(toolId, toolName, toolIcon) {
+        var list = getAll();
+        // 移除已存在的
+        list = list.filter(function(t) { return t.id !== toolId; });
+        // 添加到最前
+        list.unshift({ id: toolId, name: toolName, icon: toolIcon, time: Date.now() });
+        // 限制数量
+        list = list.slice(0, MAX_ITEMS);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch(e) {}
+    }
+
+    function getAll() {
+        try {
+            var data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function clear() {
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    }
+
+    return { record: record, getAll: getAll, clear: clear };
+})();
+
+// ==================== v3.0 AI 对话助手 ====================
+const ToolboxAIChat = (function() {
+    let container = null;
+    let messages = [];
+    let isOpen = false;
+    let currentModel = '';
+    let abortController = null;
+
+    function createStyles() {
+        if (document.getElementById('tb-aichat-styles')) return;
+        var style = document.createElement('style');
+        style.id = 'tb-aichat-styles';
+        style.textContent = `
+            .tb-aichat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(99,102,241,0.4);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
+            .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.5)}
+            .tb-aichat-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
+            .tb-aichat-panel.open{right:0}
+            [data-theme="dark"] .tb-aichat-panel{background:#1a1a2e;box-shadow:-4px 0 24px rgba(0,0,0,0.5)}
+            .tb-aichat-header{padding:16px 20px;border-bottom:1px solid var(--tb-border,#e5e5ea);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+            [data-theme="dark"] .tb-aichat-header{border-color:rgba(255,255,255,0.08)}
+            .tb-aichat-title{font-size:16px;font-weight:600;color:var(--tb-text,#1d1d1f);display:flex;align-items:center;gap:8px}
+            [data-theme="dark"] .tb-aichat-title{color:#f0f0f2}
+            .tb-aichat-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--tb-text-muted,#86868b);padding:4px;line-height:1}
+            [data-theme="dark"] .tb-aichat-close{color:#9b9ba3}
+            .tb-aichat-models{padding:8px 16px;border-bottom:1px solid var(--tb-border,#e5e5ea);flex-shrink:0}
+            [data-theme="dark"] .tb-aichat-models{border-color:rgba(255,255,255,0.08)}
+            .tb-aichat-models select{width:100%;padding:6px 10px;border:1px solid var(--tb-border,#e5e5ea);border-radius:6px;background:var(--tb-bg-muted,#f5f5f7);color:var(--tb-text,#1d1d1f);font-size:13px;cursor:pointer}
+            [data-theme="dark"] .tb-aichat-models select{background:#2a2a3e;border-color:rgba(255,255,255,0.1);color:#f0f0f2}
+            .tb-aichat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+            .tb-aichat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.6;word-break:break-word;white-space:pre-wrap}
+            .tb-aichat-msg.user{align-self:flex-end;background:#6366f1;color:#fff;border-bottom-right-radius:4px}
+            .tb-aichat-msg.assistant{align-self:flex-start;background:var(--tb-bg-muted,#f5f5f7);color:var(--tb-text,#1d1d1f);border-bottom-left-radius:4px}
+            [data-theme="dark"] .tb-aichat-msg.assistant{background:#2a2a3e;color:#f0f0f2}
+            .tb-aichat-msg.error{align-self:center;background:#fef2f2;color:#ef4444;font-size:13px}
+            .tb-aichat-msg.system{align-self:center;color:var(--tb-text-muted,#86868b);font-size:12px;padding:4px 0}
+            [data-theme="dark"] .tb-aichat-msg.system{color:#9b9ba3}
+            .tb-aichat-typing{align-self:flex-start;padding:10px 14px;background:var(--tb-bg-muted,#f5f5f7);border-radius:12px;border-bottom-left-radius:4px;font-size:13px;color:var(--tb-text-muted,#86868b)}
+            [data-theme="dark"] .tb-aichat-typing{background:#2a2a3e;color:#9b9ba3}
+            .tb-aichat-typing span{display:inline-block;animation:tb-bounce 1.4s infinite ease-in-out both}
+            .tb-aichat-typing span:nth-child(2){animation-delay:.16s}
+            .tb-aichat-typing span:nth-child(3){animation-delay:.32s}
+            @keyframes tb-bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+            .tb-aichat-input-area{padding:12px 16px;border-top:1px solid var(--tb-border,#e5e5ea);flex-shrink:0}
+            [data-theme="dark"] .tb-aichat-input-area{border-color:rgba(255,255,255,0.08)}
+            .tb-aichat-input-wrap{display:flex;gap:8px;align-items:flex-end}
+            .tb-aichat-input{flex:1;resize:none;border:1px solid var(--tb-border,#e5e5ea);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--tb-bg,#fff);color:var(--tb-text,#1d1d1f);max-height:120px;min-height:42px;line-height:1.5}
+            [data-theme="dark"] .tb-aichat-input{background:#2a2a3e;border-color:rgba(255,255,255,0.1);color:#f0f0f2}
+            .tb-aichat-input:focus{outline:none;border-color:#6366f1}
+            .tb-aichat-send{width:42px;height:42px;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}
+            .tb-aichat-send:hover{background:#5457e5}
+            .tb-aichat-send:disabled{background:#c5c5cc;cursor:not-allowed}
+            .tb-aichat-clear{font-size:12px;color:var(--tb-text-muted,#86868b);cursor:pointer;margin-top:8px;text-align:center}
+            [data-theme="dark"] .tb-aichat-clear{color:#9b9ba3}
+            .tb-aichat-clear:hover{text-decoration:underline}
+            .tb-aichat-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.2);z-index:99997;opacity:0;pointer-events:none;transition:opacity .3s}
+            .tb-aichat-backdrop.show{opacity:1;pointer-events:auto}
+        `;
+        document.head.appendChild(style);
+    }
+
+    function createElements() {
+        // FAB 按钮
+        var fab = document.createElement('button');
+        fab.className = 'tb-aichat-fab';
+        fab.innerHTML = '🤖';
+        fab.title = 'AI 助手 (Ctrl+J)';
+        fab.onclick = toggle;
+
+        // 遮罩
+        var backdrop = document.createElement('div');
+        backdrop.className = 'tb-aichat-backdrop';
+        backdrop.id = 'tb-aichat-backdrop';
+        backdrop.onclick = close;
+
+        // 面板
+        var panel = document.createElement('div');
+        panel.className = 'tb-aichat-panel';
+        panel.id = 'tb-aichat-panel';
+        panel.innerHTML = `
+            <div class="tb-aichat-header">
+                <div class="tb-aichat-title">🤖 AI 助手</div>
+                <button class="tb-aichat-close" onclick="ToolboxAIChat.close()">&times;</button>
+            </div>
+            <div class="tb-aichat-models">
+                <select id="tb-aichat-model-select" onchange="ToolboxAIChat.setModel(this.value)">
+                    <option value="">加载模型列表...</option>
+                </select>
+            </div>
+            <div class="tb-aichat-messages" id="tb-aichat-messages">
+                <div class="tb-aichat-msg system">你好！我是 AI 助手，有什么可以帮你的？</div>
+            </div>
+            <div class="tb-aichat-input-area">
+                <div class="tb-aichat-input-wrap">
+                    <textarea class="tb-aichat-input" id="tb-aichat-input" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1" onkeydown="ToolboxAIChat.onKeydown(event)"></textarea>
+                    <button class="tb-aichat-send" id="tb-aichat-send" onclick="ToolboxAIChat.send()">➤</button>
+                </div>
+                <div class="tb-aichat-clear" onclick="ToolboxAIChat.clear()">清空对话</div>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(panel);
+        document.body.appendChild(fab);
+
+        container = panel;
+    }
+
+    async function loadModels() {
+        try {
+            var resp = await fetch('/api/ai-models');
+            var data = await resp.json();
+            var select = document.getElementById('tb-aichat-model-select');
+            if (data.models) {
+                select.innerHTML = data.models.map(function(m) {
+                    var sel = m.id === data.current ? 'selected' : '';
+                    return '<option value="' + m.id + '" ' + sel + '>' + m.name + ' — ' + m.desc + '</option>';
+                }).join('');
+                currentModel = data.current || (data.models[0] && data.models[0].id) || '';
+            }
+        } catch(e) {}
+    }
+
+    function toggle() {
+        if (isOpen) close(); else open();
+    }
+
+    function open() {
+        if (!container) { createStyles(); createElements(); loadModels(); }
+        container.classList.add('open');
+        document.getElementById('tb-aichat-backdrop').classList.add('show');
+        isOpen = true;
+        setTimeout(function() { document.getElementById('tb-aichat-input').focus(); }, 300);
+    }
+
+    function close() {
+        if (container) container.classList.remove('open');
+        var bd = document.getElementById('tb-aichat-backdrop');
+        if (bd) bd.classList.remove('show');
+        isOpen = false;
+    }
+
+    function setModel(m) { currentModel = m; }
+
+    function clear() {
+        messages = [];
+        var msgBox = document.getElementById('tb-aichat-messages');
+        if (msgBox) msgBox.innerHTML = '<div class="tb-aichat-msg system">对话已清空。</div>';
+    }
+
+    function onKeydown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            send();
+        }
+        // 自动调整高度
+        var input = e.target;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    }
+
+    async function send() {
+        var input = document.getElementById('tb-aichat-input');
+        var text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        input.style.height = 'auto';
+
+        // 添加用户消息
+        messages.push({ role: 'user', content: text });
+        appendMessage('user', text);
+
+        // 显示 typing
+        var typingEl = document.createElement('div');
+        typingEl.className = 'tb-aichat-typing';
+        typingEl.id = 'tb-aichat-typing';
+        typingEl.innerHTML = '<span>●</span><span>●</span><span>●</span>';
+        var msgBox = document.getElementById('tb-aichat-messages');
+        msgBox.appendChild(typingEl);
+        msgBox.scrollTop = msgBox.scrollHeight;
+
+        // 创建 AI 消息占位
+        var aiEl = null;
+        var aiText = '';
+
+        try {
+            var sendBtn = document.getElementById('tb-aichat-send');
+            sendBtn.disabled = true;
+
+            var resp = await fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: messages, model: currentModel })
+            });
+
+            // 移除 typing
+            var tp = document.getElementById('tb-aichat-typing');
+            if (tp) tp.remove();
+
+            if (!resp.ok) {
+                var errData = await resp.json().catch(function() { return {}; });
+                appendMessage('error', errData.error || '请求失败 (' + resp.status + ')');
+                return;
+            }
+
+            // 创建 AI 消息元素
+            aiEl = document.createElement('div');
+            aiEl.className = 'tb-aichat-msg assistant';
+            msgBox.appendChild(aiEl);
+
+            // 读取 SSE 流
+            var reader = resp.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+                buffer += decoder.decode(chunk.value, { stream: true });
+
+                var lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (!line.startsWith('data:')) continue;
+                    var jsonStr = line.slice(5).trim();
+                    if (!jsonStr) continue;
+                    try {
+                        var sseData = JSON.parse(jsonStr);
+                        // 检查错误
+                        if (sseData.error) {
+                            appendMessage('error', sseData.error);
+                            if (aiEl) aiEl.remove();
+                            return;
+                        }
+                        // 提取增量文本
+                        var choices = sseData.output && sseData.output.choices;
+                        if (choices && choices.length > 0) {
+                            var delta = choices[0].message && choices[0].message.content;
+                            if (delta) {
+                                aiText += delta;
+                                aiEl.textContent = aiText;
+                                msgBox.scrollTop = msgBox.scrollHeight;
+                            }
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            if (aiText) {
+                messages.push({ role: 'assistant', content: aiText });
+            } else if (aiEl) {
+                aiEl.textContent = '(无响应)';
+            }
+        } catch(e) {
+            var tp2 = document.getElementById('tb-aichat-typing');
+            if (tp2) tp2.remove();
+            appendMessage('error', '网络错误: ' + e.message);
+        } finally {
+            var sendBtn2 = document.getElementById('tb-aichat-send');
+            if (sendBtn2) sendBtn2.disabled = false;
+        }
+    }
+
+    function appendMessage(role, text) {
+        var msgBox = document.getElementById('tb-aichat-messages');
+        if (!msgBox) return;
+        var el = document.createElement('div');
+        el.className = 'tb-aichat-msg ' + role;
+        el.textContent = text;
+        msgBox.appendChild(el);
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    function init() {
+        createStyles();
+        createElements();
+        // 快捷键 Ctrl+J
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
+                e.preventDefault();
+                toggle();
+            }
+            if (e.key === 'Escape' && isOpen) {
+                close();
+            }
+        });
+    }
+
+    return { init: init, open: open, close: close, toggle: toggle, send: send, clear: clear, setModel: setModel, onKeydown: onKeydown };
+})();
+
+// ==================== v3.0 OCR 粘贴识别 ====================
+const ToolboxOCR = (function() {
+    function init() {
+        document.addEventListener('paste', function(e) {
+            var items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type && items[i].type.indexOf('image') === 0) {
+                    var blob = items[i].getAsFile();
+                    if (!blob) continue;
+                    e.preventDefault();
+                    handleImage(blob);
+                    return;
+                }
+            }
+        });
+    }
+
+    async function handleImage(blob) {
+        // 显示 OCR 弹窗
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center';
+        overlay.id = 'tb-ocr-overlay';
+
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            overlay.innerHTML = `
+                <div style="background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+                    <h3 style="margin:0 0 12px;font-size:16px">📷 OCR 图片识别</h3>
+                    <img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:12px" />
+                    <div id="tb-ocr-result" style="min-height:40px;font-size:14px;color:#666">正在识别中...</div>
+                    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+                        <button id="tb-ocr-copy" style="padding:6px 16px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:#f5f5f7;font-size:13px" disabled>复制文字</button>
+                        <button id="tb-ocr-close" style="padding:6px 16px;border:none;border-radius:6px;cursor:pointer;background:#6366f1;color:#fff;font-size:13px">关闭</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            document.getElementById('tb-ocr-close').onclick = function() { overlay.remove(); };
+            document.getElementById('tb-ocr-copy').onclick = function() {
+                var text = document.getElementById('tb-ocr-result').textContent;
+                navigator.clipboard.writeText(text).then(function() {
+                    if (window.ToolboxToast) ToolboxToast.show('已复制到剪贴板', 'success');
+                });
+            };
+
+            // 发送到 OCR API
+            var formData = new FormData();
+            formData.append('file', blob, 'pasted.png');
+
+            fetch('/api/ocr', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var resultEl = document.getElementById('tb-ocr-result');
+                    if (data.error) {
+                        resultEl.innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+                    } else {
+                        resultEl.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;margin:0;max-height:300px;overflow-y:auto;font-family:inherit">' + escapeHtml(data.text || '(未识别到文字)') + '</pre>';
+                        resultEl.style.color = '#1d1d1f';
+                        document.getElementById('tb-ocr-copy').disabled = false;
+                    }
+                })
+                .catch(function(err) {
+                    document.getElementById('tb-ocr-result').innerHTML = '<span style="color:#ef4444">请求失败: ' + err.message + '</span>';
+                });
+        };
+        reader.readAsDataURL(blob);
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    return { init: init, handleImage: handleImage };
+})();
+
 // ==================== 自动初始化 ====================
 // 在 DOMContentLoaded 时初始化主题（最早执行，避免闪烁）
 (function() {
@@ -436,9 +936,26 @@ const ToolboxUtils = {
     }
     earlyInit();
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { ToolboxTheme.init(); });
-    } else {
+    function initAll() {
         ToolboxTheme.init();
+        var isHome = window.location.pathname === '/' || window.location.pathname === '/index';
+        // 自动注入导航栏（首页除外）
+        if (!isHome && !document.getElementById('tb-nav-bar')) {
+            ToolboxNav.init();
+        }
+        // v3.0: 初始化 AI 对话助手（全部页面）
+        if (typeof ToolboxAIChat !== 'undefined' && !document.querySelector('.tb-aichat-fab')) {
+            ToolboxAIChat.init();
+        }
+        // v3.0: 初始化 OCR 粘贴识别（全部页面）
+        if (typeof ToolboxOCR !== 'undefined') {
+            ToolboxOCR.init();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
     }
 })();
