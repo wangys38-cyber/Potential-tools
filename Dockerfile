@@ -16,7 +16,7 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260813-v3-port-8080
+ARG CACHE_BUST=20260813-v3-fix-port-remove-env
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 复制应用代码（COPY 层会根据文件内容自动失效缓存）
@@ -31,8 +31,8 @@ COPY README.md .
 # 创建可写目录
 RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
 
-# Railway 自定义域名端口为 8080，应用需要监听该端口
-ENV PORT=8080
+# Railway 运行时自动注入 PORT 环境变量，不要在 Dockerfile 中硬编码
+# 自定义域名的端口在 Railway Dashboard → Networking 中配置
 EXPOSE 8080
 
 # 性能优化配置：
@@ -42,5 +42,5 @@ EXPOSE 8080
 # --max-requests 1000: 每1000请求回收worker，防止内存泄漏
 # --max-requests-jitter 50: 随机抖动，避免多worker同时回收
 # 1 worker + 16 threads: 避免多worker CPU竞争（Railway容器CPU有限）
-# 端口: 使用 ${PORT:-8080} 优先读取环境变量，默认 8080 匹配 Railway 自定义域名配置
+# 端口: Railway 自动注入 PORT，本地默认 8080
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} app:app -k gthread --workers 1 --threads 16 --timeout 300 --preload --worker-tmp-dir /dev/shm --keep-alive 10 --max-requests 1000 --max-requests-jitter 50"]
