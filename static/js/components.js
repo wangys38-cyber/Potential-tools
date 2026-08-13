@@ -1193,8 +1193,9 @@ const ToolboxCommandPalette = (function() {
     function initAll() {
         ToolboxTheme.init();
         var isHome = window.location.pathname === '/' || window.location.pathname === '/index';
-        // 自动注入导航栏（首页除外）
-        if (!isHome && !document.getElementById('tb-nav-bar')) {
+        var isLogin = window.location.pathname === '/login';
+        // 自动注入导航栏（首页和登录页除外）
+        if (!isHome && !isLogin && !document.getElementById('tb-nav-bar')) {
             ToolboxNav.init();
         }
         // v3.0: 初始化 AI 对话助手（全部页面）
