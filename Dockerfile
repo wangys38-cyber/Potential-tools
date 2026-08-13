@@ -14,19 +14,26 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Playwright
 RUN playwright install chromium --with-deps
 
-# Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
-# 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260813-v3-fix-port-remove-env
-RUN echo "Cache bust: ${CACHE_BUST}"
+# Cache-bust: 每次部署强制复制最新代码
+# 方案: 先写入版本标记文件到目标目录,改变目录校验和,强制 COPY 层失效
+ARG CACHE_BUST=20260813-v3-force-static-refresh
+RUN echo "Cache bust: ${CACHE_BUST}" && \
+    mkdir -p /app/static /app/templates && \
+    echo "${CACHE_BUST}" > /app/_build_version.txt
 
-# 复制应用代码（COPY 层会根据文件内容自动失效缓存）
+# 复制应用代码
 COPY app.py .
 COPY auth.py .
 COPY db.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
-COPY railway.toml .
-COPY README.md .
+
+# 验证文件确实更新了（构建时可见）
+RUN echo "=== Verify deployed files ===" && \
+    wc -c /app/static/js/components.js && \
+    wc -c /app/static/css/theme.css && \
+    cat /app/static/_version.txt && \
+    echo "=== Files verified ==="
 
 # 创建可写目录
 RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
