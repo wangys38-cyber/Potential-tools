@@ -16,8 +16,11 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260813-v3-minimal-test
+ARG CACHE_BUST=20260813-v3-allow-guest
 RUN echo "Cache bust: ${CACHE_BUST}"
+
+# 允许游客访问（无需登录即可使用工具和 AI 功能）
+ENV ALLOW_GUEST=true
 
 # 复制应用代码（COPY 层会根据文件内容自动失效缓存）
 COPY app.py .
