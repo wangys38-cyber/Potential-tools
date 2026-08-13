@@ -4,166 +4,233 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 工具集</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --border: rgba(0, 0, 0, 0.08);
+        }
         [data-theme="dark"] {
-            --bg-primary: #1a1a1e;
-            --bg-card: #2c2c30;
-            --text-primary: #f0f0f2;
-            --text-secondary: #9b9ba3;
+            --bg-primary: #000000;
+            --bg-card: #1c1c1e;
+            --text-primary: #f5f5f7;
+            --text-secondary: #86868b;
             --accent: #0a84ff;
-            --border: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-primary);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-        body { transition: background-color 0.3s ease, color 0.3s ease; }
-        .login-card {
-            background: #fff;
-            border-radius: 24px;
-            padding: 48px 40px;
-            width: 420px;
-            max-width: 90vw;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+            z-index: 1000;
+        }
+        .theme-toggle:hover { transform: scale(1.08); }
+
+        /* Logo */
+        .logo-area {
+            margin-bottom: 40px;
             text-align: center;
         }
-        .login-icon {
-            width: 72px;
-            height: 72px;
+        .logo-icon {
+            width: 80px; height: 80px;
             border-radius: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            margin: 0 auto 24px;
-            box-shadow: 0 8px 24px rgba(102,126,234,0.3);
+            font-size: 40px;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 32px rgba(0, 113, 227, 0.25);
         }
-        .login-card h1 {
-            font-size: 24px;
+        .logo-area h1 {
+            font-size: 28px;
             font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 8px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
         }
-        .login-card .subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 36px;
+        .logo-area .subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 400;
         }
+
+        /* Card */
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+        }
+        [data-theme="dark"] .login-card {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 40px rgba(0,0,0,0.4);
+        }
+
+        /* Buttons */
         .login-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
             padding: 14px 24px;
-            border-radius: 14px;
+            border-radius: 12px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 500;
             border: none;
             cursor: pointer;
             transition: all 0.2s;
             font-family: inherit;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             text-decoration: none;
         }
         .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        .login-btn:active {
+            transform: translateY(0);
         }
         .login-btn:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
         }
-        .login-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+        .login-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 
-        /* 飞书按钮 */
         .btn-feishu {
-            background: #3370ff;
+            background: #0071e3;
             color: #fff;
         }
-        .btn-feishu:hover { background: #2860e0; }
+        .btn-feishu:hover { background: #0077ed; box-shadow: 0 4px 12px rgba(0,113,227,0.3); }
 
-        /* Google 按钮 */
         .btn-google {
-            background: #fff;
-            color: #1a1a2e;
-            border: 1.5px solid #e5e7eb;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
-        .btn-google:hover { background: #f9fafb; }
+        [data-theme="dark"] .btn-google {
+            background: #2c2c2e;
+        }
+        .btn-google:hover { background: var(--bg-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
+        /* Divider */
         .divider {
             display: flex;
             align-items: center;
             gap: 12px;
             margin: 20px 0;
-            color: #9ca3af;
-            font-size: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
         }
         .divider::before, .divider::after {
             content: '';
             flex: 1;
             height: 1px;
-            background: #e5e7eb;
+            background: var(--border);
         }
 
-        .guest-link {
-            display: inline-block;
-            color: #6b7280;
-            font-size: 13px;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+        /* Guest button */
+        .guest-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            cursor: pointer;
             transition: all 0.2s;
+            font-family: inherit;
+            text-decoration: none;
         }
-        .guest-link:hover {
-            color: #4f46e5;
-            background: #eef2ff;
+        .guest-btn:hover {
+            background: rgba(0, 113, 227, 0.06);
+            transform: translateY(-1px);
         }
 
+        /* Error */
         .error-msg {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 13px;
+            background: rgba(255, 59, 48, 0.08);
+            color: #ff3b30;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
             margin-bottom: 20px;
             display: none;
         }
         .error-msg.show { display: block; }
 
+        /* Config hint */
         .config-hint {
-            margin-top: 24px;
-            padding: 12px 16px;
-            background: #fef3c7;
-            border-radius: 10px;
-            font-size: 12px;
-            color: #92400e;
+            margin-top: 20px;
+            padding: 14px 16px;
+            background: rgba(255, 149, 0, 0.08);
+            border-radius: 12px;
+            font-size: 13px;
+            color: #ff9500;
             text-align: left;
             line-height: 1.6;
             display: none;
         }
         .config-hint.show { display: block; }
+
+        /* Footer */
+        .login-footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
-    <button class="tb-theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题" style="position:fixed;top:20px;right:20px;z-index:1000;">🌙</button>
-    <div class="login-card">
-        <div class="login-icon">🛠️</div>
-        <h1>欢迎登录</h1>
-        <p class="subtitle">登录后可保存分析记录和个人设置</p>
+    <button class="theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题">🌙</button>
 
+    <div class="logo-area">
+        <div class="logo-icon">🧰</div>
+        <h1>工具集</h1>
+        <p class="subtitle">效率工具平台</p>
+    </div>
+
+    <div class="login-card">
         {% if error %}
         <div class="error-msg show">
             {% set error_map = {
@@ -204,14 +271,32 @@
         </button>
         {% endif %}
 
-        {% if not feishu_configured or not google_configured %}
+        {% if allow_guest %}
+        <div class="divider">或</div>
+        <a href="/" class="guest-btn">
+            <span style="font-size:18px;">👤</span>
+            游客访问
+        </a>
+        {% endif %}
+
+        {% if not feishu_configured and not google_configured %}
         <div class="config-hint show">
-            <strong>配置提示：</strong>
-            {% if not feishu_configured %}飞书登录需要在 <code>config_oauth.json</code> 中配置 <code>app_id</code> 和 <code>app_secret</code>。{% endif %}
-            {% if not google_configured %}Google登录需要在 <code>config_oauth.json</code> 中配置 <code>client_id</code> 和 <code>client_secret</code>。{% endif %}
+            <strong>💡 提示：</strong>OAuth 登录需要在环境变量或 <code>config_oauth.json</code> 中配置。当前已开启游客模式，可直接访问。
+        </div>
+        {% elif not feishu_configured or not google_configured %}
+        <div class="config-hint show">
+            {% if not feishu_configured %}<strong>提示：</strong>飞书登录需要在环境变量中配置 <code>FEISHU_APP_ID</code> 和 <code>FEISHU_APP_SECRET</code>。{% endif %}
+            {% if not google_configured %}<strong>提示：</strong>Google 登录需要在环境变量中配置 <code>GOOGLE_CLIENT_ID</code> 和 <code>GOOGLE_CLIENT_SECRET</code>。{% endif %}
         </div>
         {% endif %}
     </div>
-    <script src="/static/js/components.js?v=20260813v4"></script>
+
+    <div class="login-footer">
+        登录后可保存分析记录和个人设置<br>
+        游客模式下数据仅保存在本地
+    </div>
+
+    <script src="/static/js/components.js?v=20260813v5"></script>
+    <script>ToolboxTheme.init();</script>
 </body>
 </html>
