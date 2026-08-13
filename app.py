@@ -182,8 +182,11 @@ def require_login():
 def add_cache_headers(response):
     """为静态资源添加缓存头，减少重复下载"""
     path = request.path
-    # 静态文件缓存1小时（Whitenoise已处理，这里作为后备）
-    if path.startswith('/static/') or path.startswith('/assets/'):
+    # JS/CSS 文件：带版本号查询参数时缓存1小时，否则不缓存
+    if path.startswith('/static/') and (path.endswith('.js') or path.endswith('.css')):
+        response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+    # 其他静态文件缓存1天
+    elif path.startswith('/static/') or path.startswith('/assets/'):
         response.headers['Cache-Control'] = 'public, max-age=3600'
     # API 响应不缓存
     elif path.startswith('/api/'):
