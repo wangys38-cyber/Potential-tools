@@ -1195,6 +1195,15 @@ const ToolboxCommandPalette = (function() {
     fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
         if(data.logged_in && data.user && data.user.id){
             window._USER_PREFIX = 'u' + data.user.id + '_';
+            // 迁移旧数据到用户专属 key，并删除旧 key（防止游客看到）
+            var oldKey = 'toolbox_recent_tools';
+            var newKey = window._USER_PREFIX + oldKey;
+            if(localStorage.getItem(oldKey) !== null){
+                if(localStorage.getItem(newKey) === null){
+                    localStorage.setItem(newKey, localStorage.getItem(oldKey));
+                }
+                localStorage.removeItem(oldKey);
+            }
         }
     }).catch(function(){/* 游客或网络错误，不设前缀 */});
 

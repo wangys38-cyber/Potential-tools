@@ -451,6 +451,17 @@
 
     // ===== Favorites =====
     const FAV_KEY = {% if current_user %}'u{{ current_user.id }}_toolbox_favorites'{% else %}'toolbox_favorites'{% endif %};
+    // 登录用户：迁移旧数据到用户专属 key，并删除旧 key（防止游客看到）
+    {% if current_user %}
+    (function(){
+        if(localStorage.getItem('toolbox_favorites') !== null){
+            if(localStorage.getItem(FAV_KEY) === null){
+                localStorage.setItem(FAV_KEY, localStorage.getItem('toolbox_favorites'));
+            }
+            localStorage.removeItem('toolbox_favorites');
+        }
+    })();
+    {% endif %}
     function getFavorites() {
         try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { return []; }
     }

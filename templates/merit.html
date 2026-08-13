@@ -318,6 +318,22 @@
         const STORAGE_KEY_HISTORY = _USER_PREFIX + 'merit_history';
         const STORAGE_KEY_ACH = _USER_PREFIX + 'merit_achievements';
 
+        // 登录用户：迁移旧数据到用户专属 key，并删除旧 key
+        {% if current_user %}
+        (function(){
+          var keys = ['merit_total', 'merit_history', 'merit_achievements'];
+          keys.forEach(function(k){
+            if(localStorage.getItem(k) !== null){
+              var nk = _USER_PREFIX + k;
+              if(localStorage.getItem(nk) === null){
+                localStorage.setItem(nk, localStorage.getItem(k));
+              }
+              localStorage.removeItem(k);
+            }
+          });
+        })();
+        {% endif %}
+
         function getTodayStr() {
             const now = new Date();
             return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');

@@ -791,6 +791,9 @@ let _userIdReady = false;
       if(!localStorage.getItem(newSettingsKey) && localStorage.getItem('notenb-settings')){
         localStorage.setItem(newSettingsKey, localStorage.getItem('notenb-settings'));
       }
+      // 删除旧 key 中的数据，防止游客看到
+      localStorage.removeItem('cyber-notes-storage');
+      localStorage.removeItem('notenb-settings');
       STORAGE_KEY = newKey;
       SETTINGS_KEY = newSettingsKey;
     }
