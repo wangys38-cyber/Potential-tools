@@ -2751,7 +2751,7 @@ def _build_test_report_pdf_html(data, file_name, sheet_name, ai_analysis=''):
             else:
                 ai_formatted += f'<div class="ai-paragraph">{line}</div>'
         ai_html = f'''
-<div class="section ai-section" style="page-break-inside: avoid;">
+<div class="section">
     <div class="section-title ai-title">🤖 AI 深度分析</div>
     <div class="ai-content">{ai_formatted}</div>
 </div>'''
@@ -2766,8 +2766,8 @@ def _build_test_report_pdf_html(data, file_name, sheet_name, ai_analysis=''):
 body {{
     font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     color: #1e293b;
-    font-size: 12px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.7;
     position: relative;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -2807,16 +2807,16 @@ body {{
     border-radius: 50%;
 }}
 .report-header h1 {{
-    font-size: 26px; font-weight: 800; margin-bottom: 8px;
+    font-size: 28px; font-weight: 800; margin-bottom: 8px;
     letter-spacing: 1px;
 }}
 .report-header .meta {{
-    font-size: 12px; opacity: 0.85; display: flex; flex-wrap: wrap; gap: 16px;
+    font-size: 13px; opacity: 0.85; display: flex; flex-wrap: wrap; gap: 16px;
 }}
 .report-header .meta span {{ display: inline-flex; align-items: center; gap: 4px; }}
 .report-header .badge {{
     display: inline-block; background: rgba(255,255,255,0.15);
-    padding: 3px 12px; border-radius: 20px; font-size: 11px;
+    padding: 4px 14px; border-radius: 20px; font-size: 12px;
     margin-top: 8px; backdrop-filter: blur(4px);
 }}
 
@@ -2826,7 +2826,7 @@ body {{
     padding: 0 36px;
 }}
 .section-title {{
-    font-size: 15px; font-weight: 700; margin-bottom: 12px;
+    font-size: 17px; font-weight: 700; margin-bottom: 12px;
     padding: 6px 0 6px 14px; border-left: 4px solid #4f46e5;
     color: #1e293b; letter-spacing: 0.5px;
     display: flex; align-items: center; gap: 6px;
@@ -2838,8 +2838,8 @@ body {{
     background: #f8fafc; border-radius: 8px; padding: 10px 16px;
     border-left: 3px solid #4f46e5; min-width: 180px; flex: 1;
 }}
-.info-label {{ font-size: 10px; color: #94a3b8; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }}
-.info-val {{ font-size: 13px; font-weight: 600; color: #1e293b; }}
+.info-label {{ font-size: 11px; color: #94a3b8; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }}
+.info-val {{ font-size: 14px; font-weight: 600; color: #1e293b; }}
 
 /* ===== Stats Grid ===== */
 .stats-grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
@@ -2851,20 +2851,20 @@ body {{
 .stat-card.highlight {{
     border-color: #c7d2fe; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
 }}
-.stat-card .num {{ font-size: 24px; font-weight: 800; line-height: 1.2; }}
-.stat-card .lbl {{ font-size: 10px; color: #94a3b8; margin-top: 4px; }}
+.stat-card .num {{ font-size: 26px; font-weight: 800; line-height: 1.2; }}
+.stat-card .lbl {{ font-size: 11px; color: #94a3b8; margin-top: 4px; }}
 
 .severity-row {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }}
 .sev-tag {{
     display: inline-block; padding: 4px 12px; border-radius: 6px;
-    font-size: 11px; border: 1px solid; background: #fff;
+    font-size: 12px; border: 1px solid; background: #fff;
 }}
 
 /* ===== Risk Banner ===== */
 .risk-banner {{
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 20px; border-radius: 24px;
-    font-size: 13px; font-weight: 700; margin-bottom: 12px;
+    font-size: 14px; font-weight: 700; margin-bottom: 12px;
     background: {risk_bg}; color: {risk_color}; border: 1px solid {risk_color}44;
 }}
 
@@ -2872,13 +2872,13 @@ body {{
 .exec-summary {{
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-radius: 10px; padding: 16px 20px; line-height: 1.8;
-    border: 1px solid #e2e8f0; font-size: 12px; color: #334155;
+    border: 1px solid #e2e8f0; font-size: 13px; color: #334155;
 }}
 
 /* ===== Findings ===== */
 .finding-item {{
-    padding: 8px 14px; line-height: 1.6; border-radius: 8px;
-    margin-bottom: 6px; font-size: 12px;
+    padding: 8px 14px; line-height: 1.7; border-radius: 8px;
+    margin-bottom: 6px; font-size: 13px;
     border-left: 3px solid #cbd5e1; background: #f8fafc;
 }}
 .finding-item.finding-high {{ border-left-color: #ef4444; background: #fef2f2; }}
@@ -2888,32 +2888,32 @@ body {{
 /* ===== Recommendations ===== */
 .rec-item {{
     display: flex; align-items: flex-start; gap: 10px;
-    padding: 8px 0; line-height: 1.6; border-bottom: 1px solid #f1f5f9;
+    padding: 8px 0; line-height: 1.7; border-bottom: 1px solid #f1f5f9;
 }}
 .rec-item:last-child {{ border-bottom: none; }}
 .rec-num {{
     display: inline-flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 50%;
-    background: #4f46e5; color: white; font-size: 11px; font-weight: 700;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #4f46e5; color: white; font-size: 12px; font-weight: 700;
     flex-shrink: 0;
 }}
-.rec-text {{ font-size: 12px; color: #334155; flex: 1; }}
+.rec-text {{ font-size: 13px; color: #334155; flex: 1; }}
 
 /* ===== Analysis Sections ===== */
 .section-block {{
     border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px;
-    margin-bottom: 10px; page-break-inside: avoid;
+    margin-bottom: 10px;
 }}
 .section-block.risk-high {{ border-left: 4px solid #ef4444; }}
 .section-block.risk-medium {{ border-left: 4px solid #f59e0b; }}
 .section-block.risk-low {{ border-left: 4px solid #3b82f6; }}
 .section-block.risk-none {{ border-left: 4px solid #10b981; }}
 .section-header {{ display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }}
-.section-cat {{ font-weight: 700; font-size: 13px; color: #1e293b; }}
-.section-stats {{ font-size: 11px; color: #94a3b8; margin-left: auto; }}
-.section-summary {{ font-size: 11px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }}
+.section-cat {{ font-weight: 700; font-size: 14px; color: #1e293b; }}
+.section-stats {{ font-size: 12px; color: #94a3b8; margin-left: auto; }}
+.section-summary {{ font-size: 12px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }}
 .risk-badge-pdf {{
-    padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 700;
+    padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 700;
 }}
 .risk-badge-pdf.high {{ background: #fee2e2; color: #991b1b; }}
 .risk-badge-pdf.medium {{ background: #fef3c7; color: #92400e; }}
@@ -2924,34 +2924,34 @@ body {{
 .problem-list {{ margin-top: 6px; }}
 .problem-item {{
     display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
-    padding: 5px 0; font-size: 11px; border-bottom: 1px dashed #f1f5f9;
+    padding: 5px 0; font-size: 12px; border-bottom: 1px dashed #f1f5f9;
 }}
 .problem-item:last-child {{ border-bottom: none; }}
 .problem-name {{ font-weight: 600; color: #1e293b; }}
-.problem-reason {{ color: #dc2626; font-size: 10px; }}
-.problem-ta {{ color: #94a3b8; font-size: 10px; width: 100%; }}
+.problem-reason {{ color: #dc2626; font-size: 11px; }}
+.problem-ta {{ color: #94a3b8; font-size: 11px; width: 100%; }}
 
 /* ===== Table ===== */
 .table-wrapper {{ overflow: hidden; border-radius: 10px; border: 1px solid #e2e8f0; }}
-table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
 thead th {{
     background: #1e293b; color: #fff; padding: 10px 8px; text-align: left;
-    font-weight: 600; font-size: 10px; letter-spacing: 0.5px;
+    font-weight: 600; font-size: 11px; letter-spacing: 0.5px;
     text-transform: uppercase;
 }}
 tbody td {{
-    padding: 7px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
+    padding: 8px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
     word-break: break-word;
 }}
+tbody tr {{ page-break-inside: avoid; }}
 tbody tr:nth-child(even) {{ background: #f8fafc; }}
-tbody tr:hover {{ background: #f1f5f9; }}
-.col-idx {{ color: #94a3b8; font-size: 10px; width: 32px; text-align: center; }}
+.col-idx {{ color: #94a3b8; font-size: 11px; width: 36px; text-align: center; }}
 .col-name {{ font-weight: 600; min-width: 120px; }}
-.col-val {{ font-size: 10px; color: #64748b; white-space: nowrap; }}
-.col-reason {{ max-width: 280px; font-size: 10px; color: #64748b; }}
+.col-val {{ font-size: 11px; color: #64748b; white-space: nowrap; }}
+.col-reason {{ max-width: 280px; font-size: 11px; color: #64748b; }}
 .pdf-badge {{
     display: inline-block; padding: 2px 10px; border-radius: 10px;
-    font-size: 10px; font-weight: 600; white-space: nowrap;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
 }}
 .pdf-badge.pass {{ background: #d1fae5; color: #065f46; }}
 .pdf-badge.fail {{ background: #fee2e2; color: #991b1b; }}
@@ -2961,36 +2961,33 @@ tbody tr:hover {{ background: #f1f5f9; }}
 .pdf-badge.unknown {{ background: #f3f4f6; color: #4b5563; }}
 
 /* ===== AI Section ===== */
-.ai-section {{
-    page-break-before: auto;
-}}
 .ai-title {{ border-left-color: #7c3aed; color: #6d28d9; }}
 .ai-content {{
     background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
     border-radius: 10px; padding: 18px 22px; border: 1px solid #e9d5ff;
 }}
 .ai-sub-title {{
-    font-size: 13px; font-weight: 700; color: #6d28d9;
+    font-size: 14px; font-weight: 700; color: #6d28d9;
     margin-top: 12px; margin-bottom: 6px; padding-bottom: 4px;
     border-bottom: 1px solid #e9d5ff;
 }}
 .ai-sub-title:first-child {{ margin-top: 0; }}
-.ai-paragraph {{ font-size: 12px; color: #334155; line-height: 1.8; margin-bottom: 4px; }}
+.ai-paragraph {{ font-size: 13px; color: #334155; line-height: 1.8; margin-bottom: 4px; }}
 .ai-list-item {{
-    font-size: 12px; color: #334155; line-height: 1.7;
+    font-size: 13px; color: #334155; line-height: 1.7;
     padding-left: 18px; position: relative; margin-bottom: 2px;
 }}
 .ai-list-item::before {{
     content: '▸'; position: absolute; left: 0; color: #7c3aed; font-weight: 700;
 }}
-.ai-list-item.sub {{ padding-left: 36px; font-size: 11px; color: #64748b; }}
+.ai-list-item.sub {{ padding-left: 36px; font-size: 12px; color: #64748b; }}
 .ai-list-item.sub::before {{ content: '·'; color: #94a3b8; }}
 
 /* ===== Footer ===== */
 .report-footer {{
     margin-top: 24px; padding: 16px 36px;
     background: #1e293b; color: #94a3b8;
-    text-align: center; font-size: 10px;
+    text-align: center; font-size: 11px;
     border-radius: 16px 16px 0 0;
 }}
 .report-footer .conf {{
@@ -3034,19 +3031,19 @@ tbody tr:hover {{ background: #f1f5f9; }}
     {sections_html}
 </div>
 
-<div class="section">
+<div class="section" style="page-break-inside: avoid;">
     <div class="section-title">⚠️ 关键发现</div>
     {findings_html}
 </div>
 
-<div class="section">
+<div class="section" style="page-break-inside: avoid;">
     <div class="section-title">💡 改进建议</div>
     {recs_html}
 </div>
 
 {ai_html}
 
-<div class="section" style="page-break-before: always;">
+<div class="section">
     <div class="section-title">📋 逐项明细</div>
     <div class="table-wrapper">
     <table>
