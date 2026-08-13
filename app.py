@@ -6950,7 +6950,7 @@ def serve_assets(filename):
 
 if __name__ == '__main__':
     try:
-        port = int(os.environ.get('PORT', 5001))
+        port = int(os.environ.get('PORT', 8080))
         print(f"GGB 1.0 启动中... (port={port})")
         logger.info(f"GGB 1.0 启动中... (port={port})")
         app.run(host='0.0.0.0', port=port, debug=False)
