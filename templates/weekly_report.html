@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能周报生成 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v2?v3">
     <style>
         /* ==================== 主题变量（与全站一致，支持暗色模式） ==================== */
         :root {
@@ -326,7 +326,8 @@
         <div class="footer no-print"><p>Powered by Yongshuo | 工具集 v3.0</p></div>
     </div>
 
-    <script src="/static/js/components.js?v=20260813v6"></script>
+    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script src="/static/js/components.js?v=20260813v7"></script>
     <script>
         // ==================== 全局状态 ====================
         let reportHTML = '';

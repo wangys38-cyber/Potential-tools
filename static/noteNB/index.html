@@ -772,40 +772,25 @@ a{color:var(--accent);text-decoration:none}
 /* ===== Data Layer ===== */
 let STORAGE_KEY = 'cyber-notes-storage';  // 默认（游客）
 let SETTINGS_KEY = 'notenb-settings';
-let _userIdReady = false;
 
-// 异步获取当前用户 ID，为每个用户生成独立存储空间
-(async function(){
-  try{
-    const resp = await fetch('/api/user/info');
-    const data = await resp.json();
-    if(data.logged_in && data.user && data.user.id){
-      const uid = data.user.id;
-      // 登录用户：迁移旧数据到用户专属 key，然后切换
-      const newKey = `cyber-notes-storage-u${uid}`;
-      const newSettingsKey = `notenb-settings-u${uid}`;
-      // 首次切换时，把旧数据迁移到新 key（仅当新 key 不存在时）
-      if(!localStorage.getItem(newKey) && localStorage.getItem('cyber-notes-storage')){
-        localStorage.setItem(newKey, localStorage.getItem('cyber-notes-storage'));
-      }
-      if(!localStorage.getItem(newSettingsKey) && localStorage.getItem('notenb-settings')){
-        localStorage.setItem(newSettingsKey, localStorage.getItem('notenb-settings'));
-      }
-      // 删除旧 key 中的数据，防止游客看到
-      localStorage.removeItem('cyber-notes-storage');
-      localStorage.removeItem('notenb-settings');
-      STORAGE_KEY = newKey;
-      SETTINGS_KEY = newSettingsKey;
-    }
-  }catch(e){ /* 游客或网络错误，使用默认 key */ }
-  _userIdReady = true;
-  // 数据层就绪后重新加载
-  if(typeof loadState === 'function'){
-    loadState();
-    if(typeof applyTheme === 'function') applyTheme(settings.theme);
-    if(typeof render === 'function') render();
+// 服务端注入的用户 ID（同步可用，无需 async fetch）
+if(window._SERVER_USER_ID){
+  const uid = window._SERVER_USER_ID;
+  const newKey = `cyber-notes-storage-u${uid}`;
+  const newSettingsKey = `notenb-settings-u${uid}`;
+  // 首次切换时，把旧数据迁移到新 key（仅当新 key 不存在时）
+  if(!localStorage.getItem(newKey) && localStorage.getItem('cyber-notes-storage')){
+    localStorage.setItem(newKey, localStorage.getItem('cyber-notes-storage'));
   }
-})();
+  if(!localStorage.getItem(newSettingsKey) && localStorage.getItem('notenb-settings')){
+    localStorage.setItem(newSettingsKey, localStorage.getItem('notenb-settings'));
+  }
+  // 删除旧 key 中的数据，防止游客看到
+  localStorage.removeItem('cyber-notes-storage');
+  localStorage.removeItem('notenb-settings');
+  STORAGE_KEY = newKey;
+  SETTINGS_KEY = newSettingsKey;
+}
 const COLORS = {
   pink:{hex:'#ec4899',light:'#fdf2f8'},
   blue:{hex:'#06b6d4',light:'#ecfeff'},
@@ -1695,6 +1680,6 @@ document.documentElement.style.setProperty('--font-scale', settings.fontScale/10
 initColorFilters();
 render();
 </script>
-<script src="/static/js/components.js"></script>
+<script src="/static/js/components.js?v=20260813v7"></script>
 </body>
 </html>

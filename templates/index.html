@@ -8,7 +8,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="工具集">
-    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v2">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="prefetch" href="/test-report">
     <link rel="prefetch" href="/excel-analysis">
@@ -401,7 +401,8 @@
         <p>Powered by Yongshuo | 工具集 v4.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
     </div>
 
-    <script src="/static/js/components.js?v=20260813v6"></script>
+    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script src="/static/js/components.js?v=20260813v7"></script>
     <script>
     // ===== PWA Service Worker 注册 =====
     if ('serviceWorker' in navigator) {
@@ -648,6 +649,11 @@
             renderRecent();
             renderFavBar();
         }
+    });
+    // 异步前缀设置后重新渲染最近使用（回退场景）
+    document.addEventListener('userprefix-ready', function() {
+        renderRecent();
+        renderFavBar();
     });
     </script>
 </body>

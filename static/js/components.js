@@ -461,6 +461,10 @@ const ToolboxNav = (function() {
         if (opts.showTheme !== false) {
             rightHtml += '<button class="tb-nav-theme" id="tb-nav-theme-btn" title="切换主题">🌙</button>';
         }
+        // 用户信息槽位（异步填充）
+        if (opts.showUser !== false) {
+            rightHtml += '<span id="tb-nav-user-slot" class="tb-nav-user-slot"></span>';
+        }
 
         bar.innerHTML =
             '<div class="tb-nav-left">' + leftHtml + '</div>' +
@@ -492,6 +496,9 @@ const ToolboxNav = (function() {
             });
         }
 
+        // 填充用户信息槽位
+        ToolboxNav.updateUserSlot();
+
         // Esc 返回首页
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && !isHome) {
@@ -510,13 +517,46 @@ const ToolboxNav = (function() {
         document.body.style.paddingTop = (parseInt(getComputedStyle(document.body).paddingTop) || 0) + 0 + 'px';
     }
 
+    /**
+     * 更新导航栏用户信息槽位
+     * 已登录 → 头像 + 退出按钮
+     * 未登录 → 登录按钮
+     */
+    function updateUserSlot() {
+        var slot = document.getElementById('tb-nav-user-slot');
+        if (!slot) return;
+
+        fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
+            if (data.logged_in && data.user) {
+                var u = data.user;
+                var avatarHtml = '';
+                if (u.avatar) {
+                    avatarHtml = '<img src="' + escapeHtml(u.avatar) + '" class="tb-nav-avatar-img" alt="">';
+                } else {
+                    var initial = (u.name || u.email || '?').charAt(0).toUpperCase();
+                    avatarHtml = '<span class="tb-nav-avatar-letter">' + escapeHtml(initial) + '</span>';
+                }
+                var name = escapeHtml(u.name || u.email || '用户');
+                slot.innerHTML = '<div class="tb-nav-user" title="' + name + '">' +
+                    '<div class="tb-nav-avatar">' + avatarHtml + '</div>' +
+                    '<span class="tb-nav-user-name">' + name + '</span>' +
+                    '<a href="/auth/logout" class="tb-nav-logout" title="退出登录">退出</a>' +
+                    '</div>';
+            } else {
+                slot.innerHTML = '<a href="/login" class="tb-nav-login-btn">登录</a>';
+            }
+        }).catch(function(){
+            slot.innerHTML = '<a href="/login" class="tb-nav-login-btn">登录</a>';
+        });
+    }
+
     function escapeHtml(str) {
         var div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
 
-    return { init: init };
+    return { init: init, updateUserSlot: updateUserSlot };
 })();
 
 // ==================== 最近使用工具追踪 ====================
@@ -1191,21 +1231,36 @@ const ToolboxCommandPalette = (function() {
     }
     earlyInit();
 
-    // 异步获取用户 ID，设置存储隔离前缀
-    fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
-        if(data.logged_in && data.user && data.user.id){
-            window._USER_PREFIX = 'u' + data.user.id + '_';
-            // 迁移旧数据到用户专属 key，并删除旧 key（防止游客看到）
-            var oldKey = 'toolbox_recent_tools';
-            var newKey = window._USER_PREFIX + oldKey;
-            if(localStorage.getItem(oldKey) !== null){
-                if(localStorage.getItem(newKey) === null){
-                    localStorage.setItem(newKey, localStorage.getItem(oldKey));
-                }
-                localStorage.removeItem(oldKey);
+    // 用户隔离前缀：优先使用模板/服务端注入的值（同步），否则异步 fetch
+    function _migrateRecentTools(prefix) {
+        var oldKey = 'toolbox_recent_tools';
+        var newKey = prefix + oldKey;
+        if(localStorage.getItem(oldKey) !== null){
+            if(localStorage.getItem(newKey) === null){
+                localStorage.setItem(newKey, localStorage.getItem(oldKey));
             }
+            localStorage.removeItem(oldKey);
         }
-    }).catch(function(){/* 游客或网络错误，不设前缀 */});
+    }
+
+    if (window._USER_PREFIX) {
+        // 模板已通过 Jinja2 注入前缀，同步迁移
+        _migrateRecentTools(window._USER_PREFIX);
+    } else if (window._SERVER_USER_ID) {
+        // noteNB 等静态页面通过服务端注入用户 ID
+        window._USER_PREFIX = 'u' + window._SERVER_USER_ID + '_';
+        _migrateRecentTools(window._USER_PREFIX);
+    } else {
+        // 回退：异步 fetch
+        fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
+            if(data.logged_in && data.user && data.user.id){
+                window._USER_PREFIX = 'u' + data.user.id + '_';
+                _migrateRecentTools(window._USER_PREFIX);
+                // 异步完成后通知页面重新渲染最近使用
+                document.dispatchEvent(new CustomEvent('userprefix-ready'));
+            }
+        }).catch(function(){/* 游客或网络错误，不设前缀 */});
+    }
 
     function initAll() {
         ToolboxTheme.init();

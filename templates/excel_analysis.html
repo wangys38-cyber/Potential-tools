@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR问题分析工具</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v2">
     <!-- DNS预解析 + 资源预连接：减少Chart.js CDN连接延迟 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -2220,6 +2220,7 @@
             `;
         }
     </script>
-    <script src="/static/js/components.js?v=20260813v6"></script>
+    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script src="/static/js/components.js?v=20260813v7"></script>
 </body>
 </html>

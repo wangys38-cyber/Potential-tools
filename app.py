@@ -7171,7 +7171,21 @@ def notenb_redirect():
 
 @app.route('/noteNB/')
 def notenb_index():
-    return send_from_directory(NOTENB_DIST, 'index.html')
+    # 服务端注入用户 ID，实现同步数据隔离（避免异步 fetch 时序问题）
+    user = auth.get_current_user()
+    uid = user['id'] if user else ''
+    user_name = user.get('name', '') if user else ''
+    user_avatar = user.get('avatar', '') if user else ''
+    html_path = os.path.join(NOTENB_DIST, 'index.html')
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    # 在 </head> 前注入用户信息脚本（同步可用，无需 async fetch）
+    inject = f'<script>window._SERVER_USER_ID="{uid}";window._SERVER_USER_NAME="{user_name}";window._SERVER_USER_AVATAR="{user_avatar}";</script>'
+    html = html.replace('</head>', inject + '\n</head>')
+    resp = make_response(html)
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 @app.route('/noteNB/assets/<path:filename>')
 def notenb_assets(filename):
@@ -7183,7 +7197,8 @@ def notenb_catch_all(path):
     file_path = os.path.join(NOTENB_DIST, path)
     if os.path.isfile(file_path):
         return send_file(file_path)
-    return send_from_directory(NOTENB_DIST, 'index.html')
+    # 对于 SPA 路由回退，也需要注入用户信息
+    return notenb_index()
 
 
 # === 静态资源路由 ===
