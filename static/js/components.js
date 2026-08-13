@@ -934,6 +934,249 @@ const ToolboxOCR = (function() {
     return { init: init, handleImage: handleImage };
 })();
 
+// ==================== v4.0 全局命令面板 (Cmd+K) ====================
+const ToolboxCommandPalette = (function() {
+    var isOpen = false;
+    var selectedIndex = 0;
+    var items = [];
+    var container = null;
+
+    // 工具列表（与首页 TOOLS 保持一致）
+    var TOOLS = [
+        {id:'noteNB', icon:'📝', name:'牛马笔记', desc:'Markdown笔记，双向链接，关系图谱', url:'/noteNB/'},
+        {id:'md2pdf', icon:'📄', name:'PDF快转', desc:'Markdown/Word转PDF', url:'/md2pdf'},
+        {id:'plan-generator', icon:'📅', name:'软件计划生成器', desc:'生成项目计划时间节点', url:'/plan-generator'},
+        {id:'project-info', icon:'📊', name:'项目信息收集', desc:'管理项目技术规格', url:'/project-info'},
+        {id:'excel-analysis', icon:'📊', name:'CR问题分析', desc:'问题清单分析+AI根因', url:'/excel-analysis'},
+        {id:'merit', icon:'🔔', name:'功德+1', desc:'敲木鱼积功德', url:'/merit'},
+        {id:'test-report', icon:'📋', name:'测试报告分析', desc:'测试报告提取+AI分析', url:'/test-report'},
+        {id:'meeting-minutes', icon:'🎙️', name:'会议纪要', desc:'语音转写+AI纪要', url:'/meeting-minutes'},
+        {id:'weekly-report', icon:'📋', name:'智能周报', desc:'AI生成结构化周报', url:'/weekly-report'},
+        {id:'settings', icon:'⚙️', name:'系统设置', desc:'AI配置、主题定制', url:'/settings'},
+    ];
+
+    // 命令列表
+    var COMMANDS = [
+        {icon:'🌙', name:'切换深色模式', desc:'Toggle dark theme', action:function(){ var d=document.documentElement.getAttribute('data-theme')==='dark'; document.documentElement.setAttribute('data-theme', d?'light':'dark'); try{localStorage.setItem('toolbox_theme', d?'light':'dark');}catch(e){} }},
+        {icon:'☀️', name:'切换浅色模式', desc:'Toggle light theme', action:function(){ document.documentElement.setAttribute('data-theme','light'); try{localStorage.setItem('toolbox_theme','light');}catch(e){} }},
+        {icon:'🤖', name:'打开 AI 对话', desc:'AI Chat Assistant', action:function(){ if(typeof ToolboxAIChat!=='undefined') ToolboxAIChat.open(); }},
+        {icon:'🔍', name:'OCR 图片识别', desc:'Paste image to recognize', action:function(){ if(typeof ToolboxOCR!=='undefined') ToolboxOCR.open(); }},
+        {icon:'⭐', name:'查看收藏工具', desc:'Go to favorites', action:function(){ window.location.href='/'; }},
+        {icon:'🔄', name:'刷新页面', desc:'Reload page', action:function(){ location.reload(); }},
+    ];
+
+    function buildItems(query) {
+        var toolItems = TOOLS.map(function(t) {
+            return {icon:t.icon, name:t.name, desc:t.desc, type:'tool', url:t.url};
+        });
+        var cmdItems = COMMANDS.map(function(c) {
+            return {icon:c.icon, name:c.name, desc:c.desc, type:'cmd', action:c.action};
+        });
+        var all = toolItems.concat(cmdItems);
+        if (!query) return all;
+        query = query.toLowerCase();
+        return all.filter(function(item) {
+            return item.name.toLowerCase().indexOf(query) >= 0 ||
+                   item.desc.toLowerCase().indexOf(query) >= 0;
+        });
+    }
+
+    function createStyles() {
+        var css = document.createElement('style');
+        css.textContent = `
+            .tb-cp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9998;opacity:0;transition:opacity .15s}
+            .tb-cp-overlay.open{opacity:1}
+            .tb-cp-panel{position:fixed;top:15%;left:50%;transform:translateX(-50%) translateY(-10px);
+                width:90%;max-width:600px;background:var(--bg-card,#fff);
+                border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);
+                z-index:9999;overflow:hidden;opacity:0;transition:all .2s cubic-bezier(.4,0,.2,1);
+                border:1px solid var(--border,rgba(0,0,0,0.08))}
+            .tb-cp-panel.open{opacity:1;transform:translateX(-50%) translateY(0)}
+            .tb-cp-search-wrap{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border,rgba(0,0,0,0.08))}
+            .tb-cp-search-icon{width:20px;height:20px;color:var(--text-secondary,#86868b);flex-shrink:0}
+            .tb-cp-input{flex:1;border:none;outline:none;background:transparent;font-size:16px;color:var(--text-primary,#1d1d1f);
+                font-family:inherit}
+            .tb-cp-input::placeholder{color:var(--text-secondary,#86868b)}
+            .tb-cp-kbd{font-size:11px;color:var(--text-secondary,#86868b);background:var(--bg-primary,#f5f5f7);
+                padding:3px 8px;border-radius:6px;border:1px solid var(--border,rgba(0,0,0,0.08));flex-shrink:0}
+            .tb-cp-list{max-height:400px;overflow-y:auto;padding:8px}
+            .tb-cp-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;
+                cursor:pointer;transition:background .1s}
+            .tb-cp-item.selected{background:var(--accent,#0071e3);color:#fff}
+            .tb-cp-item.selected .tb-cp-item-desc{color:rgba(255,255,255,0.7)}
+            .tb-cp-item-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+                font-size:18px;background:var(--bg-primary,#f5f5f7);border-radius:8px;flex-shrink:0}
+            .tb-cp-item.selected .tb-cp-item-icon{background:rgba(255,255,255,0.2)}
+            .tb-cp-item-text{flex:1;min-width:0}
+            .tb-cp-item-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .tb-cp-item-desc{font-size:12px;color:var(--text-secondary,#86868b);margin-top:2px}
+            .tb-cp-item-type{font-size:10px;padding:2px 8px;border-radius:6px;flex-shrink:0;
+                background:var(--bg-primary,#f5f5f7);color:var(--text-secondary,#86868b);font-weight:600}
+            .tb-cp-item.selected .tb-cp-item-type{background:rgba(255,255,255,0.2);color:rgba(255,255,255,0.8)}
+            .tb-cp-footer{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;
+                border-top:1px solid var(--border,rgba(0,0,0,0.08));font-size:11px;color:var(--text-secondary,#86868b)}
+            .tb-cp-footer-hints{display:flex;gap:12px}
+            .tb-cp-footer-hint{display:flex;align-items:center;gap:4px}
+            .tb-cp-footer kbd{font-size:10px;padding:1px 5px;border-radius:4px;background:var(--bg-primary,#f5f5f7);
+                border:1px solid var(--border,rgba(0,0,0,0.08));font-family:monospace}
+            .tb-cp-empty{text-align:center;padding:32px;color:var(--text-secondary,#86868b);font-size:14px}
+        `;
+        document.head.appendChild(css);
+    }
+
+    function createElements() {
+        var overlay = document.createElement('div');
+        overlay.className = 'tb-cp-overlay';
+        overlay.id = 'tb-cp-overlay';
+        overlay.addEventListener('click', close);
+
+        var panel = document.createElement('div');
+        panel.className = 'tb-cp-panel';
+        panel.id = 'tb-cp-panel';
+        panel.innerHTML = `
+            <div class="tb-cp-search-wrap">
+                <svg class="tb-cp-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+                <input type="text" class="tb-cp-input" id="tb-cp-input" placeholder="搜索工具或输入命令..." autocomplete="off" spellcheck="false">
+                <span class="tb-cp-kbd">ESC</span>
+            </div>
+            <div class="tb-cp-list" id="tb-cp-list"></div>
+            <div class="tb-cp-footer">
+                <div class="tb-cp-footer-hints">
+                    <span class="tb-cp-footer-hint"><kbd>↑↓</kbd> 导航</span>
+                    <span class="tb-cp-footer-hint"><kbd>↵</kbd> 选择</span>
+                    <span class="tb-cp-footer-hint"><kbd>ESC</kbd> 关闭</span>
+                </div>
+                <span>工具集 v4.0</span>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        document.body.appendChild(panel);
+        container = panel;
+
+        var input = document.getElementById('tb-cp-input');
+        input.addEventListener('input', function() {
+            items = buildItems(input.value);
+            selectedIndex = 0;
+            renderList();
+        });
+        input.addEventListener('keydown', onKeydown);
+    }
+
+    function renderList() {
+        var list = document.getElementById('tb-cp-list');
+        if (items.length === 0) {
+            list.innerHTML = '<div class="tb-cp-empty">没有匹配的结果</div>';
+            return;
+        }
+        list.innerHTML = items.map(function(item, i) {
+            var sel = i === selectedIndex ? ' selected' : '';
+            var typeLabel = item.type === 'cmd' ? '命令' : '工具';
+            return '<div class="tb-cp-item' + sel + '" data-idx="' + i + '">' +
+                '<div class="tb-cp-item-icon">' + item.icon + '</div>' +
+                '<div class="tb-cp-item-text">' +
+                '<div class="tb-cp-item-name">' + item.name + '</div>' +
+                '<div class="tb-cp-item-desc">' + item.desc + '</div>' +
+                '</div>' +
+                '<span class="tb-cp-item-type">' + typeLabel + '</span>' +
+                '</div>';
+        }).join('');
+
+        // Click handlers
+        list.querySelectorAll('.tb-cp-item').forEach(function(el) {
+            el.addEventListener('click', function() {
+                selectedIndex = parseInt(el.dataset.idx);
+                executeSelected();
+            });
+            el.addEventListener('mouseenter', function() {
+                selectedIndex = parseInt(el.dataset.idx);
+                list.querySelectorAll('.tb-cp-item').forEach(function(e) { e.classList.remove('selected'); });
+                el.classList.add('selected');
+            });
+        });
+    }
+
+    function onKeydown(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            renderList();
+            scrollIntoView();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            renderList();
+            scrollIntoView();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            executeSelected();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            close();
+        }
+    }
+
+    function scrollIntoView() {
+        var list = document.getElementById('tb-cp-list');
+        var sel = list.querySelector('.tb-cp-item.selected');
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+    }
+
+    function executeSelected() {
+        if (items.length === 0 || selectedIndex < 0) return;
+        var item = items[selectedIndex];
+        close();
+        if (item.type === 'tool' && item.url) {
+            // 记录最近使用
+            if (typeof ToolboxRecent !== 'undefined') {
+                var tool = TOOLS.find(function(t) { return t.id === item.id || t.url === item.url; });
+                if (tool) ToolboxRecent.record(tool.id, tool.name, tool.icon);
+            }
+            window.open(item.url, '_blank');
+        } else if (item.action) {
+            setTimeout(item.action, 100);
+        }
+    }
+
+    function open() {
+        if (!container) { createStyles(); createElements(); }
+        var overlay = document.getElementById('tb-cp-overlay');
+        var panel = document.getElementById('tb-cp-panel');
+        overlay.classList.add('open');
+        panel.classList.add('open');
+        isOpen = true;
+        var input = document.getElementById('tb-cp-input');
+        input.value = '';
+        items = buildItems('');
+        selectedIndex = 0;
+        renderList();
+        setTimeout(function() { input.focus(); }, 100);
+    }
+
+    function close() {
+        var overlay = document.getElementById('tb-cp-overlay');
+        var panel = document.getElementById('tb-cp-panel');
+        if (overlay) overlay.classList.remove('open');
+        if (panel) panel.classList.remove('open');
+        isOpen = false;
+    }
+
+    function toggle() {
+        if (isOpen) close(); else open();
+    }
+
+    function init() {
+        // 注册全局快捷键 Cmd+K / Ctrl+K
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                toggle();
+            }
+        });
+    }
+
+    return { init: init, open: open, close: close, toggle: toggle };
+})();
+
 // ==================== 自动初始化 ====================
 // 在 DOMContentLoaded 时初始化主题（最早执行，避免闪烁）
 (function() {
@@ -961,6 +1204,10 @@ const ToolboxOCR = (function() {
         // v3.0: 初始化 OCR 粘贴识别（全部页面）
         if (typeof ToolboxOCR !== 'undefined') {
             ToolboxOCR.init();
+        }
+        // v4.0: 初始化命令面板（全部页面）
+        if (typeof ToolboxCommandPalette !== 'undefined') {
+            ToolboxCommandPalette.init();
         }
     }
 

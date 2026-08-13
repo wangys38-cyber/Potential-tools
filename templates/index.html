@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="工具集">
     <link rel="stylesheet" href="/static/css/theme.css">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="prefetch" href="/test-report">
@@ -75,6 +78,21 @@
             transition: all 0.2s; flex-shrink: 0;
         }
         .theme-toggle:hover { transform: scale(1.08); }
+
+        /* ===== Cmd+K Button ===== */
+        .cmdk-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 14px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--bg-card);
+            cursor: pointer; transition: all 0.2s; font-family: inherit;
+            color: var(--text-secondary); font-size: 13px;
+        }
+        .cmdk-btn:hover { border-color: var(--accent); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+        .cmdk-kbd {
+            font-size: 11px; padding: 2px 6px; border-radius: 5px;
+            background: var(--bg-primary); border: 1px solid var(--border);
+            font-family: monospace; font-weight: 600;
+        }
 
         .user-info { display: flex; align-items: center; gap: 10px; }
         .user-info .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
@@ -242,6 +260,8 @@
             .header p { font-size: 12px; }
             .header-right { gap: 6px; }
             .header-left { flex: 1; min-width: 0; }
+            .cmdk-text { display: none; }
+            .cmdk-kbd { display: none; }
             .container { margin: 12px auto; padding: 0 12px; }
             .tools-grid { grid-template-columns: 1fr; gap: 12px; }
             .stats-bar { flex-wrap: wrap; gap: 12px; justify-content: center; }
@@ -279,6 +299,11 @@
             </div>
         </div>
         <div class="header-right">
+            <button class="cmdk-btn" onclick="ToolboxCommandPalette.open()" title="命令面板 (Cmd+K)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" stroke-linecap="round"/></svg>
+                <span class="cmdk-text">搜索</span>
+                <kbd class="cmdk-kbd">⌘K</kbd>
+            </button>
             <a href="/settings" target="_blank" class="theme-toggle" title="设置" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">⚙️</a>
             <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
             <div class="user-info">
@@ -311,7 +336,7 @@
             <button class="category-chip" data-cat="manage" onclick="setCategory('manage')">项目管理</button>
             <button class="category-chip" data-cat="fun" onclick="setCategory('fun')">趣味工具</button>
         </div>
-        <div class="search-hint">按 <kbd>/</kbd> 搜索，按 <kbd>1</kbd>-<kbd>8</kbd> 快速打开工具，工具内按 <kbd>Esc</kbd> 返回首页</div>
+        <div class="search-hint">按 <kbd>/</kbd> 搜索，<kbd>⌘K</kbd> 命令面板，<kbd>1</kbd>-<kbd>9</kbd> 快速打开工具</div>
     </div>
 
     <div class="container">
@@ -340,10 +365,20 @@
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v3.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
+        <p>Powered by Yongshuo | 工具集 v4.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
     </div>
 
-    <script src="/static/js/components.js?v=20260813"></script>
+    <script src="/static/js/components.js?v=20260813v4"></script>
+    <script>
+    // ===== PWA Service Worker 注册 =====
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/static/sw.js').catch(function(e) {
+                console.log('SW registration failed:', e);
+            });
+        });
+    }
+    </script>
     <script>
     // ===== Tool data =====
     const TOOLS = [
