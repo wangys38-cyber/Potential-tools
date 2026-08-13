@@ -39,7 +39,7 @@ def _load_config():
 _config = _load_config()
 
 SESSION_SECRET = os.environ.get('SESSION_SECRET', _config.get('session_secret', 'default_secret_change_me'))
-ALLOW_GUEST = os.environ.get('ALLOW_GUEST', '').lower() in ('1', 'true', 'yes') or _config.get('allow_guest', False)
+ALLOW_GUEST = os.environ.get('ALLOW_GUEST', 'true').lower() in ('1', 'true', 'yes') or _config.get('allow_guest', True)
 
 FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
 FEISHU_APP_SECRET = os.environ.get('FEISHU_APP_SECRET', _config.get('feishu', {}).get('app_secret', ''))
