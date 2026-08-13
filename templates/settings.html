@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - 工具集</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --bg-muted: #f0f0f5;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #0071e3;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
+            --radius: 14px;
+            --success: #34c759;
+            --warning: #ff9500;
+            --danger: #ff3b30;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1e;
+            --bg-card: #2c2c30;
+            --bg-muted: #3a3a3e;
+            --text-primary: #f0f0f2;
+            --text-secondary: #9b9ba3;
+            --accent: #0a84ff;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        [data-theme="dark"] .header { background: rgba(28, 28, 32, 0.72); }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .back-btn {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--bg-card);
+            cursor: pointer; font-size: 18px; display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.2s; text-decoration: none; color: var(--text-primary);
+        }
+        .back-btn:hover { transform: scale(1.08); }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .theme-toggle {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--bg-card);
+            cursor: pointer; font-size: 18px; display: flex;
+            align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .theme-toggle:hover { transform: scale(1.08); }
+
+        /* Layout */
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 20px 60px; }
+
+        /* Section */
+        .section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.3s;
+        }
+        .section:hover { box-shadow: var(--shadow-hover); }
+        .section-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px;
+        }
+        .section-icon { font-size: 24px; }
+        .section-title { font-size: 18px; font-weight: 600; }
+        .section-desc { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* Form */
+        .form-group { margin-bottom: 18px; }
+        .form-group:last-child { margin-bottom: 0; }
+        .form-label {
+            display: block; font-size: 14px; font-weight: 500;
+            margin-bottom: 6px; color: var(--text-primary);
+        }
+        .form-hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .form-input, .form-select {
+            width: 100%; padding: 10px 14px;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--bg-muted); color: var(--text-primary);
+            font-size: 14px; font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+        }
+        [data-theme="dark"] .form-input:focus, [data-theme="dark"] .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+        }
+        .form-row { display: flex; gap: 12px; }
+        .form-row > * { flex: 1; }
+
+        /* Button */
+        .btn {
+            padding: 10px 24px; border-radius: 10px; border: none;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; display: inline-flex;
+            align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: var(--bg-muted); color: var(--text-primary); }
+        .btn-secondary:hover { opacity: 0.8; }
+        .btn-danger { background: var(--danger); color: #fff; }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 100px;
+            font-size: 12px; font-weight: 500;
+        }
+        .status-badge.ok { background: rgba(52, 199, 89, 0.12); color: var(--success); }
+        .status-badge.warn { background: rgba(255, 149, 0, 0.12); color: var(--warning); }
+        .status-badge.error { background: rgba(255, 59, 48, 0.12); color: var(--danger); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        /* Info grid */
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+        .info-item {
+            background: var(--bg-muted); border-radius: 10px;
+            padding: 14px;
+        }
+        .info-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+        .info-value { font-size: 16px; font-weight: 600; }
+
+        /* Color picker */
+        .color-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent;
+            transition: all 0.2s; position: relative;
+        }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: var(--text-primary); }
+        .color-swatch.active::after {
+            content: '✓'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: #fff;
+            font-size: 16px; font-weight: bold;
+        }
+
+        /* Toggle switch */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-label { font-size: 14px; }
+        .toggle-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .toggle-switch {
+            position: relative; width: 44px; height: 26px;
+            background: var(--bg-muted); border-radius: 100px;
+            cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+            border: 1px solid var(--border);
+        }
+        .toggle-switch.active { background: var(--accent); }
+        .toggle-switch::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #fff; transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .toggle-switch.active::after { transform: translateX(18px); }
+
+        /* Theme mode selector */
+        .mode-selector { display: flex; gap: 8px; }
+        .mode-btn {
+            flex: 1; padding: 12px; border-radius: 10px;
+            border: 2px solid var(--border); background: var(--bg-muted);
+            color: var(--text-secondary); cursor: pointer;
+            transition: all 0.2s; text-align: center;
+        }
+        .mode-btn .mode-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+        .mode-btn .mode-text { font-size: 13px; font-weight: 500; }
+        .mode-btn.active {
+            border-color: var(--accent); color: var(--accent);
+            background: rgba(0, 113, 227, 0.06);
+        }
+        [data-theme="dark"] .mode-btn.active { background: rgba(10, 132, 255, 0.1); }
+
+        /* Test result */
+        .test-result {
+            margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+            font-size: 13px; display: none;
+        }
+        .test-result.show { display: block; }
+        .test-result.success { background: rgba(52, 199, 89, 0.1); color: var(--success); }
+        .test-result.error { background: rgba(255, 59, 48, 0.1); color: var(--danger); }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid currentColor; border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text-primary); color: var(--bg-card);
+            padding: 12px 24px; border-radius: 100px;
+            font-size: 14px; font-weight: 500; z-index: 9999;
+            opacity: 0; transition: all 0.3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <a href="/" class="back-btn">←</a>
+            <h1>⚙️ 设置</h1>
+        </div>
+        <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    </div>
+
+    <div class="container">
+        <!-- AI 配置 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">🤖</span>
+                <div>
+                    <div class="section-title">AI 配置</div>
+                    <div class="section-desc">配置 AI 服务的 API Key 和模型</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">API Key</label>
+                <input type="password" class="form-input" id="aiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+                <div class="form-hint" id="keyHint">当前状态: 检测中...</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">API Base URL</label>
+                <input type="text" class="form-input" id="aiBaseUrl" placeholder="https://dashscope.aliyuncs.com/api/v1">
+                <div class="form-hint">DashScope (阿里云) 或 OpenAI 兼容端点</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">默认模型</label>
+                <select class="form-select" id="aiModel"></select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">💾 保存配置</button>
+                <button class="btn btn-secondary" id="testBtn" onclick="testAI()">🔌 测试连接</button>
+            </div>
+            <div class="test-result" id="testResult"></div>
+        </div>
+
+        <!-- 外观设置 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">🎨</span>
+                <div>
+                    <div class="section-title">外观设置</div>
+                    <div class="section-desc">自定义主题模式和强调色</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">主题模式</label>
+                <div class="mode-selector">
+                    <div class="mode-btn" data-mode="light" onclick="setThemeMode('light')">
+                        <span class="mode-icon">☀️</span>
+                        <span class="mode-text">亮色</span>
+                    </div>
+                    <div class="mode-btn" data-mode="dark" onclick="setThemeMode('dark')">
+                        <span class="mode-icon">🌙</span>
+                        <span class="mode-text">暗色</span>
+                    </div>
+                    <div class="mode-btn" data-mode="auto" onclick="setThemeMode('auto')">
+                        <span class="mode-icon">🔄</span>
+                        <span class="mode-text">跟随系统</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">强调色</label>
+                <div class="color-row" id="colorRow">
+                    <div class="color-swatch" style="background:#0071e3" data-color="#0071e3" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#5856d6" data-color="#5856d6" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#af52de" data-color="#af52de" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#ff2d55" data-color="#ff2d55" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#ff9500" data-color="#ff9500" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#34c759" data-color="#34c759" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#00c7be" data-color="#00c7be" onclick="setAccentColor(this)"></div>
+                    <div class="color-swatch" style="background:#5ac8fa" data-color="#5ac8fa" onclick="setAccentColor(this)"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统信息 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <div>
+                    <div class="section-title">系统信息</div>
+                    <div class="section-desc">运行状态和诊断数据</div>
+                </div>
+            </div>
+
+            <div class="info-grid" id="sysInfo">
+                <div class="info-item">
+                    <div class="info-label">版本</div>
+                    <div class="info-value" id="sysVersion">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Python</div>
+                    <div class="info-value" id="sysPython">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">内存使用</div>
+                    <div class="info-value" id="sysMemory">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">CPU 使用</div>
+                    <div class="info-value" id="sysCpu">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">数据库</div>
+                    <div class="info-value" id="sysDb">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">AI 状态</div>
+                    <div class="info-value" id="sysAi">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">上传文件</div>
+                    <div class="info-value" id="sysUploads">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">运行时间</div>
+                    <div class="info-value" id="sysUptime">-</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top: 16px;" onclick="loadSysInfo()">🔄 刷新</button>
+        </div>
+
+        <!-- 关于 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">ℹ️</span>
+                <div>
+                    <div class="section-title">关于</div>
+                </div>
+            </div>
+            <div style="font-size: 14px; line-height: 1.8; color: var(--text-secondary);">
+                <div><strong style="color: var(--text-primary)">工具集 v3.0</strong> — 安全加固 + 数据库迁移 + AI 增强</div>
+                <div style="margin-top: 8px;">功能：AI对话 · OCR识别 · 会议纪要 · 智能周报 · PDF转换 · 数据分析</div>
+                <div style="margin-top: 8px;">
+                    <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" style="color: var(--accent); text-decoration: none;">GitHub 仓库 →</a>
+                </div>
+                <div style="margin-top: 12px; font-size: 12px; opacity: 0.6;">Powered by Yongshuo · 2026</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/js/components.js"></script>
+    <script>
+        // ===== 初始化 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            ToolboxTheme.init();
+            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+            loadAIConfig();
+            loadThemeSettings();
+            loadSysInfo();
+        });
+
+        function toggleTheme() {
+            const next = ToolboxTheme.isDark() ? 'light' : 'dark';
+            ToolboxTheme.setTheme(next);
+            document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // ===== AI 配置 =====
+        async function loadAIConfig() {
+            try {
+                const [configResp, modelsResp] = await Promise.all([
+                    fetch('/api/ai-config'),
+                    fetch('/api/ai-models')
+                ]);
+                const config = await configResp.json();
+                const models = await modelsResp.json();
+
+                if (config.data) {
+                    const d = config.data;
+                    document.getElementById('keyHint').innerHTML = d.has_key
+                        ? `<span class="status-badge ok"><span class="status-dot"></span>已配置 ${d.key_masked}</span>`
+                        : `<span class="status-badge warn"><span class="status-dot"></span>未配置</span>`;
+                    document.getElementById('aiBaseUrl').value = d.base_url || '';
+                }
+
+                const sel = document.getElementById('aiModel');
+                sel.innerHTML = '';
+                (models.models || []).forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = `${m.name} — ${m.desc}`;
+                    if (m.id === models.current) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('加载AI配置失败:', e);
+            }
+        }
+
+        async function saveAIConfig() {
+            const key = document.getElementById('aiKey').value.trim();
+            const baseUrl = document.getElementById('aiBaseUrl').value.trim();
+            const model = document.getElementById('aiModel').value;
+
+            const payload = {};
+            if (key) payload.api_key = key;
+            if (baseUrl) payload.base_url = baseUrl;
+            if (model) payload.model = model;
+
+            if (Object.keys(payload).length === 0) {
+                showToast('没有变更');
+                return;
+            }
+
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> 保存中...';
+
+            try {
+                const resp = await fetch('/api/ai-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+                if (result.status === 'success') {
+                    showToast('✅ 保存成功');
+                    document.getElementById('aiKey').value = '';
+                    loadAIConfig();
+                } else {
+                    showToast('❌ ' + (result.error || '保存失败'));
+                }
+            } catch (e) {
+                showToast('❌ 网络错误');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '💾 保存配置';
+            }
+        }
+
+        async function testAI() {
+            const btn = document.getElementById('testBtn');
+            const result = document.getElementById('testResult');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> 测试中...';
+            result.classList.remove('show', 'success', 'error');
+
+            try {
+                const resp = await fetch('/api/ai-test', { method: 'POST' });
+                const data = await resp.json();
+                result.classList.add('show');
+                if (data.status === 'success') {
+                    result.classList.add('success');
+                    result.innerHTML = `✅ 连接成功！模型: ${data.model} | 回复: "${data.reply}"`;
+                } else {
+                    result.classList.add('error');
+                    result.textContent = '❌ ' + (data.error || '连接失败');
+                }
+            } catch (e) {
+                result.classList.add('show', 'error');
+                result.textContent = '❌ 请求失败: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔌 测试连接';
+            }
+        }
+
+        // ===== 主题设置 =====
+        let currentAccent = '#0071e3';
+
+        async function loadThemeSettings() {
+            try {
+                const resp = await fetch('/api/settings/theme');
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    // 主题模式
+                    document.querySelectorAll('.mode-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.mode === data.theme_mode);
+                    });
+                    // 强调色
+                    currentAccent = data.accent_color || '#0071e3';
+                    document.querySelectorAll('.color-swatch').forEach(sw => {
+                        sw.classList.toggle('active', sw.dataset.color === currentAccent);
+                    });
+                }
+            } catch (e) {
+                // 非登录用户可能无偏好数据，忽略
+            }
+        }
+
+        async function setThemeMode(mode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            ToolboxTheme.setTheme(mode);
+            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+
+            try {
+                await fetch('/api/settings/theme', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme_mode: mode })
+                });
+            } catch (e) {}
+            showToast('主题已切换');
+        }
+
+        function setAccentColor(el) {
+            const color = el.dataset.color;
+            currentAccent = color;
+            document.querySelectorAll('.color-swatch').forEach(sw => {
+                sw.classList.toggle('active', sw === el);
+            });
+            // 应用到页面
+            document.documentElement.style.setProperty('--accent', color);
+            document.documentElement.style.setProperty('--bg-primary', 'var(--bg-primary)');
+
+            try {
+                fetch('/api/settings/theme', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accent_color: color })
+                });
+            } catch (e) {}
+            showToast('强调色已更新');
+        }
+
+        // ===== 系统信息 =====
+        async function loadSysInfo() {
+            try {
+                const resp = await fetch('/api/system-info');
+                const data = await resp.json();
+
+                if (data.status === 'ok') {
+                    document.getElementById('sysVersion').textContent = 'v' + data.version;
+                    document.getElementById('sysPython').textContent = data.python;
+                    document.getElementById('sysMemory').textContent = data.memory_mb + ' MB';
+                    document.getElementById('sysCpu').textContent = data.cpu_percent + '%';
+
+                    const dbStatus = data.db.status === 'ok'
+                        ? `<span class="status-badge ok"><span class="status-dot"></span>${data.db.type}</span>`
+                        : `<span class="status-badge error"><span class="status-dot"></span>异常</span>`;
+                    document.getElementById('sysDb').innerHTML = dbStatus;
+
+                    const aiStatus = data.ai.enabled
+                        ? `<span class="status-badge ok"><span class="status-dot"></span>${data.ai.model}</span>`
+                        : `<span class="status-badge warn"><span class="status-dot"></span>未启用</span>`;
+                    document.getElementById('sysAi').innerHTML = aiStatus;
+
+                    document.getElementById('sysUploads').textContent = `${data.uploads.count} 个 / ${data.uploads.size_mb} MB`;
+
+                    const hours = Math.floor(data.uptime / 3600);
+                    const mins = Math.floor((data.uptime % 3600) / 60);
+                    document.getElementById('sysUptime').textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                }
+            } catch (e) {
+                console.error('加载系统信息失败:', e);
+            }
+        }
+    </script>
+</body>
+</html>

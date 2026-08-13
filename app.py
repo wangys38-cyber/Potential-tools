@@ -1529,6 +1529,130 @@ def api_weekly_report():
         return jsonify({'error': str(e)}), 500
 
 
+# ==================== v3.0 设置面板 ====================
+
+@app.route('/settings')
+def settings():
+    return cached_render('settings.html')
+
+
+@app.route('/api/system-info', methods=['GET'])
+def api_system_info():
+    """系统诊断信息"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    import psutil
+    p = psutil.Process()
+    mem_info = p.memory_info()
+
+    # 数据库状态
+    db_status = db.check_db()
+
+    # AI 配置状态
+    ai_config = get_ai_config()
+
+    # 上传目录
+    upload_dir = app.config.get('UPLOAD_FOLDER', '/tmp/toolbox/uploads')
+    upload_size = 0
+    upload_count = 0
+    if os.path.exists(upload_dir):
+        for fname in os.listdir(upload_dir):
+            fpath = os.path.join(upload_dir, fname)
+            if os.path.isfile(fpath):
+                upload_count += 1
+                upload_size += os.path.getsize(fpath)
+
+    return jsonify({
+        'status': 'ok',
+        'version': '3.0',
+        'python': sys.version.split()[0],
+        'memory_mb': round(mem_info.rss / 1024 / 1024, 1),
+        'cpu_percent': p.cpu_percent(interval=0.1),
+        'threads': p.num_threads(),
+        'db': db_status,
+        'ai': {
+            'enabled': ai_config.get('enabled', False),
+            'base_url': ai_config.get('base_url', ''),
+            'model': ai_config.get('model', ''),
+            'has_key': bool(ai_config.get('api_key', '').strip()),
+        },
+        'uploads': {
+            'count': upload_count,
+            'size_mb': round(upload_size / 1024 / 1024, 1),
+        },
+        'uptime': time.time() - p.create_time(),
+    })
+
+
+@app.route('/api/settings/theme', methods=['POST'])
+def api_save_theme():
+    """保存用户主题偏好（主题色、模式）"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    theme_mode = data.get('theme_mode', 'auto')  # light / dark / auto
+    accent_color = data.get('accent_color', '')   # hex color
+
+    # 保存到用户偏好
+    if user:
+        prefs = db.get_user_preferences(user['id']) or {}
+        db.set_user_preferences(user['id'], theme=theme_mode,
+                                accent_color=accent_color if accent_color else None)
+
+    return jsonify({'status': 'success', 'theme_mode': theme_mode, 'accent_color': accent_color})
+
+
+@app.route('/api/settings/theme', methods=['GET'])
+def api_get_theme():
+    """获取用户主题偏好"""
+    user = auth.get_current_user()
+    theme_mode = 'auto'
+    accent_color = '#0071e3'
+
+    if user:
+        prefs = db.get_user_preferences(user['id']) or {}
+        theme_mode = prefs.get('theme', 'auto')
+        accent_color = prefs.get('accent_color', '') or '#0071e3'
+
+    return jsonify({
+        'status': 'success',
+        'theme_mode': theme_mode,
+        'accent_color': accent_color
+    })
+
+
+@app.route('/api/ai-test', methods=['POST'])
+def api_ai_test():
+    """测试 AI 连接"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请先设置 API Key'}), 503
+
+    try:
+        reply = _call_ai(
+            [{'role': 'user', 'content': '请回复"连接成功"四个字'}],
+            max_tokens=20,
+            temperature=0.1,
+            timeout=15
+        )
+        return jsonify({
+            'status': 'success',
+            'reply': reply.strip(),
+            'model': ai_config.get('model', ''),
+            'base_url': ai_config.get('base_url', '')
+        })
+    except Exception as e:
+        return jsonify({'error': f'AI连接失败: {str(e)}'}), 502
+
+
 # ==================== 音频转写 API（DashScope Paraformer ASR） ====================
 
 @app.route('/api/upload-audio', methods=['POST'])
@@ -2333,6 +2457,85 @@ def api_test_report_download(filename):
         return jsonify({'error': '文件不存在'}), 404
     download_name = request.args.get('download_name', safe_name)
     return send_file(pdf_path, as_attachment=True, download_name=download_name)
+
+
+@app.route('/api/test-report-ai-analysis', methods=['POST'])
+def api_test_report_ai_analysis():
+    """v3.0: AI 增强测试报告分析 — 生成测试总结和风险洞察"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+
+    data = request.get_json(silent=True) or {}
+    analysis = data.get('analysis', {})
+    if not analysis:
+        return jsonify({'error': '缺少分析数据'}), 400
+
+    # 构建AI提示词
+    project_info = analysis.get('project_info', {})
+    stats = analysis.get('stats', {})
+    summary = analysis.get('summary', {})
+    key_findings = analysis.get('key_findings', [])
+    test_items = analysis.get('test_items', [])
+
+    # 截取前30个测试项以控制token
+    items_text = ''
+    for item in test_items[:30]:
+        items_text += f"- {item.get('name', 'N/A')}: {item.get('result', 'N/A')}"
+        if item.get('remark'):
+            items_text += f" ({item['remark']})"
+        items_text += "\n"
+
+    prompt = f"""你是一位资深软件测试专家，请基于以下测试报告数据生成专业的AI分析总结。
+
+## 项目信息
+- 项目名称: {project_info.get('name', 'N/A')}
+- 软件版本: {project_info.get('version', 'N/A')}
+- 测试日期: {project_info.get('date', 'N/A')}
+
+## 测试统计
+- 总测试项: {stats.get('total', 0)}
+- 通过: {stats.get('pass', 0)}
+- 失败: {stats.get('fail', 0)}
+- 阻塞: {stats.get('block', 0)}
+- 通过率: {stats.get('pass_rate', 'N/A')}
+
+## 执行摘要
+{summary.get('text', 'N/A')}
+
+## 关键发现
+{chr(10).join(f'- {f}' for f in key_findings) if key_findings else 'N/A'}
+
+## 测试项详情（前30项）
+{items_text or 'N/A'}
+
+请按以下格式输出分析：
+
+### 🎯 总体评估
+（1-2段话总结测试整体状况，包括通过率评价和发布建议）
+
+### ⚠️ 风险洞察
+（列出3-5个关键风险点，每个风险用一句话描述）
+
+### 📈 质量趋势
+（分析测试质量趋势，指出薄弱环节）
+
+### 💡 改进建议
+（列出3-5条可操作的改进建议，每条用一句话描述）
+
+请使用简洁专业的中文，避免空话套话。"""
+
+    try:
+        messages = [{'role': 'user', 'content': prompt}]
+        reply = _call_ai(messages, max_tokens=1500, temperature=0.3, timeout=60)
+        return jsonify({'status': 'success', 'analysis': reply})
+    except Exception as e:
+        logger.error(f'AI测试报告分析失败: {e}')
+        return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
 
 
 def _build_test_report_pdf_html(data, file_name, sheet_name):
@@ -6050,6 +6253,92 @@ def _build_excel_selected_report_html(structured_data, selected_data, selected_c
     {tables_html}
 </body>
 </html>'''
+
+
+# === v3.0: AI 增强 CR 问题分析 ===
+@app.route('/api/excel-analyze-ai', methods=['POST'])
+def api_excel_analyze_ai():
+    """v3.0: AI 增强 CR 问题分析 — 根因分析和改进建议"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+
+    data = request.get_json(silent=True) or {}
+    analysis = data.get('analysis', {})
+    if not analysis:
+        return jsonify({'error': '缺少分析数据'}), 400
+
+    summary = analysis.get('summary', {})
+    modules = analysis.get('modules', [])
+    developers = analysis.get('developers', [])
+
+    # 模块统计 Top 10
+    modules_text = ''
+    for m in (modules[:10] if isinstance(modules, list) else []):
+        if isinstance(m, dict):
+            modules_text += f"- {m.get('name', 'N/A')}: {m.get('count', 0)}个问题"
+            if m.get('unresolved'):
+                modules_text += f" (未解决: {m['unresolved']})"
+            modules_text += "\n"
+
+    # 研发统计 Top 10
+    devs_text = ''
+    for d in (developers[:10] if isinstance(developers, list) else []):
+        if isinstance(d, dict):
+            devs_text += f"- {d.get('name', 'N/A')}: {d.get('count', 0)}个问题"
+            if d.get('unresolved'):
+                devs_text += f" (未解决: {d['unresolved']})"
+            devs_text += "\n"
+
+    prompt = f"""你是一位资深质量管理专家，请基于以下CR问题分析数据生成专业的AI分析报告。
+
+## 问题统计
+- 总问题数: {summary.get('total_issues', 0)}
+- 已解决: {summary.get('resolved', 0)}
+- 未解决: {summary.get('unresolved', 0)}
+- 解决率: {summary.get('resolution_rate', 'N/A')}
+- 阻塞问题: {summary.get('blocker', 0)}
+- 严重问题: {summary.get('critical', 0)}
+- 主要问题: {summary.get('major', 0)}
+- 次要问题: {summary.get('minor', 0)}
+- 建议问题: {summary.get('trivial', 0)}
+
+## 模块统计 (Top 10)
+{modules_text or 'N/A'}
+
+## 研发人员统计 (Top 10)
+{devs_text or 'N/A'}
+
+请按以下格式输出分析：
+
+### 📊 总体评估
+（1-2段话总结问题整体状况，包括解决率评价和质量风险等级）
+
+### 🔍 根因分析
+（分析问题集中的模块和人员，指出可能的根因，3-5条）
+
+### ⚠️ 高风险领域
+（识别需要重点关注的模块或人员，3-5条）
+
+### 📈 趋势预测
+（基于当前数据预测可能的发展趋势，2-3条）
+
+### 💡 改进建议
+（列出3-5条可操作的流程改进建议）
+
+请使用简洁专业的中文，避免空话套话。"""
+
+    try:
+        messages = [{'role': 'user', 'content': prompt}]
+        reply = _call_ai(messages, max_tokens=1500, temperature=0.3, timeout=60)
+        return jsonify({'status': 'success', 'analysis': reply})
+    except Exception as e:
+        logger.error(f'AI CR分析失败: {e}')
+        return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
 
 
 # === Excel分析PDF生成 API ===

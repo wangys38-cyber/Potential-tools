@@ -163,9 +163,15 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 theme TEXT DEFAULT 'auto',
                 language TEXT DEFAULT 'zh-CN',
+                accent_color TEXT DEFAULT '',
                 updated_at REAL DEFAULT 0
             )
         """))
+        # v3.0: 确保 accent_color 列存在（兼容旧表）
+        try:
+            conn.execute(text("ALTER TABLE user_preferences ADD COLUMN accent_color TEXT DEFAULT ''"))
+        except Exception:
+            pass  # 列已存在
 
         # ==================== 索引 ====================
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data ON user_data(user_id, data_type)"))
@@ -547,16 +553,16 @@ def get_user_preferences(user_id):
     """获取用户偏好"""
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT theme, language FROM user_preferences WHERE user_id = :user_id"),
+            text("SELECT theme, language, accent_color FROM user_preferences WHERE user_id = :user_id"),
             {'user_id': user_id}
         ).fetchone()
         if not row:
-            return {'theme': 'auto', 'language': 'zh-CN'}
+            return {'theme': 'auto', 'language': 'zh-CN', 'accent_color': ''}
         m = row._mapping
-        return {'theme': m['theme'], 'language': m['language']}
+        return {'theme': m['theme'], 'language': m['language'], 'accent_color': m['accent_color'] or ''}
 
 
-def set_user_preferences(user_id, theme=None, language=None):
+def set_user_preferences(user_id, theme=None, language=None, accent_color=None):
     """更新用户偏好"""
     with engine.begin() as conn:
         now = time.time()
@@ -574,14 +580,17 @@ def set_user_preferences(user_id, theme=None, language=None):
             if language is not None:
                 updates.append('language = :language')
                 params['language'] = language
+            if accent_color is not None:
+                updates.append('accent_color = :accent_color')
+                params['accent_color'] = accent_color
             conn.execute(
                 text(f"UPDATE user_preferences SET {', '.join(updates)} WHERE user_id = :user_id"),
                 params
             )
         else:
             conn.execute(
-                text("INSERT INTO user_preferences (user_id, theme, language, updated_at) VALUES (:user_id, :theme, :language, :updated_at)"),
-                {'user_id': user_id, 'theme': theme or 'auto', 'language': language or 'zh-CN', 'updated_at': now}
+                text("INSERT INTO user_preferences (user_id, theme, language, accent_color, updated_at) VALUES (:user_id, :theme, :language, :accent_color, :updated_at)"),
+                {'user_id': user_id, 'theme': theme or 'auto', 'language': language or 'zh-CN', 'accent_color': accent_color or '', 'updated_at': now}
             )
 
 

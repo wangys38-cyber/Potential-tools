@@ -842,6 +842,25 @@
                 <div id="recommendations"></div>
             </div>
 
+            <!-- v3.0 AI 深度分析 -->
+            <div class="card" id="aiAnalysisCard" style="border: 2px solid var(--accent); position: relative;">
+                <div class="card-title">
+                    <span class="card-title-icon">🤖</span>
+                    AI 深度分析
+                    <span style="font-size: 12px; color: var(--text-tertiary); margin-left: 8px; font-weight: normal;">v3.0 新功能</span>
+                </div>
+                <div id="aiAnalysisContent" style="min-height: 60px;">
+                    <div style="text-align: center; padding: 20px;">
+                        <button class="btn btn-primary" id="aiAnalysisBtn" onclick="generateAIAnalysis()" style="background: var(--accent);">
+                            🤖 生成 AI 深度分析
+                        </button>
+                        <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">
+                            AI 将基于测试数据生成风险洞察和改进建议
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 逐项明细 -->
             <div class="card" id="detailCard">
                 <div class="card-title">
@@ -1429,6 +1448,78 @@
             uploadSection.classList.remove('hidden');
             sheetSection.classList.add('hidden');
             resultSection.classList.add('hidden');
+        }
+
+        // v3.0: AI 深度分析
+        async function generateAIAnalysis() {
+            if (!currentAnalysis) {
+                alert('请先完成测试报告分析');
+                return;
+            }
+
+            const btn = document.getElementById('aiAnalysisBtn');
+            const content = document.getElementById('aiAnalysisContent');
+            if (btn) btn.style.display = 'none';
+
+            content.innerHTML = `
+                <div style="text-align: center; padding: 30px;">
+                    <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">AI 正在分析测试数据...</div>
+                    <div style="color: var(--text-tertiary); font-size: 12px; margin-top: 4px;">这可能需要 10-30 秒</div>
+                </div>
+            `;
+
+            try {
+                const resp = await fetch('/api/test-report-ai-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ analysis: currentAnalysis })
+                });
+                const data = await resp.json();
+
+                if (data.status === 'success') {
+                    // 简单的 Markdown 渲染
+                    let html = data.analysis
+                        .replace(/### (.+)/g, '<h4 style="margin: 16px 0 8px; color: var(--accent);">$1</h4>')
+                        .replace(/## (.+)/g, '<h3 style="margin: 16px 0 8px;">$1</h3>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/^- (.+)/gm, '<div style="padding-left: 16px; margin: 4px 0;">• $1</div>')
+                        .replace(/\n\n/g, '<br>')
+                        .replace(/\n/g, '<br>');
+
+                    content.innerHTML = `
+                        <div style="line-height: 1.8; font-size: 14px; color: var(--text-primary);">
+                            ${html}
+                        </div>
+                        <div style="margin-top: 16px; text-align: right;">
+                            <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;">📋 复制</button>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `
+                        <div style="padding: 20px; text-align: center;">
+                            <div style="color: var(--danger); margin-bottom: 12px;">❌ ${data.error || 'AI分析失败'}</div>
+                            <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                content.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <div style="color: var(--danger); margin-bottom: 12px;">❌ 请求失败: ${e.message}</div>
+                        <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
+                    </div>
+                `;
+            }
+        }
+
+        function copyAIAnalysis() {
+            const text = document.getElementById('aiAnalysisContent').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制到剪贴板');
+            }).catch(() => {
+                alert('复制失败');
+            });
         }
 
         async function downloadPdf() {

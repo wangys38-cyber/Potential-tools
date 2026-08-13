@@ -14,6 +14,8 @@
     <link rel="prefetch" href="/plan-generator">
     <link rel="prefetch" href="/merit">
     <link rel="prefetch" href="/meeting-minutes">
+    <link rel="prefetch" href="/weekly-report">
+    <link rel="prefetch" href="/settings">
     <style>
         :root {
             --bg-primary: #f5f5f7;
@@ -228,13 +230,43 @@
         }
         .no-results-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
 
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .tool-card { animation: fadeInUp 0.3s ease both; }
+
         @media (max-width: 768px) {
-            .header { padding: 14px 20px; flex-direction: column; gap: 10px; }
-            .header h1 { font-size: 20px; }
-            .container { margin: 16px auto; }
-            .tools-grid { grid-template-columns: 1fr; gap: 16px; }
-            .stats-bar { flex-wrap: wrap; gap: 16px; }
+            .header { padding: 12px 16px; flex-direction: row; gap: 8px; flex-wrap: wrap; }
+            .header h1 { font-size: 18px; }
+            .header p { font-size: 12px; }
+            .header-right { gap: 6px; }
+            .header-left { flex: 1; min-width: 0; }
+            .container { margin: 12px auto; padding: 0 12px; }
+            .tools-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stats-bar { flex-wrap: wrap; gap: 12px; justify-content: center; }
             .stat-divider { display: none; }
+            .stat-item .stat-num { font-size: 20px; }
+            .stat-item .stat-label { font-size: 11px; }
+            .toolbar { padding: 12px; }
+            .category-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+            .category-chip { white-space: nowrap; flex-shrink: 0; }
+            .search-hint { display: none; }
+            .tool-card { padding: 16px; }
+            .tool-icon { font-size: 28px; }
+            .tool-card h2 { font-size: 16px; }
+            .feature-list li { font-size: 12px; }
+            .tb-recent-bar { padding: 8px 12px; }
+            .tb-recent-list { flex-wrap: wrap; }
+        }
+        @media (max-width: 480px) {
+            .header { padding: 10px 12px; }
+            .header h1 { font-size: 16px; }
+            .header p { display: none; }
+            .user-info .name, .user-info .provider-tag { display: none; }
+            .stats-bar { gap: 8px; }
+            .stat-item { flex-direction: row; gap: 6px; align-items: center; }
+            .stat-item .stat-icon { font-size: 16px; }
         }
     </style>
 </head>
@@ -247,6 +279,7 @@
             </div>
         </div>
         <div class="header-right">
+            <a href="/settings" target="_blank" class="theme-toggle" title="设置" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">⚙️</a>
             <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
             <div class="user-info">
                 {% if current_user %}
@@ -271,6 +304,7 @@
         </div>
         <div class="category-bar" id="category-bar">
             <button class="category-chip active" data-cat="all" onclick="setCategory('all')">全部</button>
+            <button class="category-chip" data-cat="fav" onclick="setCategory('fav')">⭐ 收藏</button>
             <button class="category-chip" data-cat="notes" onclick="setCategory('notes')">笔记记录</button>
             <button class="category-chip" data-cat="convert" onclick="setCategory('convert')">格式转换</button>
             <button class="category-chip" data-cat="analysis" onclick="setCategory('analysis')">数据分析</button>
@@ -282,13 +316,17 @@
 
     <div class="container">
         <div class="stats-bar">
-            <div class="stat-item"><span class="stat-icon">🧰</span><div class="stat-text"><span class="stat-num">9</span><span class="stat-label">可用工具</span></div></div>
+            <div class="stat-item"><span class="stat-icon">🧰</span><div class="stat-text"><span class="stat-num">10</span><span class="stat-label">可用工具</span></div></div>
             <div class="stat-divider"></div>
             <div class="stat-item"><span class="stat-icon">⚡</span><div class="stat-text"><span class="stat-num">100%</span><span class="stat-label">免费使用</span></div></div>
             <div class="stat-divider"></div>
             <div class="stat-item"><span class="stat-icon">🔒</span><div class="stat-text"><span class="stat-num">本地</span><span class="stat-label">数据存储</span></div></div>
             <div class="stat-divider"></div>
             <div class="stat-item"><span class="stat-icon">🌙</span><div class="stat-text"><span class="stat-num">暗黑</span><span class="stat-label">模式支持</span></div></div>
+        </div>
+        <div id="fav-bar" class="tb-recent-bar" style="display:none">
+            <div class="tb-recent-title">⭐ 我的收藏</div>
+            <div class="tb-recent-list" id="fav-list"></div>
         </div>
         <div id="recent-bar" class="tb-recent-bar" style="display:none">
             <div class="tb-recent-title">🕐 最近使用 <a href="javascript:void(0)" onclick="clearRecent()" style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px;text-decoration:none;">清除记录</a></div>
@@ -302,7 +340,7 @@
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v2.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
+        <p>Powered by Yongshuo | 工具集 v3.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
     </div>
 
     <script src="/static/js/components.js"></script>
@@ -336,9 +374,33 @@
         {id:'weekly-report', icon:'📋', name:'智能周报', cat:'notes', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
          desc:'输入本周工作素材，AI自动生成结构化周报，支持多模型选择',
          features:['AI生成','多模型','一键导出','工作总结','下周计划'], badge:'新'},
+        {id:'settings', icon:'⚙️', name:'系统设置', cat:'manage', accent:'#6366f1', bg:'rgba(99,102,241,0.1)',
+         desc:'AI配置、主题定制、系统诊断',
+         features:['AI配置','主题色','系统信息','连接测试'], badge:'新'},
     ];
 
     let currentCategory = 'all';
+
+    // ===== Favorites =====
+    const FAV_KEY = 'toolbox_favorites';
+    function getFavorites() {
+        try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { return []; }
+    }
+    function toggleFavorite(toolId, event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        let favs = getFavorites();
+        if (favs.includes(toolId)) {
+            favs = favs.filter(f => f !== toolId);
+        } else {
+            favs.push(toolId);
+        }
+        try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e) {}
+        renderTools();
+        renderFavBar();
+    }
+    function isFavorite(toolId) {
+        return getFavorites().includes(toolId);
+    }
 
     // ===== Render tools =====
     function renderTools() {
@@ -348,7 +410,8 @@
         const countEl = document.getElementById('search-count');
 
         let filtered = TOOLS.filter(t => {
-            const catMatch = currentCategory === 'all' || t.cat === currentCategory;
+            const catMatch = currentCategory === 'all' || t.cat === currentCategory ||
+                             (currentCategory === 'fav' && isFavorite(t.id));
             const qMatch = !query ||
                 t.name.toLowerCase().includes(query) ||
                 t.desc.toLowerCase().includes(query) ||
@@ -365,10 +428,12 @@
         }
         noResults.style.display = 'none';
 
+        const favs = getFavorites();
         grid.innerHTML = filtered.map((t, i) => {
             const origIdx = TOOLS.indexOf(t);
+            const isFav = isFavorite(t.id);
             return `
-            <div class="tool-card" style="--card-accent:${t.accent};--card-bg:${t.bg}" onclick="openTool('/${t.id}')">
+            <div class="tool-card" style="--card-accent:${t.accent};--card-bg:${t.bg}; animation-delay: ${i * 0.05}s;" onclick="openTool('/${t.id}')">
                 <div class="tool-header">
                     <div class="tool-icon">${t.icon}</div>
                     <div>
@@ -381,12 +446,37 @@
                 <ul class="feature-list">
                     ${t.features.map(f => `<li>${f}</li>`).join('')}
                 </ul>
-                <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">
-                    进入使用
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">
+                        进入使用
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button onclick="toggleFavorite('${t.id}', event)" class="fav-btn" title="${isFav ? '取消收藏' : '收藏'}" style="background: none; border: none; cursor: pointer; font-size: 20px; padding: 6px; opacity: ${isFav ? '1' : '0.4'}; transition: all 0.2s;">
+                        ${isFav ? '⭐' : '☆'}
+                    </button>
+                </div>
             </div>
             `;
+        }).join('');
+    }
+
+    function renderFavBar() {
+        const favs = getFavorites();
+        const bar = document.getElementById('fav-bar');
+        if (!bar) return;
+        if (favs.length === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = 'flex';
+        const list = document.getElementById('fav-list');
+        list.innerHTML = favs.map(id => {
+            const tool = TOOLS.find(t => t.id === id);
+            if (!tool) return '';
+            return `<a href="/${id}" target="_blank" class="tb-recent-item" onclick="event.preventDefault();openTool('/${id}')" style="background: ${tool.bg};">
+                <span class="tb-recent-item-icon">${tool.icon}</span>
+                <span>${tool.name}</span>
+            </a>`;
         }).join('');
     }
 
@@ -477,9 +567,13 @@
 
     renderTools();
     renderRecent();
+    renderFavBar();
     // Update recent list when returning to this tab
     document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) renderRecent();
+        if (!document.hidden) {
+            renderRecent();
+            renderFavBar();
+        }
     });
     </script>
 </body>
