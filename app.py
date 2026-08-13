@@ -2415,12 +2415,13 @@ def api_test_report_pdf():
     analysis_data = data.get('analysis_data', {})
     file_name = data.get('file_name', '')
     sheet_name = data.get('sheet_name', '')
+    ai_analysis = data.get('ai_analysis', '')
 
     if not analysis_data:
         return jsonify({'error': '缺少分析数据'}), 400
 
     try:
-        html_content = _build_test_report_pdf_html(analysis_data, file_name, sheet_name)
+        html_content = _build_test_report_pdf_html(analysis_data, file_name, sheet_name, ai_analysis)
 
         import tempfile as tf
         with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
@@ -2433,7 +2434,7 @@ def api_test_report_pdf():
         pdf_path = os.path.join(app.config['PDF_FOLDER'], pdf_filename)
 
         _render_pdf(html_path, pdf_path,
-                    margin={'top': '15mm', 'bottom': '15mm', 'left': '12mm', 'right': '12mm'},
+                    margin={'top': '8mm', 'bottom': '8mm', 'left': '8mm', 'right': '8mm'},
                     extra_wait_ms=1000)
 
         try:
@@ -2541,204 +2542,415 @@ def api_test_report_ai_analysis():
         return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
 
 
-def _build_test_report_pdf_html(data, file_name, sheet_name):
-    """构建测试报告PDF的HTML（含Motorola水印+日期）"""
+def _build_test_report_pdf_html(data, file_name, sheet_name, ai_analysis=''):
+    """构建测试报告PDF的HTML — 高质感排版，内容与网页分析一致"""
     project_info = data.get('project_info', {})
     stats = data.get('stats', {})
     analysis = data.get('analysis', {})
     test_items = data.get('test_items', [])
     today = datetime.now(_CST).strftime('%Y-%m-%d')
+    now_time = datetime.now(_CST).strftime('%Y-%m-%d %H:%M')
 
     # 水印文字
     watermark_text = f"Motorola {today}"
 
     # 水印HTML（平铺）
     watermark_items = []
-    for x in range(0, 800, 200):
-        for y in range(0, 1200, 150):
+    for x in range(0, 900, 220):
+        for y in range(0, 1400, 160):
             watermark_items.append(
                 f'<div style="position:absolute;left:{x}px;top:{y}px;transform:rotate(-30deg);'
-                f'font-size:18px;font-weight:600;color:rgba(0,113,227,0.08);white-space:nowrap;'
-                f'pointer-events:none;z-index:0;">{watermark_text}</div>'
+                f'font-size:20px;font-weight:600;color:rgba(0,113,227,0.06);white-space:nowrap;'
+                f'pointer-events:none;z-index:0;letter-spacing:2px;">{watermark_text}</div>'
             )
     watermark_html = '\n'.join(watermark_items)
 
-    # 项目信息
+    # ========== 项目信息 ==========
     info_rows = ''
     for k, v in project_info.items():
         if v and str(v).strip():
-            info_rows += f'<div class="info-row"><span class="info-label">{k}</span><span class="info-val">{v}</span></div>'
+            info_rows += f'<div class="info-row"><div class="info-label">{k}</div><div class="info-val">{v}</div></div>'
     if not info_rows:
-        info_rows = '<div class="info-row"><span class="info-val" style="color:#999;">无项目信息</span></div>'
+        info_rows = '<div class="info-row"><div class="info-val" style="color:#999;">无项目信息</div></div>'
 
-    # 统计数据
+    # ========== 统计数据（与网页一致） ==========
     total = stats.get('total', 0)
     pass_count = stats.get('pass', 0)
     fail_count = stats.get('fail', 0)
     blocked_count = stats.get('blocked', 0)
     delayed_count = stats.get('delayed', 0)
+    unknown_count = stats.get('unknown', 0)
+    executed_count = stats.get('executed', 0)
     pass_rate = stats.get('pass_rate', '0%')
+    executed_pass_rate = stats.get('executed_pass_rate', '0%')
     overall_risk = analysis.get('overall_risk', '未知')
+    severity = stats.get('severity', {})
 
     risk_color = {'高': '#dc2626', '中': '#f59e0b', '低': '#3b82f6', '无': '#10b981'}.get(overall_risk, '#6b7280')
+    risk_bg = {'高': '#fef2f2', '中': '#fffbeb', '低': '#eff6ff', '无': '#ecfdf5'}.get(overall_risk, '#f9fafb')
+    risk_icon = {'高': '🔴', '中': '🟡', '低': '🔵', '无': '🟢'}.get(overall_risk, '⚪')
 
-    # 关键发现
+    # 统计卡片
+    stat_cards = f'''
+        <div class="stat-card"><div class="num" style="color:#1e293b;">{total}</div><div class="lbl">总测试项</div></div>
+        <div class="stat-card"><div class="num" style="color:#475569;">{executed_count}</div><div class="lbl">已执行</div></div>
+        <div class="stat-card"><div class="num" style="color:#10b981;">{pass_count}</div><div class="lbl">通过</div></div>
+        <div class="stat-card"><div class="num" style="color:#ef4444;">{fail_count}</div><div class="lbl">不通过</div></div>'''
+    if blocked_count > 0:
+        stat_cards += f'<div class="stat-card"><div class="num" style="color:#92400e;">{blocked_count}</div><div class="lbl">阻塞</div></div>'
+    if delayed_count > 0:
+        stat_cards += f'<div class="stat-card"><div class="num" style="color:#f59e0b;">{delayed_count}</div><div class="lbl">已延期</div></div>'
+    if unknown_count > 0:
+        stat_cards += f'<div class="stat-card"><div class="num" style="color:#6b7280;">{unknown_count}</div><div class="lbl">未识别</div></div>'
+    stat_cards += f'<div class="stat-card highlight"><div class="num" style="color:#4f46e5;">{pass_rate}</div><div class="lbl">通过率</div></div>'
+    if executed_count < total and executed_count > 0:
+        stat_cards += f'<div class="stat-card highlight"><div class="num" style="color:#7c3aed;">{executed_pass_rate}</div><div class="lbl">已执行通过率</div></div>'
+
+    # 严重级别统计
+    severity_cards = ''
+    sev_labels = {'blocker': 'Blocker', 'critical': 'Critical', 'major': 'Major', 'minor': 'Minor', 'trivial': 'Trivial'}
+    sev_colors = {'blocker': '#991b1b', 'critical': '#dc2626', 'major': '#ea580c', 'minor': '#ca8a04', 'trivial': '#6b7280'}
+    for level in ['blocker', 'critical', 'major', 'minor', 'trivial']:
+        if severity.get(level):
+            severity_cards += f'<div class="sev-tag" style="color:{sev_colors[level]};border-color:{sev_colors[level]}33;">{sev_labels[level]} <b>{severity[level]}</b></div>'
+
+    # ========== 执行摘要 ==========
+    exec_summary = analysis.get('executive_summary', '无摘要信息')
+
+    # ========== 关键发现 ==========
     key_findings = analysis.get('key_findings', [])
     findings_html = ''
     if key_findings:
         for f in key_findings:
-            findings_html += f'<div class="finding-item">• {f}</div>'
+            f_cls = 'finding-normal'
+            if '【高风险】' in f:
+                f_cls = 'finding-high'
+            elif '【中风险】' in f:
+                f_cls = 'finding-medium'
+            elif '【达标项】' in f:
+                f_cls = 'finding-success'
+            findings_html += f'<div class="finding-item {f_cls}">{f}</div>'
     else:
-        findings_html = '<div style="color:#999;">无关键发现</div>'
+        findings_html = '<div style="color:#999;padding:8px 0;">无关键发现</div>'
 
-    # 改进建议
+    # ========== 改进建议 ==========
     recommendations = analysis.get('recommendations', [])
     recs_html = ''
     if recommendations:
-        for r in recommendations:
-            recs_html += f'<div class="rec-item">• {r}</div>'
+        for i, r in enumerate(recommendations, 1):
+            recs_html += f'<div class="rec-item"><span class="rec-num">{i}</span><span class="rec-text">{r}</span></div>'
     else:
-        recs_html = '<div style="color:#999;">无改进建议</div>'
+        recs_html = '<div style="color:#999;padding:8px 0;">无改进建议</div>'
 
-    # 分类分析
+    # ========== 分类分析（含问题项） ==========
     sections = analysis.get('sections', [])
     sections_html = ''
     for s in sections:
         risk_cls = {'高': 'high', '中': 'medium', '低': 'low', '无': 'none'}.get(s.get('risk_level', ''), 'none')
+        s_stats = f"通过率 {s.get('pass_rate', '')}"
+        if s.get('fail', 0) > 0:
+            s_stats += f" · 不通过 {s['fail']}"
+        if s.get('delayed', 0) > 0:
+            s_stats += f" · 延期 {s['delayed']}"
+        if s.get('blocked', 0) > 0:
+            s_stats += f" · 阻塞 {s['blocked']}"
+        s_stats += f" · 共 {s.get('total', 0)} 项"
+
+        # 问题项列表
+        problem_items_html = ''
+        problem_items = s.get('problem_items', [])
+        if problem_items:
+            problem_items_html = '<div class="problem-list">'
+            for pi in problem_items:
+                pi_result = pi.get('result', 'unknown')
+                pi_labels = {'pass': '通过', 'fail': '不通过', 'blocked': '阻塞', 'delayed': '已延期', 'n_a': '不适用', 'unknown': '未识别'}
+                pi_label = pi_labels.get(pi_result, pi_result)
+                pi_name = pi.get('name', '')
+                pi_reason = pi.get('reason', '')
+                pi_target = pi.get('target', '') or '-'
+                pi_actual = pi.get('actual', '') or '-'
+                problem_items_html += f'''<div class="problem-item">
+                    <span class="pdf-badge {pi_result}">{pi_label}</span>
+                    <span class="problem-name">{pi_name}</span>
+                    {f'<span class="problem-reason">{pi_reason}</span>' if pi_reason else ''}
+                    <span class="problem-ta">目标: {pi_target} | 实测: {pi_actual}</span>
+                </div>'''
+            problem_items_html += '</div>'
+        elif s.get('pass', 0) == s.get('total', 0) and s.get('total', 0) > 0:
+            problem_items_html = '<div style="color:#10b981;font-size:11px;padding:6px 0;">✓ 全部通过</div>'
+
         sections_html += f'''
-        <div class="section-block">
+        <div class="section-block risk-{risk_cls}">
             <div class="section-header">
                 <span class="risk-badge-pdf {risk_cls}">{s.get('risk_level', '')}</span>
                 <span class="section-cat">{s.get('category', '')}</span>
-                <span class="section-stats">通过率 {s.get('pass_rate', '')} · 共 {s.get('total', 0)} 项</span>
+                <span class="section-stats">{s_stats}</span>
             </div>
             <div class="section-summary">{s.get('summary', '')}</div>
+            {problem_items_html}
         </div>'''
 
-    # 测试项表格
+    if not sections_html:
+        sections_html = '<div style="color:#999;padding:8px 0;">无分类分析数据</div>'
+
+    # ========== 测试项表格 ==========
     result_labels = {'pass': '通过', 'fail': '不通过', 'blocked': '阻塞', 'delayed': '已延期', 'n_a': '不适用', 'unknown': '未识别'}
+    result_order = {'fail': 0, 'delayed': 1, 'blocked': 2, 'unknown': 3, 'n_a': 4, 'pass': 5}
+    sev_order = {'blocker': 0, 'critical': 1, 'major': 2, 'minor': 3, 'trivial': 4}
+
+    def _sort_key(item):
+        r = result_order.get(item.get('result', ''), 3)
+        return r
+
+    sorted_items = sorted(test_items, key=_sort_key)
+
     rows_html = ''
-    for item in test_items:
+    for idx, item in enumerate(sorted_items, 1):
         result_text = result_labels.get(item.get('result', ''), item.get('result_text', ''))
         result_cls = item.get('result', 'unknown')
-        target = item.get('target', '')
-        actual = item.get('actual', '')
-        reason = item.get('reason', '')
+        target = item.get('target', '') or '-'
+        actual = item.get('actual', '') or '-'
+        reason = item.get('reason', '') or '-'
+        name = item.get('name', '')
+        module = item.get('module', '') or '-'
         rows_html += f'''<tr>
-            <td>{item.get('name', '')}</td>
-            <td>{item.get('module', '') or '-'}</td>
+            <td class="col-idx">{idx}</td>
+            <td class="col-name">{name}</td>
+            <td>{module}</td>
             <td><span class="pdf-badge {result_cls}">{result_text}</span></td>
-            <td>{target or '-'}</td>
-            <td>{actual or '-'}</td>
-            <td>{reason or '-'}</td>
+            <td class="col-val">{target}</td>
+            <td class="col-val">{actual}</td>
+            <td class="col-reason">{reason}</td>
         </tr>'''
+
+    # ========== AI 分析 ==========
+    ai_html = ''
+    if ai_analysis and ai_analysis.strip():
+        # 将AI文本转换为HTML（保留段落和格式）
+        ai_lines = ai_analysis.strip().split('\n')
+        ai_formatted = ''
+        for line in ai_lines:
+            line = line.strip()
+            if not line:
+                continue
+            # 标题行 (### 开头)
+            if line.startswith('### '):
+                title = line[4:].strip()
+                ai_formatted += f'<div class="ai-sub-title">{title}</div>'
+            elif line.startswith('## '):
+                title = line[3:].strip()
+                ai_formatted += f'<div class="ai-sub-title">{title}</div>'
+            elif line.startswith('# '):
+                title = line[2:].strip()
+                ai_formatted += f'<div class="ai-sub-title">{title}</div>'
+            # 列表项
+            elif line.startswith('- ') or line.startswith('• '):
+                ai_formatted += f'<div class="ai-list-item">{line[2:]}</div>'
+            elif line.startswith('  - '):
+                ai_formatted += f'<div class="ai-list-item sub">{line[4:]}</div>'
+            else:
+                ai_formatted += f'<div class="ai-paragraph">{line}</div>'
+        ai_html = f'''
+<div class="section ai-section" style="page-break-inside: avoid;">
+    <div class="section-title ai-title">🤖 AI 深度分析</div>
+    <div class="ai-content">{ai_formatted}</div>
+</div>'''
 
     html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <style>
-@page {{ size: A4; }}
+@page {{ size: A4; margin: 0; }}
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 body {{
-    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    color: #1a1a2e;
+    font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #1e293b;
     font-size: 12px;
+    line-height: 1.6;
     position: relative;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }}
 .watermark-layer {{
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     z-index: 0; pointer-events: none;
+    overflow: hidden;
 }}
-.content {{ position: relative; z-index: 1; }}
+.content {{ position: relative; z-index: 1; padding: 0; }}
 
-/* Header */
+/* ===== Cover Header ===== */
 .report-header {{
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #4f46e5 100%);
     color: white;
-    padding: 24px 30px;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    padding: 36px 36px 28px;
+    border-radius: 0 0 16px 16px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
 }}
-.report-header h1 {{ font-size: 22px; margin-bottom: 6px; }}
-.report-header .meta {{ font-size: 13px; opacity: 0.9; }}
+.report-header::after {{
+    content: '';
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+}}
+.report-header::before {{
+    content: '';
+    position: absolute;
+    right: 40px; bottom: -60px;
+    width: 120px; height: 120px;
+    background: rgba(79, 70, 229, 0.15);
+    border-radius: 50%;
+}}
+.report-header h1 {{
+    font-size: 26px; font-weight: 800; margin-bottom: 8px;
+    letter-spacing: 1px;
+}}
+.report-header .meta {{
+    font-size: 12px; opacity: 0.85; display: flex; flex-wrap: wrap; gap: 16px;
+}}
+.report-header .meta span {{ display: inline-flex; align-items: center; gap: 4px; }}
+.report-header .badge {{
+    display: inline-block; background: rgba(255,255,255,0.15);
+    padding: 3px 12px; border-radius: 20px; font-size: 11px;
+    margin-top: 8px; backdrop-filter: blur(4px);
+}}
 
-/* Section */
-.section {{ margin-bottom: 18px; }}
+/* ===== Section ===== */
+.section {{
+    margin-bottom: 22px;
+    padding: 0 36px;
+}}
 .section-title {{
-    font-size: 15px; font-weight: 700; margin-bottom: 10px;
-    padding-left: 10px; border-left: 4px solid #4f46e5;
-    color: #1a1a2e;
+    font-size: 15px; font-weight: 700; margin-bottom: 12px;
+    padding: 6px 0 6px 14px; border-left: 4px solid #4f46e5;
+    color: #1e293b; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
 }}
 
-/* Info grid */
-.info-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+/* ===== Info Grid ===== */
+.info-grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
 .info-row {{
-    background: #f9fafb; border-radius: 6px; padding: 8px 14px;
-    border-left: 3px solid #4f46e5; min-width: 200px;
+    background: #f8fafc; border-radius: 8px; padding: 10px 16px;
+    border-left: 3px solid #4f46e5; min-width: 180px; flex: 1;
 }}
-.info-label {{ font-size: 11px; color: #6b7280; display: block; }}
-.info-val {{ font-size: 13px; font-weight: 600; }}
+.info-label {{ font-size: 10px; color: #94a3b8; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }}
+.info-val {{ font-size: 13px; font-weight: 600; color: #1e293b; }}
 
-/* Stats grid */
-.stats-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-.stat-box {{
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
-    padding: 12px 16px; text-align: center; min-width: 80px;
+/* ===== Stats Grid ===== */
+.stats-grid {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+.stat-card {{
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 14px 18px; text-align: center; min-width: 88px; flex: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }}
-.stat-box .num {{ font-size: 22px; font-weight: 800; }}
-.stat-box .lbl {{ font-size: 11px; color: #6b7280; margin-top: 4px; }}
+.stat-card.highlight {{
+    border-color: #c7d2fe; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+}}
+.stat-card .num {{ font-size: 24px; font-weight: 800; line-height: 1.2; }}
+.stat-card .lbl {{ font-size: 10px; color: #94a3b8; margin-top: 4px; }}
 
-/* Risk banner */
+.severity-row {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }}
+.sev-tag {{
+    display: inline-block; padding: 4px 12px; border-radius: 6px;
+    font-size: 11px; border: 1px solid; background: #fff;
+}}
+
+/* ===== Risk Banner ===== */
 .risk-banner {{
-    display: inline-block; padding: 6px 16px; border-radius: 20px;
-    font-size: 13px; font-weight: 700; margin-bottom: 10px;
-    background: {risk_color}22; color: {risk_color}; border: 1px solid {risk_color};
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 20px; border-radius: 24px;
+    font-size: 13px; font-weight: 700; margin-bottom: 12px;
+    background: {risk_bg}; color: {risk_color}; border: 1px solid {risk_color}44;
 }}
 
-/* Executive summary */
+/* ===== Executive Summary ===== */
 .exec-summary {{
-    background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
-    border-radius: 8px; padding: 14px 18px; line-height: 1.7;
-    border: 1px solid #c7d2fe; font-size: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 10px; padding: 16px 20px; line-height: 1.8;
+    border: 1px solid #e2e8f0; font-size: 12px; color: #334155;
 }}
 
-/* Findings & recommendations */
-.finding-item, .rec-item {{
-    padding: 6px 0; line-height: 1.6; border-bottom: 1px solid #f3f4f6;
+/* ===== Findings ===== */
+.finding-item {{
+    padding: 8px 14px; line-height: 1.6; border-radius: 8px;
+    margin-bottom: 6px; font-size: 12px;
+    border-left: 3px solid #cbd5e1; background: #f8fafc;
 }}
-.finding-item:last-child, .rec-item:last-child {{ border-bottom: none; }}
+.finding-item.finding-high {{ border-left-color: #ef4444; background: #fef2f2; }}
+.finding-item.finding-medium {{ border-left-color: #f59e0b; background: #fffbeb; }}
+.finding-item.finding-success {{ border-left-color: #10b981; background: #ecfdf5; }}
 
-/* Analysis sections */
+/* ===== Recommendations ===== */
+.rec-item {{
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; line-height: 1.6; border-bottom: 1px solid #f1f5f9;
+}}
+.rec-item:last-child {{ border-bottom: none; }}
+.rec-num {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #4f46e5; color: white; font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+}}
+.rec-text {{ font-size: 12px; color: #334155; flex: 1; }}
+
+/* ===== Analysis Sections ===== */
 .section-block {{
-    border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 8px;
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 10px; page-break-inside: avoid;
 }}
-.section-header {{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }}
-.section-cat {{ font-weight: 600; font-size: 13px; }}
-.section-stats {{ font-size: 11px; color: #6b7280; margin-left: auto; }}
-.section-summary {{ font-size: 11px; color: #4b5563; line-height: 1.5; }}
+.section-block.risk-high {{ border-left: 4px solid #ef4444; }}
+.section-block.risk-medium {{ border-left: 4px solid #f59e0b; }}
+.section-block.risk-low {{ border-left: 4px solid #3b82f6; }}
+.section-block.risk-none {{ border-left: 4px solid #10b981; }}
+.section-header {{ display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }}
+.section-cat {{ font-weight: 700; font-size: 13px; color: #1e293b; }}
+.section-stats {{ font-size: 11px; color: #94a3b8; margin-left: auto; }}
+.section-summary {{ font-size: 11px; color: #64748b; line-height: 1.6; margin-bottom: 8px; }}
 .risk-badge-pdf {{
-    padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;
+    padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 700;
 }}
 .risk-badge-pdf.high {{ background: #fee2e2; color: #991b1b; }}
 .risk-badge-pdf.medium {{ background: #fef3c7; color: #92400e; }}
 .risk-badge-pdf.low {{ background: #dbeafe; color: #1e40af; }}
 .risk-badge-pdf.none {{ background: #d1fae5; color: #065f46; }}
 
-/* Table */
-table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
-th {{
-    background: #f9fafb; padding: 8px; text-align: left; font-weight: 600;
-    border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 10px;
+/* Problem items */
+.problem-list {{ margin-top: 6px; }}
+.problem-item {{
+    display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+    padding: 5px 0; font-size: 11px; border-bottom: 1px dashed #f1f5f9;
 }}
-td {{
-    padding: 6px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top;
+.problem-item:last-child {{ border-bottom: none; }}
+.problem-name {{ font-weight: 600; color: #1e293b; }}
+.problem-reason {{ color: #dc2626; font-size: 10px; }}
+.problem-ta {{ color: #94a3b8; font-size: 10px; width: 100%; }}
+
+/* ===== Table ===== */
+.table-wrapper {{ overflow: hidden; border-radius: 10px; border: 1px solid #e2e8f0; }}
+table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+thead th {{
+    background: #1e293b; color: #fff; padding: 10px 8px; text-align: left;
+    font-weight: 600; font-size: 10px; letter-spacing: 0.5px;
+    text-transform: uppercase;
+}}
+tbody td {{
+    padding: 7px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
     word-break: break-word;
 }}
-tr:nth-child(even) {{ background: #fafbfc; }}
+tbody tr:nth-child(even) {{ background: #f8fafc; }}
+tbody tr:hover {{ background: #f1f5f9; }}
+.col-idx {{ color: #94a3b8; font-size: 10px; width: 32px; text-align: center; }}
+.col-name {{ font-weight: 600; min-width: 120px; }}
+.col-val {{ font-size: 10px; color: #64748b; white-space: nowrap; }}
+.col-reason {{ max-width: 280px; font-size: 10px; color: #64748b; }}
 .pdf-badge {{
-    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
     font-size: 10px; font-weight: 600; white-space: nowrap;
 }}
 .pdf-badge.pass {{ background: #d1fae5; color: #065f46; }}
@@ -2748,10 +2960,41 @@ tr:nth-child(even) {{ background: #fafbfc; }}
 .pdf-badge.n_a {{ background: #f3f4f6; color: #6b7280; }}
 .pdf-badge.unknown {{ background: #f3f4f6; color: #4b5563; }}
 
-/* Footer */
+/* ===== AI Section ===== */
+.ai-section {{
+    page-break-before: auto;
+}}
+.ai-title {{ border-left-color: #7c3aed; color: #6d28d9; }}
+.ai-content {{
+    background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+    border-radius: 10px; padding: 18px 22px; border: 1px solid #e9d5ff;
+}}
+.ai-sub-title {{
+    font-size: 13px; font-weight: 700; color: #6d28d9;
+    margin-top: 12px; margin-bottom: 6px; padding-bottom: 4px;
+    border-bottom: 1px solid #e9d5ff;
+}}
+.ai-sub-title:first-child {{ margin-top: 0; }}
+.ai-paragraph {{ font-size: 12px; color: #334155; line-height: 1.8; margin-bottom: 4px; }}
+.ai-list-item {{
+    font-size: 12px; color: #334155; line-height: 1.7;
+    padding-left: 18px; position: relative; margin-bottom: 2px;
+}}
+.ai-list-item::before {{
+    content: '▸'; position: absolute; left: 0; color: #7c3aed; font-weight: 700;
+}}
+.ai-list-item.sub {{ padding-left: 36px; font-size: 11px; color: #64748b; }}
+.ai-list-item.sub::before {{ content: '·'; color: #94a3b8; }}
+
+/* ===== Footer ===== */
 .report-footer {{
-    margin-top: 20px; padding-top: 12px; border-top: 1px solid #e5e7eb;
-    text-align: center; font-size: 10px; color: #9ca3af;
+    margin-top: 24px; padding: 16px 36px;
+    background: #1e293b; color: #94a3b8;
+    text-align: center; font-size: 10px;
+    border-radius: 16px 16px 0 0;
+}}
+.report-footer .conf {{
+    color: #fbbf24; font-weight: 600; letter-spacing: 1px;
 }}
 </style>
 </head>
@@ -2762,60 +3005,62 @@ tr:nth-child(even) {{ background: #fafbfc; }}
 <div class="report-header">
     <h1>📋 测试报告分析</h1>
     <div class="meta">
-        文件: {file_name or '未命名'} | Sheet: {sheet_name or '未指定'} | 生成日期: {today}
+        <span>📁 {file_name or '未命名'}</span>
+        <span>📊 {sheet_name or '未指定'}</span>
+        <span>📅 {now_time}</span>
     </div>
+    <div class="badge">Motorola Confidential</div>
 </div>
 
 <div class="section">
-    <div class="section-title">项目信息</div>
+    <div class="section-title">📌 项目信息</div>
     <div class="info-grid">{info_rows}</div>
 </div>
 
 <div class="section">
-    <div class="section-title">测试统计</div>
-    <div class="stats-grid">
-        <div class="stat-box"><div class="num" style="color:#1a1a2e;">{total}</div><div class="lbl">总数</div></div>
-        <div class="stat-box"><div class="num" style="color:#10b981;">{pass_count}</div><div class="lbl">通过</div></div>
-        <div class="stat-box"><div class="num" style="color:#ef4444;">{fail_count}</div><div class="lbl">不通过</div></div>
-        <div class="stat-box"><div class="num" style="color:#f59e0b;">{delayed_count}</div><div class="lbl">已延期</div></div>
-        <div class="stat-box"><div class="num" style="color:#92400e;">{blocked_count}</div><div class="lbl">阻塞</div></div>
-        <div class="stat-box"><div class="num" style="color:#4f46e5;">{pass_rate}</div><div class="lbl">通过率</div></div>
-    </div>
+    <div class="section-title">📊 测试统计</div>
+    <div class="stats-grid">{stat_cards}</div>
+    {f'<div class="severity-row">{severity_cards}</div>' if severity_cards else ''}
 </div>
 
 <div class="section">
-    <div class="section-title">执行摘要</div>
-    <div class="risk-banner">整体风险等级: {overall_risk}</div>
-    <div class="exec-summary">{analysis.get('executive_summary', '无摘要信息')}</div>
+    <div class="section-title">📝 执行摘要</div>
+    <div class="risk-banner">{risk_icon} 整体风险等级：{overall_risk}</div>
+    <div class="exec-summary">{exec_summary}</div>
 </div>
 
 <div class="section">
-    <div class="section-title">分类分析</div>
-    {sections_html if sections_html else '<div style="color:#999;">无分类分析数据</div>'}
+    <div class="section-title">🔍 分类分析</div>
+    {sections_html}
 </div>
 
 <div class="section">
-    <div class="section-title">关键发现</div>
+    <div class="section-title">⚠️ 关键发现</div>
     {findings_html}
 </div>
 
 <div class="section">
-    <div class="section-title">改进建议</div>
+    <div class="section-title">💡 改进建议</div>
     {recs_html}
 </div>
 
-<div class="section">
-    <div class="section-title">逐项明细</div>
+{ai_html}
+
+<div class="section" style="page-break-before: always;">
+    <div class="section-title">📋 逐项明细</div>
+    <div class="table-wrapper">
     <table>
         <thead><tr>
-            <th>测试项</th><th>模块</th><th>结果</th><th>目标</th><th>实测</th><th>待办事项</th>
+            <th style="width:32px;">#</th><th>测试项</th><th>模块</th><th>结果</th><th>目标</th><th>实测</th><th>原因/备注</th>
         </tr></thead>
-        <tbody>{rows_html if rows_html else '<tr><td colspan="6" style="text-align:center;color:#999;">无测试项数据</td></tr>'}</tbody>
+        <tbody>{rows_html if rows_html else '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">无测试项数据</td></tr>'}</tbody>
     </table>
+    </div>
 </div>
 
 <div class="report-footer">
-    本报告由测试报告分析工具自动生成 | Motorola Confidential | {today}
+    <div>本报告由 <b>测试报告分析工具</b> 自动生成</div>
+    <div style="margin-top:4px;"><span class="conf">MOTOROLA CONFIDENTIAL</span> | {now_time}</div>
 </div>
 
 </div>
