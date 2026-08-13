@@ -16,7 +16,7 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260813-v4-command-palette-pwa
+ARG CACHE_BUST=20260813-v5-apple-ui-pdf-fix
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 允许游客访问（无需登录即可使用工具和 AI 功能）
