@@ -1534,13 +1534,24 @@
             btn.innerHTML = '⏳ 生成中...';
 
             try {
+                // 收集 AI 分析内容（如果已生成）
+                var aiContent = '';
+                var aiEl = document.getElementById('aiAnalysisContent');
+                if (aiEl) {
+                    var aiText = aiEl.innerText || aiEl.textContent || '';
+                    if (aiText && aiText.indexOf('生成 AI 深度分析') < 0 && aiText.indexOf('AI 正在分析') < 0) {
+                        aiContent = aiText.trim();
+                    }
+                }
+
                 const resp = await fetch('/api/test-report-pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         analysis_data: currentAnalysis,
                         file_name: currentFileName || 'test_report',
-                        sheet_name: currentSheetName || ''
+                        sheet_name: currentSheetName || '',
+                        ai_analysis: aiContent
                     })
                 });
 
