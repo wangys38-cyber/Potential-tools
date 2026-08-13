@@ -1273,6 +1273,9 @@
     </div>
 
     <script>
+        // 按用户隔离存储 key，游客使用默认 key
+        const _USER_PREFIX = {% if current_user %}'u{{ current_user.id }}_'{% else %}''{% endif %};
+        const PROJECT_STORAGE_KEY = _USER_PREFIX + 'projectInfoData';
         let projects = [];
         let currentProjectId = null;
         let selectedColors = [];
@@ -1282,7 +1285,7 @@
         let savedBeforeEdit = null; // 保存编辑前的状态，用于取消
 
         function loadProjects() {
-            const saved = localStorage.getItem('projectInfoData');
+            const saved = localStorage.getItem(PROJECT_STORAGE_KEY);
             if (saved) {
                 projects = JSON.parse(saved);
             }
@@ -1291,7 +1294,7 @@
         }
 
         function saveToStorage() {
-            localStorage.setItem('projectInfoData', JSON.stringify(projects));
+            localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(projects));
         }
 
         function renderProjectList(filter = '') {

@@ -521,7 +521,8 @@ const ToolboxNav = (function() {
 
 // ==================== 最近使用工具追踪 ====================
 const ToolboxRecent = (function() {
-    var STORAGE_KEY = 'toolbox_recent_tools';
+    // 动态获取存储 key，支持用户隔离
+    function _key() { return (window._USER_PREFIX || '') + 'toolbox_recent_tools'; }
     var MAX_ITEMS = 6;
 
     function record(toolId, toolName, toolIcon) {
@@ -532,12 +533,12 @@ const ToolboxRecent = (function() {
         list.unshift({ id: toolId, name: toolName, icon: toolIcon, time: Date.now() });
         // 限制数量
         list = list.slice(0, MAX_ITEMS);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch(e) {}
+        try { localStorage.setItem(_key(), JSON.stringify(list)); } catch(e) {}
     }
 
     function getAll() {
         try {
-            var data = localStorage.getItem(STORAGE_KEY);
+            var data = localStorage.getItem(_key());
             return data ? JSON.parse(data) : [];
         } catch(e) {
             return [];
@@ -545,7 +546,7 @@ const ToolboxRecent = (function() {
     }
 
     function clear() {
-        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+        try { localStorage.removeItem(_key()); } catch(e) {}
     }
 
     return { record: record, getAll: getAll, clear: clear };
@@ -1189,6 +1190,13 @@ const ToolboxCommandPalette = (function() {
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     }
     earlyInit();
+
+    // 异步获取用户 ID，设置存储隔离前缀
+    fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
+        if(data.logged_in && data.user && data.user.id){
+            window._USER_PREFIX = 'u' + data.user.id + '_';
+        }
+    }).catch(function(){/* 游客或网络错误，不设前缀 */});
 
     function initAll() {
         ToolboxTheme.init();

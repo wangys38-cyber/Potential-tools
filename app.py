@@ -1181,8 +1181,8 @@ _template_cache = {}
 
 # 不含动态用户信息的模板 — 可全局缓存
 _STATIC_TEMPLATES = frozenset({
-    'excel_analysis.html', 'project_info.html', 'md2pdf.html',
-    'merit.html', 'plan_generator.html',
+    'excel_analysis.html', 'md2pdf.html',
+    'plan_generator.html',
 })
 
 def cached_render(template_name, **context):

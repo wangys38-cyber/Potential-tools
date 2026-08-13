@@ -450,7 +450,7 @@
     let currentCategory = 'all';
 
     // ===== Favorites =====
-    const FAV_KEY = 'toolbox_favorites';
+    const FAV_KEY = {% if current_user %}'u{{ current_user.id }}_toolbox_favorites'{% else %}'toolbox_favorites'{% endif %};
     function getFavorites() {
         try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { return []; }
     }

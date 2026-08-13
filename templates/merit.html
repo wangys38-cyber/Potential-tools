@@ -312,8 +312,11 @@
     </div>
 
     <script>
-        const STORAGE_KEY_TOTAL = 'merit_total';
-        const STORAGE_KEY_HISTORY = 'merit_history';
+        // 按用户隔离存储 key，游客使用默认 key
+        const _USER_PREFIX = {% if current_user %}'u{{ current_user.id }}_'{% else %}''{% endif %};
+        const STORAGE_KEY_TOTAL = _USER_PREFIX + 'merit_total';
+        const STORAGE_KEY_HISTORY = _USER_PREFIX + 'merit_history';
+        const STORAGE_KEY_ACH = _USER_PREFIX + 'merit_achievements';
 
         function getTodayStr() {
             const now = new Date();
@@ -453,13 +456,13 @@
             { count: 5000, icon: '☀️', title: '功德圆满', desc: '功德+5000，大功告成' },
             { count: 10000, icon: '🏆', title: '万德归一', desc: '功德+10000，功德圆满' },
         ];
-        let triggeredAchievements = new Set(JSON.parse(localStorage.getItem('merit_achievements') || '[]'));
+        let triggeredAchievements = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_ACH) || '[]'));
 
         function checkAchievement(total) {
             for (const ach of achievements) {
                 if (total >= ach.count && !triggeredAchievements.has(ach.count)) {
                     triggeredAchievements.add(ach.count);
-                    localStorage.setItem('merit_achievements', JSON.stringify([...triggeredAchievements]));
+                    localStorage.setItem(STORAGE_KEY_ACH, JSON.stringify([...triggeredAchievements]));
                     showAchievement(ach);
                     break;
                 }
@@ -481,7 +484,7 @@
             triggeredAchievements.clear();
             localStorage.removeItem(STORAGE_KEY_TOTAL);
             localStorage.removeItem(STORAGE_KEY_HISTORY);
-            localStorage.removeItem('merit_achievements');
+            localStorage.removeItem(STORAGE_KEY_ACH);
             updateUI();
         }
 
