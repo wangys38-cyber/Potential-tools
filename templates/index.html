@@ -115,6 +115,13 @@
             padding: 4px 10px; border-radius: 8px; transition: all 0.2s; border: 1px solid var(--border);
         }
         .user-info .logout-btn:hover { background: rgba(255,59,48,0.06); color: #ff3b30; border-color: rgba(255,59,48,0.2); }
+        .user-info .login-btn {
+            color: #fff; text-decoration: none; font-size: 13px; font-weight: 500;
+            padding: 6px 18px; border-radius: var(--radius-full);
+            background: var(--accent); transition: all 0.2s; border: none;
+        }
+        .user-info .login-btn:hover { background: #0077ed; }
+        [data-theme="dark"] .user-info .login-btn:hover { background: #3a9eff; }
 
         /* ===== Hero ===== */
         .hero {
@@ -341,6 +348,8 @@
                         <div class="avatar-placeholder">{{ current_user.name[:1] if current_user.name else '?' }}</div>
                     {% endif %}
                     <a href="/auth/logout" class="logout-btn">退出</a>
+                {% else %}
+                    <a href="/login" class="login-btn">登录</a>
                 {% endif %}
             </div>
         </div>

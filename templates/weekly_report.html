@@ -220,6 +220,21 @@
             .report-content th { background: #f0f0f0 !important; }
             .report-content blockquote { background: #f7f7f7 !important; color: #333 !important; }
         }
+
+        /* ===== Dark mode hardening: override hardcoded light backgrounds ===== */
+        [data-theme="dark"] .header { background: var(--bg-card); }
+        [data-theme="dark"] .card { background: var(--bg-card); }
+        [data-theme="dark"] .field-card { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .field-card:focus-within { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .report-content th { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .report-content blockquote { background: rgba(255, 255, 255, 0.04); color: var(--text-secondary); }
+        [data-theme="dark"] .report-content code { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .result-badge { background: rgba(48, 209, 88, 0.16); }
+        [data-theme="dark"] .meta-chip { background: rgba(10, 132, 255, 0.14); }
+        [data-theme="dark"] .form-input:focus,
+        [data-theme="dark"] .form-select:focus { background: var(--bg-card); }
+        [data-theme="dark"] .btn-secondary { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body>

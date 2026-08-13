@@ -565,19 +565,30 @@
 
         /* ===== Dark mode overrides for inline-styled elements ===== */
         [data-theme="dark"] table { background: var(--bg-card) !important; }
-        [data-theme="dark"] thead { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] thead { background: rgba(255,255,255,0.04) !important; }
         [data-theme="dark"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
         [data-theme="dark"] tr:hover td { background: rgba(10,132,255,0.08) !important; }
         [data-theme="dark"] select { background: var(--bg-card) !important; color: var(--text-primary) !important; }
         [data-theme="dark"] .summary-card { opacity: 0.9; }
+        [data-theme="dark"] .summary-card.unresolved { background: rgba(245,158,11,0.1) !important; }
+        [data-theme="dark"] .summary-card.critical { background: rgba(234,88,12,0.1) !important; }
+        [data-theme="dark"] .summary-card.major { background: rgba(245,158,11,0.08) !important; }
         [data-theme="dark"] .suggestion-card { opacity: 0.85; }
+        [data-theme="dark"] .suggestion-card.warning { background: rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.3) !important; }
         [data-theme="dark"] .chart-card { background: var(--bg-card) !important; }
         [data-theme="dark"] .detected-info table td { background: var(--bg-card) !important; }
-        [data-theme="dark"] .detected-info table { background: var(--bg-secondary) !important; }
-        [data-theme="dark"] code { background: var(--bg-secondary) !important; color: var(--text-primary) !important; }
-        [data-theme="dark"] .file-info { background: var(--bg-secondary) !important; }
-        [data-theme="dark"] .upload-area { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] .detected-info table { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] code { background: rgba(255,255,255,0.08) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .file-info { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] .upload-area { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.12) !important; }
         [data-theme="dark"] .upload-area .icon { color: var(--text-secondary) !important; }
+        [data-theme="dark"] .upload-area:hover,
+        [data-theme="dark"] .upload-area.dragover { background: rgba(10,132,255,0.08) !important; border-color: var(--accent) !important; }
+        [data-theme="dark"] #cloudEnvBanner { background: rgba(245,158,11,0.1) !important; color: #ffcc4d !important; border-left-color: #faad14 !important; }
+        [data-theme="dark"] .chart-card[style*="#fff"] { background: var(--bg-card) !important; }
+        [data-theme="dark"] div[style*="linear-gradient(135deg,#fff"] { background: var(--bg-card) !important; }
+        [data-theme="dark"] div[style*="background:#fff3cd"] { background: rgba(245,158,11,0.12) !important; color: #ffcc4d !important; border-color: rgba(245,158,11,0.3) !important; }
+        [data-theme="dark"] code[style*="background:#fff"] { background: rgba(255,255,255,0.08) !important; color: var(--text-primary) !important; }
     </style>
     <script>
         window.__APP_CONFIG__ = {

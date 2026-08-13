@@ -237,6 +237,17 @@
             opacity: 0; transition: all 0.3s; pointer-events: none;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ===== Dark mode hardening: override hardcoded light backgrounds ===== */
+        [data-theme="dark"] .header { background: rgba(28, 28, 32, 0.72); }
+        [data-theme="dark"] .status-badge.ok { background: rgba(48, 209, 88, 0.16); }
+        [data-theme="dark"] .status-badge.warn { background: rgba(255, 214, 10, 0.16); }
+        [data-theme="dark"] .status-badge.error { background: rgba(255, 69, 58, 0.16); }
+        [data-theme="dark"] .test-result.success { background: rgba(48, 209, 88, 0.14); }
+        [data-theme="dark"] .test-result.error { background: rgba(255, 69, 58, 0.14); }
+        [data-theme="dark"] .mode-btn.active { background: rgba(10, 132, 255, 0.1); }
+        [data-theme="dark"] .form-input:focus,
+        [data-theme="dark"] .form-select:focus { background: var(--bg-card); }
     </style>
 </head>
 <body>

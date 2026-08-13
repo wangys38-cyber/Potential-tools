@@ -718,15 +718,105 @@
             .header h1 { font-size: 20px; }
         }
 
-        /* ===== Dark mode overrides for inline-styled elements ===== */
+        /* ===== Dark mode overrides for hardcoded light backgrounds ===== */
         [data-theme="dark"] table { background: var(--bg-card) !important; }
-        [data-theme="dark"] thead { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] thead { background: rgba(255,255,255,0.04) !important; }
         [data-theme="dark"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
         [data-theme="dark"] tr:hover td { background: rgba(10,132,255,0.08) !important; }
         [data-theme="dark"] select { background: var(--bg-card) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] code { background: rgba(255,255,255,0.08) !important; color: var(--text-primary) !important; }
+
+        /* Sheet selector */
+        [data-theme="dark"] .sheet-info { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] .sheet-tab { background: rgba(255,255,255,0.06) !important; color: var(--text-primary) !important; border-color: var(--border) !important; }
+        [data-theme="dark"] .sheet-tab:hover { background: rgba(255,255,255,0.1) !important; }
+
+        /* Upload card */
+        [data-theme="dark"] .upload-card { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.12) !important; }
+        [data-theme="dark"] .upload-card:hover,
+        [data-theme="dark"] .upload-card.dragover { background: rgba(10,132,255,0.08) !important; border-color: var(--accent) !important; }
+
+        /* Stat cards */
+        [data-theme="dark"] .stat-card { background: rgba(255,255,255,0.04) !important; }
+
+        /* Info items */
+        [data-theme="dark"] .info-item { background: rgba(255,255,255,0.04) !important; }
+
+        /* Summary banner */
+        [data-theme="dark"] .summary-banner { background: rgba(10,132,255,0.08) !important; border-color: rgba(10,132,255,0.2) !important; }
+        [data-theme="dark"] .summary-banner h4 { color: var(--accent-light) !important; }
+
+        /* Table headers and hovers */
+        [data-theme="dark"] .test-items-table th { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] .test-items-table tbody tr:hover { background: rgba(255,255,255,0.04) !important; }
+
+        /* Analysis sections */
+        [data-theme="dark"] .analysis-section-header { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] .analysis-section-header:hover { background: rgba(255,255,255,0.08) !important; }
+        [data-theme="dark"] .problem-item-list li { border-bottom-color: rgba(255,255,255,0.06) !important; }
+
+        /* Findings */
         [data-theme="dark"] .finding-item { opacity: 0.9; }
-        [data-theme="dark"] .sheet-btn { background: var(--bg-secondary) !important; }
-        [data-theme="dark"] code { background: var(--bg-secondary) !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .finding-item.high { background: rgba(239,68,68,0.12) !important; }
+        [data-theme="dark"] .finding-item.medium { background: rgba(245,158,11,0.12) !important; }
+        [data-theme="dark"] .finding-item.info { background: rgba(14,165,233,0.12) !important; }
+        [data-theme="dark"] .finding-item.success { background: rgba(16,185,129,0.12) !important; }
+
+        /* Recommendations */
+        [data-theme="dark"] .recommendation-item { background: rgba(255,255,255,0.04) !important; }
+
+        /* Risk banner */
+        [data-theme="dark"] .risk-banner.high { background: rgba(239,68,68,0.15) !important; color: #ff6b6b !important; }
+        [data-theme="dark"] .risk-banner.medium { background: rgba(245,158,11,0.15) !important; color: #ffcc4d !important; }
+        [data-theme="dark"] .risk-banner.low { background: rgba(59,130,246,0.15) !important; color: #6ba3ff !important; }
+        [data-theme="dark"] .risk-banner.none { background: rgba(16,185,129,0.15) !important; color: #4ade80 !important; }
+
+        /* Result badges */
+        [data-theme="dark"] .result-badge.pass { background: rgba(16,185,129,0.18) !important; color: #4ade80 !important; }
+        [data-theme="dark"] .result-badge.fail { background: rgba(239,68,68,0.18) !important; color: #ff6b6b !important; }
+        [data-theme="dark"] .result-badge.unknown { background: rgba(255,255,255,0.08) !important; color: #9b9ba3 !important; }
+        [data-theme="dark"] .result-badge.blocked { background: rgba(245,158,11,0.18) !important; color: #ffcc4d !important; }
+        [data-theme="dark"] .result-badge.delayed { background: rgba(234,88,12,0.18) !important; color: #ffa726 !important; }
+        [data-theme="dark"] .result-badge.n_a { background: rgba(255,255,255,0.06) !important; color: #6b6b73 !important; }
+
+        /* Severity tags */
+        [data-theme="dark"] .severity-tag.blocker { background: rgba(239,68,68,0.18) !important; color: #ff6b6b !important; }
+        [data-theme="dark"] .severity-tag.critical { background: rgba(234,88,12,0.18) !important; color: #ffa726 !important; }
+        [data-theme="dark"] .severity-tag.major { background: rgba(245,158,11,0.18) !important; color: #ffcc4d !important; }
+        [data-theme="dark"] .severity-tag.minor { background: rgba(59,130,246,0.18) !important; color: #6ba3ff !important; }
+        [data-theme="dark"] .severity-tag.trivial { background: rgba(255,255,255,0.08) !important; color: #9b9ba3 !important; }
+
+        /* Risk badges */
+        [data-theme="dark"] .risk-badge.high { background: rgba(239,68,68,0.18) !important; color: #ff6b6b !important; border-color: rgba(239,68,68,0.3) !important; }
+        [data-theme="dark"] .risk-badge.medium { background: rgba(245,158,11,0.18) !important; color: #ffcc4d !important; border-color: rgba(245,158,11,0.3) !important; }
+        [data-theme="dark"] .risk-badge.low { background: rgba(59,130,246,0.18) !important; color: #6ba3ff !important; border-color: rgba(59,130,246,0.3) !important; }
+        [data-theme="dark"] .risk-badge.none { background: rgba(16,185,129,0.18) !important; color: #4ade80 !important; border-color: rgba(16,185,129,0.3) !important; }
+
+        /* Buttons */
+        [data-theme="dark"] .btn-secondary { background: rgba(255,255,255,0.06) !important; color: var(--text-primary) !important; border-color: var(--border) !important; }
+        [data-theme="dark"] .btn-secondary:hover { background: rgba(255,255,255,0.1) !important; }
+
+        /* Card title icon */
+        [data-theme="dark"] .card-title-icon { background: rgba(10,132,255,0.12) !important; }
+
+        /* Login link */
+        [data-theme="dark"] .user-bar .login-link { background: rgba(10,132,255,0.12) !important; color: var(--accent-light) !important; }
+        [data-theme="dark"] .user-bar .login-link:hover { background: rgba(10,132,255,0.2) !important; }
+
+        /* Saved reports dropdown */
+        [data-theme="dark"] .saved-reports-dropdown { background: var(--bg-card) !important; }
+        [data-theme="dark"] .saved-report-item:hover { background: rgba(255,255,255,0.04) !important; }
+        [data-theme="dark"] .saved-report-item .delete-btn:hover { background: rgba(239,68,68,0.12) !important; }
+
+        /* Loading */
+        [data-theme="dark"] .loading-spinner { border-color: rgba(255,255,255,0.1) !important; }
+        [data-theme="dark"] .loading-progress-bar { background: rgba(255,255,255,0.08) !important; }
+
+        /* Action items */
+        [data-theme="dark"] .action-items-section { background: rgba(245,158,11,0.1) !important; color: #ffcc4d !important; }
+
+        /* User provider badge */
+        [data-theme="dark"] .user-bar .user-provider { background: rgba(255,255,255,0.06) !important; }
     </style>
 </head>
 <body>
@@ -752,6 +842,8 @@
                 <span class="user-name">{{ current_user.name }}</span>
                 <span class="user-provider">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
                 <a href="/auth/logout" class="logout-link">退出</a>
+            {% else %}
+                <a href="/login" class="login-link">登录</a>
             {% endif %}
         </div>
 

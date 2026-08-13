@@ -917,6 +917,36 @@
                 font-size: 22px;
             }
         }
+
+        /* ===== Dark mode hardening: override hardcoded light backgrounds ===== */
+        [data-theme="dark"] .header { background: rgba(28, 28, 32, 0.72); }
+        [data-theme="dark"] .header .back-btn { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .header .back-btn:hover { background: rgba(255, 255, 255, 0.1); }
+        [data-theme="dark"] .toolbar { background: rgba(28, 28, 32, 0.72); }
+        [data-theme="dark"] .tool-btn.info { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .tool-btn.info:hover { background: rgba(255, 255, 255, 0.1); }
+        [data-theme="dark"] .tool-btn.warning { background: rgba(255, 149, 0, 0.14); }
+        [data-theme="dark"] .tool-btn.warning:hover { background: rgba(255, 149, 0, 0.18); }
+        [data-theme="dark"] .search-box:focus { background: var(--bg-card); }
+        [data-theme="dark"] .project-item:hover { background: rgba(255, 255, 255, 0.06); }
+        [data-theme="dark"] .form-group input:focus,
+        [data-theme="dark"] .form-group select:focus,
+        [data-theme="dark"] .form-group textarea:focus { background: var(--bg-card); }
+        [data-theme="dark"] .test-data-entry { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .add-entry-btn { background: rgba(10, 132, 255, 0.1); }
+        [data-theme="dark"] .add-entry-btn:hover { background: rgba(10, 132, 255, 0.14); }
+        [data-theme="dark"] .color-option.selected { box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent); }
+        [data-theme="dark"] .detail-feature-tag { background: rgba(10, 132, 255, 0.14); }
+        [data-theme="dark"] .project-item .info-tag { background: rgba(10, 132, 255, 0.14); }
+        [data-theme="dark"] .project-item .info-tag.cf { background: rgba(48, 209, 88, 0.16); }
+        [data-theme="dark"] .project-item .info-tag.rrr { background: rgba(255, 149, 0, 0.16); }
+        /* Inline style overrides for dynamically generated content */
+        [data-theme="dark"] .tool-btn[style*="#f0f0f0"] { background: rgba(255, 255, 255, 0.06) !important; color: var(--text-secondary) !important; }
+        [data-theme="dark"] .detail-section table tr[style*="#f5f5f7"] { background: rgba(255, 255, 255, 0.04) !important; }
+        [data-theme="dark"] .detail-section table th[style*="#6e6e73"] { color: var(--text-secondary) !important; border-color: var(--border) !important; }
+        [data-theme="dark"] .detail-section table td[style*="#1d1d1f"] { color: var(--text-primary) !important; }
+        [data-theme="dark"] .detail-section table td[style*="#0071e3"] { color: var(--accent) !important; }
+        [data-theme="dark"] .detail-section table tr[style*="#f0f0f3"] { border-color: var(--border) !important; }
     </style>
 </head>
 <body>

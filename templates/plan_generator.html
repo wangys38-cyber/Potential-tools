@@ -563,6 +563,24 @@
                 font-size: 10px;
             }
         }
+
+        /* ===== Dark mode hardening: override hardcoded light backgrounds ===== */
+        [data-theme="dark"] .header { background: rgba(28, 28, 32, 0.72); }
+        [data-theme="dark"] .input-group select:focus,
+        [data-theme="dark"] .input-group input:focus {
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+        }
+        [data-theme="dark"] .plan-table th { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .plan-table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .plan-table .milestone { background: rgba(255, 149, 0, 0.14); }
+        [data-theme="dark"] .success-message { background: rgba(48, 209, 88, 0.14); }
+        [data-theme="dark"] .legend-color.milestone { background: rgba(255, 149, 0, 0.18); }
+        [data-theme="dark"] .legend-color.normal { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .timeline-section { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .timeline-card { background: var(--bg-card); }
+        [data-theme="dark"] .timeline-node.milestone .timeline-card { background: rgba(255, 149, 0, 0.08); }
+        [data-theme="dark"] .plan-table td[style*="#999"] { color: var(--text-tertiary) !important; }
     </style>
 </head>
 <body>

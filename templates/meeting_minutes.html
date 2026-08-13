@@ -190,6 +190,27 @@
         .manual-input-area.show { display: block; }
 
         .footer { text-align: center; padding: 20px; font-size: 13px; color: var(--text-tertiary); }
+
+        /* ===== Dark mode hardening: override hardcoded light backgrounds ===== */
+        [data-theme="dark"] #aiModel {
+            background: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-strong) !important;
+        }
+        [data-theme="dark"] .compat-warning { background: rgba(255, 214, 10, 0.12); }
+        [data-theme="dark"] .transcript-entry { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .minutes-content th { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .upload-zone { background: rgba(255, 255, 255, 0.04); }
+        [data-theme="dark"] .upload-zone:hover,
+        [data-theme="dark"] .upload-zone.dragover { background: rgba(10, 132, 255, 0.12); }
+        [data-theme="dark"] .mode-tab.active { background: rgba(10, 132, 255, 0.14); }
+        [data-theme="dark"] .recording-bar,
+        [data-theme="dark"] .header,
+        [data-theme="dark"] .mode-selector,
+        [data-theme="dark"] .meeting-info,
+        [data-theme="dark"] .transcript-panel,
+        [data-theme="dark"] .minutes-panel,
+        [data-theme="dark"] .toast { background: var(--bg-card); }
     </style>
 </head>
 <body>

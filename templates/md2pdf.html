@@ -1374,6 +1374,138 @@
                 flex-direction: column;
             }
         }
+
+        /* ========== Dark Mode Overrides ==========
+           These rules fix hardcoded light-mode backgrounds and colored
+           badges that would otherwise produce invisible text when the
+           [data-theme="dark"] CSS variables switch text to light colors.
+           Backgrounds use low-opacity rgba(255,255,255,...) tints so they
+           sit on top of the dark --bg-card/--bg-secondary surfaces. */
+
+        /* Header translucent bar (was rgba(255,255,255,0.72)) */
+        [data-theme="dark"] .header {
+            background: rgba(28, 28, 32, 0.72);
+        }
+
+        /* Upload area: dashed border used rgba(0,0,0,0.12) which vanishes
+           on a dark surface; active state was a light green #f0fff5 */
+        [data-theme="dark"] .upload-area {
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+        [data-theme="dark"] .upload-area.active {
+            background: rgba(48, 209, 88, 0.12);
+        }
+
+        /* File list items: hover/success/failed used hardcoded light tints
+           while .file-name uses var(--text-primary) -> invisible */
+        [data-theme="dark"] .file-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        [data-theme="dark"] .file-item.success {
+            background: rgba(48, 209, 88, 0.10);
+        }
+        [data-theme="dark"] .file-item.failed {
+            background: rgba(255, 59, 48, 0.10);
+        }
+
+        /* Status badges: darker semi-transparent bg + lighter text */
+        [data-theme="dark"] .file-status.success {
+            background: rgba(48, 209, 88, 0.18);
+            color: #30d158;
+        }
+        [data-theme="dark"] .file-status.failed {
+            background: rgba(255, 59, 48, 0.18);
+            color: #ff453a;
+        }
+        [data-theme="dark"] .file-status.processing {
+            background: rgba(255, 149, 0, 0.18);
+            color: #ff9f0a;
+        }
+
+        /* Excel summary gradient (was light gray #f5f5f7->#fafafa) */
+        [data-theme="dark"] .excel-summary {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+
+        /* Excel sheet card selected (was light blue #f0f7ff) */
+        [data-theme="dark"] .excel-sheet-card.selected {
+            background: rgba(10, 132, 255, 0.12);
+        }
+
+        /* Excel organize area: amber theme (light bg + dark amber text).
+           Switch to dark amber translucent bg + light amber text. */
+        [data-theme="dark"] .excel-organize-area {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.30);
+        }
+        [data-theme="dark"] .excel-organize-title {
+            color: #fbbf24;
+        }
+        [data-theme="dark"] .excel-organize-input {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            border: 1px solid rgba(245, 158, 11, 0.40);
+        }
+        [data-theme="dark"] .excel-organize-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        [data-theme="dark"] .excel-organize-input:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+        }
+        [data-theme="dark"] .excel-organize-tips {
+            color: #fbbf24;
+        }
+        [data-theme="dark"] .excel-organize-tips .tip-item {
+            background: rgba(245, 158, 11, 0.12);
+        }
+        [data-theme="dark"] .excel-organize-tips .tip-item:hover {
+            background: rgba(245, 158, 11, 0.22);
+        }
+        [data-theme="dark"] .excel-organize-hint {
+            background: rgba(10, 132, 255, 0.10);
+            border: 1px solid rgba(10, 132, 255, 0.30);
+            color: #6cb6ff;
+        }
+        [data-theme="dark"] .excel-organize-hint strong {
+            color: #93c5fd;
+        }
+
+        /* Excel preview content (was white #fff) and its light cards/rows */
+        [data-theme="dark"] .excel-preview-content {
+            background: var(--bg-card);
+        }
+        [data-theme="dark"] .excel-preview-content .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+        [data-theme="dark"] .excel-preview-content .data-table tr:nth-child(even) td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        [data-theme="dark"] .excel-preview-footer {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Excel mode button hover (was rgba(0,0,0,0.05), invisible on dark) */
+        [data-theme="dark"] .excel-mode-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Excel select tab row-count badge (was rgba(0,0,0,0.1)) */
+        [data-theme="dark"] .excel-select-tab .row-count {
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        /* Excel select table hover/selected (were light blue #f0f7ff/#e3f2fd) */
+        [data-theme="dark"] .excel-select-table tbody tr:hover {
+            background: rgba(10, 132, 255, 0.10);
+        }
+        [data-theme="dark"] .excel-select-table tbody tr.selected {
+            background: rgba(10, 132, 255, 0.18);
+        }
+        [data-theme="dark"] .excel-select-table tbody tr:nth-child(even):hover,
+        [data-theme="dark"] .excel-select-table tbody tr:nth-child(even).selected {
+            background: rgba(10, 132, 255, 0.18);
+        }
     </style>
 </head>
 <body>
