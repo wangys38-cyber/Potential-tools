@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会议纪要 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v2">
+    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
     <style>
         :root {
             --bg-primary: #f5f5f7; --bg-card: #ffffff; --bg-secondary: #fafafa;
@@ -307,14 +307,16 @@
                 <div class="upload-hint">支持 MP3, WAV, M4A, AAC, FLAC, OGG, WEBM 格式，最大 100MB</div>
                 <input type="file" id="audioFileInput" accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.wma,.webm" style="display:none;" onchange="handleFileSelect(event)">
             </div>
-            <div class="upload-progress" id="uploadProgress">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; color:var(--text-secondary);">
-                    <span id="uploadStatus">上传中...</span>
-                    <span id="uploadPercent">0%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" id="uploadProgressBar" style="width:0%"></div>
-                </div>
+        </div>
+
+        <!-- 上传/转写进度（公共区域，所有模式共享） -->
+        <div class="upload-progress" id="uploadProgress" style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; color:var(--text-secondary);">
+                <span id="uploadStatus">上传中...</span>
+                <span id="uploadPercent">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="uploadProgressBar" style="width:0%"></div>
             </div>
         </div>
 
@@ -402,7 +404,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v7"></script>
+    <script src="/static/js/components.js?v=20260813v8"></script>
     <script>
         // ==================== 全局状态 ====================
         let currentMode = 'system';
@@ -521,7 +523,7 @@
             }
 
             document.getElementById('sysRecDot').classList.remove('active');
-            document.getElementById('sysRecLabel').textContent = '录音已停止，正在上传转写...';
+            document.getElementById('sysRecLabel').textContent = '正在上传录音到AI识别...';
             document.getElementById('sysStartBtn').disabled = false;
             document.getElementById('sysStopBtn').disabled = true;
             clearInterval(timerInterval);
@@ -572,6 +574,7 @@
             const statusEl = document.getElementById('uploadStatus');
             const percentEl = document.getElementById('uploadPercent');
             const barEl = document.getElementById('uploadProgressBar');
+            const sysLabel = document.getElementById('sysRecLabel');
 
             // 显示文件大小
             const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2);
@@ -579,6 +582,7 @@
             statusEl.textContent = `上传中... (${sizeMB}MB)`;
             percentEl.textContent = '0%';
             barEl.style.width = '0%';
+            if (sysLabel) sysLabel.textContent = `上传中... (${sizeMB}MB)`;
 
             const formData = new FormData();
             formData.append('audio', audioBlob, filename);
@@ -596,16 +600,19 @@
                         percentEl.textContent = pct + '%';
                         barEl.style.width = pct + '%';
                         statusEl.textContent = `上传中... ${pct}% (${sizeMB}MB)`;
+                        if (sysLabel) sysLabel.textContent = `上传中... ${pct}%`;
                     }
                 };
 
                 xhr.upload.onerror = () => {
                     progressEl.classList.remove('show');
+                    if (sysLabel) sysLabel.textContent = '上传失败';
                     reject(new Error('网络错误，上传失败。请检查网络连接后重试'));
                 };
 
                 xhr.upload.ontimeout = () => {
                     progressEl.classList.remove('show');
+                    if (sysLabel) sysLabel.textContent = '上传超时';
                     reject(new Error('上传超时（2分钟），文件可能过大。请尝试缩短录音时间'));
                 };
 
@@ -615,23 +622,28 @@
                             const data = JSON.parse(xhr.responseText);
                             if (data.error) {
                                 progressEl.classList.remove('show');
+                                if (sysLabel) sysLabel.textContent = '上传失败: ' + data.error;
                                 reject(new Error(data.error));
                             } else {
                                 // 上传成功，开始轮询转写状态
                                 statusEl.textContent = 'AI语音识别中...';
                                 percentEl.textContent = '50%';
                                 barEl.style.width = '50%';
+                                if (sysLabel) sysLabel.textContent = 'AI语音识别中...';
                                 pollTranscriptionStatus(data.task_id).then(resolve).catch(reject);
                             }
                         } catch (e) {
                             progressEl.classList.remove('show');
+                            if (sysLabel) sysLabel.textContent = '解析响应失败';
                             reject(new Error('解析服务器响应失败'));
                         }
                     } else if (xhr.status === 401) {
                         progressEl.classList.remove('show');
+                        if (sysLabel) sysLabel.textContent = '请先登录';
                         reject(new Error('登录已过期，请重新登录后再试'));
                     } else if (xhr.status === 413) {
                         progressEl.classList.remove('show');
+                        if (sysLabel) sysLabel.textContent = '文件过大';
                         reject(new Error('文件过大，服务器拒绝接收。请缩短录音时间'));
                     } else {
                         progressEl.classList.remove('show');
@@ -640,17 +652,20 @@
                             const errData = JSON.parse(xhr.responseText);
                             if (errData.error) errMsg = errData.error;
                         } catch (e) {}
+                        if (sysLabel) sysLabel.textContent = '上传失败: ' + errMsg;
                         reject(new Error(errMsg));
                     }
                 };
 
                 xhr.onerror = () => {
                     progressEl.classList.remove('show');
+                    if (sysLabel) sysLabel.textContent = '网络连接失败';
                     reject(new Error('网络连接失败，请检查网络后重试'));
                 };
 
                 xhr.ontimeout = () => {
                     progressEl.classList.remove('show');
+                    if (sysLabel) sysLabel.textContent = '上传超时';
                     reject(new Error('上传超时（2分钟），文件可能过大。请尝试缩短录音时间'));
                 };
 
@@ -665,6 +680,7 @@
             const percentEl = document.getElementById('uploadPercent');
             const barEl = document.getElementById('uploadProgressBar');
             const progressEl = document.getElementById('uploadProgress');
+            const sysLabel = document.getElementById('sysRecLabel');
 
             const maxAttempts = 240; // 最多轮询20分钟（大文件需要更长时间）
             let attempts = 0;
@@ -682,6 +698,7 @@
                         statusEl.textContent = '转写完成！';
                         percentEl.textContent = '100%';
                         barEl.style.width = '100%';
+                        if (sysLabel) sysLabel.textContent = '转写完成！';
                         setTimeout(() => progressEl.classList.remove('show'), 2000);
 
                         if (data.transcript) {
@@ -697,6 +714,7 @@
 
                     if (data.status === 'FAILED') {
                         progressEl.classList.remove('show');
+                        if (sysLabel) sysLabel.textContent = '语音识别失败';
                         showToast('语音识别失败: ' + (data.error || '未知错误'), 'error', 5000);
                         return;
                     }
@@ -714,6 +732,7 @@
                         percentEl.textContent = pct + '%';
                         barEl.style.width = pct + '%';
                         statusEl.textContent = `${statusText} (${attempts * 5}s)`;
+                        if (sysLabel) sysLabel.textContent = statusText;
                         setTimeout(poll, 5000); // 每5秒轮询一次
                     } else {
                         progressEl.classList.remove('show');
