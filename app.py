@@ -1582,7 +1582,7 @@ def api_upload_audio():
                         'input': {'file_urls': [file_url]},
                         'parameters': {
                             'language_hints': ['zh', 'en'],
-                            'disfluency_removal': True,
+                            'disfluency_removal': False,
                             'paragraph': True,
                         }
                     },

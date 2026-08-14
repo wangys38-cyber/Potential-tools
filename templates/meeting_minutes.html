@@ -952,7 +952,7 @@
             const progressEl = document.getElementById('uploadProgress');
             const sysLabel = document.getElementById('sysRecLabel');
 
-            const maxAttempts = 240; // 最多轮询20分钟（大文件需要更长时间）
+            const maxAttempts = 600; // 最多轮询20分钟（2秒一次，600次=20分钟）
             let attempts = 0;
 
             const poll = async () => {
@@ -1001,9 +1001,9 @@
                         const pct = Math.min(progress + Math.floor(attempts / 3), 95);
                         percentEl.textContent = pct + '%';
                         barEl.style.width = pct + '%';
-                        statusEl.textContent = `${statusText} (${attempts * 5}s)`;
+                        statusEl.textContent = `${statusText} (${attempts * 2}s)`;
                         if (sysLabel) sysLabel.textContent = statusText;
-                        setTimeout(poll, 5000); // 每5秒轮询一次
+                        setTimeout(poll, 2000); // 每2秒轮询一次（加快响应）
                     } else {
                         progressEl.classList.remove('show');
                         showToast('转写超时，请重试', 'warning');
@@ -1014,7 +1014,7 @@
                 }
             };
 
-            setTimeout(poll, 2000); // 2秒后开始轮询
+            setTimeout(poll, 1000); // 1秒后开始轮询
         }
 
         // ==================== 实时语音转写（DashScope WebSocket） ====================
