@@ -600,6 +600,52 @@ def set_user_preferences(user_id, theme=None, language=None, accent_color=None):
             )
 
 
+# ==================== 牛马笔记同步 ====================
+
+def get_note_state(user_id):
+    """获取用户的牛马笔记数据（整个 state JSON）"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT content, created_at FROM user_data WHERE user_id = :user_id AND data_type = 'notenb_state' ORDER BY created_at DESC LIMIT 1"),
+            {'user_id': user_id}
+        ).fetchone()
+        if not row:
+            return None
+        m = row._mapping
+        try:
+            data = json.loads(m['content']) if m['content'] else None
+        except (json.JSONDecodeError, TypeError):
+            data = None
+        return {'data': data, 'server_updated_at': m.get('created_at', 0)}
+
+
+def save_note_state(user_id, state_data):
+    """保存用户的牛马笔记数据（原子 upsert，防止并发竞态）"""
+    with engine.begin() as conn:
+        now = time.time()
+        content_str = json.dumps(state_data, ensure_ascii=False) if isinstance(state_data, (dict, list)) else str(state_data)
+
+        # 尝试先更新（最常见路径）
+        result = conn.execute(
+            text("UPDATE user_data SET content = :content, created_at = :created_at WHERE user_id = :user_id AND data_type = 'notenb_state' AND id = (SELECT id FROM user_data WHERE user_id = :user_id AND data_type = 'notenb_state' ORDER BY created_at DESC LIMIT 1)"),
+            {'content': content_str, 'created_at': now, 'user_id': user_id}
+        )
+        # 如果没有更新到行，则插入
+        if result.rowcount == 0:
+            try:
+                conn.execute(
+                    text("INSERT INTO user_data (user_id, data_type, title, content, created_at) VALUES (:user_id, 'notenb_state', '牛马笔记', :content, :created_at)"),
+                    {'user_id': user_id, 'content': content_str, 'created_at': now}
+                )
+            except Exception:
+                # 并发插入：再次尝试更新
+                conn.execute(
+                    text("UPDATE user_data SET content = :content, created_at = :created_at WHERE user_id = :user_id AND data_type = 'notenb_state' AND id = (SELECT id FROM user_data WHERE user_id = :user_id AND data_type = 'notenb_state' ORDER BY created_at DESC LIMIT 1)"),
+                    {'content': content_str, 'created_at': now, 'user_id': user_id}
+                )
+        return now
+
+
 # ==================== 用户级 AI 配置 ====================
 
 def get_user_ai_config(user_id):

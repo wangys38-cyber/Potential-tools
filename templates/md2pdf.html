@@ -5,38 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF快转</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            --bg-primary: #f5f5f7;
-            --bg-card: #ffffff;
-            --bg-secondary: #fafafa;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --text-tertiary: #aeaeae;
-            --accent: #0071e3;
-            --accent-hover: #0077ed;
-            --success: #34c759;
-            --border: rgba(0,0,0,0.06);
+            /* 以下变量为页面定制覆盖；其余主题变量由 theme.css 统一提供 */
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-full: 980px;
         }
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1e;
-            --bg-card: #2c2c30;
-            --bg-secondary: #242428;
-            --text-primary: #f0f0f2;
-            --text-secondary: #9b9ba3;
-            --text-tertiary: #6b6b73;
-            --accent: #0a84ff;
-            --accent-hover: #3a9eff;
-            --success: #30d158;
-            --border: rgba(255, 255, 255, 0.08);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
+        /* 暗色模式变量由 theme.css 统一提供 */
 
         * {
             margin: 0;
@@ -298,6 +273,7 @@
 
         .actions {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             gap: 14px;
             padding: 20px;
@@ -1328,6 +1304,7 @@
 
         .excel-select-footer {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             padding: 14px 18px;
@@ -1373,6 +1350,17 @@
             .excel-generate-area {
                 flex-direction: column;
             }
+
+            .actions { gap: 8px; }
+            .actions .btn { padding: 8px 14px; font-size: 13px; }
+        }
+
+        @media (max-width: 480px) {
+            .header { padding: 18px 16px; }
+            .header h1 { font-size: 22px; }
+            .actions .btn { flex: 1 1 100%; }
+            .excel-select-btn { padding: 10px 16px; min-height: 44px; }
+            .excel-select-footer { flex-wrap: wrap; }
         }
 
         /* ========== Dark Mode Overrides ==========
@@ -1713,6 +1701,19 @@
     </div>
 
     <script>
+        function showToast(msg, type) {
+            if (typeof ToolboxToast !== 'undefined') {
+                ToolboxToast.show(msg, type || 'info');
+            } else {
+                console.log(msg);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
         const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
         const convertBtn = document.getElementById('convertBtn');
@@ -1812,7 +1813,7 @@
             const watermarkText = getWatermarkText();
 
             if (!content.trim()) {
-                alert('请输入内容');
+                showToast('请输入内容', 'info');
                 return;
             }
 
@@ -1832,7 +1833,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('转换失败：' + data.error);
+                    showToast('转换失败：' + data.error, 'error');
                 } else if (data.status === 'success' && data.data && data.data.task_id) {
                     // 轮询后台 PDF 渲染任务
                     const taskId = data.data.task_id;
@@ -1868,10 +1869,10 @@
                         a.click();
                         document.body.removeChild(a);
                     };
-                    alert('转换成功！点击下载按钮获取PDF');
+                    showToast('转换成功！点击下载按钮获取PDF', 'success');
                 }
             } catch (error) {
-                alert('转换失败：' + error.message);
+                showToast('转换失败：' + error.message, 'error');
             } finally {
                 convertBtn.disabled = false;
                 convertSpinner.style.display = 'none';
@@ -1890,7 +1891,7 @@
             const file = files[0];
 
             if (!file.name.toLowerCase().endsWith('.docx')) {
-                alert('只支持Word文件(.docx)');
+                showToast('只支持Word文件(.docx)', 'info');
                 return;
             }
 
@@ -1913,7 +1914,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('转换失败：' + data.error);
+                    showToast('转换失败：' + data.error, 'error');
                 } else {
                     downloadBtn.disabled = false;
                     downloadBtn.onclick = () => {
@@ -1924,10 +1925,10 @@
                         a.click();
                         document.body.removeChild(a);
                     };
-                    alert(`文件 "${data.original_name}.docx" 转换成功！点击下载按钮获取PDF`);
+                    showToast(`文件 "${data.original_name}.docx" 转换成功！点击下载按钮获取PDF`, 'success');
                 }
             } catch (error) {
-                alert('转换失败：' + error.message);
+                showToast('转换失败：' + error.message, 'error');
             } finally {
                 uploadBtn.disabled = false;
                 uploadSpinner.style.display = 'none';
@@ -1955,16 +1956,91 @@
 
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                handleFile(files[0]);
+                if (files.length === 1) {
+                    handleFile(files[0]);
+                } else {
+                    const validFiles = Array.from(files).filter(f =>
+                        f.name.toLowerCase().endsWith('.md') || f.name.toLowerCase().endsWith('.docx')
+                    );
+                    if (validFiles.length > 0) {
+                        startBatchConvert(validFiles);
+                    } else {
+                        showToast('请选择Markdown文件(.md)或Word文件(.docx)', 'info');
+                    }
+                }
             }
         });
 
-        fileInput.addEventListener('change', (e) => {
+        let pendingDirectConvert = false;
+
+        fileInput.addEventListener('change', async (e) => {
             const files = e.target.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
+            if (files.length === 0) return;
+            const file = files[0];
+
+            if (pendingDirectConvert) {
+                pendingDirectConvert = false;
+                await directConvertFile(file);
+            } else {
+                handleFile(file);
             }
         });
+
+        async function directConvertFile(file) {
+            const ext = file.name.toLowerCase();
+
+            if (isExcelFile(file)) {
+                handleExcelFile(file);
+                fileInput.value = '';
+                return;
+            }
+
+            if (!ext.endsWith('.md') && !ext.endsWith('.docx')) {
+                showToast('只支持Markdown文件(.md)和Word文件(.docx)', 'info');
+                return;
+            }
+
+            const watermarkText = getWatermarkText();
+
+            uploadBtn.disabled = true;
+            uploadSpinner.style.display = 'block';
+            uploadText.textContent = '上传转换中...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('watermark', watermarkText);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast('转换失败：' + data.error, 'error');
+                } else {
+                    downloadBtn.disabled = false;
+                    downloadBtn.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = `/download/${data.filename}`;
+                        a.download = `${data.filename}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                    showToast(`文件 "${data.original_name}.${ext.endsWith('.md') ? 'md' : 'docx'}" 转换成功！点击下载按钮获取PDF`, 'success');
+                }
+            } catch (error) {
+                showToast('转换失败：' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadSpinner.style.display = 'none';
+                uploadText.textContent = 'markdown转PDF';
+                fileInput.value = '';
+            }
+        }
 
         function handleFile(file) {
             const ext = file.name.toLowerCase();
@@ -1974,7 +2050,7 @@
             }
 
             if (!ext.endsWith('.md') && !ext.endsWith('.docx')) {
-                alert('只支持Markdown文件(.md)、Word文件(.docx)和Excel文件(.xlsx/.xls)');
+                showToast('只支持Markdown文件(.md)、Word文件(.docx)和Excel文件(.xlsx/.xls)', 'info');
                 return;
             }
 
@@ -1988,71 +2064,13 @@
                 };
                 reader.readAsText(file, 'utf-8');
             } else {
-                alert('Word文件已加载，请点击"Word转PDF"按钮进行转换');
+                showToast('Word文件已加载，请点击"Word转PDF"按钮进行转换', 'success');
             }
         }
 
-        uploadBtn.addEventListener('click', async () => {
+        uploadBtn.addEventListener('click', () => {
+            pendingDirectConvert = true;
             fileInput.click();
-            fileInput.onchange = async (e) => {
-                const files = e.target.files;
-                if (files.length === 0) return;
-
-                const file = files[0];
-                const ext = file.name.toLowerCase();
-
-                if (isExcelFile(file)) {
-                    handleExcelFile(file);
-                    fileInput.value = '';
-                    return;
-                }
-
-                if (!ext.endsWith('.md') && !ext.endsWith('.docx')) {
-                    alert('只支持Markdown文件(.md)和Word文件(.docx)');
-                    return;
-                }
-
-                const watermarkText = getWatermarkText();
-
-                uploadBtn.disabled = true;
-                uploadSpinner.style.display = 'block';
-                uploadText.textContent = '上传转换中...';
-
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('watermark', watermarkText);
-
-                try {
-                    const response = await fetch('/upload', {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    const data = await response.json();
-
-                    if (data.error) {
-                        alert('转换失败：' + data.error);
-                    } else {
-                        downloadBtn.disabled = false;
-                        downloadBtn.onclick = () => {
-                            const a = document.createElement('a');
-                            a.href = `/download/${data.filename}`;
-                            a.download = `${data.filename}`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                        };
-                        alert(`文件 "${data.original_name}.${ext.endsWith('.md') ? 'md' : 'docx'}" 转换成功！点击下载按钮获取PDF`);
-                    }
-                } catch (error) {
-                    alert('转换失败：' + error.message);
-                } finally {
-                    uploadBtn.disabled = false;
-                    uploadSpinner.style.display = 'none';
-                    uploadText.textContent = 'markdown转PDF';
-                    fileInput.value = '';
-                }
-            };
         });
 
         batchBtn.addEventListener('click', () => {
@@ -2068,32 +2086,11 @@
             );
 
             if (validFiles.length === 0) {
-                alert('请选择Markdown文件(.md)或Word文件(.docx)');
+                showToast('请选择Markdown文件(.md)或Word文件(.docx)', 'info');
                 return;
             }
 
             startBatchConvert(validFiles);
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('active');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                if (files.length === 1) {
-                    handleFile(files[0]);
-                } else {
-                    const validFiles = Array.from(files).filter(f => 
-                        f.name.toLowerCase().endsWith('.md') || f.name.toLowerCase().endsWith('.docx')
-                    );
-                    if (validFiles.length > 0) {
-                        startBatchConvert(validFiles);
-                    } else {
-                        alert('请选择Markdown文件(.md)或Word文件(.docx)');
-                    }
-                }
-            }
         });
 
         async function startBatchConvert(files) {
@@ -2111,7 +2108,7 @@
                 fileItem.innerHTML = `
                     <div class="file-info">
                         <span class="file-icon">${file.name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
-                        <span class="file-name">${file.name}</span>
+                        <span class="file-name">${escapeHtml(file.name)}</span>
                     </div>
                     <span class="file-status processing">处理中...</span>
                 `;
@@ -2148,7 +2145,7 @@
                             fileItem.innerHTML = `
                                 <div class="file-info">
                                     <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
-                                    <span class="file-name">${result.original_name}</span>
+                                    <span class="file-name">${escapeHtml(result.original_name)}</span>
                                 </div>
                                 <span class="file-status success">✓ 成功</span>
                             `;
@@ -2158,7 +2155,7 @@
                             fileItem.innerHTML = `
                                 <div class="file-info">
                                     <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
-                                    <span class="file-name">${result.original_name}</span>
+                                    <span class="file-name">${escapeHtml(result.original_name)}</span>
                                 </div>
                                 <span class="file-status failed">✗ 失败</span>
                             `;
@@ -2171,12 +2168,12 @@
 
                 if (successFiles.length > 0) {
                     downloadAllBtn.classList.add('show');
-                    alert(`批量转换完成！成功: ${data.success_count}, 失败: ${data.fail_count}`);
+                    showToast(`批量转换完成！成功: ${data.success_count}, 失败: ${data.fail_count}`, 'success');
                 } else {
-                    alert('所有文件转换失败，请检查文件格式');
+                    showToast('所有文件转换失败，请检查文件格式', 'error');
                 }
             } catch (error) {
-                alert('批量转换失败：' + error.message);
+                showToast('批量转换失败：' + error.message, 'error');
             } finally {
                 batchBtn.disabled = false;
                 convertBtn.disabled = false;
@@ -2258,14 +2255,14 @@
                 const result = await response.json();
 
                 if (result.error) {
-                    alert('Excel解析失败：' + result.error);
+                    showToast('Excel解析失败：' + result.error, 'error');
                 } else {
                     structuredData = result.data;
                     renderExcelPanel(structuredData);
                     excelPanel.style.display = 'block';
                 }
             } catch (error) {
-                alert('Excel解析失败：' + error.message);
+                showToast('Excel解析失败：' + error.message, 'error');
             } finally {
                 excelParseBtn.disabled = false;
                 excelParseText.textContent = '重新解析';
@@ -2282,7 +2279,7 @@
             fileStats.innerHTML = `
                 <div class="excel-summary-item">
                     <span class="label">文件</span>
-                    <span class="value" style="font-size: 14px;">${data.file_name}</span>
+                    <span class="value" style="font-size: 14px;">${escapeHtml(data.file_name)}</span>
                 </div>
                 <div class="excel-summary-item">
                     <span class="label">工作表</span>
@@ -2414,13 +2411,13 @@
 
         excelOrganizeBtn.addEventListener('click', async () => {
             if (!structuredData) {
-                alert('请先解析Excel文件');
+                showToast('请先解析Excel文件', 'info');
                 return;
             }
 
             const userRequest = excelOrganizeInput.value.trim();
             if (!userRequest) {
-                alert('请输入您想要整理的内容');
+                showToast('请输入您想要整理的内容', 'info');
                 excelOrganizeInput.focus();
                 return;
             }
@@ -2445,7 +2442,7 @@
                 const result = await response.json();
 
                 if (result.error) {
-                    alert('整理失败：' + result.error);
+                    showToast('整理失败：' + result.error, 'error');
                 } else {
                     organizedData = result.data;
                     organizedData.user_request = userRequest;
@@ -2454,7 +2451,7 @@
                     excelPreviewArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             } catch (error) {
-                alert('整理失败：' + error.message);
+                showToast('整理失败：' + error.message, 'error');
             } finally {
                 excelOrganizeBtn.disabled = false;
                 excelOrganizeSpinner.style.display = 'none';
@@ -2474,7 +2471,7 @@
 
         excelPreviewGenerateBtn.addEventListener('click', async () => {
             if (!organizedData) {
-                alert('请先整理预览');
+                showToast('请先整理预览', 'info');
                 return;
             }
 
@@ -2503,7 +2500,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('PDF生成失败：' + data.error);
+                    showToast('PDF生成失败：' + data.error, 'error');
                 } else {
                     const a = document.createElement('a');
                     a.href = `/download/${data.filename}`;
@@ -2511,10 +2508,10 @@
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    alert('PDF报告生成成功！已开始下载');
+                    showToast('PDF报告生成成功！已开始下载', 'success');
                 }
             } catch (error) {
-                alert('PDF生成失败：' + error.message);
+                showToast('PDF生成失败：' + error.message, 'error');
             } finally {
                 excelPreviewGenerateBtn.disabled = false;
                 excelPreviewSpinner.style.display = 'none';
@@ -2524,7 +2521,7 @@
 
         excelGenerateBtn.addEventListener('click', async () => {
             if (!structuredData || selectedSheets.size === 0) {
-                alert('请先解析Excel文件并选择至少一个工作表');
+                showToast('请先解析Excel文件并选择至少一个工作表', 'info');
                 return;
             }
 
@@ -2552,7 +2549,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('PDF生成失败：' + data.error);
+                    showToast('PDF生成失败：' + data.error, 'error');
                 } else {
                     const a = document.createElement('a');
                     a.href = `/download/${data.filename}`;
@@ -2560,10 +2557,10 @@
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    alert('PDF报告生成成功！已开始下载');
+                    showToast('PDF报告生成成功！已开始下载', 'success');
                 }
             } catch (error) {
-                alert('PDF生成失败：' + error.message);
+                showToast('PDF生成失败：' + error.message, 'error');
             } finally {
                 excelGenerateBtn.disabled = false;
                 excelSpinner.style.display = 'none';
@@ -2883,7 +2880,7 @@
             });
 
             if (!hasSelection) {
-                alert('请至少选择一行数据');
+                showToast('请至少选择一行数据', 'info');
                 return;
             }
 
@@ -2912,7 +2909,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('PDF生成失败：' + data.error);
+                    showToast('PDF生成失败：' + data.error, 'error');
                 } else {
                     const a = document.createElement('a');
                     a.href = `/download/${data.filename}`;
@@ -2920,10 +2917,10 @@
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    alert('PDF报告生成成功！已开始下载');
+                    showToast('PDF报告生成成功！已开始下载', 'success');
                 }
             } catch (error) {
-                alert('PDF生成失败：' + error.message);
+                showToast('PDF生成失败：' + error.message, 'error');
             } finally {
                 excelSelectGenerateBtn.disabled = false;
                 excelSelectSpinner.style.display = 'none';
@@ -2934,6 +2931,6 @@
         updatePreview();
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

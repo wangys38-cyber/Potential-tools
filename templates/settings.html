@@ -5,32 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>设置 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            --bg-primary: #f5f5f7;
-            --bg-card: #ffffff;
+            /* 以下变量为页面定制；其余主题变量由 theme.css 统一提供 */
             --bg-muted: #f0f0f5;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --accent: #0071e3;
             --border: rgba(0, 0, 0, 0.08);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
             --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
             --radius: 14px;
-            --success: #34c759;
-            --warning: #ff9500;
-            --danger: #ff3b30;
         }
         [data-theme="dark"] {
-            --bg-primary: #1a1a1e;
-            --bg-card: #2c2c30;
             --bg-muted: #3a3a3e;
-            --text-primary: #f0f0f2;
-            --text-secondary: #9b9ba3;
-            --accent: #0a84ff;
-            --border: rgba(255, 255, 255, 0.08);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
             --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -149,7 +134,14 @@
         .info-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
         }
-        @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .form-row { flex-direction: column; }
+            .header { padding: 12px 16px; }
+            .back-btn, .theme-toggle { width: 44px; height: 44px; }
+            .btn { min-height: 44px; }
+            .color-swatch { width: 44px; height: 44px; }
+        }
         .info-item {
             background: var(--bg-muted); border-radius: 10px;
             padding: 14px;
@@ -308,7 +300,7 @@
                     <select class="form-select" id="aiModel"></select>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
                     <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">💾 保存配置</button>
                     <button class="btn btn-secondary" id="testBtn" onclick="testAI()">🔌 测试连接</button>
                     <button class="btn btn-ghost" id="cancelBtn" onclick="cancelEdit()" style="display:none;">取消</button>
@@ -430,7 +422,9 @@
     <div class="toast" id="toast"></div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <!-- 阻止 components.js 自动注入导航栏（本页已有自带 header） -->
+    <div id="tb-nav-bar" style="display:none"></div>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
         // ===== 初始化 =====
         document.addEventListener('DOMContentLoaded', function() {

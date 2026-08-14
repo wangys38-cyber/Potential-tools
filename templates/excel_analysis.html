@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR问题分析工具</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <!-- DNS预解析 + 资源预连接：减少Chart.js CDN连接延迟 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -13,20 +13,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
     <style>
         :root {
-            --bg: #f5f5f7;
-            --card: #ffffff;
-            --text: #1d1d1f;
+            /* 以下变量为页面定制覆盖；其余主题变量（含 --bg/--card/--text 等别名）由 theme.css 统一提供 */
             --text-secondary: #6e6e73;
             --text-tertiary: #8e8e93;
-            --accent: #0071e3;
             --accent-light: #e8f1ff;
-            --border: rgba(0, 0, 0, 0.06);
             --border-strong: rgba(0, 0, 0, 0.1);
-            --success: #34c759;
             --success-light: #e8f8ee;
-            --warning: #ff9500;
             --warning-light: #fff5e6;
-            --danger: #ff3b30;
             --danger-light: #ffe8e8;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
             --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
@@ -34,22 +27,6 @@
         }
 
         [data-theme="dark"] {
-            --bg: #1a1a1e;
-            --card: #2c2c30;
-            --text: #f0f0f2;
-            --text-secondary: #9b9ba3;
-            --text-tertiary: #6b6b73;
-            --accent: #0a84ff;
-            --accent-light: rgba(10, 132, 255, 0.15);
-            --border: rgba(255, 255, 255, 0.08);
-            --border-strong: rgba(255, 255, 255, 0.15);
-            --success: #30d158;
-            --success-light: rgba(48, 209, 88, 0.15);
-            --warning: #ffd60a;
-            --warning-light: rgba(255, 214, 10, 0.15);
-            --danger: #ff453a;
-            --danger-light: rgba(255, 69, 58, 0.15);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
             --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
             --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
         }
@@ -589,6 +566,122 @@
         [data-theme="dark"] div[style*="linear-gradient(135deg,#fff"] { background: var(--bg-card) !important; }
         [data-theme="dark"] div[style*="background:#fff3cd"] { background: rgba(245,158,11,0.12) !important; color: #ffcc4d !important; border-color: rgba(245,158,11,0.3) !important; }
         [data-theme="dark"] code[style*="background:#fff"] { background: rgba(255,255,255,0.08) !important; color: var(--text-primary) !important; }
+
+        /* ===== Mobile Responsive ===== */
+        @media (max-width: 768px) {
+            .header {
+                padding: 14px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .header h1 { font-size: 17px; }
+            .header p { font-size: 12px; }
+
+            .container {
+                margin: 16px auto;
+                padding: 0 16px;
+            }
+
+            .card {
+                padding: 20px 16px;
+                border-radius: 16px;
+            }
+
+            .upload-area {
+                padding: 36px 20px;
+            }
+
+            .column-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .btn-group {
+                flex-wrap: wrap;
+            }
+
+            .watermark-config {
+                flex-wrap: wrap;
+            }
+            .watermark-config label { white-space: normal; }
+            .watermark-config input { width: 100%; flex: none; }
+
+            /* All buttons meet the 44px touch target */
+            .btn,
+            .btn-primary,
+            .btn-secondary,
+            button {
+                min-height: 44px;
+            }
+
+            /* Inline-styled two-column grids -> single column on mobile */
+            div[style*="grid-template-columns:1fr 1fr"],
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Other inline-styled multi-column grids -> single column on mobile */
+            div[style*="grid-template-columns:repeat(2,1fr)"],
+            div[style*="grid-template-columns:repeat(3,1fr)"],
+            div[style*="grid-template-columns:repeat(4,1fr)"],
+            div[style*="grid-template-columns:repeat(5,1fr)"],
+            div[style*="grid-template-columns: repeat(2, 1fr)"],
+            div[style*="grid-template-columns: repeat(3, 1fr)"],
+            div[style*="grid-template-columns: repeat(4, 1fr)"],
+            div[style*="grid-template-columns: repeat(5, 1fr)"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Inline-styled flex layouts without flex-wrap -> allow wrapping */
+            div[style*="display:flex"]:not([style*="flex-wrap"]),
+            div[style*="display: flex"]:not([style*="flex-wrap"]) {
+                flex-wrap: wrap;
+            }
+            table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+            th, td { white-space: normal !important; min-width: 80px; }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 12px;
+            }
+            .header h1 { font-size: 16px; }
+
+            .container {
+                margin: 12px auto;
+                padding: 0 12px;
+            }
+
+            .card {
+                padding: 16px 12px;
+                border-radius: 14px;
+            }
+
+            .upload-area {
+                padding: 28px 16px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+            .btn-group .btn,
+            .btn-group button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 13px;
+            }
+        }
     </style>
     <script>
         window.__APP_CONFIG__ = {
@@ -749,6 +842,21 @@
     </div>
 
     <script>
+        function showToast(msg, type) {
+            if (typeof ToolboxToast !== 'undefined') {
+                ToolboxToast.show(msg, type || 'info');
+            } else {
+                console.log(msg);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
+        let isAnalyzing = false;
+
         // 初始化环境
         (function initAppConfig() {
             const cfg = window.__APP_CONFIG__ || { isCloudEnv: false, maxUploadMb: 200 };
@@ -1009,6 +1117,8 @@
         }
 
         async function analyzeFile(file) {
+            if (isAnalyzing) { showToast('正在分析中，请稍候...', 'info'); return; }
+            isAnalyzing = true;
             try {
                 let data;
 
@@ -1076,6 +1186,8 @@
                 analyzing.querySelector('p').textContent = '正在解析Excel数据...';
                 showError(err.message || '网络错误');
                 uploadArea.style.display = '';
+            } finally {
+                isAnalyzing = false;
             }
         }
 
@@ -1101,7 +1213,7 @@
             currentSheet = currentAnalysisData.current_sheet || '';
             if (sheetNames.length > 1) {
                 sheetSelect.innerHTML = sheetNames.map(s => 
-                    `<option value="${s}" ${s === currentSheet ? 'selected' : ''}>${s}</option>`
+                    `<option value="${escapeHtml(s)}" ${s === currentSheet ? 'selected' : ''}>${escapeHtml(s)}</option>`
                 ).join('');
                 sheetSelector.style.display = 'block';
             } else {
@@ -1134,14 +1246,14 @@
                 infoHtml += '<div style="overflow-x:auto;margin-top:8px;"><table style="min-width:100%;">';
                 infoHtml += '<tr>';
                 for (let i = 0; i < maxCols; i++) {
-                    infoHtml += `<th>${currentHeaders[i] || '-'}</th>`;
+                    infoHtml += `<th>${escapeHtml(currentHeaders[i] || '-')}</th>`;
                 }
                 infoHtml += '</tr>';
                 sampleData.forEach(row => {
                     infoHtml += '<tr>';
                     for (let i = 0; i < maxCols; i++) {
                         const text = String(row[i] || '').substring(0, 25);
-                        infoHtml += `<td>${text || '-'}</td>`;
+                        infoHtml += `<td>${escapeHtml(text || '-')}</td>`;
                     }
                     infoHtml += '</tr>';
                 });
@@ -1156,11 +1268,11 @@
                 const detectedHeader = currentCol >= 0 ? (currentHeaders[currentCol] || '') : '';
                 const isAutoDetected = field in columnMapping;
                 const options = currentHeaders.map((h, idx) => 
-                    `<option value="${idx}" ${idx === currentCol ? 'selected' : ''}>${h || '列' + (idx + 1)}</option>`
+                    `<option value="${idx}" ${idx === currentCol ? 'selected' : ''}>${escapeHtml(h || '列' + (idx + 1))}</option>`
                 ).join('');
 
                 colGrid.innerHTML += `
-                    <div class="column-item" ${isAutoDetected ? 'title="自动检测到：' + detectedHeader + '"' : ''}>
+                    <div class="column-item" ${isAutoDetected ? 'title="自动检测到：' + escapeHtml(detectedHeader) + '"' : ''}>
                         <span class="label">${label}${field === 'create_date' ? '<span class="required">*</span>' : ''}</span>
                         <select data-field="${field}">
                             <option value="-1">-- 未设置 --</option>
@@ -1335,7 +1447,7 @@
                     <div style="background:#f5f5f7;border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:13px;">
                         <div style="font-weight:600;margin-bottom:8px;">🔍 Severity检测</div>
                         <div style="color:#666;margin-bottom:6px;">字段: ${sd ? '<span style="color:#34c759;">✓ 已识别Severity</span>' : '<span style="color:#ff3b30;">✗ 未识别</span>'}</div>
-                        <div style="color:#666;">实际值: <code style="background:#fff;padding:2px 6px;border-radius:4px;">${sv.length ? sv.join(', ') : '(无数据)'}</code></div>
+                        <div style="color:#666;">实际值: <code style="background:#fff;padding:2px 6px;border-radius:4px;">${sv.length ? escapeHtml(sv.join(', ')) : '(无数据)'}</code></div>
                         ${warningHtml}
                     </div>
                 `;
@@ -1346,7 +1458,7 @@
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([mod, stats]) => `
                     <tr>
-                        <td>${mod}</td>
+                        <td>${escapeHtml(mod)}</td>
                         <td class="num">${stats.total}</td>
                         <td class="num resolved">${stats.resolved}</td>
                         <td class="num unresolved">${stats.unresolved}</td>
@@ -1381,11 +1493,11 @@
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([dev, stats]) => {
                     const mods = stats.modules || [];
-                    const moduleList = mods.slice(0, 3).join(', ');
+                    const moduleList = mods.slice(0, 3).map(escapeHtml).join(', ');
                     const extra = mods.length > 3 ? ' 等' + mods.length + '个' : '';
                     return `
                         <tr>
-                            <td>${dev}</td>
+                            <td>${escapeHtml(dev)}</td>
                             <td class="num">${stats.total}</td>
                             <td class="num resolved">${stats.resolved}</td>
                             <td class="num unresolved">${stats.unresolved}</td>
@@ -1538,14 +1650,14 @@
                     const sevColor = item.severity === 'Critical' || item.severity === 'Blocker' ? '#ff3b30' : 
                                      item.severity === 'Major' ? '#ff9500' : '#34c759';
                     rowsHtml += `<tr>
-                        <td style="text-align:center;white-space:nowrap;">${item.issue_id || '-'}</td>
-                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.title || ''}">${item.title || '-'}</td>
-                        <td>${item.developer || '-'}</td>
-                        <td>${item.module || '-'}</td>
-                        <td style="text-align:center;color:${sevColor};font-weight:600;">${item.severity || '-'}</td>
-                        <td style="text-align:center;">${item.resolution || '-'}</td>
-                        <td style="text-align:center;">${item.status || '-'}</td>
-                        <td style="text-align:center;">${item.create_date || '-'}</td>
+                        <td style="text-align:center;white-space:nowrap;">${escapeHtml(item.issue_id || '-')}</td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(item.title || '')}">${escapeHtml(item.title || '-')}</td>
+                        <td>${escapeHtml(item.developer || '-')}</td>
+                        <td>${escapeHtml(item.module || '-')}</td>
+                        <td style="text-align:center;color:${sevColor};font-weight:600;">${escapeHtml(item.severity || '-')}</td>
+                        <td style="text-align:center;">${escapeHtml(item.resolution || '-')}</td>
+                        <td style="text-align:center;">${escapeHtml(item.status || '-')}</td>
+                        <td style="text-align:center;">${escapeHtml(item.create_date || '-')}</td>
                     </tr>`;
                 });
                 unvHtml = `
@@ -1724,8 +1836,10 @@
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
-            document.getElementById('tab-' + tab).classList.add('active');
+            var tabBtn = document.querySelector('[data-tab="' + tab + '"]');
+            var tabContent = document.getElementById('tab-' + tab);
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabContent) tabContent.classList.add('active');
         }
 
         async function generatePDF(btn) {
@@ -1794,50 +1908,45 @@
             currentAnalysisData = null;
         }
 
-        // v3.0: AI 根因分析
+        // v3.0: AI 根因分析（SSE 流式）
         async function generateAIAnalysis() {
             if (!currentAnalysisData) {
-                alert('请先完成数据分析');
+                showToast('请先完成数据分析', 'success');
                 return;
             }
 
             const content = document.getElementById('aiContent');
             content.innerHTML = `
-                <div style="text-align: center; padding: 30px;">
-                    <div style="display: inline-block; width: 32px; height: 32px; border: 3px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 12px;">AI 正在分析问题数据...</div>
-                    <div style="color: var(--text-tertiary); font-size: 12px; margin-top: 4px;">这可能需要 10-30 秒</div>
+                <div id="aiStreamArea" style="line-height: 1.8; font-size: 14px; color: var(--text-primary); min-height: 60px;"></div>
+                <div id="aiStreamBar" style="text-align: center; padding: 8px 0; color: var(--text-tertiary); font-size: 12px;">
+                    <span style="display:inline-block; width:14px; height:14px; border:2px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px;"></span>AI 正在分析问题数据...
                 </div>
                 <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
             `;
+            var streamArea = document.getElementById('aiStreamArea');
+            var streamBar = document.getElementById('aiStreamBar');
 
-            try {
-                const resp = await fetch('/api/excel-analyze-ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ analysis: currentAnalysisData })
-                });
-                const data = await resp.json();
-
-                if (data.status === 'success') {
-                    // 安全渲染：先转义 HTML，再做 markdown 替换
-                    const escaped = (data.analysis || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-                    let html = escaped
-                        .replace(/### (.+)/g, '<h4 style="margin: 16px 0 8px; color: var(--accent);">$1</h4>')
-                        .replace(/## (.+)/g, '<h3 style="margin: 16px 0 8px;">$1</h3>')
-                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/^- (.+)/gm, '<div style="padding-left: 16px; margin: 4px 0;">• $1</div>')
-                        .replace(/\n\n/g, '<br>')
-                        .replace(/\n/g, '<br>');
-
+            await ToolboxSSE.postStream('/api/excel-analyze-ai-stream', { analysis: currentAnalysisData }, {
+                onChunk: function(chunk, fullText) {
+                    var html = (typeof ToolboxMarkdown !== 'undefined')
+                        ? ToolboxMarkdown.renderSafe(fullText)
+                        : escapeHtml(fullText).replace(/\n/g, '<br>');
+                    streamArea.innerHTML = html;
+                },
+                onDone: function(fullText) {
+                    if (streamBar) streamBar.remove();
+                    var html = (typeof ToolboxMarkdown !== 'undefined')
+                        ? ToolboxMarkdown.renderSafe(fullText || '')
+                        : escapeHtml(fullText || '').replace(/\n/g, '<br>');
                     content.innerHTML = `
                         <div style="line-height: 1.8; font-size: 14px; color: var(--text-primary);">${html}</div>
                         <div style="margin-top: 16px; text-align: right;">
                             <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;">📋 复制</button>
                         </div>
                     `;
-                } else {
-                    const errMsg = (data.error || 'AI分析失败').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+                },
+                onError: function(err) {
+                    var errMsg = (err || 'AI分析失败').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
                     content.innerHTML = `
                         <div style="padding: 20px; text-align: center;">
                             <div style="color: var(--danger); margin-bottom: 12px;">❌ ${errMsg}</div>
@@ -1845,23 +1954,15 @@
                         </div>
                     `;
                 }
-            } catch (e) {
-                const errMsg = (e.message || '未知错误').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-                content.innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
-                        <div style="color: var(--danger); margin-bottom: 12px;">❌ 请求失败: ${errMsg}</div>
-                        <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
-                    </div>
-                `;
-            }
+            });
         }
 
         function copyAIAnalysis() {
             const text = document.getElementById('aiContent').innerText;
             navigator.clipboard.writeText(text).then(() => {
-                alert('已复制到剪贴板');
+                showToast('已复制到剪贴板', 'success');
             }).catch(() => {
-                alert('复制失败');
+                showToast('复制失败', 'error');
             });
         }
 
@@ -1949,7 +2050,7 @@
                         const rateColor = rate >= 80 ? '#34c759' : rate >= 60 ? '#ff9500' : '#ff3b30';
                         return `
                             <tr style="border-top:1px solid #f0f0f3;">
-                                <td style="padding:10px 14px;font-size:13px;color:var(--text);">${mod}</td>
+                                <td style="padding:10px 14px;font-size:13px;color:var(--text);">${escapeHtml(mod)}</td>
                                 <td style="padding:10px 14px;text-align:right;font-size:13px;font-weight:600;color:var(--text);">${stats.total}</td>
                                 <td style="padding:10px 14px;text-align:right;font-size:13px;color:#34c759;">${stats.resolved}</td>
                                 <td style="padding:10px 14px;text-align:right;font-size:13px;color:#ff3b30;">${stats.unresolved}</td>
@@ -2040,14 +2141,14 @@
                         
                         issuesHtml += `
                             <tr style="border-top:1px solid #f0f0f3;${idx % 2 === 1 ? 'background:#fafafa;' : ''}">
-                                <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${issue.issue_id || '-'}</td>
-                                <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${issue.title || ''}">${issue.title || '-'}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${issue.module || '-'}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${issue.developer || '-'}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${issue.create_date || '-'}</td>
+                                <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
+                                <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
+                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
+                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
+                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
                                 <td style="padding:8px 12px;white-space:nowrap;">
                                     <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                        ${issue.severity || '-'}
+                                        ${escapeHtml(issue.severity || '-')}
                                     </span>
                                 </td>
                                 <td style="padding:8px 12px;white-space:nowrap;">
@@ -2102,14 +2203,14 @@
                 
                 html += `
                     <tr style="border-top:1px solid #f0f0f3;${idx % 2 === 1 ? 'background:#fafafa;' : ''}">
-                        <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${issue.issue_id || '-'}</td>
-                        <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${issue.title || ''}">${issue.title || '-'}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${issue.module || '-'}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${issue.developer || '-'}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${issue.create_date || '-'}</td>
+                        <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
+                        <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
+                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
+                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
+                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
                         <td style="padding:8px 12px;white-space:nowrap;">
                             <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                ${issue.severity || '-'}
+                                ${escapeHtml(issue.severity || '-')}
                             </span>
                         </td>
                         <td style="padding:8px 12px;white-space:nowrap;">
@@ -2175,7 +2276,7 @@
                         ${modules.length > 0 ? `
                             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">涉及模块：</div>
                             <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                                ${modules.map(m => `<span style="background:white;border-radius:4px;padding:3px 8px;font-size:10px;color:var(--text);">${m}</span>`).join('')}
+                                ${modules.map(m => `<span style="background:white;border-radius:4px;padding:3px 8px;font-size:10px;color:var(--text);">${escapeHtml(m)}</span>`).join('')}
                             </div>
                         ` : ''}
                     </div>
@@ -2197,8 +2298,8 @@
             
             return `
                 <div style="background:${theme.bg};border-radius:16px;padding:20px;border:1px solid ${theme.border};transition:transform 0.2s;cursor:default;">
-                    <h4 style="margin:0 0 8px;color:${theme.text};font-size:14px;font-weight:700;line-height:1.4;">${sug.title}</h4>
-                    <p style="margin:0;color:var(--text);font-size:13px;line-height:1.5;">${sug.detail}</p>
+                    <h4 style="margin:0 0 8px;color:${theme.text};font-size:14px;font-weight:700;line-height:1.4;">${escapeHtml(sug.title)}</h4>
+                    <p style="margin:0;color:var(--text);font-size:13px;line-height:1.5;">${escapeHtml(sug.detail)}</p>
                     ${statsHtml}
                 </div>
             `;
@@ -2216,7 +2317,7 @@
                         ${adviceList.map((item, i) => `
                             <div style="display:flex;align-items:flex-start;gap:12px;background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
                                 <div style="min-width:28px;height:28px;background:linear-gradient(135deg,#4d9fff,#0071e3);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:700;">${i + 1}</div>
-                                <div style="flex:1;color:var(--text);font-size:14px;line-height:1.5;">${item}</div>
+                                <div style="flex:1;color:var(--text);font-size:14px;line-height:1.5;">${escapeHtml(item)}</div>
                             </div>
                         `).join('')}
                     </div>
@@ -2225,6 +2326,6 @@
         }
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

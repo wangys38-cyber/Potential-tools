@@ -8,6 +8,7 @@ import json
 import tempfile
 import time
 import hashlib
+import secrets
 import gc
 import requests
 from datetime import datetime, timezone, timedelta
@@ -17,6 +18,7 @@ from jinja2 import BytecodeCache
 # 认证模块
 import auth
 import db
+import ai_utils
 
 # 性能优化：Whingoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -24,6 +26,9 @@ from flask_compress import Compress
 # 实时语音识别：flask-sock 提供 WebSocket 支持
 from flask_sock import Sock
 import websocket as _ws_client  # websocket-client，连接 DashScope
+
+import datetime as _dt
+_STATIC_VERSION = _dt.datetime.now().strftime('%Y%m%d%H%M')
 
 _CST = timezone(timedelta(hours=8))
 
@@ -119,7 +124,7 @@ os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 def inject_user():
     # 快速检查 session，避免无谓的字典构造
     if not session.get('user_id'):
-        return dict(current_user=None, is_logged_in=False)
+        return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION)
     return dict(
         current_user={
             'id': session.get('user_id'),
@@ -129,6 +134,7 @@ def inject_user():
             'provider': session.get('user_provider', ''),
         },
         is_logged_in=True,
+        STATIC_VERSION=_STATIC_VERSION,
     )
 
 
@@ -148,6 +154,14 @@ _PUBLIC_PATHS = (
     '/api/ai-models',        # 模型列表允许匿名查看（端点内部检查认证）
     '/api/ai-config',        # 同上
     '/api/ai-test',          # 同上
+    '/api/ai-chat',          # AI 对话 SSE 自行检查认证
+    '/api/test-report-ai-stream',  # 测试报告 AI 流式分析自行检查认证
+    '/api/excel-analyze-ai-stream', # CR 分析 AI 流式自行检查认证
+    '/api/generate-minutes-stream', # 会议纪要 AI 流式自行检查认证
+    '/api/notes/sync',       # 笔记同步API自行检查认证
+    '/api/upload-init',      # 上传API自行检查认证，返回JSON 401
+    '/api/upload-chunk',     # 同上
+    '/api/upload-complete',  # 同上
     '/ws/',                  # WebSocket端点自行检查认证
 )
 
@@ -155,6 +169,9 @@ _PUBLIC_PATHS = (
 def require_login():
     """全局登录拦截：未登录用户自动跳转到登录页"""
     path = request.path
+
+    # 定期清理过期任务（非阻塞，不影响请求处理）
+    _maybe_cleanup()
 
     # 公开路径 — 最先检查，快速放行（静态文件、登录、OAuth回调等）
     for prefix in _PUBLIC_PATHS:
@@ -179,6 +196,24 @@ def require_login():
     if path.startswith('/api/'):
         return jsonify({'error': '请先登录', 'need_login': True}), 401
     return redirect(url_for('login_page'))
+
+
+# ==================== 定期清理 ====================
+_last_cleanup_time = 0
+_CLEANUP_INTERVAL = 3600  # 1小时清理一次
+
+def _maybe_cleanup():
+    """定期清理过期的后台任务和上传会话"""
+    global _last_cleanup_time
+    now = time.time()
+    if now - _last_cleanup_time < _CLEANUP_INTERVAL:
+        return
+    _last_cleanup_time = now
+    try:
+        db.cleanup_old_tasks(max_age_hours=6)
+        logger.info("清理过期任务完成")
+    except Exception as e:
+        logger.error(f"清理过期任务失败: {e}")
 
 
 # ==================== 全局错误处理 ====================
@@ -228,6 +263,14 @@ def add_cache_headers(response):
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
     return response
+
+
+# Register Blueprints
+try:
+    from bp_ai import register as register_ai_bp
+    register_ai_bp(app)
+except ImportError as e:
+    logger.warning(f"bp_ai Blueprint 加载失败: {e}")
 
 
 def normalize_date(date_str):
@@ -758,315 +801,17 @@ def _validate_file_id(file_id):
         return False
     return bool(_re.match(r'^[a-f0-9]{16}$', file_id))
 
-# === AI 配置管理（v2.0: 使用 SQLite 替代 JSON 文件） ===
-def get_ai_config(user_id=None):
-    """获取 AI 配置 — 优先读取用户级配置，其次全局配置，最后环境变量"""
-    # 0. 未指定 user_id 时，尝试从 session 获取当前用户
-    if user_id is None:
-        try:
-            user = auth.get_current_user()
-            if user and user.get('id'):
-                user_id = user['id']
-        except Exception:
-            pass
-    # 1. 优先读取用户级配置
-    if user_id:
-        user_config = db.get_user_ai_config(user_id)
-        if user_config and user_config.get('api_key', '').strip():
-            config = user_config
-        else:
-            config = db.get_config('ai_config', {}) or {}
-    else:
-        config = db.get_config('ai_config', {}) or {}
-    if not isinstance(config, dict):
-        config = {}
-    # 2. 环境变量覆盖（最高优先级，主要用于部署时全局配置）
-    config['api_key'] = os.environ.get('AI_API_KEY', config.get('api_key', ''))
-    config['base_url'] = os.environ.get('AI_BASE_URL', config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1'))
-    config['model'] = os.environ.get('AI_MODEL', config.get('model', 'qwen-turbo'))
-    config['enabled'] = bool(config.get('api_key', '').strip())
-    return config
+# === AI 配置管理 — 委托给 ai_utils 共享模块 ===
+# 保留向后兼容别名，供 app.py 内其他路由调用
+get_ai_config = ai_utils.get_ai_config
+_call_ai = ai_utils.call_ai
+_call_ai_stream = ai_utils.call_ai_stream
 
 
-# === v3.0 统一 AI 调用函数 ===
-def _call_ai(messages, model=None, max_tokens=2000, temperature=0.7, timeout=60):
-    """统一的 AI 文本生成调用（非流式），支持 DashScope 和 OpenAI 兼容格式"""
-    import requests as req
-    ai_config = get_ai_config()
-    if not ai_config.get('enabled'):
-        raise ValueError('AI功能未配置')
-
-    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
-    api_key = ai_config.get('api_key', '')
-    use_model = model or ai_config.get('model', 'qwen-turbo')
-    is_openai = 'dashscope' not in base_url
-
-    if is_openai:
-        # OpenAI 兼容格式（火山引擎/豆包等）
-        response = req.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': use_model,
-                'messages': messages,
-                'max_tokens': max_tokens,
-                'temperature': temperature
-            },
-            timeout=timeout
-        )
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('choices', [{}])[0].get('message', {}).get('content', '')
-        else:
-            raise RuntimeError(f'AI服务返回错误({response.status_code}): {response.text[:300]}')
-    else:
-        # DashScope 格式（阿里云百炼）
-        response = req.post(
-            f"{base_url}/services/aigc/text-generation/generation",
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': use_model,
-                'input': {'messages': messages},
-                'parameters': {
-                    'result_format': 'message',
-                    'max_tokens': max_tokens,
-                    'temperature': temperature
-                }
-            },
-            timeout=timeout
-        )
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('output', {}).get('choices', [{}])[0].get('message', {}).get('content', '')
-        else:
-            raise RuntimeError(f'AI服务返回错误({response.status_code}): {response.text[:300]}')
-
-
-def _call_ai_stream(messages, model=None, max_tokens=2000, temperature=0.7):
-    """统一的 AI 文本生成调用（流式 SSE），支持 DashScope 和 OpenAI 兼容格式"""
-    import requests as req
-    ai_config = get_ai_config()
-    if not ai_config.get('enabled'):
-        yield 'data: {"error": "AI功能未配置"}\n\n'
-        return
-
-    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
-    api_key = ai_config.get('api_key', '')
-    use_model = model or ai_config.get('model', 'qwen-turbo')
-    is_openai = 'dashscope' not in base_url
-
-    if is_openai:
-        # OpenAI 兼容格式流式
-        response = req.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': use_model,
-                'messages': messages,
-                'max_tokens': max_tokens,
-                'temperature': temperature,
-                'stream': True
-            },
-            stream=True,
-            timeout=120
-        )
-        if response.status_code != 200:
-            err_text = response.text[:200] if hasattr(response, 'text') else ''
-            yield f'data: {json.dumps({"error": f"AI服务错误({response.status_code}): {err_text}"})}\n\n'
-            return
-        for line in response.iter_lines():
-            if not line:
-                continue
-            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
-            if not line_str.startswith('data:'):
-                continue
-            json_str = line_str[5:].strip()
-            if json_str == '[DONE]':
-                break
-            try:
-                data = json.loads(json_str)
-                # 统一转换为 DashScope 格式输出，前端无需修改
-                choices = data.get('choices', [])
-                if choices:
-                    delta = choices[0].get('delta', {})
-                    content = delta.get('content', '')
-                    if content:
-                        normalized = {'output': {'choices': [{'message': {'content': content}}]}}
-                        yield f'data: {json.dumps(normalized, ensure_ascii=False)}\n\n'
-            except json.JSONDecodeError:
-                continue
-    else:
-        # DashScope 格式流式
-        response = req.post(
-            f"{base_url}/services/aigc/text-generation/generation",
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json',
-                'X-DashScope-SSE': 'enable'
-            },
-            json={
-                'model': use_model,
-                'input': {'messages': messages},
-                'parameters': {
-                    'result_format': 'message',
-                    'max_tokens': max_tokens,
-                    'temperature': temperature,
-                    'incremental_output': True
-                }
-            },
-            stream=True,
-            timeout=120
-        )
-        if response.status_code != 200:
-            yield f'data: {json.dumps({"error": f"AI服务错误({response.status_code})"})}\n\n'
-            return
-        for line in response.iter_lines():
-            if not line:
-                continue
-            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
-            if line_str.startswith('data:'):
-                yield line_str + '\n\n'
-            elif line_str.startswith('{'):
-                yield f'data: {line_str}\n\n'
-
-
-# === v3.0 AI 对话助手 API ===
-@app.route('/api/ai-chat', methods=['POST'])
-def api_ai_chat():
-    """AI 对话助手 — SSE 流式输出"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
-
-    data = request.get_json(silent=True) or {}
-    messages = data.get('messages', [])
-    model = data.get('model')
-
-    if not messages or not isinstance(messages, list):
-        return jsonify({'error': '消息不能为空'}), 400
-
-    # 注入系统提示
-    system_prompt = {
-        'role': 'system',
-        'content': '你是工具集内置的AI助手。你可以帮助用户回答问题、编写文案、分析数据、生成代码等。请用中文回复，回答要简洁实用。'
-    }
-    full_messages = [system_prompt] + messages[-20:]  # 最多保留最近 20 条上下文
-
-    ai_config = get_ai_config()
-    if not ai_config.get('enabled'):
-        return jsonify({'error': 'AI功能未配置，请在设置中配置API Key'}), 503
-
-    return Response(
-        stream_with_context(_call_ai_stream(full_messages, model=model)),
-        content_type='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'X-Accel-Buffering': 'no',
-            'Connection': 'keep-alive',
-        }
-    )
-
-
-@app.route('/api/ai-models', methods=['GET'])
-def api_ai_models():
-    """获取可用模型列表（根据 API 提供商自动适配）"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
-
-    ai_config = get_ai_config()
-    base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
-    is_openai = 'dashscope' not in base_url
-
-    if is_openai:
-        # OpenAI 兼容格式（火山引擎/豆包）— 模型 ID 来源: 火山方舟模型列表
-        models = [
-            {'id': 'doubao-seed-1-6-250615', 'name': 'Doubao Seed 1.6', 'desc': '旗舰模型，支持图文视频，深度思考可关闭'},
-            {'id': 'doubao-seed-1-6-flash-250828', 'name': 'Doubao Seed 1.6 Flash', 'desc': '极速响应，支持图文，日常使用'},
-            {'id': 'doubao-seed-1-6-lite-251015', 'name': 'Doubao Seed 1.6 Lite', 'desc': '轻量版，性价比高'},
-            {'id': 'deepseek-v3-1-terminus', 'name': 'DeepSeek V3.1', 'desc': '深度思考，强推理能力'},
-        ]
-        default_model = ai_config.get('model', 'doubao-seed-1-6-250615')
-    else:
-        # DashScope（阿里云百炼）
-        models = [
-            {'id': 'qwen-turbo', 'name': '通义千问 Turbo', 'desc': '快速响应，日常使用'},
-            {'id': 'qwen-plus', 'name': '通义千问 Plus', 'desc': '均衡质量与速度'},
-            {'id': 'qwen-max', 'name': '通义千问 Max', 'desc': '最强推理能力'},
-        ]
-        default_model = ai_config.get('model', 'qwen-turbo')
-
-    return jsonify({
-        'models': models,
-        'current': default_model
-    })
-
-
-@app.route('/api/ai-config', methods=['GET'])
-def api_get_ai_config():
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录', 'need_login': True}), 401
-    # 检查用户是否已有自己的配置
-    user_config = db.get_user_ai_config(user['id'])
-    has_user_config = bool(user_config and user_config.get('api_key', '').strip())
-    # 如果用户没有自己的配置，但全局有配置，自动迁移到用户级
-    if not has_user_config:
-        global_config = db.get_config('ai_config', {}) or {}
-        if isinstance(global_config, dict) and global_config.get('api_key', '').strip():
-            db.set_user_ai_config(user['id'], global_config)
-            user_config = global_config
-            has_user_config = True
-            logger.info(f"用户 {user['id']} 的 AI 配置已从全局迁移到用户级")
-    config = get_ai_config(user['id'])
-    return jsonify({
-        'status': 'success',
-        'data': {
-            'enabled': config['enabled'],
-            'has_key': bool(config.get('api_key', '').strip()),
-            'has_user_config': has_user_config,
-            'key_masked': (config.get('api_key', '')[:3] + '****') if config.get('api_key', '').strip() else '',
-            'base_url': config.get('base_url', ''),
-            'model': config.get('model', ''),
-        }
-    })
-
-
-@app.route('/api/ai-config', methods=['POST'])
-def api_save_ai_config():
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录', 'need_login': True}), 401
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': '无效的配置数据'}), 400
-    # 读取用户现有配置（如果没有则创建空配置）
-    config = db.get_user_ai_config(user['id'])
-    if not isinstance(config, dict):
-        config = {}
-    if 'api_key' in data:
-        config['api_key'] = data['api_key'].strip()
-    if 'base_url' in data:
-        config['base_url'] = data['base_url'].strip()
-    if 'model' in data:
-        config['model'] = data['model'].strip()
-    # 如果 api_key 为空，视为删除用户配置
-    if not config.get('api_key', '').strip():
-        config = {}
-    try:
-        db.set_user_ai_config(user['id'], config)
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# === AI 路由已迁移到 bp_ai.py Blueprint ===
+# 以下路由由 bp_ai Blueprint 提供：/api/ai-chat, /api/ai-models,
+# /api/ai-config (GET/POST), /api/ai-test
+# 保留 get_ai_config/_call_ai/_call_ai_stream 别名供 app.py 其他路由调用
 
 # === 页面路由 ===
 @app.route('/')
@@ -1430,6 +1175,68 @@ def api_generate_minutes():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/generate-minutes-stream', methods=['POST'])
+def api_generate_minutes_stream():
+    """SSE 流式版：AI生成会议纪要 — 边生成边输出"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    transcript = data.get('transcript', '').strip()
+    title = data.get('title', '未命名会议')
+    attendees = data.get('attendees', '未填写')
+    date = data.get('date', '')
+    model = data.get('model')
+
+    if not transcript or len(transcript) < 10:
+        return jsonify({'error': '转写内容太少，无法生成纪要'}), 400
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请联系管理员设置API Key'}), 503
+
+    prompt = f"""请根据以下会议语音转写内容，生成一份结构化的会议纪要。
+
+会议信息：
+- 主题：{title}
+- 日期：{date}
+- 参会人员：{attendees}
+
+会议转写内容：
+{transcript[:16000]}
+
+请生成会议纪要，使用Markdown格式，包含以下部分：
+
+### 📋 会议概要
+简要说明会议目的和主要内容（2-3句话）
+
+### 💬 讨论要点
+列出讨论的主要议题和关键观点
+
+### ✅ 决议事项
+列出会议达成的决定
+
+### 📝 待办事项
+列出需要后续跟进的任务，如有责任人请标注
+
+要求：
+- 语言简洁专业
+- 如果转写内容不清晰，合理推断并标注
+- 使用 Markdown 格式输出"""
+
+    messages = [
+        {'role': 'system', 'content': '你是一个专业的会议纪要撰写助手。请根据会议转写内容生成结构清晰、内容准确的会议纪要。'},
+        {'role': 'user', 'content': prompt}
+    ]
+
+    return Response(
+        stream_with_context(_call_ai_stream(messages, model=model, max_tokens=3000, temperature=0.3)),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
+    )
+
+
 # === v3.0 OCR 图片文字识别 ===
 @app.route('/api/ocr', methods=['POST'])
 def api_ocr():
@@ -1725,35 +1532,6 @@ def api_get_theme():
         'theme_mode': theme_mode,
         'accent_color': accent_color
     })
-
-
-@app.route('/api/ai-test', methods=['POST'])
-def api_ai_test():
-    """测试 AI 连接"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
-
-    ai_config = get_ai_config()
-    if not ai_config.get('enabled'):
-        return jsonify({'error': 'AI功能未配置，请先设置 API Key'}), 503
-
-    try:
-        reply = _call_ai(
-            [{'role': 'user', 'content': '请回复"连接成功"四个字'}],
-            max_tokens=20,
-            temperature=0.1,
-            timeout=15
-        )
-        return jsonify({
-            'status': 'success',
-            'reply': reply.strip(),
-            'model': ai_config.get('model', ''),
-            'base_url': ai_config.get('base_url', '')
-        })
-    except Exception as e:
-        return jsonify({'error': f'AI连接失败: {str(e)}'}), 502
-
 
 # ==================== 音频转写 API（DashScope Paraformer ASR） ====================
 
@@ -2647,6 +2425,82 @@ def api_test_report_ai_analysis():
     except Exception as e:
         logger.error(f'AI测试报告分析失败: {e}')
         return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
+
+
+@app.route('/api/test-report-ai-stream', methods=['POST'])
+def api_test_report_ai_stream():
+    """SSE 流式版：AI 增强测试报告分析 — 边生成边输出"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+
+    data = request.get_json(silent=True) or {}
+    analysis = data.get('analysis', {})
+    if not analysis:
+        return jsonify({'error': '缺少分析数据'}), 400
+
+    project_info = analysis.get('project_info', {})
+    stats = analysis.get('stats', {})
+    summary = analysis.get('summary', {})
+    key_findings = analysis.get('key_findings', [])
+    test_items = analysis.get('test_items', [])
+
+    items_text = ''
+    for item in test_items[:30]:
+        items_text += f"- {item.get('name', 'N/A')}: {item.get('result', 'N/A')}"
+        if item.get('remark'):
+            items_text += f" ({item['remark']})"
+        items_text += "\n"
+
+    prompt = f"""你是一位资深软件测试专家，请基于以下测试报告数据生成专业的AI分析总结。
+
+## 项目信息
+- 项目名称: {project_info.get('name', 'N/A')}
+- 软件版本: {project_info.get('version', 'N/A')}
+- 测试日期: {project_info.get('date', 'N/A')}
+
+## 测试统计
+- 总测试项: {stats.get('total', 0)}
+- 通过: {stats.get('pass', 0)}
+- 失败: {stats.get('fail', 0)}
+- 阻塞: {stats.get('block', 0)}
+- 通过率: {stats.get('pass_rate', 'N/A')}
+
+## 执行摘要
+{summary.get('text', 'N/A')}
+
+## 关键发现
+{chr(10).join(f'- {f}' for f in key_findings) if key_findings else 'N/A'}
+
+## 测试项详情（前30项）
+{items_text or 'N/A'}
+
+请按以下格式输出分析：
+
+### 🎯 总体评估
+（1-2段话总结测试整体状况，包括通过率评价和发布建议）
+
+### ⚠️ 风险洞察
+（列出3-5个关键风险点，每个风险用一句话描述）
+
+### 📈 质量趋势
+（分析测试质量趋势，指出薄弱环节）
+
+### 💡 改进建议
+（列出3-5条可操作的改进建议，每条用一句话描述）
+
+请使用简洁专业的中文，避免空话套话。"""
+
+    messages = [{'role': 'user', 'content': prompt}]
+    return Response(
+        stream_with_context(_call_ai_stream(messages, max_tokens=1500, temperature=0.3)),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
+    )
 
 
 def _build_test_report_pdf_html(data, file_name, sheet_name, ai_analysis=''):
@@ -4077,6 +3931,11 @@ def _delete_chunk_meta(upload_id):
 @app.route('/api/upload-init', methods=['POST'])
 def api_upload_init():
     """初始化分块上传，返回 upload_id"""
+    # 自行检查认证（因为此端点在 PUBLIC_PATHS 中）
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
     data = request.get_json(silent=True)
     if data is None:
         data = {}
@@ -4096,7 +3955,7 @@ def api_upload_init():
     if orig_ext not in ('.xlsx', '.xls'):
         orig_ext = '.xlsx'
 
-    upload_id = hashlib.md5(f"{time.time()}_{filename}".encode()).hexdigest()[:16]
+    upload_id = secrets.token_hex(8)  # 16位不可预测的随机ID
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"excel_{upload_id}{orig_ext}")
 
     _chunk_uploads = {
@@ -4127,6 +3986,11 @@ def api_upload_init():
 @app.route('/api/upload-chunk', methods=['POST'])
 def api_upload_chunk():
     """上传单个分块"""
+    # 自行检查认证
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
     upload_id = request.form.get('upload_id', '')
     chunk_index = request.form.get('chunk_index', '')
     chunk_file = request.files.get('chunk', None)
@@ -4175,6 +4039,11 @@ def api_upload_chunk():
 @app.route('/api/upload-complete', methods=['POST'])
 def api_upload_complete():
     """分块上传完成，验证文件并返回 file_id"""
+    # 自行检查认证
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
     data = request.get_json(silent=True)
     if data is None:
         data = {}
@@ -6293,12 +6162,6 @@ def api_excel_select_pdf():
         return jsonify({'error': str(e)}), 500
 
 
-def _escape_html(text):
-    """转义HTML特殊字符"""
-    import html
-    return html.escape(str(text)) if text else ''
-
-
 def _build_excel_structured_report_html(structured_data, selected_sheets, watermark, custom_title=''):
     """构建结构化数据报告HTML - 支持数组格式"""
     watermark_html = ''
@@ -6694,6 +6557,88 @@ def api_excel_analyze_ai():
     except Exception as e:
         logger.error(f'AI CR分析失败: {e}')
         return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
+
+
+@app.route('/api/excel-analyze-ai-stream', methods=['POST'])
+def api_excel_analyze_ai_stream():
+    """SSE 流式版：AI 增强 CR 问题分析 — 边生成边输出"""
+    user = auth.get_current_user()
+    if not user and not auth.ALLOW_GUEST:
+        return jsonify({'error': '请先登录'}), 401
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+
+    data = request.get_json(silent=True) or {}
+    analysis = data.get('analysis', {})
+    if not analysis:
+        return jsonify({'error': '缺少分析数据'}), 400
+
+    summary = analysis.get('summary', {})
+    modules = analysis.get('modules', [])
+    developers = analysis.get('developers', [])
+
+    modules_text = ''
+    for m in (modules[:10] if isinstance(modules, list) else []):
+        if isinstance(m, dict):
+            modules_text += f"- {m.get('name', 'N/A')}: {m.get('count', 0)}个问题"
+            if m.get('unresolved'):
+                modules_text += f" (未解决: {m['unresolved']})"
+            modules_text += "\n"
+
+    devs_text = ''
+    for d in (developers[:10] if isinstance(developers, list) else []):
+        if isinstance(d, dict):
+            devs_text += f"- {d.get('name', 'N/A')}: {d.get('count', 0)}个问题"
+            if d.get('unresolved'):
+                devs_text += f" (未解决: {d['unresolved']})"
+            devs_text += "\n"
+
+    prompt = f"""你是一位资深质量管理专家，请基于以下CR问题分析数据生成专业的AI分析报告。
+
+## 问题统计
+- 总问题数: {summary.get('total_issues', 0)}
+- 已解决: {summary.get('resolved', 0)}
+- 未解决: {summary.get('unresolved', 0)}
+- 解决率: {summary.get('resolution_rate', 'N/A')}
+- 阻塞问题: {summary.get('blocker', 0)}
+- 严重问题: {summary.get('critical', 0)}
+- 主要问题: {summary.get('major', 0)}
+- 次要问题: {summary.get('minor', 0)}
+- 建议问题: {summary.get('trivial', 0)}
+
+## 模块统计 (Top 10)
+{modules_text or 'N/A'}
+
+## 研发人员统计 (Top 10)
+{devs_text or 'N/A'}
+
+请按以下格式输出分析：
+
+### 📊 总体评估
+（1-2段话总结问题整体状况，包括解决率评价和质量风险等级）
+
+### 🔍 根因分析
+（分析问题集中的模块和人员，指出可能的根因，3-5条）
+
+### ⚠️ 高风险领域
+（识别需要重点关注的模块或人员，3-5条）
+
+### 📈 趋势预测
+（基于当前数据预测可能的发展趋势，2-3条）
+
+### 💡 改进建议
+（列出3-5条可操作的流程改进建议）
+
+请使用简洁专业的中文，避免空话套话。"""
+
+    messages = [{'role': 'user', 'content': prompt}]
+    return Response(
+        stream_with_context(_call_ai_stream(messages, max_tokens=1500, temperature=0.3)),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
+    )
 
 
 # === Excel分析PDF生成 API ===
@@ -7317,6 +7262,48 @@ def notenb_catch_all(path):
         return send_file(file_path)
     # 对于 SPA 路由回退，也需要注入用户信息
     return notenb_index()
+
+
+# === NoteNB 笔记同步 API ===
+@app.route('/api/notes/sync', methods=['GET'])
+def notes_sync_get():
+    """获取服务端笔记数据（仅登录用户）"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        result = db.get_note_state(user['id'])
+        if result and result['data']:
+            return jsonify({
+                'status': 'success',
+                'data': result['data'],
+                'server_updated_at': result['server_updated_at']
+            })
+        return jsonify({'status': 'success', 'data': None, 'server_updated_at': 0})
+    except Exception as e:
+        logger.error(f"获取笔记同步数据失败: {e}")
+        return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
+
+
+@app.route('/api/notes/sync', methods=['POST'])
+def notes_sync_post():
+    """保存笔记数据到服务端（仅登录用户）"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        data = request.get_json(silent=True)
+        if not data or 'state' not in data:
+            return jsonify({'error': '缺少 state 数据'}), 400
+        # 限制数据大小（防止过大请求）
+        state_str = json.dumps(data['state'], ensure_ascii=False)
+        if len(state_str) > 5 * 1024 * 1024:  # 5MB 上限
+            return jsonify({'error': '数据过大，请减少笔记数量或内容'}), 413
+        server_time = db.save_note_state(user['id'], data['state'])
+        return jsonify({'status': 'success', 'server_updated_at': server_time})
+    except Exception as e:
+        logger.error(f"保存笔记同步数据失败: {e}")
+        return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
 
 
 # === 静态资源路由 ===

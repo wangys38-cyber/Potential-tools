@@ -62,6 +62,49 @@
     /* 过渡 */
     --tb-transition: all 0.2s ease;
     --tb-transition-fast: all 0.15s ease;
+
+    /* ===== 兼容性别名：让模板可以不修改即可使用 theme.css ===== */
+    --bg-primary: var(--tb-bg-primary);
+    --bg-secondary: var(--tb-bg-secondary);
+    --bg-card: var(--tb-bg-card);
+    --bg-hover: var(--tb-bg-hover);
+    --bg-active: var(--tb-bg-active);
+    --bg-overlay: var(--tb-bg-overlay);
+    --text-primary: var(--tb-text-primary);
+    --text-secondary: var(--tb-text-secondary);
+    --text-tertiary: var(--tb-text-tertiary);
+    --text-inverse: var(--tb-text-inverse);
+    --accent: var(--tb-accent);
+    --accent-hover: var(--tb-accent-hover);
+    --accent-pressed: var(--tb-accent-pressed);
+    --accent-light: var(--tb-accent-light);
+    --success: var(--tb-success);
+    --success-light: var(--tb-success-light);
+    --warning: var(--tb-warning);
+    --warning-light: var(--tb-warning-light);
+    --danger: var(--tb-danger);
+    --danger-light: var(--tb-danger-light);
+    --info: var(--tb-info);
+    --info-light: var(--tb-info-light);
+    --border: var(--tb-border);
+    --border-strong: var(--tb-border-strong);
+    --border-hover: var(--tb-border-hover);
+    --shadow-sm: var(--tb-shadow-sm);
+    --shadow-md: var(--tb-shadow-md);
+    --shadow-lg: var(--tb-shadow-lg);
+    --shadow-xl: var(--tb-shadow-xl);
+    --radius-sm: var(--tb-radius-sm);
+    --radius-md: var(--tb-radius-md);
+    --radius-lg: var(--tb-radius-lg);
+    --radius-full: var(--tb-radius-full);
+    --transition: var(--tb-transition);
+    --transition-fast: var(--tb-transition-fast);
+    --bg: var(--tb-bg-primary);
+    --card: var(--tb-bg-card);
+    --surface: var(--tb-bg-card);
+    --text: var(--tb-text-primary);
+    --text-2: var(--tb-text-secondary);
+    --text-3: var(--tb-text-tertiary);
 }
 
 /* ==================== 暗色主题 ==================== */
@@ -108,6 +151,49 @@
     --tb-shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.6);
 
     /* 圆角和过渡保持不变 */
+
+    /* ===== 兼容性别名：让模板可以不修改即可使用 theme.css ===== */
+    --bg-primary: var(--tb-bg-primary);
+    --bg-secondary: var(--tb-bg-secondary);
+    --bg-card: var(--tb-bg-card);
+    --bg-hover: var(--tb-bg-hover);
+    --bg-active: var(--tb-bg-active);
+    --bg-overlay: var(--tb-bg-overlay);
+    --text-primary: var(--tb-text-primary);
+    --text-secondary: var(--tb-text-secondary);
+    --text-tertiary: var(--tb-text-tertiary);
+    --text-inverse: var(--tb-text-inverse);
+    --accent: var(--tb-accent);
+    --accent-hover: var(--tb-accent-hover);
+    --accent-pressed: var(--tb-accent-pressed);
+    --accent-light: var(--tb-accent-light);
+    --success: var(--tb-success);
+    --success-light: var(--tb-success-light);
+    --warning: var(--tb-warning);
+    --warning-light: var(--tb-warning-light);
+    --danger: var(--tb-danger);
+    --danger-light: var(--tb-danger-light);
+    --info: var(--tb-info);
+    --info-light: var(--tb-info-light);
+    --border: var(--tb-border);
+    --border-strong: var(--tb-border-strong);
+    --border-hover: var(--tb-border-hover);
+    --shadow-sm: var(--tb-shadow-sm);
+    --shadow-md: var(--tb-shadow-md);
+    --shadow-lg: var(--tb-shadow-lg);
+    --shadow-xl: var(--tb-shadow-xl);
+    --radius-sm: var(--tb-radius-sm);
+    --radius-md: var(--tb-radius-md);
+    --radius-lg: var(--tb-radius-lg);
+    --radius-full: var(--tb-radius-full);
+    --transition: var(--tb-transition);
+    --transition-fast: var(--tb-transition-fast);
+    --bg: var(--tb-bg-primary);
+    --card: var(--tb-bg-card);
+    --surface: var(--tb-bg-card);
+    --text: var(--tb-text-primary);
+    --text-2: var(--tb-text-secondary);
+    --text-3: var(--tb-text-tertiary);
 }
 
 /* ==================== 基础重置 ==================== */

@@ -5,14 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            --bg-primary: #f5f5f7;
-            --bg-card: #ffffff;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --accent: #0071e3;
+            /* 其余主题变量由 theme.css 统一提供 */
             --border: rgba(0, 0, 0, 0.08);
         }
         [data-theme="dark"] {
@@ -20,7 +16,6 @@
             --bg-card: #1c1c1e;
             --text-primary: #f5f5f7;
             --text-secondary: #86868b;
-            --accent: #0a84ff;
             --border: rgba(255, 255, 255, 0.1);
         }
 
@@ -219,6 +214,14 @@
             color: var(--text-secondary);
             line-height: 1.6;
         }
+
+        /* Mobile responsiveness */
+        @media (max-width: 480px) {
+            .login-card { padding: 28px 20px; }
+            .logo-area { margin-bottom: 24px; }
+            .logo-icon { width: 64px; height: 64px; font-size: 32px; }
+            .theme-toggle { width: 44px; height: 44px; }
+        }
     </style>
 </head>
 <body>
@@ -296,7 +299,7 @@
         游客模式下数据仅保存在本地
     </div>
 
-    <script src="/static/js/components.js?v=20260813v6"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>ToolboxTheme.init();</script>
 </body>
 </html>

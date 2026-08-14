@@ -5,31 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会议纪要 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
-        :root {
-            --bg-primary: #f5f5f7; --bg-card: #ffffff; --bg-secondary: #fafafa;
-            --text-primary: #1d1d1f; --text-secondary: #86868b; --text-tertiary: #aeaeae;
-            --accent: #0071e3; --accent-hover: #0077ed; --accent-light: rgba(0,113,227,0.1);
-            --danger: #ff3b30; --danger-light: rgba(255,59,48,0.1);
-            --success: #34c759; --success-light: rgba(52,199,89,0.1);
-            --warning: #ff9500; --warning-light: rgba(255,149,0,0.1);
-            --border: rgba(0,0,0,0.06); --border-strong: rgba(0,0,0,0.12);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 2px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 980px;
-        }
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1e; --bg-card: #2c2c30; --bg-secondary: #242428;
-            --text-primary: #f0f0f2; --text-secondary: #9b9ba3; --text-tertiary: #6b6b73;
-            --accent: #0a84ff; --accent-hover: #3a9eff; --accent-light: rgba(10,132,255,0.15);
-            --danger: #ff453a; --danger-light: rgba(255,69,58,0.15);
-            --success: #30d158; --success-light: rgba(48,209,88,0.15);
-            --warning: #ffd60a; --warning-light: rgba(255,214,10,0.15);
-            --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.15);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
-        }
+        /* 主题变量由 theme.css 统一提供，此处仅保留页面专属样式 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -131,7 +109,13 @@
 
         /* 主体布局 */
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .btn { min-height: 44px; }
+            .btn-sm { padding: 8px 14px; min-height: 44px; }
+            .theme-toggle { width: 44px; height: 44px; }
+            .page { padding: 16px 12px; }
+        }
         .transcript-panel, .minutes-panel {
             background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px;
             box-shadow: var(--shadow-sm); border: 1px solid var(--border);
@@ -457,7 +441,7 @@
         </div>
 
         <!-- 生成纪要按钮（通用） -->
-        <div class="recording-bar" style="justify-content: center; gap: 12px;">
+        <div class="recording-bar" style="justify-content: center; gap: 12px; flex-wrap: wrap;">
             <label style="font-size: 14px; color: var(--text-secondary);">AI模型:</label>
             <select id="aiModel" style="padding: 10px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; background: var(--bg-card, #fff); color: var(--text-primary, #333); font-size: 14px; cursor: pointer;">
                 <option value="">加载中...</option>
@@ -507,7 +491,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
         // ==================== 全局状态 ====================
         let currentMode = 'system';
@@ -515,6 +499,7 @@
         let minutesHTML = '';
         let startTime = 0;
         let timerInterval = null;
+        let isUploading = false;
 
         // 麦克风模式 — Web Speech API（备用）
         let recognition = null;
@@ -653,6 +638,7 @@
                 document.getElementById('sysRecLabel').textContent = '正在捕获系统音频...';
                 document.getElementById('sysStartBtn').disabled = true;
                 document.getElementById('sysStopBtn').disabled = false;
+                if (timerInterval) clearInterval(timerInterval);
                 timerInterval = setInterval(updateSysTimer, 1000);
 
                 // 启动音频电平监控，帮助用户确认是否真正捕获到声音
@@ -805,6 +791,8 @@
 
         // ==================== 上传音频并转写 ====================
         function uploadAudioForTranscription(audioBlob, filename) {
+            if (isUploading) { showToast('正在上传中，请稍候...', 'info'); return; }
+            isUploading = true;
             const progressEl = document.getElementById('uploadProgress');
             const statusEl = document.getElementById('uploadStatus');
             const percentEl = document.getElementById('uploadPercent');
@@ -910,6 +898,8 @@
                 // 恢复录音状态按钮，允许用户重试
                 const sysLabel = document.getElementById('sysRecLabel');
                 if (sysLabel) sysLabel.textContent = '上传失败，可重新捕获音频';
+            }).finally(() => {
+                isUploading = false;
             });
         }
 
@@ -1088,6 +1078,7 @@
                 document.getElementById('micStartBtn').disabled = true;
                 document.getElementById('micStopBtn').disabled = false;
                 startTime = Date.now();
+                if (timerInterval) clearInterval(timerInterval);
                 timerInterval = setInterval(updateMicTimer, 1000);
 
             } catch (err) {
@@ -1520,7 +1511,7 @@
 
         function getFullTranscript() { return transcriptEntries.map(e => e.text).join('\n'); }
 
-        // ==================== AI生成会议纪要 ====================
+        // ==================== AI生成会议纪要（SSE 流式） ====================
         async function generateMinutes() {
             const transcript = getFullTranscript();
             if (!transcript || transcript.length < 10) { showToast('转写内容太少', 'warning'); return; }
@@ -1528,26 +1519,36 @@
             const attendees = document.getElementById('attendees').value.trim() || '未填写';
 
             const area = document.getElementById('minutesArea');
-            area.innerHTML = '<div class="loading-container"><div class="spinner"></div><div class="loading-text">AI正在生成会议纪要，请稍候...</div></div>';
+            area.innerHTML = '<div id="minutesStream" style="line-height:1.8; font-size:14px; min-height:60px;"></div><div id="minutesBar" style="text-align:center; padding:8px 0; color:var(--text-tertiary); font-size:12px;"><span class="spinner" style="display:inline-block; width:14px; height:14px; border:2px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px;"></span>AI正在生成会议纪要...</div>';
             document.getElementById('generateBtn').disabled = true;
 
-            try {
-                const resp = await fetch('/api/generate-minutes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ transcript, title, attendees, date: new Date().toLocaleDateString('zh-CN'), model: document.getElementById('aiModel')?.value || '' })
-                });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
-                minutesHTML = data.minutes || '<p>生成失败</p>';
-                area.innerHTML = minutesHTML;
-                showToast('会议纪要已生成', 'success');
-            } catch (err) {
-                area.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="opacity:0.5;">❌</div><div class="empty-state-text" style="color:var(--danger);">生成失败: ${escapeHtml(err.message)}</div><div style="font-size:13px;color:var(--text-tertiary);margin-top:8px;">请检查AI配置或稍后重试</div></div>`;
-                showToast('生成失败: ' + err.message, 'error');
-            } finally {
-                document.getElementById('generateBtn').disabled = false;
-            }
+            var streamEl = document.getElementById('minutesStream');
+            var barEl = document.getElementById('minutesBar');
+
+            await ToolboxSSE.postStream('/api/generate-minutes-stream', {
+                transcript, title, attendees, date: new Date().toLocaleDateString('zh-CN'), model: document.getElementById('aiModel')?.value || ''
+            }, {
+                onChunk: function(chunk, fullText) {
+                    var html = (typeof ToolboxMarkdown !== 'undefined')
+                        ? ToolboxMarkdown.renderSafe(fullText)
+                        : escapeHtml(fullText).replace(/\n/g, '<br>');
+                    streamEl.innerHTML = html;
+                },
+                onDone: function(fullText) {
+                    if (barEl) barEl.remove();
+                    var html = (typeof ToolboxMarkdown !== 'undefined')
+                        ? ToolboxMarkdown.renderSafe(fullText || '')
+                        : escapeHtml(fullText || '').replace(/\n/g, '<br>');
+                    minutesHTML = html;
+                    area.innerHTML = html;
+                    showToast('会议纪要已生成', 'success');
+                },
+                onError: function(err) {
+                    area.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="opacity:0.5;">❌</div><div class="empty-state-text" style="color:var(--danger);">生成失败: ${escapeHtml(err)}</div><div style="font-size:13px;color:var(--text-tertiary);margin-top:8px;">请检查AI配置或稍后重试</div></div>`;
+                    showToast('生成失败: ' + err, 'error');
+                }
+            });
+            document.getElementById('generateBtn').disabled = false;
         }
 
         // ==================== 纪要操作 ====================
@@ -1562,7 +1563,9 @@
             const title = document.getElementById('meetingTitle').value.trim() || '会议纪要';
             const date = new Date().toLocaleDateString('zh-CN');
             const attendees = document.getElementById('attendees').value.trim() || '';
-            const fullHTML = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${title}</title><style>body{font-family:-apple-system,'PingFang SC',sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.8;}h1{font-size:24px;border-bottom:2px solid #0071e3;padding-bottom:8px;}h2{font-size:18px;margin-top:24px;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f7;}</style></head><body><h1>${title}</h1><p>📅 日期: ${date}<br>👥 参会人员: ${attendees}</p>${minutesHTML}</body></html>`;
+            const safeTitle = escapeHtml(title);
+            const safeAttendees = escapeHtml(attendees);
+            const fullHTML = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title><style>body{font-family:-apple-system,'PingFang SC',sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.8;}h1{font-size:24px;border-bottom:2px solid #0071e3;padding-bottom:8px;}h2{font-size:18px;margin-top:24px;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f7;}</style></head><body><h1>${safeTitle}</h1><p>📅 日期: ${date}<br>👥 参会人员: ${safeAttendees}</p>${minutesHTML}</body></html>`;
             const blob = new Blob([fullHTML], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `${title}_${date.replace(/\//g,'')}.html`; a.click();
@@ -1582,18 +1585,14 @@
             setTimeout(() => { t.classList.remove('show'); setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 300); }, duration);
         }
         function toggleTheme() {
-            const isDark = ToolboxTheme.isDark();
-            const next = isDark ? 'light' : 'dark';
-            ToolboxTheme.setTheme(next);
-            document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+            // no-op：本模板中 #themeBtn 不存在，避免引用空元素
         }
-        document.addEventListener('themechange', (e) => { document.getElementById('themeBtn').textContent = e.detail.isDark ? '☀️' : '🌙'; });
+        document.addEventListener('themechange', (e) => { const tb = document.getElementById('themeBtn'); if(tb) tb.textContent = e.detail.isDark ? '☀️' : '🌙'; });
 
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             document.getElementById('meetingTitle').value = `会议_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
 
             // 动态加载 AI 模型列表
             fetch('/api/ai-models').then(r => {
@@ -1618,6 +1617,12 @@
                 document.getElementById('aiModel').innerHTML = '<option value="">模型加载失败: ' + err.message + '</option>';
             });
         });
+
+        // 草稿恢复
+        var draftMgr = ToolboxDraft.init('meeting_minutes', {
+            meetingTitle: 'meetingTitle',
+            attendees: 'attendees'
+        }, 3000);
     </script>
 </body>
 </html>

@@ -5,32 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能周报生成 - 工具集</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3?v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
-        /* ==================== 主题变量（与全站一致，支持暗色模式） ==================== */
-        :root {
-            --bg-primary: #f5f5f7; --bg-card: #ffffff; --bg-secondary: #fafafa;
-            --text-primary: #1d1d1f; --text-secondary: #86868b; --text-tertiary: #aeaeae;
-            --accent: #0071e3; --accent-hover: #0077ed; --accent-light: rgba(0,113,227,0.1);
-            --danger: #ff3b30; --danger-light: rgba(255,59,48,0.1);
-            --success: #34c759; --success-light: rgba(52,199,89,0.1);
-            --warning: #ff9500; --warning-light: rgba(255,149,0,0.1);
-            --border: rgba(0,0,0,0.06); --border-strong: rgba(0,0,0,0.12);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 2px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 980px;
-        }
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1e; --bg-card: #2c2c30; --bg-secondary: #242428;
-            --text-primary: #f0f0f2; --text-secondary: #9b9ba3; --text-tertiary: #6b6b73;
-            --accent: #0a84ff; --accent-hover: #3a9eff; --accent-light: rgba(10,132,255,0.15);
-            --danger: #ff453a; --danger-light: rgba(255,69,58,0.15);
-            --success: #30d158; --success-light: rgba(48,209,88,0.15);
-            --warning: #ffd60a; --warning-light: rgba(255,214,10,0.15);
-            --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.15);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
-        }
+        /* 主题变量由 theme.css 统一提供，此处仅保留页面专属样式 */
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -203,6 +180,8 @@
             .card { padding: 20px; }
             .action-row { flex-direction: column; align-items: stretch; }
             .action-row .btn { width: 100%; }
+            .btn-sm { padding: 10px 18px; min-height: 44px; }
+            .form-input, .form-select { min-height: 44px; }
         }
 
         /* ==================== 打印 / 导出 ==================== */
@@ -327,7 +306,7 @@
     </div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
         // ==================== 全局状态 ====================
         let reportHTML = '';
@@ -532,6 +511,16 @@
                 document.getElementById('model').innerHTML = '<option value="">模型加载失败: ' + err.message + '</option>';
             });
         });
+
+        // 草稿恢复
+        var draftMgr = ToolboxDraft.init('weekly_report', {
+            name: 'name',
+            weekRange: 'weekRange',
+            notes: 'notes',
+            meetings: 'meetings',
+            crIssues: 'crIssues',
+            extra: 'extra'
+        }, 3000);
     </script>
 </body>
 </html>

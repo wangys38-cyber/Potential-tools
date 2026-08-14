@@ -8,7 +8,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="工具集">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="prefetch" href="/test-report">
     <link rel="prefetch" href="/excel-analysis">
@@ -21,26 +21,16 @@
     <link rel="prefetch" href="/settings">
     <style>
         :root {
-            --bg-primary: #f5f5f7;
-            --bg-card: #ffffff;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --accent: #0071e3;
-            --border: rgba(0, 0, 0, 0.06);
+            /* 以下变量为页面定制覆盖；其余主题变量由 theme.css 统一提供 */
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
             --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.08);
-            --radius-md: 12px;
             --radius-lg: 18px;
-            --radius-full: 980px;
         }
         [data-theme="dark"] {
             --bg-primary: #000000;
             --bg-card: #1c1c1e;
             --text-primary: #f5f5f7;
             --text-secondary: #86868b;
-            --accent: #0a84ff;
-            --border: rgba(255, 255, 255, 0.08);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
             --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.5);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,10 +310,16 @@
             .search-hint { display: none; }
             .tool-card { padding: 18px; }
             .user-info .logout-btn { padding: 4px 8px; font-size: 12px; }
+            .nav-btn { width: 44px; height: 44px; }
+            .nav-cmdk { min-height: 40px; }
+            .category-chip { padding: 10px 18px; min-height: 44px; }
+            .fav-btn { padding: 10px; min-height: 44px; }
         }
         @media (max-width: 480px) {
             .hero h1 { font-size: 28px; }
             .nav-kbd { display: none; }
+            .logout-btn { padding: 8px 14px; min-height: 44px; }
+            .login-btn { padding: 10px 20px; min-height: 44px; }
         }
     </style>
 </head>
@@ -402,7 +398,7 @@
     </div>
 
     <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
     // ===== PWA Service Worker 注册 =====
     if ('serviceWorker' in navigator) {

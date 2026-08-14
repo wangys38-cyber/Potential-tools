@@ -9,6 +9,351 @@
  * 4. 调用 ToolboxUpload.create(element, options) 创建上传组件
  */
 
+// ==================== 工具函数 ====================
+function _fetchWithTimeout(url, options, timeoutMs) {
+    timeoutMs = timeoutMs || 15000;
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, timeoutMs);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+        .finally(function() { clearTimeout(timer); });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// ==================== 统一 Markdown 渲染器 ====================
+/**
+ * 全站共享的 Markdown → HTML 渲染器
+ * 支持：代码块、行内代码、h1-h3、粗体、斜体、链接、引用、列表、表格、分割线
+ * 安全：先转义 HTML，再解析 Markdown，链接协议白名单
+ */
+const ToolboxMarkdown = (function() {
+
+    function render(md) {
+        if (!md) return '';
+        var text = String(md);
+
+        // 1. 先转义 HTML
+        text = escapeHtml(text);
+
+        // 2. 提取代码块（保护内容不被后续替换影响）
+        var codeBlocks = [];
+        text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(match, lang, code) {
+            var idx = codeBlocks.length;
+            var langClass = lang ? ' class="language-' + escapeHtml(lang) + '"' : '';
+            codeBlocks.push('<pre' + langClass + '><code>' + code.replace(/\n$/, '') + '</code></pre>');
+            return '\u0000CODEBLOCK' + idx + '\u0000';
+        });
+
+        // 3. 行内代码
+        var inlineCodes = [];
+        text = text.replace(/`([^`]+)`/g, function(match, code) {
+            var idx = inlineCodes.length;
+            inlineCodes.push('<code>' + code + '</code>');
+            return '\u0000INLINE' + idx + '\u0000';
+        });
+
+        // 4. 表格（简单的 Markdown 表格语法）
+        text = renderTable(text);
+
+        // 5. 标题
+        text = text.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+        text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+        text = text.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+
+        // 6. 分割线
+        text = text.replace(/^---+$/gm, '<hr>');
+
+        // 7. 引用
+        text = text.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+        // 8. 粗体和斜体
+        text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // 9. 链接（协议白名单）
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(match, label, url) {
+            var trimmed = url.trim();
+            if (/^(https?:|mailto:|\/|#)/i.test(trimmed)) {
+                return '<a href="' + trimmed + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+            }
+            return '<span>' + label + '</span>';
+        });
+
+        // 10. 无序列表
+        text = text.replace(/^(\s*)[-*] (.+)$/gm, function(match, indent, content) {
+            return '<li>' + content + '</li>';
+        });
+        text = text.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, function(match) {
+            return '<ul>' + match + '</ul>';
+        });
+
+        // 11. 有序列表
+        text = text.replace(/^(\s*)\d+\. (.+)$/gm, function(match, indent, content) {
+            return '<oli>' + content + '</oli>';
+        });
+        text = text.replace(/(<oli>[\s\S]*?<\/oli>)(?!\s*<oli>)/g, function(match) {
+            return '<ol>' + match.replace(/<oli>/g, '<li>').replace(/<\/oli>/g, '</li>') + '</ol>';
+        });
+
+        // 12. 段落和换行
+        text = text.replace(/\n\n+/g, '\n\n');
+        var paragraphs = text.split(/\n\n/);
+        text = paragraphs.map(function(p) {
+            p = p.trim();
+            if (!p) return '';
+            // 不包裹已经是块级元素的内容
+            if (/^<(h[2-4]|hr|blockquote|pre|ul|ol|table|div)/.test(p)) return p;
+            if (p.indexOf('\u0000CODEBLOCK') === 0) return p;
+            return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+        }).join('\n');
+
+        // 13. 还原代码块和行内代码
+        text = text.replace(/\u0000CODEBLOCK(\d+)\u0000/g, function(match, idx) {
+            return codeBlocks[parseInt(idx)];
+        });
+        text = text.replace(/\u0000INLINE(\d+)\u0000/g, function(match, idx) {
+            return inlineCodes[parseInt(idx)];
+        });
+
+        return text;
+    }
+
+    function renderTable(text) {
+        // 匹配 Markdown 表格：| col1 | col2 |\n|---|---|\n| a | b |
+        var tableRegex = /((?:^\|.+?\|$\n?)+)/gm;
+        return text.replace(tableRegex, function(block) {
+            var lines = block.trim().split('\n');
+            if (lines.length < 2) return block;
+
+            // 第二行是分隔线
+            if (!/^\|?[\s-:|]+\|?$/.test(lines[1])) return block;
+
+            // 解析表头
+            var headers = parseTableRow(lines[0]);
+            // 解析数据行
+            var rows = [];
+            for (var i = 2; i < lines.length; i++) {
+                rows.push(parseTableRow(lines[i]));
+            }
+
+            var html = '<table><thead><tr>';
+            headers.forEach(function(h) {
+                html += '<th>' + h + '</th>';
+            });
+            html += '</tr></thead><tbody>';
+            rows.forEach(function(row) {
+                html += '<tr>';
+                row.forEach(function(cell) {
+                    html += '<td>' + cell + '</td>';
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        });
+    }
+
+    function parseTableRow(line) {
+        line = line.trim();
+        if (line.startsWith('|')) line = line.slice(1);
+        if (line.endsWith('|')) line = line.slice(0, -1);
+        return line.split('|').map(function(c) { return c.trim(); });
+    }
+
+    /** 安全渲染：先 render 再用 DOMPurify 风格的清理（简化版） */
+    function renderSafe(md) {
+        var html = render(md);
+        // 移除可能的危险标签属性（on* 事件处理器）
+        html = html.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+        html = html.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+        html = html.replace(/\son\w+\s*=\s*[^\s>]+/gi, '');
+        return html;
+    }
+
+    return { render: render, renderSafe: renderSafe };
+})();
+
+// ==================== 表单草稿恢复 ====================
+/**
+ * 自动保存和恢复表单输入内容
+ * 使用 localStorage 持久化，防止页面刷新或崩溃导致数据丢失
+ */
+const ToolboxDraft = (function() {
+
+    function getKey(pageId, fieldId) {
+        var uid = window._SERVER_USER_ID || 'guest';
+        return 'draft_' + pageId + '_' + fieldId + '_u' + uid;
+    }
+
+    /**
+     * 初始化草稿恢复
+     * @param {string} pageId - 页面唯一标识
+     * @param {Object} fields - { fieldId: elementId } 映射
+     * @param {number} interval - 自动保存间隔（毫秒），默认 3000
+     */
+    function init(pageId, fields, interval) {
+        interval = interval || 3000;
+        var timer = null;
+
+        // 恢复保存的草稿
+        Object.keys(fields).forEach(function(fieldId) {
+            var el = document.getElementById(fields[fieldId]);
+            if (!el) return;
+
+            var saved = null;
+            try { saved = localStorage.getItem(getKey(pageId, fieldId)); } catch(e) {}
+
+            if (saved !== null && saved !== '') {
+                // 只在有保存数据时恢复（不覆盖已有内容）
+                if (!el.value) {
+                    el.value = saved;
+                    // 标记为已恢复草稿
+                    el.setAttribute('data-draft-restored', 'true');
+                }
+            }
+
+            // 监听输入变化
+            el.addEventListener('input', function() {
+                el.removeAttribute('data-draft-restored');
+                scheduleSave();
+            });
+        });
+
+        function scheduleSave() {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(saveAll, interval);
+        }
+
+        function saveAll() {
+            Object.keys(fields).forEach(function(fieldId) {
+                var el = document.getElementById(fields[fieldId]);
+                if (!el) return;
+                try {
+                    localStorage.setItem(getKey(pageId, fieldId), el.value);
+                } catch(e) {
+                    console.error('草稿保存失败:', e);
+                }
+            });
+        }
+
+        // 页面卸载前保存
+        window.addEventListener('beforeunload', saveAll);
+
+        // 页面隐藏时保存
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) saveAll();
+        });
+
+        return {
+            save: saveAll,
+            clear: function() {
+                Object.keys(fields).forEach(function(fieldId) {
+                    try { localStorage.removeItem(getKey(pageId, fieldId)); } catch(e) {}
+                });
+            },
+            hasDraft: function() {
+                return Object.keys(fields).some(function(fieldId) {
+                    try {
+                        return localStorage.getItem(getKey(pageId, fieldId)) !== null;
+                    } catch(e) { return false; }
+                });
+            }
+        };
+    }
+
+    return { init: init, getKey: getKey };
+})();
+
+// ==================== SSE 流式消费器 ====================
+const ToolboxSSE = (function() {
+    /**
+     * 发起 POST 请求并消费 SSE 流式响应
+     * @param {string} url - API 端点
+     * @param {object} body - POST body（将被 JSON.stringify）
+     * @param {object} opts - 选项
+     *   opts.onChunk(text)  — 每收到一段文本时调用
+     *   opts.onDone(fullText) — 流结束时调用
+     *   opts.onError(err)  — 出错时调用
+     * @returns {Promise<void>}
+     */
+    async function postStream(url, body, opts) {
+        opts = opts || {};
+        var onChunk = opts.onChunk || function() {};
+        var onDone = opts.onDone || function() {};
+        var onError = opts.onError || function() {};
+
+        try {
+            var resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body || {})
+            });
+
+            if (!resp.ok) {
+                var errText = '';
+                try { errText = (await resp.json()).error || ''; } catch(e) {
+                    try { errText = await resp.text(); } catch(e2) {}
+                }
+                onError(errText || ('HTTP ' + resp.status));
+                return;
+            }
+
+            var reader = resp.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+            var fullText = '';
+
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+                buffer += decoder.decode(chunk.value, { stream: true });
+
+                // 按行解析 SSE
+                var lines = buffer.split('\n');
+                buffer = lines.pop(); // 保留最后不完整的一行
+
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (!line.startsWith('data:')) continue;
+                    var jsonStr = line.substring(5).trim();
+                    if (!jsonStr) continue;
+                    try {
+                        var data = JSON.parse(jsonStr);
+                        // 检查错误
+                        if (data.error) {
+                            onError(data.error);
+                            return;
+                        }
+                        // 提取内容（兼容 DashScope 和 OpenAI 格式）
+                        var content = '';
+                        if (data.output && data.output.choices && data.output.choices[0]) {
+                            content = data.output.choices[0].message.content;
+                        } else if (data.choices && data.choices[0]) {
+                            content = data.choices[0].delta.content || data.choices[0].message.content || '';
+                        }
+                        if (content) {
+                            fullText += content;
+                            onChunk(content, fullText);
+                        }
+                    } catch(e) {
+                        // 忽略解析失败的行
+                    }
+                }
+            }
+
+            onDone(fullText);
+        } catch(e) {
+            onError(e.message || '网络错误');
+        }
+    }
+
+    return { postStream: postStream };
+})();
+
 // ==================== 主题管理器 ====================
 const ToolboxTheme = (function() {
     const STORAGE_KEY = 'toolbox_theme';
@@ -59,7 +404,7 @@ const ToolboxTheme = (function() {
     function setTheme(theme) {
         applyTheme(theme);
         // 尝试同步到服务器
-        fetch('/api/user/preferences', {
+        _fetchWithTimeout('/api/user/preferences', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ theme })
@@ -402,6 +747,17 @@ const ToolboxUtils = {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(text).then(function() {
                 ToolboxToast.success('已复制到剪贴板');
+            }).catch(function() {
+                // Fallback to execCommand
+                var textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try { document.execCommand('copy'); } catch(e) {}
+                document.body.removeChild(textarea);
+                ToolboxToast.success('已复制到剪贴板');
             });
         } else {
             var ta = document.createElement('textarea');
@@ -608,6 +964,18 @@ const ToolboxAIChat = (function() {
             .tb-aichat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(99,102,241,0.4);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
             .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.5)}
             .tb-aichat-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
+            @media (max-width: 480px) {
+                .tb-aichat-panel {
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    right: 0 !important;
+                    top: 0 !important;
+                    border-radius: 0 !important;
+                }
+                .tb-aichat-fab {
+                    bottom: 80px !important;
+                }
+            }
             .tb-aichat-panel.open{right:0}
             [data-theme="dark"] .tb-aichat-panel{background:#1a1a2e;box-shadow:-4px 0 24px rgba(0,0,0,0.5)}
             .tb-aichat-header{padding:16px 20px;border-bottom:1px solid var(--tb-border,#e5e5ea);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -703,7 +1071,7 @@ const ToolboxAIChat = (function() {
         var select = document.getElementById('tb-aichat-model-select');
         if (!select) return;
         try {
-            var resp = await fetch('/api/ai-models');
+            var resp = await _fetchWithTimeout('/api/ai-models');
             if (resp.status === 401) {
                 select.innerHTML = '<option value="">请先登录后使用</option>';
                 return;
@@ -712,7 +1080,7 @@ const ToolboxAIChat = (function() {
             if (data.models && data.models.length > 0) {
                 select.innerHTML = data.models.map(function(m) {
                     var sel = m.id === data.current ? 'selected' : '';
-                    return '<option value="' + m.id + '" ' + sel + '>' + m.name + ' — ' + m.desc + '</option>';
+                    return '<option value="' + escapeHtml(m.id) + '" ' + sel + '>' + escapeHtml(m.name) + ' — ' + escapeHtml(m.desc) + '</option>';
                 }).join('');
                 currentModel = data.current || (data.models[0] && data.models[0].id) || '';
             } else if (data.error) {
@@ -742,6 +1110,7 @@ const ToolboxAIChat = (function() {
         var bd = document.getElementById('tb-aichat-backdrop');
         if (bd) bd.classList.remove('show');
         isOpen = false;
+        if (abortController) { abortController.abort(); abortController = null; }
     }
 
     function setModel(m) { currentModel = m; }
@@ -767,6 +1136,12 @@ const ToolboxAIChat = (function() {
         var input = document.getElementById('tb-aichat-input');
         var text = input.value.trim();
         if (!text) return;
+        if (text.length > 50000) {
+            if (typeof ToolboxToast !== 'undefined') {
+                ToolboxToast.show('消息过长，请限制在50000字符以内', 'warning');
+            }
+            return;
+        }
 
         input.value = '';
         input.style.height = 'auto';
@@ -792,10 +1167,12 @@ const ToolboxAIChat = (function() {
             var sendBtn = document.getElementById('tb-aichat-send');
             sendBtn.disabled = true;
 
+            abortController = new AbortController();
             var resp = await fetch('/api/ai-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: messages, model: currentModel })
+                body: JSON.stringify({ messages: messages, model: currentModel }),
+                signal: abortController.signal
             });
 
             // 移除 typing
@@ -845,7 +1222,7 @@ const ToolboxAIChat = (function() {
                             var delta = choices[0].message && choices[0].message.content;
                             if (delta) {
                                 aiText += delta;
-                                aiEl.textContent = aiText;
+                                aiEl.innerHTML = (typeof ToolboxMarkdown !== 'undefined') ? ToolboxMarkdown.renderSafe(aiText) : escapeHtml(aiText);
                                 msgBox.scrollTop = msgBox.scrollHeight;
                             }
                         }
@@ -940,6 +1317,17 @@ const ToolboxOCR = (function() {
                 var text = document.getElementById('tb-ocr-result').textContent;
                 navigator.clipboard.writeText(text).then(function() {
                     if (window.ToolboxToast) ToolboxToast.show('已复制到剪贴板', 'success');
+                }).catch(function() {
+                    // Fallback to execCommand
+                    var textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try { document.execCommand('copy'); } catch(e) {}
+                    document.body.removeChild(textarea);
+                    if (window.ToolboxToast) ToolboxToast.show('已复制到剪贴板', 'success');
                 });
             };
 
@@ -952,7 +1340,8 @@ const ToolboxOCR = (function() {
                 .then(function(data) {
                     var resultEl = document.getElementById('tb-ocr-result');
                     if (data.error) {
-                        resultEl.innerHTML = '<span style="color:#ef4444">' + data.error + '</span>';
+                        resultEl.textContent = data.error;
+                        resultEl.style.color = '#ef4444';
                     } else {
                         resultEl.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;margin:0;max-height:300px;overflow-y:auto;font-family:inherit">' + escapeHtml(data.text || '(未识别到文字)') + '</pre>';
                         resultEl.style.color = '#1d1d1f';
@@ -960,7 +1349,9 @@ const ToolboxOCR = (function() {
                     }
                 })
                 .catch(function(err) {
-                    document.getElementById('tb-ocr-result').innerHTML = '<span style="color:#ef4444">请求失败: ' + err.message + '</span>';
+                    var errResultEl = document.getElementById('tb-ocr-result');
+                    errResultEl.textContent = '请求失败: ' + err.message;
+                    errResultEl.style.color = '#ef4444';
                 });
         };
         reader.readAsDataURL(blob);

@@ -554,20 +554,105 @@ a{color:var(--accent);text-decoration:none}
   box-shadow:var(--shadow);font-size:12px;color:var(--text-2);
 }
 
+/* ===== Mobile Top Bar (hidden on desktop) ===== */
+.mobile-topbar{
+  display:none;
+}
+.mobile-fab{
+  display:none;
+}
+
 /* ===== Responsive ===== */
 @media(max-width:768px){
   .sidebar{display:none}
-  .main-header{padding:12px 16px;flex-wrap:wrap}
-  .notes-area{padding:16px 16px 80px}
+  .main-header{padding:10px 12px;flex-wrap:wrap;gap:8px}
+  .notes-area{padding:12px 12px 80px}
   .notes-grid.grid-view{grid-template-columns:1fr}
   .modal{max-width:100%;max-height:90vh}
   .detail-title{font-size:20px}
   .theme-grid{grid-template-columns:repeat(2,1fr)}
   .sort-dropdown{display:none}
+
+  /* Mobile top bar */
+  .mobile-topbar{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;background:var(--surface);
+    border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:10;
+  }
+  .mobile-topbar .mt-logo{
+    font-size:16px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:6px;flex-shrink:0;
+  }
+  .mobile-topbar .mt-logo-icon{font-size:18px}
+  .mobile-topbar .mt-search{
+    flex:1;display:flex;align-items:center;gap:6px;
+    padding:6px 10px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius-sm);
+  }
+  .mobile-topbar .mt-search svg{width:15px;height:15px;color:var(--text-3)}
+  .mobile-topbar .mt-search input{
+    flex:1;font-size:13px;border:none;background:none;outline:none;color:var(--text);
+  }
+  .mobile-topbar .mt-btn{
+    width:36px;height:36px;border-radius:8px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-2);background:var(--bg);border:1px solid var(--border);
+    transition:all .12s;
+  }
+  .mobile-topbar .mt-btn:active{transform:scale(.95);background:var(--surface-hover)}
+  .mobile-topbar .mt-btn svg{width:18px;height:18px}
+
+  /* Floating action button for new note */
+  .mobile-fab{
+    display:flex;
+    position:fixed;bottom:20px;right:20px;
+    width:56px;height:56px;border-radius:50%;
+    background:var(--accent);color:#fff;
+    align-items:center;justify-content:center;
+    box-shadow:0 4px 16px rgba(0,0,0,.2);
+    z-index:30;transition:all .2s;
+  }
+  .mobile-fab:active{transform:scale(.92)}
+  .mobile-fab svg{width:26px;height:26px}
+
+  /* Sync status badge */
+  .sync-badge{
+    display:flex;align-items:center;gap:4px;
+    font-size:11px;color:var(--text-3);
+    padding:2px 8px;border-radius:var(--radius-sm);
+    background:var(--bg);flex-shrink:0;
+  }
+  .sync-badge.syncing{color:var(--accent)}
+  .sync-badge.synced{color:var(--success)}
+  .sync-badge.error{color:var(--danger)}
+  .sync-badge svg{width:12px;height:12px}
 }
 </style>
 </head>
 <body>
+
+<!-- Mobile Top Bar -->
+<div class="mobile-topbar">
+  <div class="mt-logo">
+    <span class="mt-logo-icon">📝</span>
+    <span>牛马笔记</span>
+  </div>
+  <div class="mt-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+    <input type="text" id="search-mobile" placeholder="搜索笔记..." oninput="document.getElementById('search').value=this.value;render()">
+  </div>
+  <button class="mt-btn" onclick="openSettings()" title="设置">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="sync-badge" id="sync-badge-mobile" style="display:none"></div>
+</div>
+
+<!-- Mobile Floating Action Button -->
+<button class="mobile-fab" onclick="openEditor()" title="新建笔记">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+</button>
+
 <div class="app" id="app">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -652,6 +737,7 @@ a{color:var(--accent);text-decoration:none}
         </div>
       </div>
       <div class="main-stats" id="stats"></div>
+      <div class="sync-badge" id="sync-badge-desktop" style="display:none"></div>
     </div>
     <div class="notes-area" id="notes-area"></div>
   </main>
@@ -756,8 +842,8 @@ a{color:var(--accent);text-decoration:none}
       <div class="settings-section">
         <div class="settings-section-title">关于</div>
         <div style="font-size:13px;color:var(--text-3);line-height:1.6">
-          牛马笔记 v2.0 — 牛马专属记事本<br>
-          数据存储在浏览器本地，不会上传服务器<br>
+          牛马笔记 v2.1 — 牛马专属记事本<br>
+          登录后笔记自动云端同步，支持跨设备访问<br>
           快捷键：Ctrl+N 新建 / Esc 关闭弹窗
         </div>
       </div>
@@ -846,11 +932,188 @@ function loadState(){
 
 function saveState(){
   const data = {state:{notes:state.notes, currentTheme:settings.theme, searchQuery:state.searchQuery, viewMode:state.viewMode}, version:0};
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {
+    console.error('localStorage保存失败:', e);
+    // 尝试清理旧数据
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e2) {
+      console.error('localStorage仍不可用，仅同步到服务器');
+    }
+  }
+  // 触发服务端同步（防抖）
+  syncToServerDebounced();
 }
 
 function saveSettings(){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+/* ===== Server Sync ===== */
+let _syncTimer = null;
+let _lastSyncTime = 0;
+let _isSyncing = false;
+let _isFetching = false;
+let _lastFetchTime = 0;
+const SYNC_DEBOUNCE_MS = 2000; // 防抖：2秒内多次保存只同步一次
+
+function updateSyncBadge(status, text){
+  const badges = [
+    document.getElementById('sync-badge-desktop'),
+    document.getElementById('sync-badge-mobile')
+  ].filter(Boolean);
+  badges.forEach(b=>{
+    b.className = 'sync-badge ' + status;
+    b.style.display = 'flex';
+    let icon = '';
+    if(status === 'syncing') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56" stroke-linecap="round"/></svg>';
+    else if(status === 'synced') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    else if(status === 'error') icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>';
+    b.innerHTML = icon + (text || '');
+  });
+}
+
+function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs || 15000);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+        .finally(() => clearTimeout(timer));
+}
+
+function syncToServer(){
+  if(!window._SERVER_USER_ID) return; // 游客不同步
+  if(_isSyncing) {
+    // 如果正在同步，稍后重试
+    if(_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(syncToServer, SYNC_DEBOUNCE_MS);
+    return;
+  }
+
+  _isSyncing = true;
+  updateSyncBadge('syncing', '同步中...');
+
+  const payload = {
+    state: {
+      notes: state.notes,
+      viewMode: state.viewMode,
+      theme: settings.theme,
+      fontScale: settings.fontScale
+    }
+  };
+
+  fetchWithTimeout('/api/notes/sync', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    _isSyncing = false;
+    if(data.status === 'success'){
+      _lastSyncTime = data.server_updated_at || Date.now() / 1000;
+      updateSyncBadge('synced', '已同步');
+      // 3秒后隐藏
+      setTimeout(()=>{
+        const badges = [document.getElementById('sync-badge-desktop'), document.getElementById('sync-badge-mobile')].filter(Boolean);
+        badges.forEach(b=> b.style.display = 'none');
+      }, 3000);
+    } else {
+      updateSyncBadge('error', '同步失败');
+      console.error('Sync error:', data.error);
+    }
+  })
+  .catch(err => {
+    _isSyncing = false;
+    updateSyncBadge('error', '网络错误');
+    console.error('Sync network error:', err);
+  });
+}
+
+function syncToServerDebounced(){
+  if(!window._SERVER_USER_ID) return;
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncToServer, SYNC_DEBOUNCE_MS);
+}
+
+function syncFromServer(){
+  if(!window._SERVER_USER_ID) return Promise.resolve(false);
+  if(_isFetching) return Promise.resolve(false);
+  _isFetching = true;
+  return fetchWithTimeout('/api/notes/sync', {method: 'GET'}, 15000)
+    .then(r => r.json())
+    .then(data => {
+      if(data.status !== 'success' || !data.data){ _isFetching = false; return false; }
+
+      const serverState = data.data;
+      const serverNotes = serverState.notes || [];
+      const localNotes = state.notes || [];
+
+      // 合并策略：以笔记 ID 为 key 进行合并
+      // 服务端有但本地没有 → 添加（从其他设备同步过来的）
+      // 本地有但服务端没有 → 保留本地（新建未同步）
+      // 两边都有 → 取 updatedAt 更新的那个
+      const noteMap = new Map();
+
+      // 先放服务端的
+      serverNotes.forEach(n => noteMap.set(n.id, n));
+      // 再用本地的覆盖（如果本地更新）
+      localNotes.forEach(localNote => {
+        const serverNote = noteMap.get(localNote.id);
+        if(serverNote){
+          const localTime = new Date(localNote.updatedAt || 0).getTime();
+          const serverTime = new Date(serverNote.updatedAt || 0).getTime();
+          if(localTime >= serverTime){
+            noteMap.set(localNote.id, localNote);
+          }
+        } else {
+          // 本地有但服务端没有
+          noteMap.set(localNote.id, localNote);
+        }
+      });
+
+      const mergedNotes = Array.from(noteMap.values());
+      // 按 updatedAt 降序排列
+      mergedNotes.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+
+      // 如果合并后有变化，更新本地
+      const hasNewNotes = mergedNotes.length !== localNotes.length ||
+        mergedNotes.some(n => {
+          const local = localNotes.find(l => l.id === n.id);
+          return !local || local.updatedAt !== n.updatedAt;
+        });
+
+      if(hasNewNotes){
+        state.notes = mergedNotes;
+        if(serverState.viewMode) state.viewMode = serverState.viewMode;
+        saveState(); // 保存到本地
+        render();
+      }
+
+      // 同步设置
+      if(serverState.theme && serverState.theme !== settings.theme){
+        settings.theme = serverState.theme;
+        applyTheme(settings.theme);
+        saveSettings();
+      }
+      if(serverState.fontScale && serverState.fontScale !== settings.fontScale){
+        settings.fontScale = serverState.fontScale;
+        document.documentElement.style.setProperty('--font-scale', settings.fontScale / 100);
+        const slider = document.getElementById('font-scale');
+        const valLabel = document.getElementById('font-scale-value');
+        if(slider) slider.value = settings.fontScale;
+        if(valLabel) valLabel.textContent = settings.fontScale + '%';
+        saveSettings();
+      }
+
+      _lastSyncTime = data.server_updated_at || 0;
+      _isFetching = false;
+      return true;
+    })
+    .catch(err => {
+      _isFetching = false;
+      console.error('Sync from server failed:', err);
+      return false;
+    });
 }
 
 /* ===== Theme ===== */
@@ -918,7 +1181,14 @@ function renderMarkdown(text, currentNoteId){
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(match, text, url) {
+    // Only allow safe protocols
+    var trimmedUrl = url.trim();
+    if (/^(https?:|mailto:|\/|#)/i.test(trimmedUrl)) {
+      return '<a href="' + trimmedUrl + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+    }
+    return '<span>' + text + '</span>';
+  });
   html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
   html = html.replace(/^---$/gm, '<hr>');
   html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
@@ -1679,6 +1949,43 @@ applyTheme(settings.theme);
 document.documentElement.style.setProperty('--font-scale', settings.fontScale/100);
 initColorFilters();
 render();
+
+// 登录用户：从服务端同步笔记（跨设备同步）
+if(window._SERVER_USER_ID){
+  syncFromServer().then(synced => {
+    if(synced){
+      // 同步完成后，如果有本地未同步的笔记，推送到服务端
+      syncToServerDebounced();
+    } else {
+      // 服务端没有数据，把本地数据推上去
+      if(state.notes.length > 0){
+        syncToServerDebounced();
+      }
+    }
+  });
+
+  // 页面可见性变化时自动同步
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden && window._SERVER_USER_ID){
+        var now = Date.now();
+        if(now - _lastFetchTime > 30000) { // 至少30秒间隔
+            _lastFetchTime = now;
+            syncFromServer();
+        }
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if(_syncTimer && window._SERVER_USER_ID) {
+        clearTimeout(_syncTimer);
+        // Use sendBeacon for reliable delivery during page unload
+        var payload = JSON.stringify({
+            state: { notes: state.notes, viewMode: state.viewMode, theme: settings.theme, fontScale: settings.fontScale }
+        });
+        navigator.sendBeacon('/api/notes/sync', new Blob([payload], {type: 'application/json'}));
+    }
+  });
+}
 </script>
 <script src="/static/js/components.js?v=20260813v8"></script>
 </body>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>功德+1 🔔</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -137,13 +137,20 @@
         .achievement .title { font-size: 20px; font-weight: 700; color: #FFD700; margin-bottom: 6px; }
         .achievement .desc { font-size: 14px; color: rgba(255,255,255,0.6); }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .fish-area { width: 310px; height: 290px; }
             .fish-svg { width: 290px; height: 220px; }
             .mallet-wrap { width: 180px; height: 165px; top: -50px; }
             .total-merit { padding: 14px 20px; min-width: 110px; }
             .total-merit .value { font-size: 28px; }
+            .reset-btn, .back-btn { padding: 12px 20px; min-height: 44px; }
             .back-btn { left: 120px; }
+            body { overflow: auto !important; }
+        }
+
+        @media (max-width: 360px) {
+            .total-merit { min-width: 90px; padding: 10px 14px; }
+            .back-btn { left: 110px; }
         }
     </style>
 </head>
@@ -531,6 +538,6 @@
     </script>
     <div id="tb-nav-bar" style="display:none;"></div>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

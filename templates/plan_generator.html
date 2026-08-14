@@ -5,44 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>软件计划一键生成器</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v=20260813v3">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            --bg-primary: #f5f5f7;
-            --bg-card: #ffffff;
-            --bg-secondary: #fafafa;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --text-tertiary: #aeaeae;
-            --accent: #0071e3;
-            --accent-hover: #0077ed;
-            --success: #34c759;
-            --warning: #ff9500;
+            /* 以下变量为页面定制覆盖；其余主题变量由 theme.css 统一提供 */
             --purple: #5856d6;
-            --border: rgba(0, 0, 0, 0.06);
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
             --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-full: 980px;
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1e;
-            --bg-card: #2c2c30;
-            --bg-secondary: #242428;
-            --text-primary: #f0f0f2;
-            --text-secondary: #9b9ba3;
-            --text-tertiary: #6b6b73;
-            --accent: #0a84ff;
-            --accent-hover: #3a9eff;
-            --success: #30d158;
-            --warning: #ffd60a;
-            --border: rgba(255, 255, 255, 0.08);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-        }
+        /* 暗色模式变量由 theme.css 统一提供 */
 
         * {
             margin: 0;
@@ -541,6 +513,15 @@
                 align-items: flex-start;
             }
 
+            .action-btn {
+                min-height: 44px;
+                padding: 11px 20px;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+
             .plan-table {
                 font-size: 12px;
             }
@@ -551,7 +532,7 @@
             }
 
             .timeline-node {
-                min-width: 80px;
+                width: 80px;
                 padding: 0 10px;
             }
 
@@ -664,6 +645,14 @@
     </div>
 
     <script>
+        function showToast(msg, type) {
+            if (typeof ToolboxToast !== 'undefined') {
+                ToolboxToast.show(msg, type || 'info');
+            } else {
+                console.log(msg);
+            }
+        }
+
         const projectConfigs = {
             'IOT-watch': {
                 name: 'IOT-watch',
@@ -738,7 +727,7 @@
             const firstNodeDate = document.getElementById('firstNode').value;
 
             if (!firstNodeDate) {
-                alert('请选择第一个节点的日期');
+                showToast('请选择第一个节点的日期');
                 return;
             }
 
@@ -881,7 +870,7 @@
 
         function copyPlan() {
             if (currentPlan.length === 0) {
-                alert('请先生成计划');
+                showToast('请先生成计划');
                 return;
             }
 
@@ -891,15 +880,15 @@
             });
 
             navigator.clipboard.writeText(text).then(() => {
-                alert('✓ 表格已复制到剪贴板');
+                showToast('✓ 表格已复制到剪贴板', 'success');
             }).catch(err => {
-                alert('复制失败，请手动复制');
+                showToast('复制失败，请手动复制', 'error');
             });
         }
 
         function downloadPlan() {
             if (currentPlan.length === 0) {
-                alert('请先生成计划');
+                showToast('请先生成计划');
                 return;
             }
 
@@ -924,7 +913,7 @@
 
         function printPlan() {
             if (currentPlan.length === 0) {
-                alert('请先生成计划');
+                showToast('请先生成计划');
                 return;
             }
 
@@ -934,6 +923,6 @@
         document.getElementById('firstNode').valueAsDate = new Date();
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v=20260813v8"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
