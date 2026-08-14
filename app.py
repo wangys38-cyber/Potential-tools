@@ -145,6 +145,9 @@ _PUBLIC_PATHS = (
     '/api/user/preferences', # v2.0: 偏好查询允许匿名访问
     '/api/upload-audio',     # API端点自行检查认证，避免302重定向导致JSON解析失败
     '/api/transcription-status', # 同上
+    '/api/ai-models',        # 模型列表允许匿名查看（端点内部检查认证）
+    '/api/ai-config',        # 同上
+    '/api/ai-test',          # 同上
     '/ws/',                  # WebSocket端点自行检查认证
 )
 
@@ -1185,11 +1188,22 @@ _STATIC_TEMPLATES = frozenset({
     'plan_generator.html',
 })
 
+def _get_template_mtime(template_name):
+    """获取模板文件的修改时间，用于缓存失效检测"""
+    try:
+        tpl_path = os.path.join(app.template_folder, template_name)
+        if os.path.isfile(tpl_path):
+            return int(os.path.getmtime(tpl_path))
+    except Exception:
+        pass
+    return 0
+
 def cached_render(template_name, **context):
     """渲染模板并缓存结果，支持ETag/304。
     
     - 静态模板：全局缓存，首次渲染后后续请求直接返回304或缓存内容
     - 动态模板：按用户缓存，同一用户重复访问直接返回304
+    - 模板文件修改后自动失效缓存
     """
     if template_name in _STATIC_TEMPLATES:
         cache_key = template_name
@@ -1197,24 +1211,28 @@ def cached_render(template_name, **context):
         uid = session.get('user_id', 0)
         cache_key = f'{template_name}:{uid}'
 
+    mtime = _get_template_mtime(template_name)
     cached = _template_cache.get(cache_key)
     if cached is not None:
-        etag, html = cached
-        # 浏览器发送 If-None-Match — 内容未变，返回304（无body，瞬时响应）
-        if request.headers.get('If-None-Match') == etag:
-            resp = make_response('', 304)
+        cached_mtime, etag, html = cached
+        # 模板文件未修改且缓存存在 — 使用缓存
+        if cached_mtime == mtime:
+            # 浏览器发送 If-None-Match — 内容未变，返回304（无body，瞬时响应）
+            if request.headers.get('If-None-Match') == etag:
+                resp = make_response('', 304)
+                resp.headers['ETag'] = etag
+                resp.headers['Cache-Control'] = 'no-cache'  # 必须验证，但304省带宽
+                return resp
+            resp = make_response(html)
             resp.headers['ETag'] = etag
-            resp.headers['Cache-Control'] = 'no-cache'  # 必须验证，但304省带宽
+            resp.headers['Cache-Control'] = 'no-cache'
             return resp
-        resp = make_response(html)
-        resp.headers['ETag'] = etag
-        resp.headers['Cache-Control'] = 'no-cache'
-        return resp
+        # 模板文件已修改 — 清除旧缓存，重新渲染
 
-    # 首次渲染
+    # 首次渲染或缓存失效后重新渲染
     html = render_template(template_name, **context)
     etag = hashlib.md5(html.encode('utf-8')).hexdigest()[:16]
-    _template_cache[cache_key] = (etag, html)
+    _template_cache[cache_key] = (mtime, etag, html)
 
     resp = make_response(html)
     resp.headers['ETag'] = etag
