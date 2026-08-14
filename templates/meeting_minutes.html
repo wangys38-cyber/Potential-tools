@@ -659,8 +659,8 @@
 
                 xhr.onerror = () => {
                     progressEl.classList.remove('show');
-                    if (sysLabel) sysLabel.textContent = '网络连接失败';
-                    reject(new Error('网络连接失败，请检查网络后重试'));
+                    if (sysLabel) sysLabel.textContent = '网络连接失败（服务器可能正在重启）';
+                    reject(new Error('网络连接失败。服务器可能正在部署重启中，请等待30秒后重试'));
                 };
 
                 xhr.ontimeout = () => {
@@ -671,7 +671,10 @@
 
                 xhr.send(formData);
             }).catch(err => {
-                showToast('上传失败: ' + err.message, 'error', 6000);
+                showToast('上传失败: ' + err.message, 'error', 8000);
+                // 恢复录音状态按钮，允许用户重试
+                const sysLabel = document.getElementById('sysRecLabel');
+                if (sysLabel) sysLabel.textContent = '上传失败，可重新捕获音频';
             });
         }
 

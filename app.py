@@ -181,6 +181,25 @@ def require_login():
     return redirect(url_for('login_page'))
 
 
+# ==================== 全局错误处理 ====================
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """文件超过 MAX_CONTENT_LENGTH 时返回 JSON 而非默认 HTML 页面"""
+    return jsonify({'error': f'文件过大，最大支持 {app.config["MAX_CONTENT_LENGTH"] // 1024 // 1024}MB'}), 413
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """服务器内部错误返回 JSON 而非默认 HTML 页面"""
+    logger.error(f"500错误: {traceback.format_exc()}")
+    return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    """捕获所有未处理异常，返回 JSON"""
+    logger.error(f"未处理异常: {traceback.format_exc()}")
+    return jsonify({'error': f'服务器错误: {str(error)}'}), 500
+
+
 @app.after_request
 def add_cache_headers(response):
     """为静态资源添加缓存头，减少重复下载"""
