@@ -874,8 +874,8 @@ a{color:var(--accent);text-decoration:none}
         <input type="text" class="form-input" id="doc-title" placeholder="输入文档标题..." maxlength="200">
       </div>
       <div class="form-group">
-        <label class="form-label">文档内容（支持纯文本）</label>
-        <textarea class="form-textarea" id="doc-content" placeholder="写下你的文档内容..." style="min-height:300px;font-family:monospace"></textarea>
+        <label class="form-label">文档内容</label>
+        <textarea class="form-textarea" id="doc-content" placeholder="写下你的文档内容..." style="min-height:320px;font-family:var(--mono);font-size:13px;line-height:1.7"></textarea>
       </div>
       <div id="doc-meta-info" style="font-size:12px;color:var(--text-3);margin-top:4px"></div>
     </div>
@@ -2055,28 +2055,30 @@ function showDocsView(){
 
 function _renderDocsList(total, maxCount){
   const area = document.getElementById('notes-area');
+  const viewMode = state.viewMode || 'grid';
 
   let html = '<div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
-  html += '<div style="font-size:13px;color:var(--text-3)">共 '+total+' 篇文档（上限 '+maxCount+' 篇），存储在云端数据库</div>';
+  html += '<div style="font-size:13px;color:var(--text-3)">共 '+total+' / '+maxCount+' 篇文档 · 云端存储</div>';
   html += '<button class="btn btn-primary" onclick="openDocEditor()" style="padding:8px 16px;font-size:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;margin-right:4px;vertical-align:middle"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>新建文档</button>';
   html += '</div>';
 
   if(_docsList.length===0){
     html += '<div style="text-align:center;padding:60px 20px;color:var(--text-3)"><div style="font-size:48px;margin-bottom:16px">📂</div><div>文档仓库为空</div><div style="font-size:13px;margin-top:8px">点击「新建文档」保存你的文档</div></div>';
   } else {
-    html += '<div class="notes-grid" id="docs-grid">';
+    html += '<div class="notes-grid '+viewMode+'-view" id="docs-grid">';
     _docsList.forEach(doc=>{
       const date = new Date((doc.updated_at||0)*1000);
       const dateStr = date.toLocaleDateString('zh-CN')+' '+date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-      const summary = (doc.summary||'').replace(/</g,'&lt;').substring(0,150);
+      const summary = (doc.summary||'').replace(/</g,'&lt;').replace(/\n/g,' ').substring(0,150);
       const title = (doc.title||'未命名').replace(/</g,'&lt;');
-      html += '<div class="note-card" onclick="openDocEditor('+doc.id+')" style="cursor:pointer;min-height:auto">';
-      html += '<div style="font-weight:600;font-size:15px;margin-bottom:6px;color:var(--text)">'+title+'</div>';
-      html += '<div style="font-size:12px;color:var(--text-3);line-height:1.5;max-height:60px;overflow:hidden">'+summary+'</div>';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">';
-      html += '<span style="font-size:11px;color:var(--text-3)">'+dateStr+'</span>';
-      html += '<button onclick="event.stopPropagation();deleteDoc('+doc.id+',\''+title.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;border-radius:4px" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
-      html += '</div></div>';
+      const safeTitle = (doc.title||'未命名').replace(/'/g,"\\'").replace(/</g,'&lt;');
+      html += '<div class="note-card" onclick="openDocEditor('+doc.id+')" style="--note-color:var(--accent)">';
+      html += '<div class="note-card-header"><div class="note-title">'+title+'</div>';
+      html += '<div class="note-actions"><div class="note-action-btn delete" onclick="event.stopPropagation();deleteDoc('+doc.id+',\''+safeTitle+'\')" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>';
+      html += '</div>';
+      html += '<div class="note-content">'+summary+'</div>';
+      html += '<div class="note-footer"><span class="note-date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>'+dateStr+'</span></div>';
+      html += '</div>';
     });
     html += '</div>';
   }
@@ -2086,7 +2088,7 @@ function _renderDocsList(total, maxCount){
 
 function openDocEditor(docId){
   _editingDocId = docId || null;
-  const modal = document.getElementById('doc-editor-modal');
+  const overlay = document.getElementById('doc-editor-modal');
   const titleEl = document.getElementById('doc-editor-title');
   const metaEl = document.getElementById('doc-meta-info');
 
@@ -2095,14 +2097,14 @@ function openDocEditor(docId){
     document.getElementById('doc-title').value = '';
     document.getElementById('doc-content').value = '';
     metaEl.textContent = '加载中...';
-    modal.classList.add('active');
+    overlay.classList.add('show');
 
     fetch('/api/docs/'+docId).then(r=>r.json()).then(data=>{
       if(data.status==='success' && data.doc){
         document.getElementById('doc-title').value = data.doc.title || '';
         document.getElementById('doc-content').value = data.doc.content || '';
         const size = new Blob([data.doc.content||'']).size;
-        metaEl.textContent = '文档ID: '+data.doc.id+' | 大小: '+(size/1024).toFixed(1)+'KB';
+        metaEl.textContent = '文档ID: '+data.doc.id+' · 大小: '+(size/1024).toFixed(1)+'KB';
       } else {
         metaEl.textContent = '加载失败';
         showToast('文档加载失败', 'error');
@@ -2116,12 +2118,12 @@ function openDocEditor(docId){
     document.getElementById('doc-title').value = '';
     document.getElementById('doc-content').value = '';
     metaEl.textContent = '单篇文档上限 500KB';
-    modal.classList.add('active');
+    overlay.classList.add('show');
   }
 }
 
 function closeDocEditor(){
-  document.getElementById('doc-editor-modal').classList.remove('active');
+  document.getElementById('doc-editor-modal').classList.remove('show');
   _editingDocId = null;
 }
 
@@ -2173,6 +2175,6 @@ function deleteDoc(docId, title){
   });
 }
 </script>
-<script src="/static/js/components.js?v=20260813v8"></script>
+<script src="/static/js/components.js?v=20260814v9"></script>
 </body>
 </html>
