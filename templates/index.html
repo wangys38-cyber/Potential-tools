@@ -319,7 +319,7 @@
             .category-chip { white-space: nowrap; flex-shrink: 0; }
             .search-hint { display: none; }
             .tool-card { padding: 18px; }
-            .user-info .logout-btn { display: none; }
+            .user-info .logout-btn { padding: 4px 8px; font-size: 12px; }
         }
         @media (max-width: 480px) {
             .hero h1 { font-size: 28px; }
@@ -338,7 +338,7 @@
                 <span>搜索</span>
                 <kbd class="nav-kbd">⌘K</kbd>
             </button>
-            <a href="/settings" target="_blank" class="nav-btn" title="设置">⚙️</a>
+            <a href="/settings" target="_blank" rel="noopener noreferrer" class="nav-btn" title="设置">⚙️</a>
             <button class="nav-btn" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
             <div class="user-info">
                 {% if current_user %}
@@ -398,10 +398,10 @@
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v4.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank">GitHub</a></p>
+        <p>Powered by Yongshuo | 工具集 v4.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </div>
 
-    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
     <script src="/static/js/components.js?v=20260813v8"></script>
     <script>
     // ===== PWA Service Worker 注册 =====
@@ -451,7 +451,7 @@
     let currentCategory = 'all';
 
     // ===== Favorites =====
-    const FAV_KEY = {% if current_user %}'u{{ current_user.id }}_toolbox_favorites'{% else %}'toolbox_favorites'{% endif %};
+    const FAV_KEY = (window._USER_PREFIX || '') + 'toolbox_favorites';
     // 登录用户：迁移旧数据到用户专属 key，并删除旧 key（防止游客看到）
     {% if current_user %}
     (function(){
@@ -550,12 +550,13 @@
         }
         bar.style.display = 'block';
         const list = document.getElementById('fav-list');
+        const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
         list.innerHTML = favs.map(id => {
             const tool = TOOLS.find(t => t.id === id);
             if (!tool) return '';
-            return `<a href="/${id}" target="_blank" class="tb-recent-item" onclick="event.preventDefault();openTool('/${id}')">
-                <span class="tb-recent-item-icon">${tool.icon}</span>
-                <span>${tool.name}</span>
+            return `<a href="/${esc(id)}" target="_blank" rel="noopener noreferrer" class="tb-recent-item" onclick="event.preventDefault();openTool('/${esc(id)}')">
+                <span class="tb-recent-item-icon">${esc(tool.icon)}</span>
+                <span>${esc(tool.name)}</span>
             </a>`;
         }).join('');
     }
@@ -574,7 +575,7 @@
         if (tool && window.ToolboxRecent) {
             ToolboxRecent.record(tool.id, tool.name, tool.icon);
         }
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
     }
     function handleCardClick(e, url) { e.preventDefault(); e.stopPropagation(); openTool(url); }
 
@@ -594,10 +595,11 @@
             if (!tool) return '';
             const mins = Math.floor((Date.now() - r.time) / 60000);
             const timeStr = mins < 1 ? '刚刚' : mins < 60 ? mins + '分钟前' : Math.floor(mins/60) + '小时前';
-            return `<a href="/${r.id}" target="_blank" class="tb-recent-item" onclick="event.preventDefault();openTool('/${r.id}')">
-                <span class="tb-recent-item-icon">${r.icon}</span>
-                <span>${r.name}</span>
-                <span class="tb-recent-item-time">${timeStr}</span>
+            const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+            return `<a href="/${esc(r.id)}" target="_blank" rel="noopener noreferrer" class="tb-recent-item" onclick="event.preventDefault();openTool('/${esc(r.id)}')">
+                <span class="tb-recent-item-icon">${esc(r.icon)}</span>
+                <span>${esc(r.name)}</span>
+                <span class="tb-recent-item-time">${esc(timeStr)}</span>
             </a>`;
         }).join('');
     }

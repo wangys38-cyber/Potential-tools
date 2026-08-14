@@ -447,11 +447,15 @@
     justify-content: center;
     z-index: 9999;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .tb-modal-overlay.tb-modal-show {
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .tb-modal {

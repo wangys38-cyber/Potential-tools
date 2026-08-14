@@ -1570,8 +1570,9 @@
                 const data = await resp.json();
 
                 if (data.status === 'success') {
-                    // 简单的 Markdown 渲染
-                    let html = data.analysis
+                    // 安全渲染：先转义 HTML，再做 markdown 替换
+                    const escaped = (data.analysis || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+                    let html = escaped
                         .replace(/### (.+)/g, '<h4 style="margin: 16px 0 8px; color: var(--accent);">$1</h4>')
                         .replace(/## (.+)/g, '<h3 style="margin: 16px 0 8px;">$1</h3>')
                         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -1588,17 +1589,19 @@
                         </div>
                     `;
                 } else {
+                    const errMsg = (data.error || 'AI分析失败').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
                     content.innerHTML = `
                         <div style="padding: 20px; text-align: center;">
-                            <div style="color: var(--danger); margin-bottom: 12px;">❌ ${data.error || 'AI分析失败'}</div>
+                            <div style="color: var(--danger); margin-bottom: 12px;">❌ ${errMsg}</div>
                             <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
                         </div>
                     `;
                 }
             } catch (e) {
+                const errMsg = (e.message || '未知错误').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
                 content.innerHTML = `
                     <div style="padding: 20px; text-align: center;">
-                        <div style="color: var(--danger); margin-bottom: 12px;">❌ 请求失败: ${e.message}</div>
+                        <div style="color: var(--danger); margin-bottom: 12px;">❌ 请求失败: ${errMsg}</div>
                         <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
                     </div>
                 `;

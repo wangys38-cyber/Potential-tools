@@ -14,3 +14,4 @@ simple_build.py
 switch_to_weasyprint.py
 .git
 .gitignore
+config_oauth.json

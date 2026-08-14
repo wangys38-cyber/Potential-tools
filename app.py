@@ -195,14 +195,15 @@ def internal_server_error(error):
 
 @app.errorhandler(Exception)
 def handle_exception(error):
-    """捕获所有未处理异常，返回 JSON"""
+    """捕获所有未处理异常，返回 JSON（不泄露内部错误详情）"""
     logger.error(f"未处理异常: {traceback.format_exc()}")
-    return jsonify({'error': f'服务器错误: {str(error)}'}), 500
+    # 安全：生产环境不返回详细错误信息，仅记录日志
+    return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
 
 
 @app.after_request
 def add_cache_headers(response):
-    """为静态资源添加缓存头，减少重复下载"""
+    """为静态资源添加缓存头，减少重复下载，并添加安全响应头"""
     path = request.path
     # JS/CSS 文件：带版本号查询参数时缓存1小时，否则不缓存
     if path.startswith('/static/') and (path.endswith('.js') or path.endswith('.css')):
@@ -216,6 +217,16 @@ def add_cache_headers(response):
     # HTML页面 — 确保ETag与压缩正确配合
     elif response.headers.get('ETag'):
         response.headers['Vary'] = 'Accept-Encoding'
+
+    # 安全响应头（适用于所有响应）
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # HSTS — 仅在 HTTPS 环境下生效
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
     return response
 
 
@@ -737,6 +748,16 @@ def read_excel_file(file_path, sheet_name=None):
     reader.close()
     return sheet_names, sheet_data
 
+# === 安全工具函数 ===
+import re as _re
+def _validate_file_id(file_id):
+    """验证 file_id 格式，防止路径遍历攻击
+    合法格式：16位十六进制字符（md5 hexdigest[:16]）
+    """
+    if not file_id or not isinstance(file_id, str):
+        return False
+    return bool(_re.match(r'^[a-f0-9]{16}$', file_id))
+
 # === AI 配置管理（v2.0: 使用 SQLite 替代 JSON 文件） ===
 def get_ai_config(user_id=None):
     """获取 AI 配置 — 优先读取用户级配置，其次全局配置，最后环境变量"""
@@ -1013,7 +1034,7 @@ def api_get_ai_config():
             'enabled': config['enabled'],
             'has_key': bool(config.get('api_key', '').strip()),
             'has_user_config': has_user_config,
-            'key_masked': config.get('api_key', '')[:4] + '****' if config.get('api_key') else '',
+            'key_masked': (config.get('api_key', '')[:3] + '****') if config.get('api_key', '').strip() else '',
             'base_url': config.get('base_url', ''),
             'model': config.get('model', ''),
         }
@@ -2296,7 +2317,11 @@ def favicon():
 
 @app.route('/api/debug')
 def api_debug():
-    """诊断端点：返回部署版本、内存、任务状态等信息"""
+    """诊断端点：返回部署版本、内存、任务状态等信息（需登录）"""
+    # 安全：要求登录才能访问
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
     import psutil
     p = psutil.Process()
     mem_info = p.memory_info()
@@ -2402,6 +2427,8 @@ def api_test_report_analyze_sheet():
 
     if not file_id:
         return jsonify({'error': '缺少file_id'}), 400
+    if not _validate_file_id(file_id):
+        return jsonify({'error': '无效的文件ID'}), 400
     if not sheet_name:
         return jsonify({'error': '缺少sheet_name'}), 400
 
@@ -2459,6 +2486,8 @@ def api_test_report_debug():
 
     if not file_id:
         return jsonify({'error': '缺少file_id'}), 400
+    if not _validate_file_id(file_id):
+        return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
     for ext in ['.xlsx', '.xls']:
@@ -4333,6 +4362,8 @@ def api_excel_analyze_fields():
 
     if not file_id or not sheet_name:
         return jsonify({'error': '缺少参数: file_id, sheet_name'}), 400
+    if not _validate_file_id(file_id):
+        return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
     for ext in ['.xlsx', '.xls']:
@@ -4510,6 +4541,8 @@ def api_excel_analyze_sheet():
 
     if not file_id or not sheet_name:
         return jsonify({'error': f'缺少参数: file_id={repr(file_id)}, sheet_name={repr(sheet_name)}'}), 400
+    if not _validate_file_id(file_id):
+        return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
     for ext in ['.xlsx', '.xls']:
@@ -7228,13 +7261,20 @@ def _build_cr_analysis_report_html(data, watermark, file_name, custom_title=''):
 # === 下载路由 ===
 @app.route('/download/<filename>')
 def download_file(filename):
+    # 安全：使用 secure_filename 防止路径遍历攻击
+    from werkzeug.utils import secure_filename
+    safe_name = secure_filename(filename)
+    if not safe_name or safe_name != filename:
+        # 如果文件名被修改（含路径遍历字符），拒绝请求
+        return jsonify({'error': '无效的文件名'}), 400
+
     # 先检查UPLOAD_FOLDER
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
 
     # 再检查PDF_FOLDER
-    filepath = os.path.join(app.config['PDF_FOLDER'], filename)
+    filepath = os.path.join(app.config['PDF_FOLDER'], safe_name)
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
 
@@ -7256,9 +7296,10 @@ def notenb_index():
     html_path = os.path.join(NOTENB_DIST, 'index.html')
     with open(html_path, 'r', encoding='utf-8') as f:
         html = f.read()
-    # 在 </head> 前注入用户信息脚本（同步可用，无需 async fetch）
-    inject = f'<script>window._SERVER_USER_ID="{uid}";window._SERVER_USER_NAME="{user_name}";window._SERVER_USER_AVATAR="{user_avatar}";</script>'
-    html = html.replace('</head>', inject + '\n</head>')
+    # 安全：使用 json.dumps 转义用户信息，防止 XSS
+    import json as _json
+    user_info_script = '<script>window._SERVER_USER_ID=' + _json.dumps(str(uid)) + ';window._SERVER_USER_NAME=' + _json.dumps(str(user_name)) + ';window._SERVER_USER_AVATAR=' + _json.dumps(str(user_avatar)) + ';</script>'
+    html = html.replace('</head>', user_info_script + '\n</head>')
     resp = make_response(html)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'

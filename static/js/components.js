@@ -972,7 +972,22 @@ const ToolboxOCR = (function() {
         return div.innerHTML;
     }
 
-    return { init: init, handleImage: handleImage };
+    function open() {
+        // 创建文件选择器
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.style.display = 'none';
+        input.onchange = function(e) {
+            var file = e.target.files[0];
+            if (file) handleImage(file);
+            document.body.removeChild(input);
+        };
+        document.body.appendChild(input);
+        input.click();
+    }
+
+    return { init: init, handleImage: handleImage, open: open };
 })();
 
 // ==================== v4.0 全局命令面板 (Cmd+K) ====================

@@ -38,7 +38,18 @@ def _load_config():
 
 _config = _load_config()
 
-SESSION_SECRET = os.environ.get('SESSION_SECRET', _config.get('session_secret', 'default_secret_change_me'))
+# 安全：Session Secret — 如果未配置，生成随机密钥并警告
+_default_secret = _config.get('session_secret', '')
+SESSION_SECRET = os.environ.get('SESSION_SECRET', _default_secret)
+if not SESSION_SECRET or SESSION_SECRET == 'default_secret_change_me':
+    import secrets as _secrets
+    SESSION_SECRET = _secrets.token_hex(32)
+    import warnings
+    warnings.warn(
+        "SESSION_SECRET 未配置！已生成临时随机密钥，但重启后所有用户会话将失效。"
+        "请在环境变量中设置 SESSION_SECRET。",
+        stacklevel=2
+    )
 ALLOW_GUEST = os.environ.get('ALLOW_GUEST', 'true').lower() in ('1', 'true', 'yes') or _config.get('allow_guest', True)
 
 FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
@@ -191,8 +202,9 @@ def feishu_callback():
             user_id = db.upsert_user('feishu', open_id, name, email, avatar)
         except Exception as e:
             logger.warning(f"数据库写入用户失败（不影响登录）: {e}")
-            # 用 open_id 的哈希作为备用 user_id
-            user_id = abs(hash(f"feishu:{open_id}")) % (2**31)
+            # 安全：使用 hashlib 生成确定性 user_id（hash() 受 PYTHONHASHSEED 影响不稳定）
+            import hashlib
+            user_id = int(hashlib.md5(f"feishu:{open_id}".encode()).hexdigest()[:8], 16)
 
         # 用户信息写入 session — 后续不再查数据库
         _set_session_user(user_id, name, email, avatar, 'feishu')
@@ -284,7 +296,9 @@ def google_callback():
             user_id = db.upsert_user('google', google_id, name, email, avatar)
         except Exception as e:
             logger.warning(f"数据库写入用户失败（不影响登录）: {e}")
-            user_id = abs(hash(f"google:{google_id}")) % (2**31)
+            # 安全：使用 hashlib 生成确定性 user_id
+            import hashlib
+            user_id = int(hashlib.md5(f"google:{google_id}".encode()).hexdigest()[:8], 16)
 
         _set_session_user(user_id, name, email, avatar, 'google')
 
