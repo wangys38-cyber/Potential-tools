@@ -1438,12 +1438,12 @@ const ToolboxCommandPalette = (function() {
     function createStyles() {
         var css = document.createElement('style');
         css.textContent = `
-            .tb-cp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9998;opacity:0;transition:opacity .15s}
+            .tb-cp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:100000;opacity:0;transition:opacity .15s}
             .tb-cp-overlay.open{opacity:1}
             .tb-cp-panel{position:fixed;top:15%;left:50%;transform:translateX(-50%) translateY(-10px);
                 width:90%;max-width:600px;background:var(--bg-card,#fff);
                 border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);
-                z-index:9999;overflow:hidden;opacity:0;transition:all .2s cubic-bezier(.4,0,.2,1);
+                z-index:100001;overflow:hidden;opacity:0;transition:all .2s cubic-bezier(.4,0,.2,1);
                 border:1px solid var(--border,rgba(0,0,0,0.08))}
             .tb-cp-panel.open{opacity:1;transform:translateX(-50%) translateY(0)}
             .tb-cp-search-wrap{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border,rgba(0,0,0,0.08))}

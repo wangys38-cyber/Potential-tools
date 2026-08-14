@@ -288,7 +288,7 @@ a{color:var(--accent);text-decoration:none}
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;
-  z-index:100;padding:20px;opacity:0;pointer-events:none;
+  z-index:100001;padding:20px;opacity:0;pointer-events:none;
   transition:opacity .2s;backdrop-filter:blur(2px);
 }
 .modal-overlay.show{opacity:1;pointer-events:auto}
@@ -475,7 +475,7 @@ a{color:var(--accent);text-decoration:none}
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
   background:var(--text);color:var(--bg);padding:10px 20px;
   border-radius:var(--radius-sm);font-size:14px;font-weight:500;
-  z-index:200;opacity:0;transition:all .3s;box-shadow:var(--shadow-lg);
+  z-index:100002;opacity:0;transition:all .3s;box-shadow:var(--shadow-lg);
 }
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
@@ -508,7 +508,7 @@ a{color:var(--accent);text-decoration:none}
 
 /* ===== Graph View ===== */
 .graph-view{
-  position:fixed;inset:0;background:var(--bg);z-index:50;
+  position:fixed;inset:0;background:var(--bg);z-index:100000;
   display:flex;flex-direction:column;
 }
 .graph-header{
@@ -2175,6 +2175,6 @@ function deleteDoc(docId, title){
   });
 }
 </script>
-<script src="/static/js/components.js?v=20260814v9"></script>
+<script src="/static/js/components.js?v=20260814v10"></script>
 </body>
 </html>
