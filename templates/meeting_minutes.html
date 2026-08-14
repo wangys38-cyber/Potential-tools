@@ -249,6 +249,13 @@
                         <div style="font-size:12px;opacity:0.7;">麦克风实时捕捉声音转文字</div>
                     </div>
                 </div>
+                <div class="mode-tab" onclick="switchMode('paste')" id="modePaste">
+                    <span class="mode-tab-icon">📝</span>
+                    <div>
+                        <div>粘贴转写文本</div>
+                        <div style="font-size:12px;opacity:0.7;">Teams/腾讯会议转录文本直接粘贴</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -385,6 +392,70 @@
             </div>
         </div>
 
+        <!-- 粘贴转写文本模式 -->
+        <div id="pasteMode" style="display:none;">
+            <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+                <strong>📋 使用说明（推荐 Teams 用户使用）：</strong><br>
+                <strong>方法一：Teams 内置转写（最简单）</strong><br>
+                1. 在 Teams 会议中，点击 <strong>「...更多」→「开始转录」</strong><br>
+                2. 会议结束后，在 Teams 聊天中找到该会议的 <strong>「回顾」(Recap)</strong><br>
+                3. 点击 <strong>「转写文本」</strong> → 下载为 <strong>.docx</strong> 或 <strong>.vtt</strong> 文件 [$TRAE_REF](https://support.microsoft.com/en-US/teams/meetings/start-stop-and-download-live-transcripts-in-microsoft-teams-meetings)<br>
+                4. 打开下载的文件，<strong>全选复制</strong>文本，粘贴到下方输入框<br>
+                5. 点击"解析并添加到转写"，然后点击"生成会议纪要"<br>
+                <br>
+                <strong>方法二：手动输入</strong><br>
+                直接在下方输入框中粘贴或输入会议内容，每行一条发言<br>
+                <br>
+                <details style="margin-top:8px; cursor:pointer;">
+                    <summary style="color: var(--accent); font-weight:600;">💡 支持的格式</summary>
+                    <div style="margin-top:10px; padding-left:10px;">
+                        • <strong>Teams .vtt 文件内容</strong>：直接复制粘贴，自动解析时间戳和说话人<br>
+                        • <strong>Teams .docx 文件内容</strong>：直接复制粘贴，自动识别说话人和内容<br>
+                        • <strong>腾讯会议/飞书转录文本</strong>：直接复制粘贴<br>
+                        • <strong>纯文本</strong>：每行一条发言，自动按行解析<br>
+                        • <strong>带时间戳文本</strong>：如 "00:01:23 张三: 大家好" 格式自动识别<br>
+                    </div>
+                </details>
+            </div>
+            <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
+                <textarea id="pasteTextArea" rows="12" style="width:100%; padding:12px; border:1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-primary); font-size:14px; font-family: -apple-system, 'SF Mono', 'Consolas', monospace; line-height:1.6; resize:vertical;" placeholder="在此粘贴 Teams 转写文本...
+
+支持格式：
+• Teams .vtt 文件内容（直接复制粘贴）
+• Teams .docx 文件内容（直接复制粘贴）
+• 腾讯会议/飞书转录文本
+• 纯文本（每行一条发言）
+• 带时间戳的文本（如 00:01:23 张三: 大家好）
+
+示例：
+张三: 大家好，今天我们讨论项目进度
+李四: 目前开发完成了80%
+王五: 测试阶段预计下周开始"></textarea>
+                <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
+                    <button class="btn btn-primary" onclick="processPastedTranscript()" style="padding:10px 24px;">
+                        📝 解析并添加到转写
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pasteTextArea').value=''">
+                        清空
+                    </button>
+                    <span id="pasteCharCount" style="font-size:12px; color:var(--text-secondary); margin-left:auto;">0 字</span>
+                </div>
+            </div>
+            <!-- 支持上传 .docx/.vtt 文件 -->
+            <div style="margin-top:12px;">
+                <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 14px 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <span style="font-size:13px; font-weight:600; color:var(--text-primary);">📎 或上传 Teams 转录文件：</span>
+                        <input type="file" id="transcriptFileInput" accept=".vtt,.docx,.txt,.srt" style="display:none;" onchange="handleTranscriptFile(event)">
+                        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('transcriptFileInput').click()">
+                            选择 .vtt / .docx / .txt / .srt 文件
+                        </button>
+                        <span style="font-size:12px; color:var(--text-tertiary);">自动解析并填充到上方输入框</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 生成纪要按钮（通用） -->
         <div class="recording-bar" style="justify-content: center; gap: 12px;">
             <label style="font-size: 14px; color: var(--text-secondary);">AI模型:</label>
@@ -409,7 +480,7 @@
                 <div class="transcript-content" id="transcriptArea">
                     <div class="empty-state">
                         <div class="empty-state-icon">🎤</div>
-                        <div class="empty-state-text">选择音频输入方式开始<br>系统音频 / 文件上传 / 麦克风</div>
+                        <div class="empty-state-text">选择音频输入方式开始<br>系统音频 / 文件上传 / 麦克风 / 粘贴文本</div>
                     </div>
                 </div>
             </div>
@@ -474,6 +545,7 @@
             document.getElementById('systemMode').style.display = mode === 'system' ? 'block' : 'none';
             document.getElementById('fileMode').style.display = mode === 'file' ? 'block' : 'none';
             document.getElementById('micMode').style.display = mode === 'mic' ? 'block' : 'none';
+            document.getElementById('pasteMode').style.display = mode === 'paste' ? 'block' : 'none';
         }
 
         // ==================== 浏览器/OS检测 ====================
@@ -1251,6 +1323,157 @@
             updateTranscriptDisplay();
             showToast('已添加', 'success');
         }
+
+        // ==================== 粘贴转写文本解析 ====================
+        function parseTranscriptText(rawText) {
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+            const entries = [];
+            let i = 0;
+
+            while (i < lines.length) {
+                const line = lines[i];
+
+                // VTT 格式: 跳过 WEBVTT 头、NOTE 行、纯时间戳行、序号行
+                if (/^WEBVTT/.test(line) || /^NOTE/.test(line) || /^\d+$/.test(line)) {
+                    i++;
+                    continue;
+                }
+
+                // VTT/SRT 时间戳行: 00:00:01.000 --> 00:00:05.000
+                const timeMatch = line.match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/);
+                if (timeMatch) {
+                    // 收集后续文本行直到空行或下一个时间戳
+                    i++;
+                    let textParts = [];
+                    let speaker = '';
+                    while (i < lines.length && lines[i] && !lines[i].match(/\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->/) && !/^\d+$/.test(lines[i])) {
+                        // 检测 VTT 中的说话人标记 <v 张三>text</v> 或 [张三]: text
+                        const vttSpeaker = lines[i].match(/<v\s+([^>]+)>([\s\S]*?)<\/v>/);
+                        if (vttSpeaker) {
+                            speaker = vttSpeaker[1].trim();
+                            textParts.push(vttSpeaker[2].trim());
+                        } else {
+                            textParts.push(lines[i]);
+                        }
+                        i++;
+                    }
+                    const fullText = textParts.join(' ').trim();
+                    if (fullText) {
+                        entries.push(speaker ? `${speaker}: ${fullText}` : fullText);
+                    }
+                    continue;
+                }
+
+                // 带时间戳的文本: "00:01:23 张三: 大家好" 或 "[00:01:23] 张三: 大家好"
+                const tsLine = line.match(/^\[?(\d{1,2}:\d{2}(:\d{2})?)\]?\s*(.*)/);
+                if (tsLine) {
+                    entries.push(tsLine[3].trim());
+                    i++;
+                    continue;
+                }
+
+                // Teams .docx 格式: "说话人 名字" 后面跟时间戳，再跟内容
+                // 或普通 "张三: 大家好" / "张三：大家好" 格式
+                // 直接作为一行添加
+                entries.push(line);
+                i++;
+            }
+
+            return entries;
+        }
+
+        function processPastedTranscript() {
+            const rawText = document.getElementById('pasteTextArea').value.trim();
+            if (!rawText) {
+                showToast('请先粘贴转写文本', 'warning');
+                return;
+            }
+
+            if (!startTime) startTime = Date.now();
+
+            const entries = parseTranscriptText(rawText);
+
+            if (entries.length === 0) {
+                showToast('未解析到有效内容，请检查文本格式', 'warning');
+                return;
+            }
+
+            // 清空已有转写内容（粘贴模式覆盖之前的内容）
+            if (transcriptEntries.length > 0) {
+                if (!confirm('已有转写内容，是否覆盖？点击确定覆盖，取消则追加。')) {
+                    // 追加模式
+                    entries.forEach(e => addTranscriptEntry(e));
+                    updateTranscriptDisplay();
+                    showToast(`已追加 ${entries.length} 条转写记录`, 'success');
+                    return;
+                }
+                transcriptEntries = [];
+            }
+
+            entries.forEach(e => addTranscriptEntry(e));
+            updateTranscriptDisplay();
+            showToast(`已解析并添加 ${entries.length} 条转写记录，可以生成会议纪要了`, 'success', 5000);
+        }
+
+        function handleTranscriptFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                let content = e.target.result;
+
+                // .docx 文件是 zip 格式，无法直接用 FileReader 读取文本
+                // 但如果用户复制 .docx 内容粘贴，会是纯文本
+                // 对于 .docx 文件上传，提示用户复制粘贴
+                if (fileName.endsWith('.docx')) {
+                    // 尝试用 mammoth.js 或提示用户手动复制
+                    showToast(' .docx 文件请打开后全选复制，再粘贴到文本框中。或直接拖拽 .docx 文件内容到输入框', 'info', 8000);
+                    // 尝试读取二进制看看是否有可提取的文本
+                    try {
+                        const text = content.toString();
+                        if (text && text.length > 10 && !text.includes('PK')) {
+                            document.getElementById('pasteTextArea').value = text;
+                            updatePasteCharCount();
+                            showToast('文件内容已加载', 'success');
+                        }
+                    } catch(err) {
+                        // docx 二进制无法直接读取
+                    }
+                    return;
+                }
+
+                // .vtt, .txt, .srt 文件可以直接读取文本
+                document.getElementById('pasteTextArea').value = content;
+                updatePasteCharCount();
+                showToast(`文件 ${file.name} 已加载，点击"解析并添加到转写"`, 'success', 5000);
+            };
+
+            reader.onerror = function() {
+                showToast('文件读取失败', 'error');
+            };
+
+            // 对于文本类文件用 text 模式读取
+            if (fileName.endsWith('.vtt') || fileName.endsWith('.txt') || fileName.endsWith('.srt')) {
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                reader.readAsText(file);
+            }
+        }
+
+        function updatePasteCharCount() {
+            const text = document.getElementById('pasteTextArea').value;
+            const count = document.getElementById('pasteCharCount');
+            if (count) count.textContent = text.length + ' 字';
+        }
+
+        // 绑定输入框字数统计
+        document.addEventListener('DOMContentLoaded', function() {
+            const ta = document.getElementById('pasteTextArea');
+            if (ta) ta.addEventListener('input', updatePasteCharCount);
+        });
 
         // ==================== 转写管理 ====================
         function addTranscriptEntry(text) {

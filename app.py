@@ -1325,7 +1325,7 @@ def api_generate_minutes():
 - 参会人员：{attendees}
 
 会议转写内容：
-{transcript[:8000]}
+{transcript[:16000]}
 
 请生成会议纪要，使用HTML格式，包含以下部分：
 1. <h2>会议概要</h2> - 简要说明会议目的和主要内容（2-3句话）
