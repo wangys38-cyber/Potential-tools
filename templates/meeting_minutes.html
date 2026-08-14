@@ -290,12 +290,44 @@
                     </button>
                 </div>
             </div>
+            <!-- 音频电平监控条 -->
+            <div id="audioLevelMonitor" style="background: var(--bg-card); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                    <span style="font-size:13px; font-weight:600; color:var(--text-primary);">🔊 音频信号</span>
+                    <span id="audioLevelText" style="font-size:12px; color:var(--text-secondary);">等待捕获...</span>
+                </div>
+                <div style="height:6px; background:var(--bg-hover, rgba(0,0,0,0.06)); border-radius:3px; overflow:hidden;">
+                    <div id="audioLevelBar" style="height:100%; width:0%; border-radius:3px; transition:width 0.1s ease; background:var(--success, #34c759);"></div>
+                </div>
+            </div>
             <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
-                <strong>使用说明：</strong><br>
+                <strong>📋 使用说明：</strong><br>
                 1. 点击"捕获系统音频"，浏览器会弹出共享屏幕对话框<br>
-                2. 选择<strong>「Chrome标签页」</strong>或<strong>「整个屏幕」</strong>，<strong>必须勾选「分享音频」</strong>复选框<br>
-                3. 在线会议（腾讯会议/Zoom/钉钉等）的声音将被捕获并录音<br>
-                4. 录音结束后自动上传到AI进行语音识别
+                2. <strong>关键步骤</strong>：根据 Teams 运行方式选择正确的共享源：<br>
+                &nbsp;&nbsp;&nbsp;• <strong>Teams 桌面应用</strong> → 选择<strong>「整个屏幕」</strong>（不能选"窗口"！）<br>
+                &nbsp;&nbsp;&nbsp;• <strong>Teams 网页版</strong> → 选择该 Teams <strong>「Chrome标签页」</strong><br>
+                3. <strong>必须勾选左下角「分享音频」复选框</strong>（否则只有画面没有声音）<br>
+                4. 点击"分享"后，Teams 会议声音将被实时捕获并录音<br>
+                5. 会议结束后点击"停止并转写"，自动上传AI识别<br>
+                <br>
+                <details style="margin-top:8px; cursor:pointer;">
+                    <summary style="color: var(--accent); font-weight:600;">⚠️ 常见问题排查</summary>
+                    <div style="margin-top:10px; padding-left:10px;">
+                        <strong>Q: 捕获后提示"未捕获到音频"？</strong><br>
+                        A: 共享对话框左下角有「分享音频」复选框，必须勾选。如果看不到此选项：<br>
+                        &nbsp;&nbsp;• Windows: 确保选择「整个屏幕」而非「窗口」<br>
+                        &nbsp;&nbsp;• macOS: 系统音频捕获需要 macOS 13+，且仅 Chrome/Edge 支持<br>
+                        <br>
+                        <strong>Q: Teams 会议听不到声音？</strong><br>
+                        A: 确保 Teams 会议音频正在通过电脑扬声器播放（不能通过蓝牙耳机）。<br>
+                        <br>
+                        <strong>Q: 录音没有声音或声音很小？</strong><br>
+                        A: 检查系统音量，确保 Teams 会议声音正常播放。关闭其他可能占用音频的程序。<br>
+                        <br>
+                        <strong>Q: macOS 用户无法捕获系统音频？</strong><br>
+                        A: macOS 对系统音频捕获有限制。建议改用「音频文件上传」模式，或使用虚拟音频设备（如 BlackHole）。<br>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -444,8 +476,45 @@
             document.getElementById('micMode').style.display = mode === 'mic' ? 'block' : 'none';
         }
 
+        // ==================== 浏览器/OS检测 ====================
+        function detectEnvironment() {
+            const ua = navigator.userAgent;
+            const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua) && !/OPR/.test(ua);
+            const isEdge = /Edg/.test(ua);
+            const isFirefox = /Firefox/.test(ua);
+            const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+            const isMac = /Macintosh|Mac OS X/.test(ua);
+            const isWindows = /Windows/.test(ua);
+            const isLinux = /Linux/.test(ua) && !/Android/.test(ua);
+            return { isChrome, isEdge, isFirefox, isSafari, isMac, isWindows, isLinux };
+        }
+
+        function checkCaptureSupport() {
+            const env = detectEnvironment();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                return { supported: false, reason: '当前浏览器不支持系统音频捕获。请使用 Chrome 或 Edge 浏览器。' };
+            }
+            if (env.isFirefox) {
+                return { supported: false, reason: 'Firefox 不支持通过屏幕共享捕获系统音频。请改用 Chrome 或 Edge 浏览器，或使用「音频文件上传」模式。' };
+            }
+            if (env.isSafari) {
+                return { supported: false, reason: 'Safari 不支持系统音频捕获。请改用 Chrome 或 Edge 浏览器，或使用「音频文件上传」模式。' };
+            }
+            if (env.isMac) {
+                return { supported: true, warning: 'macOS 检测到：系统音频捕获可能受限。如果捕获不到声音，请改用「音频文件上传」模式，或安装虚拟音频设备（如 BlackHole）。' };
+            }
+            return { supported: true, warning: null };
+        }
+
         // ==================== 系统音频捕获 ====================
         async function startSystemCapture() {
+            // 捕获前兼容性检查
+            const support = checkCaptureSupport();
+            if (!support.supported) {
+                showToast(support.reason, 'error', 8000);
+                return;
+            }
+
             try {
                 // 请求屏幕共享 + 音频
                 displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -459,13 +528,26 @@
 
                 // 检查是否有音频轨道
                 if (displayStream.getAudioTracks().length === 0) {
-                    showToast('未捕获到音频！请在共享对话框中勾选"分享音频"选项', 'error', 5000);
+                    const env = detectEnvironment();
+                    let hint = '未捕获到音频！';
+                    if (env.isMac) {
+                        hint += 'macOS 系统音频捕获受限，建议改用「音频文件上传」模式。';
+                    } else {
+                        hint += '请在共享对话框中：\n① 选择「整个屏幕」（Teams桌面应用）或「Chrome标签页」（Teams网页版）\n② 勾选左下角「分享音频」复选框';
+                    }
+                    showToast(hint, 'error', 10000);
                     displayStream.getVideoTracks().forEach(t => t.stop());
                     displayStream = null;
                     return;
                 }
 
-                // 只保留音频轨道
+                // 检查音频轨道是否真正有数据（额外验证）
+                const audioTrack = displayStream.getAudioTracks()[0];
+                if (!audioTrack.enabled) {
+                    audioTrack.enabled = true;
+                }
+
+                // 只保留音频轨道，停止视频轨道（节省资源）
                 displayStream.getVideoTracks().forEach(t => t.stop());
                 const audioStream = new MediaStream(displayStream.getAudioTracks());
 
@@ -500,14 +582,94 @@
                 document.getElementById('sysStartBtn').disabled = true;
                 document.getElementById('sysStopBtn').disabled = false;
                 timerInterval = setInterval(updateSysTimer, 1000);
-                showToast('系统音频捕获已开始', 'info');
+
+                // 启动音频电平监控，帮助用户确认是否真正捕获到声音
+                startAudioLevelMonitor(audioStream);
+
+                // macOS 警告
+                const env = detectEnvironment();
+                if (env.isMac) {
+                    showToast('系统音频捕获已开始。如无声音，macOS 可能需要虚拟音频设备，建议改用文件上传模式', 'warning', 8000);
+                } else {
+                    showToast('系统音频捕获已开始，请确保 Teams 会议正在播放声音', 'info', 5000);
+                }
 
             } catch (err) {
                 if (err.name === 'NotAllowedError') {
-                    showToast('用户取消了屏幕共享', 'warning');
+                    showToast('已取消屏幕共享。如需捕获 Teams 音频，请重新点击并选择「整个屏幕」+ 勾选「分享音频」', 'warning', 8000);
+                } else if (err.name === 'NotReadableError') {
+                    showToast('无法访问音频设备。可能有其他程序正在使用音频，请关闭后重试', 'error', 8000);
+                } else if (err.name === 'OverconstrainedError') {
+                    showToast('音频约束条件不满足，请尝试使用「音频文件上传」模式', 'error', 8000);
                 } else {
-                    showToast('启动系统音频捕获失败: ' + err.message, 'error');
+                    showToast('启动系统音频捕获失败: ' + err.message + '（如持续失败，请改用「音频文件上传」模式）', 'error', 8000);
                 }
+            }
+        }
+
+        // ==================== 音频电平监控 ====================
+        let audioLevelContext = null;
+        let audioLevelAnalyser = null;
+        let audioLevelRafId = null;
+
+        function startAudioLevelMonitor(stream) {
+            try {
+                stopAudioLevelMonitor();
+                audioLevelContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioLevelContext.createMediaStreamSource(stream);
+                audioLevelAnalyser = audioLevelContext.createAnalyser();
+                audioLevelAnalyser.fftSize = 256;
+                source.connect(audioLevelAnalyser);
+
+                const dataArray = new Uint8Array(audioLevelAnalyser.frequencyBinCount);
+                const levelBar = document.getElementById('audioLevelBar');
+                const levelText = document.getElementById('audioLevelText');
+
+                function update() {
+                    if (!audioLevelAnalyser) return;
+                    audioLevelAnalyser.getByteFrequencyData(dataArray);
+                    // 计算平均音量
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    const avg = sum / dataArray.length;
+                    const level = Math.min(100, Math.round(avg * 2));
+
+                    if (levelBar) {
+                        levelBar.style.width = level + '%';
+                        if (level > 5) {
+                            levelBar.classList.add('active');
+                            levelBar.classList.remove('silent');
+                        } else {
+                            levelBar.classList.remove('active');
+                            levelBar.classList.add('silent');
+                        }
+                    }
+                    if (levelText) {
+                        if (level > 5) {
+                            levelText.textContent = '✅ 正在接收音频信号';
+                            levelText.style.color = 'var(--success, #34c759)';
+                        } else {
+                            levelText.textContent = '⚠️ 未检测到声音 — 请确认 Teams 正在播放声音且勾选了「分享音频」';
+                            levelText.style.color = 'var(--warning, #ff9500)';
+                        }
+                    }
+                    audioLevelRafId = requestAnimationFrame(update);
+                }
+                update();
+            } catch (e) {
+                console.warn('音频电平监控启动失败:', e);
+            }
+        }
+
+        function stopAudioLevelMonitor() {
+            if (audioLevelRafId) {
+                cancelAnimationFrame(audioLevelRafId);
+                audioLevelRafId = null;
+            }
+            if (audioLevelContext) {
+                try { audioLevelContext.close(); } catch(e) {}
+                audioLevelContext = null;
+                audioLevelAnalyser = null;
             }
         }
 
@@ -527,6 +689,7 @@
             document.getElementById('sysStartBtn').disabled = false;
             document.getElementById('sysStopBtn').disabled = true;
             clearInterval(timerInterval);
+            stopAudioLevelMonitor();
             showToast('录音已停止，正在上传AI识别...', 'info');
         }
 
