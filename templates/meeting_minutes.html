@@ -9,6 +9,9 @@
     <style>
         /* 主题变量由 theme.css 统一提供，此处仅保留页面专属样式 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* 屏幕共享期间浏览器原生指示条会占据页面顶部，取消导航栏 sticky 避免被遮挡 */
+        body.screen-sharing .tb-nav-bar { position: relative; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg-primary); min-height: 100vh; color: var(--text-primary);
@@ -641,6 +644,9 @@
                 if (timerInterval) clearInterval(timerInterval);
                 timerInterval = setInterval(updateSysTimer, 1000);
 
+                // 屏幕共享期间浏览器会在页面顶部显示原生指示条，增加 padding 避免遮挡
+                document.body.classList.add('screen-sharing');
+
                 // 启动音频电平监控，帮助用户确认是否真正捕获到声音
                 startAudioLevelMonitor(audioStream);
 
@@ -748,6 +754,7 @@
             document.getElementById('sysStopBtn').disabled = true;
             clearInterval(timerInterval);
             stopAudioLevelMonitor();
+            document.body.classList.remove('screen-sharing');
             showToast('录音已停止，正在上传AI识别...', 'info');
         }
 
