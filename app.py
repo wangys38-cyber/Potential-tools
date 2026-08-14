@@ -160,6 +160,8 @@ _PUBLIC_PATHS = (
     '/api/generate-minutes-stream', # 会议纪要 AI 流式自行检查认证
     '/api/weekly-report-stream',    # 周报 AI 流式自行检查认证
     '/api/notes/sync',       # 笔记同步API自行检查认证
+    '/api/docs',             # 文档仓库API自行检查认证
+    '/api/docs/<int:doc_id>', # 文档详情API自行检查认证
     '/api/upload-init',      # 上传API自行检查认证，返回JSON 401
     '/api/upload-chunk',     # 同上
     '/api/upload-complete',  # 同上
@@ -1841,8 +1843,8 @@ def realtime_asr_proxy(ws):
                 'format': 'pcm',
                 'sample_rate': 16000,
                 'language_hints': ['zh', 'en'],
-                'semantic_punctuation_enabled': True,
-                'disfluency_removal_enabled': True,
+                'semantic_punctuation_enabled': False,
+                'disfluency_removal_enabled': False,
                 'punctuation_prediction_enabled': True,
                 'inverse_text_normalization_enabled': True,
                 'heartbeat': True,
@@ -1905,6 +1907,8 @@ def realtime_asr_proxy(ws):
             while not ws_closed.is_set():
                 try:
                     resp = ds_ws.recv()
+                    # DashScope 返回速度受模型影响，recv 本身不设超时
+                    # 靠 heartbeat 保活，task-failed/task-finished 自然退出
                 except _ws_client.WebSocketTimeoutException:
                     continue
                 except _ws_client.WebSocketConnectionClosedException:

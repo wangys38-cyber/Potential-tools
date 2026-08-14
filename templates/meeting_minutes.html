@@ -1158,8 +1158,8 @@
             const actualSampleRate = rtAudioContext.sampleRate;
             rtSourceNode = rtAudioContext.createMediaStreamSource(rtStream);
 
-            // ScriptProcessorNode — 缓冲区 4096 样本
-            rtProcessor = rtAudioContext.createScriptProcessor(4096, 1, 1);
+            // ScriptProcessorNode — 缓冲区 2048 样本（128ms @16kHz，降低延迟）
+            rtProcessor = rtAudioContext.createScriptProcessor(2048, 1, 1);
 
             rtProcessor.onaudioprocess = (e) => {
                 if (!rtIsRecording) return;

@@ -220,3 +220,143 @@ def notes_sync_post():
     except Exception as e:
         logger.error(f"保存笔记同步数据失败: {e}")
         return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
+
+
+# ==================== 文档仓库 ====================
+
+_DOC_MAX_CONTENT = 500 * 1024  # 单篇文档 500KB 上限
+_DOC_MAX_COUNT = 200  # 每用户最多 200 篇文档
+
+
+@bp.route('/api/docs', methods=['GET'])
+def docs_list():
+    """获取文档列表"""
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        rows = db.get_user_data_list(user['id'], data_type='document', limit=500)
+        # 列表只返回摘要，不返回完整内容
+        docs = []
+        for r in rows:
+            content = r.get('content', '')
+            if isinstance(content, dict):
+                content = content.get('text', '')
+            summary = (content[:200] + '...') if len(str(content)) > 200 else str(content)
+            docs.append({
+                'id': r['id'],
+                'title': r.get('title', '未命名'),
+                'summary': summary,
+                'created_at': r.get('created_at', 0),
+                'updated_at': r.get('created_at', 0),
+            })
+        total = db.count_user_data(user['id'], 'document')
+        return jsonify({'status': 'success', 'docs': docs, 'total': total, 'max_count': _DOC_MAX_COUNT})
+    except Exception as e:
+        logger.error(f"获取文档列表失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+
+@bp.route('/api/docs/<int:doc_id>', methods=['GET'])
+def docs_get(doc_id):
+    """获取单篇文档"""
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        doc = db.get_user_data_by_id(user['id'], doc_id)
+        if not doc or doc.get('data_type') != 'document':
+            return jsonify({'error': '文档不存在'}), 404
+        content = doc.get('content', '')
+        if isinstance(content, dict):
+            content = content.get('text', '')
+        return jsonify({
+            'status': 'success',
+            'doc': {
+                'id': doc['id'],
+                'title': doc.get('title', '未命名'),
+                'content': content,
+                'created_at': doc.get('created_at', 0),
+                'updated_at': doc.get('created_at', 0),
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取文档失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+
+@bp.route('/api/docs', methods=['POST'])
+def docs_create():
+    """创建文档"""
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        data = request.get_json(silent=True) or {}
+        title = (data.get('title') or '未命名文档').strip()[:200]
+        content = data.get('content', '')
+
+        if len(content) > _DOC_MAX_CONTENT:
+            return jsonify({'error': f'文档内容过大（上限 {_DOC_MAX_CONTENT // 1024}KB）'}), 413
+
+        count = db.count_user_data(user['id'], 'document')
+        if count >= _DOC_MAX_COUNT:
+            return jsonify({'error': f'文档数量已达上限（{_DOC_MAX_COUNT} 篇）'}), 413
+
+        doc_id = db.save_user_data(user['id'], 'document', title, content)
+        return jsonify({'status': 'success', 'id': doc_id, 'message': '文档已保存'})
+    except Exception as e:
+        logger.error(f"创建文档失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+
+@bp.route('/api/docs/<int:doc_id>', methods=['PUT'])
+def docs_update(doc_id):
+    """更新文档"""
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        data = request.get_json(silent=True) or {}
+        title = data.get('title')
+        content = data.get('content')
+
+        if content is not None and len(content) > _DOC_MAX_CONTENT:
+            return jsonify({'error': f'文档内容过大（上限 {_DOC_MAX_CONTENT // 1024}KB）'}), 413
+
+        if title is not None:
+            title = title.strip()[:200]
+
+        ok = db.update_user_data(user['id'], doc_id, title=title, content=content)
+        if not ok:
+            return jsonify({'error': '文档不存在或无更新'}), 404
+        return jsonify({'status': 'success', 'message': '文档已更新'})
+    except Exception as e:
+        logger.error(f"更新文档失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+
+@bp.route('/api/docs/<int:doc_id>', methods=['DELETE'])
+def docs_delete(doc_id):
+    """删除文档"""
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    try:
+        ok = db.delete_user_data(user['id'], doc_id)
+        if not ok:
+            return jsonify({'error': '文档不存在'}), 404
+        return jsonify({'status': 'success', 'message': '文档已删除'})
+    except Exception as e:
+        logger.error(f"删除文档失败: {e}")
+        return jsonify({'error': '服务器内部错误'}), 500

@@ -298,6 +298,45 @@ def delete_user_data(user_id, data_id):
         return result.rowcount > 0
 
 
+def update_user_data(user_id, data_id, title=None, content=None):
+    """更新用户数据（标题和/或内容），返回是否成功"""
+    with engine.begin() as conn:
+        sets = []
+        params = {'id': data_id, 'user_id': user_id}
+        if title is not None:
+            sets.append("title = :title")
+            params['title'] = title
+        if content is not None:
+            content_str = json.dumps(content, ensure_ascii=False) if isinstance(content, (dict, list)) else str(content)
+            sets.append("content = :content")
+            params['content'] = content_str
+        if not sets:
+            return False
+        sets.append("created_at = :created_at")
+        params['created_at'] = time.time()
+        result = conn.execute(
+            text(f"UPDATE user_data SET {', '.join(sets)} WHERE id = :id AND user_id = :user_id"),
+            params
+        )
+        return result.rowcount > 0
+
+
+def count_user_data(user_id, data_type=None):
+    """统计用户数据条数"""
+    with engine.connect() as conn:
+        if data_type:
+            row = conn.execute(
+                text("SELECT COUNT(*) as cnt FROM user_data WHERE user_id = :user_id AND data_type = :data_type"),
+                {'user_id': user_id, 'data_type': data_type}
+            ).fetchone()
+        else:
+            row = conn.execute(
+                text("SELECT COUNT(*) as cnt FROM user_data WHERE user_id = :user_id"),
+                {'user_id': user_id}
+            ).fetchone()
+        return row.cnt if row else 0
+
+
 # ==================== 应用配置 ====================
 
 def get_config(key, default=None):
