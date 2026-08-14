@@ -1,12 +1,13 @@
-/* Service Worker v4.0-pwa — App Shell 模式 */
-const VERSION = 'v4.0-pwa';
+/* Service Worker v4.1-pwa — App Shell 模式（精简预缓存） */
+const VERSION = 'v4.1-pwa';
 const SHELL_CACHE = `app-shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 
-// App Shell 预缓存清单：核心页面 + 静态资源
+// App Shell 预缓存清单：仅核心资源，不预缓存大页面
 const PRECACHE_URLS = [
-  '/', '/noteNB/', '/merit', '/settings',
-  '/static/css/theme.css', '/static/js/components.js'
+  '/',
+  '/static/css/theme.css',
+  '/static/js/components.js'
 ];
 
 // install：预缓存 App Shell，跳过 waiting
