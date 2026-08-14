@@ -465,13 +465,42 @@
     function toggleFavorite(toolId, event) {
         if (event) { event.preventDefault(); event.stopPropagation(); }
         let favs = getFavorites();
-        if (favs.includes(toolId)) {
+        const wasFav = favs.includes(toolId);
+        if (wasFav) {
             favs = favs.filter(f => f !== toolId);
         } else {
             favs.push(toolId);
         }
         try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e) {}
-        renderTools();
+
+        // 仅更新被点击的按钮，不重新渲染整个网格
+        const btn = event && event.currentTarget ? event.currentTarget : null;
+        if (btn) {
+            btn.classList.toggle('active', !wasFav);
+            btn.innerHTML = wasFav ? '☆' : '⭐';
+            btn.title = wasFav ? '收藏' : '取消收藏';
+        }
+
+        // 如果当前在收藏分类视图下，需要重新渲染（因为列表内容变了）
+        if (currentCategory === 'fav') {
+            renderTools();
+        } else {
+            // 更新结果计数
+            const countEl = document.getElementById('search-count');
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            if (query || currentCategory !== 'all') {
+                const filtered = TOOLS.filter(t => {
+                    const catMatch = currentCategory === 'all' || t.cat === currentCategory ||
+                                     (currentCategory === 'fav' && isFavorite(t.id));
+                    const qMatch = !query ||
+                        t.name.toLowerCase().includes(query) ||
+                        t.desc.toLowerCase().includes(query) ||
+                        t.features.some(f => f.toLowerCase().includes(query));
+                    return catMatch && qMatch;
+                });
+                countEl.textContent = `${filtered.length} 个结果`;
+            }
+        }
         renderFavBar();
     }
     function isFavorite(toolId) {
