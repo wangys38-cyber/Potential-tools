@@ -135,12 +135,23 @@
             display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
         }
         @media (max-width: 600px) {
+            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+            body { overflow-x: hidden; }
             .info-grid { grid-template-columns: 1fr; }
             .form-row { flex-direction: column; }
             .header { padding: 12px 16px; }
-            .back-btn, .theme-toggle { width: 44px; height: 44px; }
+            .back-btn, .theme-toggle { width: 40px; height: 40px; }
             .btn { min-height: 44px; }
-            .color-swatch { width: 44px; height: 44px; }
+            .color-swatch { width: 40px; height: 40px; }
+            input, select, textarea { font-size: 16px; /* iOS prevent zoom */ }
+        }
+        @media (max-width: 480px) {
+            .header { padding: 10px 12px; }
+            .header h1 { font-size: 17px; }
+            .card { padding: 14px; }
+            .back-btn, .theme-toggle { width: 36px; height: 36px; font-size: 15px; }
+            .btn { padding: 8px 14px; font-size: 13px; }
+            .color-swatch { width: 36px; height: 36px; }
         }
         .info-item {
             background: var(--bg-muted); border-radius: 10px;

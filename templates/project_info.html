@@ -849,8 +849,32 @@
         }
 
         @media (max-width: 768px) {
+            html {
+                -webkit-text-size-adjust: 100%;
+                overflow-x: hidden;
+            }
+
             body {
+                overflow-x: hidden;
                 padding: 16px;
+            }
+
+            input,
+            select,
+            textarea {
+                font-size: 16px; /* iOS prevent zoom */
+            }
+
+            img,
+            pre,
+            code {
+                max-width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .form-grid {
@@ -903,6 +927,50 @@
 
             .form-actions {
                 flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .card,
+            .project-form,
+            .project-list,
+            .detail-section {
+                padding: 12px;
+            }
+
+            .detail-header h2 {
+                font-size: 18px;
+            }
+
+            .form-grid,
+            .detail-grid {
+                gap: 10px;
+            }
+
+            .tool-btn {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+
+            .toolbar {
+                gap: 8px;
+            }
+
+            .search-box {
+                font-size: 16px; /* iOS prevent zoom */
             }
         }
 

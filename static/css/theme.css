@@ -820,32 +820,324 @@
     color: var(--tb-text-tertiary);
 }
 
-/* ==================== 响应式 ==================== */
+/* ==================== 全局移动端基础 ==================== */
 @media (max-width: 768px) {
+    /* 防止 iOS 横向溢出和文字自动放大 */
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        overflow-x: hidden;
+    }
+    body {
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 所有可点击元素去除 300ms 延迟 */
+    button, a, input, select, textarea {
+        touch-action: manipulation;
+    }
+
     .tb-page {
-        padding: 16px;
+        padding: 12px;
+    }
+
+    .tb-container {
+        max-width: 100%;
     }
 
     .tb-header {
-        padding: 16px 20px;
+        padding: 14px 16px;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         align-items: flex-start;
     }
 
     .tb-header h1 {
-        font-size: 20px;
+        font-size: 19px;
     }
 
+    .tb-header .tb-subtitle {
+        font-size: 13px;
+    }
+
+    .tb-header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* 网格适配：手机上最小列宽减小，确保单列铺满 */
     .tb-grid {
-        gap: 16px;
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
 
+    .tb-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* 卡片内边距收紧 */
+    .tb-card {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    /* 导航栏紧凑化 */
     .tb-nav-bar {
-        padding: 8px 14px;
+        padding: 6px 12px;
+        min-height: 44px;
+        padding-top: max(6px, env(safe-area-inset-top));
     }
 
     .tb-nav-title {
         display: none;
+    }
+
+    .tb-nav-home {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .tb-nav-theme {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+    }
+
+    .tb-nav-bar .tb-nav-right button:not(.tb-nav-theme),
+    .tb-nav-bar .tb-nav-right a:not(.tb-nav-home) {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .tb-nav-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .tb-nav-login-btn {
+        padding: 5px 12px;
+        font-size: 12px;
+    }
+
+    /* 按钮：增大触摸区域 */
+    .tb-btn {
+        padding: 10px 20px;
+        min-height: 44px;
+    }
+
+    .tb-btn-sm {
+        padding: 8px 14px;
+        min-height: 40px;
+    }
+
+    .tb-btn-lg {
+        padding: 12px 28px;
+        font-size: 15px;
+    }
+
+    /* 输入框：增大触摸区域 */
+    .tb-input,
+    .tb-select,
+    .tb-textarea {
+        padding: 12px 14px;
+        font-size: 16px; /* iOS 防止缩放：>=16px */
+        min-height: 44px;
+    }
+
+    /* 模态框全宽 */
+    .tb-modal {
+        width: calc(100% - 24px);
+        max-width: none;
+        padding: 20px;
+        border-radius: 14px;
+    }
+
+    .tb-modal-title {
+        font-size: 16px;
+    }
+
+    /* Toast 通知适配 */
+    .tb-toast {
+        max-width: calc(100vw - 24px);
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .tb-toast-container {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        transform: none;
+    }
+
+    /* 表格水平滚动 */
+    .tb-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    .tb-table th,
+    .tb-table td {
+        padding: 10px 12px;
+    }
+
+    /* 拖拽区域缩小 */
+    .tb-dropzone {
+        padding: 32px 16px;
+    }
+
+    .tb-dropzone-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+
+    .tb-dropzone-text {
+        font-size: 14px;
+    }
+
+    /* 空状态 */
+    .tb-empty {
+        padding: 40px 16px;
+    }
+
+    /* 模态框底部安全区 */
+    .tb-modal-actions {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* ==================== 小屏手机 (<=480px) ==================== */
+@media (max-width: 480px) {
+    .tb-page {
+        padding: 10px;
+    }
+
+    .tb-header {
+        padding: 12px 14px;
+    }
+
+    .tb-header h1 {
+        font-size: 17px;
+    }
+
+    .tb-card {
+        padding: 14px;
+    }
+
+    .tb-nav-bar {
+        padding: 6px 10px;
+    }
+
+    .tb-nav-home {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .tb-nav-theme {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+
+    .tb-nav-bar .tb-nav-right button:not(.tb-nav-theme),
+    .tb-nav-bar .tb-nav-right a:not(.tb-nav-home) {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .tb-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .tb-btn-lg {
+        font-size: 14px;
+        padding: 12px 24px;
+    }
+
+    .tb-toast {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+
+    .tb-modal {
+        padding: 16px;
+    }
+
+    /* 最近使用/收藏栏更紧凑 */
+    .tb-recent-item {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .tb-recent-item-icon {
+        font-size: 14px;
+    }
+}
+
+/* ==================== 超小屏 (<=360px) ==================== */
+@media (max-width: 360px) {
+    .tb-page {
+        padding: 8px;
+    }
+
+    .tb-header {
+        padding: 10px 12px;
+    }
+
+    .tb-header h1 {
+        font-size: 16px;
+    }
+
+    .tb-card {
+        padding: 12px;
+    }
+
+    .tb-nav-home {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+
+    .tb-nav-theme {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+    }
+
+    .tb-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+    .tb-input,
+    .tb-select,
+    .tb-textarea {
+        padding: 10px 12px;
+        font-size: 16px;
+    }
+}
+
+/* ==================== 横屏适配 ==================== */
+@media (max-width: 900px) and (orientation: landscape) {
+    .tb-modal {
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+}
+
+/* ==================== 安全区域 (iPhone 刘海/底部条) ==================== */
+@supports (padding: env(safe-area-inset-top)) {
+    .tb-nav-bar {
+        padding-top: max(6px, env(safe-area-inset-top));
+    }
+    .tb-toast-container {
+        top: max(12px, env(safe-area-inset-top));
+    }
+    .footer {
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 }

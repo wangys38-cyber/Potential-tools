@@ -217,10 +217,18 @@
 
         /* Mobile responsiveness */
         @media (max-width: 480px) {
+            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+            body { overflow-x: hidden; }
             .login-card { padding: 28px 20px; }
             .logo-area { margin-bottom: 24px; }
             .logo-icon { width: 64px; height: 64px; font-size: 32px; }
-            .theme-toggle { width: 44px; height: 44px; }
+            .theme-toggle { width: 40px; height: 40px; }
+        }
+        @media (max-width: 360px) {
+            .login-card { padding: 20px 16px; }
+            .logo-icon { width: 56px; height: 56px; font-size: 28px; }
+            .logo-area h1 { font-size: 22px; }
+            .theme-toggle { width: 36px; height: 36px; }
         }
     </style>
 </head>

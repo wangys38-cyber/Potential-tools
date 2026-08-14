@@ -694,7 +694,12 @@
 
         /* ===== Responsive ===== */
         @media (max-width: 768px) {
+            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
             body { padding: 12px; }
+            body { overflow-x: hidden; }
+            input, select, textarea { font-size: 16px; /* iOS prevent zoom */ }
+            img, pre, code { max-width: 100%; }
+            .info-grid { grid-template-columns: 1fr; }
             .card { padding: 20px; }
             .upload-card { padding: 40px 20px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -707,6 +712,16 @@
             .actions-bar .btn { flex: 1 1 calc(50% - 6px); }
             table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
             th, td { white-space: normal !important; min-width: 80px; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .card { padding: 14px; }
+            .header h1 { font-size: 17px; }
+            .header .subtitle { font-size: 12px; }
+            .btn { padding: 8px 16px; font-size: 13px; min-height: 42px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .actions-bar .btn { flex: 1 1 100%; width: 100%; }
         }
 
         /* ===== Dark mode overrides for hardcoded light backgrounds ===== */

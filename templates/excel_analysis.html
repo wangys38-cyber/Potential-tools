@@ -569,6 +569,11 @@
 
         /* ===== Mobile Responsive ===== */
         @media (max-width: 768px) {
+            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+            body { overflow-x: hidden; }
+            input, select, textarea { font-size: 16px; /* iOS prevent zoom */ }
+            img, pre, code { max-width: 100%; }
+
             .header {
                 padding: 14px 16px;
                 flex-wrap: wrap;
@@ -668,6 +673,14 @@
                 grid-template-columns: 1fr;
             }
 
+            /* Smaller stats grid items */
+            .summary-card {
+                padding: 14px 10px;
+                border-radius: 12px;
+            }
+            .summary-card .num { font-size: 26px; }
+            .summary-card .label { font-size: 11px; margin-top: 6px; }
+
             .btn-group {
                 flex-direction: column;
             }
@@ -677,9 +690,14 @@
                 justify-content: center;
             }
 
-            .btn {
-                padding: 12px 20px;
-                font-size: 13px;
+            /* More compact button styles */
+            .btn,
+            .btn-primary,
+            .btn-secondary,
+            button {
+                padding: 10px 14px;
+                font-size: 12px;
+                min-height: 40px;
             }
         }
     </style>

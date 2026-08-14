@@ -145,12 +145,22 @@
             .total-merit .value { font-size: 28px; }
             .reset-btn, .back-btn { padding: 12px 20px; min-height: 44px; }
             .back-btn { left: 120px; }
-            body { overflow: auto !important; }
+            body { overflow-x: hidden; overflow-y: auto !important; }
+            .achievement { padding: 24px 30px; }
+            .achievement .title { font-size: 18px; }
+            .achievement .desc { font-size: 13px; }
         }
 
         @media (max-width: 360px) {
+            .fish-area { width: 270px; height: 250px; }
+            .fish-svg { width: 250px; height: 190px; }
+            .mallet-wrap { width: 155px; height: 140px; top: -42px; }
             .total-merit { min-width: 90px; padding: 10px 14px; }
+            .total-merit .value { font-size: 22px; }
             .back-btn { left: 110px; }
+            .reset-btn { left: 16px; }
+            .hint { font-size: 12px; letter-spacing: 2px; }
+            .merit-popup { font-size: 22px; }
         }
     </style>
 </head>

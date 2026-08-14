@@ -113,11 +113,44 @@
         /* 主体布局 */
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) {
-            .main-grid { grid-template-columns: 1fr; }
+            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+            body { overflow-x: hidden; }
+            .main-grid { grid-template-columns: 1fr; gap: 12px; }
             .btn { min-height: 44px; }
-            .btn-sm { padding: 8px 14px; min-height: 44px; }
-            .theme-toggle { width: 44px; height: 44px; }
-            .page { padding: 16px 12px; }
+            .btn-sm { padding: 8px 14px; min-height: 40px; }
+            .theme-toggle { width: 36px; height: 36px; font-size: 16px; }
+            .page { padding: 12px 10px; }
+            .header { padding: 16px; flex-direction: column; gap: 10px; align-items: flex-start; }
+            .header-left h1 { font-size: 19px; }
+            .header-left p { font-size: 13px; }
+            .header-right { width: 100%; flex-wrap: wrap; }
+            .mode-selector { padding: 16px; }
+            .mode-tabs { gap: 6px; }
+            .mode-tab { padding: 10px 14px; font-size: 13px; min-height: 44px; }
+            .meeting-info { padding: 16px; }
+            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .recording-bar { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 10px; }
+            .recording-controls { justify-content: center; }
+            .upload-zone { padding: 32px 16px; }
+            .transcript-panel, .minutes-panel { min-height: 300px; padding: 14px; }
+            .transcript-content, .minutes-content { max-height: 400px; padding-right: 4px; }
+            .form-input { font-size: 16px; /* iOS 防缩放 */ }
+            .minutes-content table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .toast-container { top: 12px; left: 12px; right: 12px; transform: none; }
+            .toast { max-width: none; font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .page { padding: 10px 8px; }
+            .header { padding: 14px; }
+            .header-left h1 { font-size: 17px; }
+            .mode-tab { padding: 8px 12px; font-size: 12px; }
+            .info-grid { grid-template-columns: 1fr; }
+            .transcript-panel, .minutes-panel { min-height: 250px; padding: 12px; }
+            .transcript-content, .minutes-content { max-height: 350px; }
+            .panel-title { font-size: 14px; }
+            .recording-time { font-size: 17px; }
+            .btn { padding: 8px 14px; font-size: 13px; }
+            .toast { font-size: 12px; padding: 10px 14px; }
         }
         .transcript-panel, .minutes-panel {
             background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px;

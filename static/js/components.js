@@ -964,16 +964,23 @@ const ToolboxAIChat = (function() {
             .tb-aichat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(99,102,241,0.4);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
             .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.5)}
             .tb-aichat-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
-            @media (max-width: 480px) {
+            @media (max-width: 768px) {
                 .tb-aichat-panel {
                     width: 100vw !important;
                     height: 100vh !important;
+                    height: 100dvh !important;
                     right: 0 !important;
                     top: 0 !important;
                     border-radius: 0 !important;
+                    padding-top: env(safe-area-inset-top);
                 }
                 .tb-aichat-fab {
                     bottom: 80px !important;
+                    right: 16px !important;
+                    bottom: max(80px, env(safe-area-inset-bottom)) !important;
+                }
+                .tb-aichat-input-area {
+                    padding-bottom: env(safe-area-inset-bottom) !important;
                 }
             }
             .tb-aichat-panel.open{right:0}
@@ -1005,7 +1012,7 @@ const ToolboxAIChat = (function() {
             .tb-aichat-input-area{padding:12px 16px;border-top:1px solid var(--tb-border,#e5e5ea);flex-shrink:0}
             [data-theme="dark"] .tb-aichat-input-area{border-color:rgba(255,255,255,0.08)}
             .tb-aichat-input-wrap{display:flex;gap:8px;align-items:flex-end}
-            .tb-aichat-input{flex:1;resize:none;border:1px solid var(--tb-border,#e5e5ea);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;background:var(--tb-bg,#fff);color:var(--tb-text,#1d1d1f);max-height:120px;min-height:42px;line-height:1.5}
+            .tb-aichat-input{flex:1;resize:none;border:1px solid var(--tb-border,#e5e5ea);border-radius:8px;padding:10px 12px;font-size:16px;font-family:inherit;background:var(--tb-bg,#fff);color:var(--tb-text,#1d1d1f);max-height:120px;min-height:44px;line-height:1.5}
             [data-theme="dark"] .tb-aichat-input{background:#2a2a3e;border-color:rgba(255,255,255,0.1);color:#f0f0f2}
             .tb-aichat-input:focus{outline:none;border-color:#6366f1}
             .tb-aichat-send{width:42px;height:42px;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}

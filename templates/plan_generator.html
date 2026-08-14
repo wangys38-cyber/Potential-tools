@@ -497,6 +497,33 @@
         }
 
         @media (max-width: 768px) {
+            html {
+                -webkit-text-size-adjust: 100%;
+                overflow-x: hidden;
+            }
+
+            body {
+                overflow-x: hidden;
+            }
+
+            input,
+            select,
+            textarea {
+                font-size: 16px; /* iOS prevent zoom */
+            }
+
+            img,
+            pre,
+            code {
+                max-width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
             .input-row {
                 flex-direction: column;
                 align-items: stretch;
@@ -542,6 +569,31 @@
 
             .timeline-label .node-date {
                 font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 14px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .input-section h2,
+            .result-section h2 {
+                font-size: 15px;
+            }
+
+            .input-section,
+            .result-section {
+                padding: 16px;
+            }
+
+            .action-btn {
+                padding: 8px 14px;
+                font-size: 13px;
             }
         }
 
