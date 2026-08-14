@@ -142,6 +142,7 @@
         .status-badge.ok { background: rgba(52, 199, 89, 0.12); color: var(--success); }
         .status-badge.warn { background: rgba(255, 149, 0, 0.12); color: var(--warning); }
         .status-badge.error { background: rgba(255, 59, 48, 0.12); color: var(--danger); }
+        .status-badge.info { background: rgba(0, 113, 227, 0.12); color: var(--accent, #0071e3); }
         .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
         /* Info grid */
@@ -243,6 +244,7 @@
         [data-theme="dark"] .status-badge.ok { background: rgba(48, 209, 88, 0.16); }
         [data-theme="dark"] .status-badge.warn { background: rgba(255, 214, 10, 0.16); }
         [data-theme="dark"] .status-badge.error { background: rgba(255, 69, 58, 0.16); }
+        [data-theme="dark"] .status-badge.info { background: rgba(10, 132, 255, 0.16); }
         [data-theme="dark"] .test-result.success { background: rgba(48, 209, 88, 0.14); }
         [data-theme="dark"] .test-result.error { background: rgba(255, 69, 58, 0.14); }
         [data-theme="dark"] .mode-btn.active { background: rgba(10, 132, 255, 0.1); }
@@ -266,30 +268,51 @@
                 <span class="section-icon">🤖</span>
                 <div>
                     <div class="section-title">AI 配置</div>
-                    <div class="section-desc">配置 AI 服务的 API Key 和模型</div>
+                    <div class="section-desc">配置 AI 服务的 API Key 和模型（随账号保存）</div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">API Key</label>
-                <input type="password" class="form-input" id="aiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
-                <div class="form-hint" id="keyHint">当前状态: 检测中...</div>
+            <!-- 当前配置状态 -->
+            <div id="currentConfigDisplay" style="background: var(--bg-secondary, #f5f5f7); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-primary);">当前配置</div>
+                        <div id="currentConfigDetail" style="font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.6;"></div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="editAIConfig()" id="editBtn">✏️ 替换/编辑</button>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteAIConfig()" id="deleteBtn" style="color:var(--danger);">🗑️ 删除</button>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">API Base URL</label>
-                <input type="text" class="form-input" id="aiBaseUrl" placeholder="https://dashscope.aliyuncs.com/api/v1">
-                <div class="form-hint">DashScope (阿里云) 或 OpenAI 兼容端点</div>
-            </div>
+            <!-- 配置编辑表单 -->
+            <div id="aiConfigForm" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-input" id="aiKey" placeholder="sk-xxxxxxxxxxxxxxxx" style="padding-right:40px;">
+                        <button type="button" onclick="toggleKeyVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-secondary);" id="keyToggleBtn">👁️</button>
+                    </div>
+                    <div class="form-hint" id="keyHint">当前状态: 检测中...</div>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label">默认模型</label>
-                <select class="form-select" id="aiModel"></select>
-            </div>
+                <div class="form-group">
+                    <label class="form-label">API Base URL</label>
+                    <input type="text" class="form-input" id="aiBaseUrl" placeholder="https://dashscope.aliyuncs.com/api/v1">
+                    <div class="form-hint">DashScope (阿里云) 或 OpenAI 兼容端点</div>
+                </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 16px;">
-                <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">💾 保存配置</button>
-                <button class="btn btn-secondary" id="testBtn" onclick="testAI()">🔌 测试连接</button>
+                <div class="form-group">
+                    <label class="form-label">默认模型</label>
+                    <select class="form-select" id="aiModel"></select>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">💾 保存配置</button>
+                    <button class="btn btn-secondary" id="testBtn" onclick="testAI()">🔌 测试连接</button>
+                    <button class="btn btn-ghost" id="cancelBtn" onclick="cancelEdit()" style="display:none;">取消</button>
+                </div>
             </div>
             <div class="test-result" id="testResult"></div>
         </div>
@@ -432,12 +455,21 @@
         }
 
         // ===== AI 配置 =====
+        let _isEditing = false;  // 是否处于编辑模式
+
         async function loadAIConfig() {
             try {
                 const [configResp, modelsResp] = await Promise.all([
                     fetch('/api/ai-config'),
                     fetch('/api/ai-models')
                 ]);
+
+                // 处理需要登录的情况
+                if (configResp.status === 401) {
+                    document.getElementById('keyHint').innerHTML = '<span class="status-badge warn"><span class="status-dot"></span>请先登录</span>';
+                    document.getElementById('aiConfigForm').style.display = 'block';
+                    return;
+                }
                 if (!configResp.ok) throw new Error('配置查询失败 HTTP ' + configResp.status);
                 if (!modelsResp.ok) throw new Error('模型查询失败 HTTP ' + modelsResp.status);
                 const config = await configResp.json();
@@ -449,6 +481,24 @@
                         ? `<span class="status-badge ok"><span class="status-dot"></span>已配置 ${d.key_masked}</span>`
                         : `<span class="status-badge warn"><span class="status-dot"></span>未配置</span>`;
                     document.getElementById('aiBaseUrl').value = d.base_url || '';
+
+                    // 显示当前配置状态卡片
+                    if (d.has_user_config) {
+                        const detail = document.getElementById('currentConfigDetail');
+                        let html = '';
+                        if (d.key_masked) html += `<div>🔑 API Key: <strong>${d.key_masked}</strong></div>`;
+                        if (d.base_url) html += `<div>🌐 端点: ${d.base_url}</div>`;
+                        if (d.model) html += `<div>🤖 模型: ${d.model}</div>`;
+                        detail.innerHTML = html;
+                        document.getElementById('currentConfigDisplay').style.display = 'block';
+                        // 如果不在编辑模式，隐藏表单
+                        if (!_isEditing) {
+                            document.getElementById('aiConfigForm').style.display = 'none';
+                        }
+                    } else {
+                        document.getElementById('currentConfigDisplay').style.display = 'none';
+                        document.getElementById('aiConfigForm').style.display = 'block';
+                    }
                 }
 
                 const sel = document.getElementById('aiModel');
@@ -469,6 +519,61 @@
                 console.error('加载AI配置失败:', e);
                 const sel = document.getElementById('aiModel');
                 if (sel) sel.innerHTML = '<option value="">加载失败: ' + e.message + '</option>';
+                document.getElementById('aiConfigForm').style.display = 'block';
+            }
+        }
+
+        function editAIConfig() {
+            _isEditing = true;
+            document.getElementById('aiConfigForm').style.display = 'block';
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('aiKey').value = '';
+            document.getElementById('aiKey').placeholder = '输入新的 API Key 替换现有配置（留空则不修改）';
+            document.getElementById('keyHint').innerHTML = '<span class="status-badge info"><span class="status-dot"></span>编辑模式 — 修改后点击保存</span>';
+            // 滚动到表单
+            document.getElementById('aiKey').focus();
+        }
+
+        function cancelEdit() {
+            _isEditing = false;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('aiKey').value = '';
+            document.getElementById('aiKey').placeholder = 'sk-xxxxxxxxxxxxxxxx';
+            loadAIConfig();
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('aiKey');
+            const btn = document.getElementById('keyToggleBtn');
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        async function deleteAIConfig() {
+            if (!confirm('确认删除当前账号的 AI 配置？删除后需要重新配置 API Key 才能使用 AI 功能。')) {
+                return;
+            }
+            try {
+                const resp = await fetch('/api/ai-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: '', base_url: '', model: '' })
+                });
+                const result = await resp.json();
+                if (result.status === 'success') {
+                    showToast('✅ 已删除配置');
+                    _isEditing = false;
+                    loadAIConfig();
+                } else {
+                    showToast('❌ ' + (result.error || '删除失败'));
+                }
+            } catch (e) {
+                showToast('❌ 网络错误');
             }
         }
 
@@ -501,6 +606,8 @@
                 if (result.status === 'success') {
                     showToast('✅ 保存成功');
                     document.getElementById('aiKey').value = '';
+                    _isEditing = false;
+                    document.getElementById('cancelBtn').style.display = 'none';
                     loadAIConfig();
                 } else {
                     showToast('❌ ' + (result.error || '保存失败'));

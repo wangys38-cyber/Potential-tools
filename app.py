@@ -738,10 +738,28 @@ def read_excel_file(file_path, sheet_name=None):
     return sheet_names, sheet_data
 
 # === AI 配置管理（v2.0: 使用 SQLite 替代 JSON 文件） ===
-def get_ai_config():
-    config = db.get_config('ai_config', {}) or {}
+def get_ai_config(user_id=None):
+    """获取 AI 配置 — 优先读取用户级配置，其次全局配置，最后环境变量"""
+    # 0. 未指定 user_id 时，尝试从 session 获取当前用户
+    if user_id is None:
+        try:
+            user = auth.get_current_user()
+            if user and user.get('id'):
+                user_id = user['id']
+        except Exception:
+            pass
+    # 1. 优先读取用户级配置
+    if user_id:
+        user_config = db.get_user_ai_config(user_id)
+        if user_config and user_config.get('api_key', '').strip():
+            config = user_config
+        else:
+            config = db.get_config('ai_config', {}) or {}
+    else:
+        config = db.get_config('ai_config', {}) or {}
     if not isinstance(config, dict):
         config = {}
+    # 2. 环境变量覆盖（最高优先级，主要用于部署时全局配置）
     config['api_key'] = os.environ.get('AI_API_KEY', config.get('api_key', ''))
     config['base_url'] = os.environ.get('AI_BASE_URL', config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1'))
     config['model'] = os.environ.get('AI_MODEL', config.get('model', 'qwen-turbo'))
@@ -974,12 +992,27 @@ def api_ai_models():
 
 @app.route('/api/ai-config', methods=['GET'])
 def api_get_ai_config():
-    config = get_ai_config()
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+    # 检查用户是否已有自己的配置
+    user_config = db.get_user_ai_config(user['id'])
+    has_user_config = bool(user_config and user_config.get('api_key', '').strip())
+    # 如果用户没有自己的配置，但全局有配置，自动迁移到用户级
+    if not has_user_config:
+        global_config = db.get_config('ai_config', {}) or {}
+        if isinstance(global_config, dict) and global_config.get('api_key', '').strip():
+            db.set_user_ai_config(user['id'], global_config)
+            user_config = global_config
+            has_user_config = True
+            logger.info(f"用户 {user['id']} 的 AI 配置已从全局迁移到用户级")
+    config = get_ai_config(user['id'])
     return jsonify({
         'status': 'success',
         'data': {
             'enabled': config['enabled'],
             'has_key': bool(config.get('api_key', '').strip()),
+            'has_user_config': has_user_config,
             'key_masked': config.get('api_key', '')[:4] + '****' if config.get('api_key') else '',
             'base_url': config.get('base_url', ''),
             'model': config.get('model', ''),
@@ -989,10 +1022,14 @@ def api_get_ai_config():
 
 @app.route('/api/ai-config', methods=['POST'])
 def api_save_ai_config():
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
     data = request.get_json()
     if not data:
         return jsonify({'error': '无效的配置数据'}), 400
-    config = db.get_config('ai_config', {}) or {}
+    # 读取用户现有配置（如果没有则创建空配置）
+    config = db.get_user_ai_config(user['id'])
     if not isinstance(config, dict):
         config = {}
     if 'api_key' in data:
@@ -1001,8 +1038,11 @@ def api_save_ai_config():
         config['base_url'] = data['base_url'].strip()
     if 'model' in data:
         config['model'] = data['model'].strip()
+    # 如果 api_key 为空，视为删除用户配置
+    if not config.get('api_key', '').strip():
+        config = {}
     try:
-        db.set_config('ai_config', config)
+        db.set_user_ai_config(user['id'], config)
         return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
