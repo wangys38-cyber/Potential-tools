@@ -16,7 +16,7 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次部署都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260814-v25-perf
+ARG CACHE_BUST=20260814-v26-transcript-fix
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 允许游客访问（通过环境变量控制，默认允许）

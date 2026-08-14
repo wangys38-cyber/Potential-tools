@@ -169,8 +169,10 @@
 
         .transcript-entry {
             margin-bottom: 12px; padding: 10px 14px; background: var(--bg-secondary);
-            border-radius: var(--radius-sm); border-left: 3px solid var(--accent); animation: fadeIn 0.3s ease;
+            border-radius: var(--radius-sm); border-left: 3px solid var(--accent);
         }
+        .transcript-entry.new-entry { animation: fadeIn 0.3s ease; }
+        .transcript-entry.interim-entry { border-left-color: var(--text-tertiary); opacity: 0.7; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .transcript-time { font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px; }
         .transcript-text { font-size: 14px; color: var(--text-primary); }
@@ -1296,7 +1298,7 @@
                 let interim = '';
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     const t = e.results[i][0].transcript;
-                    if (e.results[i].isFinal) { addTranscriptEntry(t); updateTranscriptDisplay(); }
+                    if (e.results[i].isFinal) { addTranscriptEntry(t); }
                     else interim += t;
                 }
                 currentInterim = interim;
@@ -1351,7 +1353,6 @@
             if (!startTime) startTime = Date.now();
             text.split('\n').filter(l => l.trim()).forEach(l => addTranscriptEntry(l));
             document.getElementById('manualText').value = '';
-            updateTranscriptDisplay();
             showToast('已添加', 'success');
         }
 
@@ -1434,16 +1435,16 @@
                 if (!confirm('已有转写内容，是否覆盖？点击确定覆盖，取消则追加。')) {
                     // 追加模式
                     entries.forEach(e => addTranscriptEntry(e));
-                    updateTranscriptDisplay();
                     showToast(`已追加 ${entries.length} 条转写记录`, 'success');
                     return;
                 }
                 transcriptEntries = [];
+                _interimEl = null;
+                document.getElementById('transcriptArea').innerHTML = '';
             }
 
             entries.forEach(e => addTranscriptEntry(e));
-            updateTranscriptDisplay();
-            showToast(`已解析并添加 ${entries.length} 条转写记录，可以生成会议纪要了`, 'success', 5000);
+            showToast(`已导入 ${entries.length} 条转写记录`, 'success', 3000);
         }
 
         function handleTranscriptFile(event) {
@@ -1507,6 +1508,8 @@
         });
 
         // ==================== 转写管理 ====================
+        let _interimEl = null; // 缓存中间结果 DOM 元素，避免重建
+
         function addTranscriptEntry(text) {
             if (!startTime) startTime = Date.now();
             const e = Math.floor((Date.now() - startTime) / 1000);
@@ -1515,22 +1518,62 @@
             const s = String(e%60).padStart(2,'0');
             transcriptEntries.push({ time: `${h}:${m}:${s}`, text: text.trim() });
             document.getElementById('generateBtn').disabled = false;
+
+            // 增量追加 DOM：只创建新元素，不重建已有内容
+            _appendTranscriptDOM(`${h}:${m}:${s}`, text.trim());
+        }
+
+        function _appendTranscriptDOM(time, text) {
+            const area = document.getElementById('transcriptArea');
+
+            // 移除空状态提示
+            const emptyState = area.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            // 如果有中间结果元素，先移除它（后面会重新添加）
+            if (_interimEl) { _interimEl.remove(); _interimEl = null; }
+
+            // 创建新条目
+            const entry = document.createElement('div');
+            entry.className = 'transcript-entry new-entry';
+            entry.innerHTML = `<div class="transcript-time">${time}</div><div class="transcript-text">${escapeHtml(text)}</div>`;
+            area.appendChild(entry);
+
+            // 动画结束后移除 new-entry 类，避免后续更新时重复播放
+            entry.addEventListener('animationend', function() {
+                entry.classList.remove('new-entry');
+            }, { once: true });
+
+            area.scrollTop = area.scrollHeight;
         }
 
         function updateTranscriptDisplay() {
             const area = document.getElementById('transcriptArea');
+
+            // 如果没有内容，显示空状态
             if (transcriptEntries.length === 0 && !currentInterim) {
                 area.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎤</div><div class="empty-state-text">正在聆听...</div></div>';
+                _interimEl = null;
                 return;
             }
-            let html = '';
-            for (const entry of transcriptEntries) {
-                html += `<div class="transcript-entry"><div class="transcript-time">${entry.time}</div><div class="transcript-text">${escapeHtml(entry.text)}</div></div>`;
-            }
+
+            // 处理中间结果：仅更新/创建 interim 元素，不触碰已有条目
             if (currentInterim) {
-                html += `<div class="transcript-entry" style="border-left-color:var(--text-tertiary);opacity:0.7;"><div class="transcript-time">正在识别...</div><div class="transcript-interim">${escapeHtml(currentInterim)}</div></div>`;
+                if (!_interimEl || !_interimEl.parentNode) {
+                    // 创建中间结果元素
+                    _interimEl = document.createElement('div');
+                    _interimEl.className = 'transcript-entry interim-entry';
+                    _interimEl.innerHTML = '<div class="transcript-time">正在识别...</div><div class="transcript-interim"></div>';
+                    area.appendChild(_interimEl);
+                }
+                // 仅更新文本内容，不重建 DOM
+                _interimEl.querySelector('.transcript-interim').textContent = currentInterim;
+            } else if (_interimEl) {
+                // 中间结果已转为最终结果，移除 interim 元素
+                _interimEl.remove();
+                _interimEl = null;
             }
-            area.innerHTML = html;
+
             area.scrollTop = area.scrollHeight;
         }
 
@@ -1538,6 +1581,7 @@
             if (transcriptEntries.length === 0) return;
             if (!confirm('确定要清空所有转写内容吗？')) return;
             transcriptEntries = []; currentInterim = '';
+            _interimEl = null;
             document.getElementById('generateBtn').disabled = true;
             updateTranscriptDisplay();
             showToast('已清空', 'info');
