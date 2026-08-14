@@ -158,6 +158,7 @@ _PUBLIC_PATHS = (
     '/api/test-report-ai-stream',  # 测试报告 AI 流式分析自行检查认证
     '/api/excel-analyze-ai-stream', # CR 分析 AI 流式自行检查认证
     '/api/generate-minutes-stream', # 会议纪要 AI 流式自行检查认证
+    '/api/weekly-report-stream',    # 周报 AI 流式自行检查认证
     '/api/notes/sync',       # 笔记同步API自行检查认证
     '/api/upload-init',      # 上传API自行检查认证，返回JSON 401
     '/api/upload-chunk',     # 同上
@@ -271,6 +272,12 @@ try:
     register_ai_bp(app)
 except ImportError as e:
     logger.warning(f"bp_ai Blueprint 加载失败: {e}")
+
+try:
+    from bp_user import register as register_user_bp
+    register_user_bp(app)
+except ImportError as e:
+    logger.warning(f"bp_user Blueprint 加载失败: {e}")
 
 
 def normalize_date(date_str):
@@ -862,146 +869,6 @@ def auth_logout():
     return auth.logout()
 
 
-@app.route('/api/user/info')
-def api_user_info():
-    """获取当前用户信息"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'logged_in': False})
-    return jsonify({
-        'logged_in': True,
-        'user': {
-            'id': user['id'],
-            'name': user['name'],
-            'email': user['email'],
-            'avatar': user['avatar'],
-            'provider': user['provider']
-        }
-    })
-
-
-# ==================== v2.0 新增 API ====================
-
-@app.route('/api/user/preferences', methods=['GET', 'POST'])
-def api_user_preferences():
-    """用户偏好设置（主题模式等）"""
-    user = auth.get_current_user()
-
-    if request.method == 'GET':
-        if not user:
-            return jsonify({'theme': 'auto', 'language': 'zh-CN'})
-        prefs = db.get_user_preferences(user['id'])
-        return jsonify(prefs)
-
-    if request.method == 'POST':
-        if not user:
-            return jsonify({'error': '请先登录'}), 401
-        data = request.get_json(silent=True) or {}
-        theme = data.get('theme')
-        language = data.get('language')
-        try:
-            db.set_user_preferences(user['id'], theme=theme, language=language)
-            return jsonify({'status': 'success'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/merit')
-def api_get_merit():
-    """获取功德数据"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'total_count': 0, 'today_count': 0, 'today_date': ''})
-    data = db.get_merit(user['id'])
-    return jsonify({
-        'total_count': data.get('total_count', 0),
-        'today_count': data.get('today_count', 0),
-        'today_date': data.get('today_date', '')
-    })
-
-
-@app.route('/api/merit/increment', methods=['POST'])
-def api_increment_merit():
-    """功德+1"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
-    try:
-        data = db.increment_merit(user['id'])
-        return jsonify({
-            'total_count': data.get('total_count', 0),
-            'today_count': data.get('today_count', 0),
-            'today_date': data.get('today_date', '')
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/user/save-report', methods=['POST'])
-def api_user_save_report():
-    """保存分析报告到用户账户"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
-
-    data = request.get_json(silent=True) or {}
-    report_data = data.get('report_data', {})
-    title = data.get('title', f'分析报告_{datetime.now(_CST).strftime("%Y%m%d_%H%M%S")}')
-
-    if not report_data:
-        return jsonify({'error': '缺少报告数据'}), 400
-
-    try:
-        data_id = db.save_user_data(user['id'], 'test_report', title, report_data)
-        return jsonify({'status': 'success', 'id': data_id, 'message': '报告已保存'})
-    except Exception as e:
-        logger.error(f"保存报告失败: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/user/reports')
-def api_user_reports():
-    """获取用户保存的报告列表"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
-
-    reports = db.get_user_data_list(user['id'], 'test_report', limit=50)
-    # 简化返回，不包含完整content
-    result = [{
-        'id': r['id'],
-        'title': r.get('title', ''),
-        'created_at': r.get('created_at', 0)
-    } for r in reports]
-    return jsonify({'reports': result})
-
-
-@app.route('/api/user/report/<int:report_id>')
-def api_user_get_report(report_id):
-    """获取用户保存的某份报告"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
-
-    report = db.get_user_data_by_id(user['id'], report_id)
-    if not report:
-        return jsonify({'error': '报告不存在'}), 404
-    return jsonify({'report': report})
-
-
-@app.route('/api/user/report/<int:report_id>', methods=['DELETE'])
-def api_user_delete_report(report_id):
-    """删除用户保存的报告"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
-
-    success = db.delete_user_data(user['id'], report_id)
-    if success:
-        return jsonify({'status': 'success', 'message': '已删除'})
-    return jsonify({'error': '删除失败'}), 404
-
-
 # ==================== 模板渲染缓存 + ETag ====================
 # 内存缓存已渲染的模板，配合ETag实现304 Not Modified
 # 静态模板（不含current_user）全量缓存；含current_user的按用户缓存
@@ -1436,6 +1303,81 @@ def api_weekly_report():
     except Exception as e:
         logger.error(f"周报生成失败: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/weekly-report-stream', methods=['POST'])
+def api_weekly_report_stream():
+    """SSE 流式版：AI 智能周报生成 — 边生成边输出"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    notes = data.get('notes', '').strip()
+    meetings = data.get('meetings', '').strip()
+    cr_issues = data.get('cr_issues', '').strip()
+    extra = data.get('extra', '').strip()
+    model = data.get('model')
+    name = data.get('name', '')
+    week_range = data.get('week_range', '')
+
+    if not any([notes, meetings, cr_issues, extra]):
+        return jsonify({'error': '请至少填写一项本周工作内容'}), 400
+
+    ai_config = get_ai_config()
+    if not ai_config.get('enabled'):
+        return jsonify({'error': 'AI功能未配置'}), 503
+
+    sections = []
+    if name:
+        sections.append(f'汇报人：{name}')
+    if week_range:
+        sections.append(f'汇报周期：{week_range}')
+    if notes:
+        sections.append(f'【工作笔记/记录】\n{notes[:3000]}')
+    if meetings:
+        sections.append(f'【会议内容摘要】\n{meetings[:3000]}')
+    if cr_issues:
+        sections.append(f'【问题/CR记录】\n{cr_issues[:3000]}')
+    if extra:
+        sections.append(f'【其他补充】\n{extra[:2000]}')
+
+    content_block = '\n\n'.join(sections)
+
+    prompt = f"""请根据以下本周工作素材，生成一份结构化的周报。
+
+素材内容：
+{content_block}
+
+请生成周报，使用 Markdown 格式，包含以下部分：
+
+## 本周工作总结
+概括本周主要工作内容（3-5 条要点）
+
+## 关键成果
+本周取得的关键成果或进展
+
+## 问题与风险
+遇到的问题、风险及应对措施
+
+## 下周计划
+下周工作重点和计划安排
+
+要求：
+- 语言简洁专业
+- 合理归纳整理，不要简单罗列原文
+- 使用 Markdown 格式输出"""
+
+    messages = [
+        {'role': 'system', 'content': '你是一个专业的项目汇报助手。请根据用户提供的素材，生成结构清晰、内容准确的周报。'},
+        {'role': 'user', 'content': prompt}
+    ]
+
+    return Response(
+        stream_with_context(_call_ai_stream(messages, model=model, max_tokens=3000, temperature=0.3)),
+        content_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
+    )
 
 
 # ==================== v3.0 设置面板 ====================
@@ -7262,48 +7204,6 @@ def notenb_catch_all(path):
         return send_file(file_path)
     # 对于 SPA 路由回退，也需要注入用户信息
     return notenb_index()
-
-
-# === NoteNB 笔记同步 API ===
-@app.route('/api/notes/sync', methods=['GET'])
-def notes_sync_get():
-    """获取服务端笔记数据（仅登录用户）"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录', 'need_login': True}), 401
-    try:
-        result = db.get_note_state(user['id'])
-        if result and result['data']:
-            return jsonify({
-                'status': 'success',
-                'data': result['data'],
-                'server_updated_at': result['server_updated_at']
-            })
-        return jsonify({'status': 'success', 'data': None, 'server_updated_at': 0})
-    except Exception as e:
-        logger.error(f"获取笔记同步数据失败: {e}")
-        return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
-
-
-@app.route('/api/notes/sync', methods=['POST'])
-def notes_sync_post():
-    """保存笔记数据到服务端（仅登录用户）"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录', 'need_login': True}), 401
-    try:
-        data = request.get_json(silent=True)
-        if not data or 'state' not in data:
-            return jsonify({'error': '缺少 state 数据'}), 400
-        # 限制数据大小（防止过大请求）
-        state_str = json.dumps(data['state'], ensure_ascii=False)
-        if len(state_str) > 5 * 1024 * 1024:  # 5MB 上限
-            return jsonify({'error': '数据过大，请减少笔记数量或内容'}), 413
-        server_time = db.save_note_state(user['id'], data['state'])
-        return jsonify({'status': 'success', 'server_updated_at': server_time})
-    except Exception as e:
-        logger.error(f"保存笔记同步数据失败: {e}")
-        return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
 
 
 # === 静态资源路由 ===

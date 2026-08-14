@@ -29,6 +29,7 @@ COPY auth.py .
 COPY db.py .
 COPY ai_utils.py .
 COPY bp_ai.py .
+COPY bp_user.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY railway.toml .

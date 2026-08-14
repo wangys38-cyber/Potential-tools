@@ -379,45 +379,43 @@
             btn.querySelector('.btn-text').textContent = '生成中...';
 
             const area = document.getElementById('reportArea');
-            area.innerHTML =
-                '<div class="loading-container">' +
-                    '<div class="spinner"></div>' +
-                    '<div class="loading-text">AI 正在整理你的周报，请稍候...</div>' +
-                    '<div class="loading-subtext">通常需要 10-30 秒</div>' +
-                '</div>';
+            area.innerHTML = '<div class="loading-text">AI 正在整理你的周报...</div>';
             document.getElementById('resultBadge').classList.remove('show');
 
             try {
-                const resp = await fetch('/api/weekly-report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: name,
-                        week_range: weekRange,
-                        notes: notes,
-                        meetings: meetings,
-                        cr_issues: crIssues,
-                        extra: extra,
-                        model: model
-                    })
+                let fullText = '';
+                await ToolboxSSE.postStream('/api/weekly-report-stream', {
+                    name: name,
+                    week_range: weekRange,
+                    notes: notes,
+                    meetings: meetings,
+                    cr_issues: crIssues,
+                    extra: extra,
+                    model: model
+                }, {
+                    onChunk: function(chunk, allText) {
+                        fullText = allText;
+                        // 使用统一 Markdown 渲染器实时渲染
+                        var html = (typeof ToolboxMarkdown !== 'undefined')
+                            ? ToolboxMarkdown.renderSafe(allText)
+                            : escapeHtml(allText).replace(/\n/g, '<br>');
+                        area.innerHTML = html;
+                    },
+                    onDone: function(finalText) {
+                        fullText = finalText;
+                        var html = (typeof ToolboxMarkdown !== 'undefined')
+                            ? ToolboxMarkdown.renderSafe(finalText)
+                            : escapeHtml(finalText).replace(/\n/g, '<br>');
+                        area.innerHTML = html;
+                        reportHTML = html;
+                        document.getElementById('resultBadge').classList.add('show');
+                        showToast('周报已生成', 'success');
+                        area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    },
+                    onError: function(err) {
+                        throw new Error(err);
+                    }
                 });
-
-                const data = await resp.json();
-
-                // 处理错误
-                if (data.error) throw new Error(data.error);
-                if (resp.status === 401) throw new Error('登录已过期，请重新登录后再试');
-
-                // 处理成功
-                if (data.status === 'success' && data.report) {
-                    reportHTML = data.report;
-                    area.innerHTML = reportHTML;
-                    document.getElementById('resultBadge').classList.add('show');
-                    showToast('周报已生成', 'success');
-                    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    throw new Error('返回数据格式异常');
-                }
             } catch (err) {
                 reportHTML = '';
                 area.innerHTML =
