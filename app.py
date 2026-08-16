@@ -1032,11 +1032,7 @@ def api_jira_search():
     if not jql:
         return jsonify({'error': '请提供 JQL 或 Jira 搜索链接'}), 400
 
-    auth = (email, api_token) if email and api_token else None
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-
-    # 先尝试 Jira Cloud (api/3)，失败则用 api/2 (Server)
-    search_url = f"{domain}/rest/api/3/search"
     payload = {
         'jql': jql,
         'maxResults': max_results,
@@ -1044,18 +1040,50 @@ def api_jira_search():
                    'fixVersions', 'issuetype', 'priority', 'assignee', 'reporter']
     }
 
+    # 构建多种鉴权尝试方案（Jira Cloud 用邮箱+Token，Jira Server 用短用户名+密码/PAT，PAT 也可用 Bearer）
+    auth_attempts = []
+    if email and api_token:
+        auth_attempts.append(('basic', (email, api_token)))
+        if '@' in email:
+            short_user = email.split('@')[0]
+            auth_attempts.append(('basic', (short_user, api_token)))
+        auth_attempts.append(('bearer', api_token))
+    else:
+        auth_attempts.append(('none', None))
+
+    # API 版本尝试：先 api/3 (Cloud)，再 api/2 (Server)
+    api_versions = ['/rest/api/3/search', '/rest/api/2/search']
+
+    resp = None
+    last_status = None
     try:
-        resp = requests.post(search_url, json=payload, auth=auth, headers=headers, timeout=30)
-        if resp.status_code == 404:
-            # 回退到 Jira Server API
-            search_url = f"{domain}/rest/api/2/search"
-            resp = requests.post(search_url, json=payload, auth=auth, headers=headers, timeout=30)
-        if resp.status_code != 200:
-            if resp.status_code == 401:
-                return jsonify({'error': 'Jira 鉴权失败(401)：请检查邮箱和 API Token。Jira Server 用户请在 Token 栏填入 Personal Access Token 或登录密码'}), 401
-            if resp.status_code == 403:
+        for auth_type, auth_val in auth_attempts:
+            req_headers = dict(headers)
+            if auth_type == 'bearer':
+                req_headers['Authorization'] = f'Bearer {auth_val}'
+                auth_val = None
+            for api_path in api_versions:
+                search_url = f"{domain}{api_path}"
+                resp = requests.post(search_url, json=payload, auth=auth_val,
+                                     headers=req_headers, timeout=30)
+                last_status = resp.status_code
+                if resp.status_code == 200:
+                    break
+                if resp.status_code == 404:
+                    continue  # api/3 不存在，试 api/2
+                # 401/403/其他：跳出 api 版本循环，换下一种鉴权
+                break
+            if resp and resp.status_code == 200:
+                break
+
+        if not resp or resp.status_code != 200:
+            if last_status == 401:
+                return jsonify({'error': 'Jira 鉴权失败(401)：已尝试邮箱/短用户名/Bearer三种方式。Jira Server 请确认用户名(短账号，非邮箱)和密码；或在Jira个人设置生成 Personal Access Token 填入 Token 栏'}), 401
+            if last_status == 403:
                 return jsonify({'error': 'Jira 无权限(403)：当前账号无权访问该 filter 或项目'}), 403
-            return jsonify({'error': f'Jira API 返回 {resp.status_code}: {resp.text[:200]}'}), resp.status_code
+            if last_status == 404:
+                return jsonify({'error': f'Jira API 未找到(404)：请确认域名 {domain} 是否正确，以及是否为 Jira 实例'}), 404
+            return jsonify({'error': f'Jira API 返回 {last_status}: {resp.text[:200] if resp else "无响应"}'}), last_status or 502
 
         result = resp.json()
         issues = result.get('issues', [])
