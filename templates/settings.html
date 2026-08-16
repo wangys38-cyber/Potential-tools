@@ -320,6 +320,29 @@
             <div class="test-result" id="testResult"></div>
         </div>
 
+        <!-- 飞书推送设置 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">📨</span>
+                <div>
+                    <div class="section-title">飞书推送</div>
+                    <div class="section-desc">配置飞书群机器人 Webhook，一键推送周报、会议纪要等到飞书群</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">飞书机器人 Webhook URL</label>
+                <input type="text" class="form-input" id="feishuWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx">
+                <div class="form-hint">在飞书群设置 → 群机器人 → 添加自定义机器人，复制 Webhook 地址粘贴到此处</div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="saveFeishuConfig()">💾 保存配置</button>
+                <button class="btn btn-secondary" onclick="testFeishu()">🔌 发送测试消息</button>
+            </div>
+            <div class="test-result" id="feishuTestResult"></div>
+        </div>
+
         <!-- 外观设置 -->
         <div class="section">
             <div class="section-header">
@@ -442,6 +465,7 @@
             ToolboxTheme.init();
             document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
             loadAIConfig();
+            loadFeishuConfig();
             loadThemeSettings();
             loadSysInfo();
         });
@@ -649,6 +673,58 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '🔌 测试连接';
+            }
+        }
+
+        // ===== 飞书推送设置 =====
+        async function loadFeishuConfig() {
+            try {
+                const resp = await fetch('/api/settings/feishu');
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    document.getElementById('feishuWebhook').value = data.webhook || '';
+                }
+            } catch (e) {
+                console.error('加载飞书配置失败:', e);
+            }
+        }
+
+        async function saveFeishuConfig() {
+            const webhook = document.getElementById('feishuWebhook').value.trim();
+            try {
+                const resp = await fetch('/api/settings/feishu', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({webhook})
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    showToast('飞书配置已保存');
+                } else {
+                    showToast(data.error || '保存失败');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message);
+            }
+        }
+
+        async function testFeishu() {
+            const resultEl = document.getElementById('feishuTestResult');
+            resultEl.className = 'test-result';
+            resultEl.style.display = 'none';
+            try {
+                const resp = await fetch('/api/feishu/test', {method: 'POST'});
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    resultEl.textContent = '✅ ' + (data.message || '测试消息已发送到飞书群');
+                    resultEl.classList.add('show', 'success');
+                } else {
+                    resultEl.textContent = '❌ ' + (data.error || '发送失败');
+                    resultEl.classList.add('show', 'error');
+                }
+            } catch (e) {
+                resultEl.textContent = '❌ 请求失败: ' + e.message;
+                resultEl.classList.add('show', 'error');
             }
         }
 

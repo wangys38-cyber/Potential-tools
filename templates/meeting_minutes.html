@@ -512,6 +512,7 @@
                     <span class="panel-title">📋 会议纪要</span>
                     <div class="panel-actions">
                         <button class="btn btn-ghost btn-sm" onclick="copyMinutes()">📋 复制</button>
+                        <button class="btn btn-ghost btn-sm" onclick="pushMinutesToFeishu()">📨 推飞书</button>
                         <button class="btn btn-ghost btn-sm" onclick="downloadMinutes()">💾 下载</button>
                     </div>
                 </div>
@@ -1655,6 +1656,36 @@
             const a = document.createElement('a'); a.href = url; a.download = `${title}_${date.replace(/\//g,'')}.html`; a.click();
             URL.revokeObjectURL(url);
             showToast('已下载', 'success');
+        }
+
+        // ==================== 推送到飞书 ====================
+        async function pushMinutesToFeishu() {
+            if (!minutesHTML) { showToast('暂无纪要，请先生成', 'warning'); return; }
+            const temp = document.createElement('div'); temp.innerHTML = minutesHTML;
+            const text = temp.innerText;
+            const title = document.getElementById('meetingTitle').value.trim() || '会议纪要';
+            try {
+                showToast('正在推送到飞书...', 'info');
+                const resp = await fetch('/api/feishu/push', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        type: 'meeting',
+                        title: '🎙️ ' + title,
+                        content: text,
+                        summary: text.substring(0, 500),
+                        url: window.location.href
+                    })
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    showToast('✅ 已推送到飞书群', 'success');
+                } else {
+                    showToast('❌ ' + (data.error || '推送失败'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ 推送失败: ' + e.message, 'error');
+            }
         }
 
         // ==================== 工具函数 ====================

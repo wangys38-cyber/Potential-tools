@@ -305,6 +305,7 @@
                 </div>
                 <div class="toolbar-right">
                     <button class="btn btn-secondary btn-sm" onclick="copyReport()">📋 复制</button>
+                    <button class="btn btn-secondary btn-sm" onclick="pushToFeishu()">📨 推飞书</button>
                     <button class="btn btn-primary btn-sm" onclick="exportReport()">🖨️ 导出</button>
                 </div>
             </div>
@@ -481,6 +482,39 @@
                 return;
             }
             window.print();
+        }
+
+        // ==================== 推送到飞书 ====================
+        async function pushToFeishu() {
+            if (!reportHTML) {
+                showToast('暂无周报内容，请先生成', 'warning');
+                return;
+            }
+            const temp = document.createElement('div');
+            temp.innerHTML = reportHTML;
+            const text = temp.innerText;
+            try {
+                showToast('正在推送到飞书...', 'info');
+                const resp = await fetch('/api/feishu/push', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        type: 'weekly',
+                        title: '📊 周报 - ' + new Date().toLocaleDateString('zh-CN'),
+                        content: text,
+                        summary: text.substring(0, 500),
+                        url: window.location.href
+                    })
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    showToast('✅ 已推送到飞书群', 'success');
+                } else {
+                    showToast('❌ ' + (data.error || '推送失败'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ 推送失败: ' + e.message, 'error');
+            }
         }
 
         // ==================== 快捷键 ====================

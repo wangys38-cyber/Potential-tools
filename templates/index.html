@@ -304,6 +304,43 @@
             backdrop-filter: blur(5px);
         }
 
+        /* ===== Dashboard Stats ===== */
+        .dashboard-stats {
+            max-width: 1240px; margin: 0 auto 24px; padding: 0 24px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+        }
+        .stat-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 20px 24px;
+            display: flex; align-items: center; gap: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--glass-shadow);
+            cursor: default;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.12);
+        }
+        .stat-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+        }
+        .stat-icon.tools { background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(192,38,211,0.15)); }
+        .stat-icon.fav { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15)); }
+        .stat-icon.recent { background: linear-gradient(135deg, rgba(14,165,233,0.15), rgba(16,185,129,0.15)); }
+        .stat-info { flex: 1; min-width: 0; }
+        .stat-value {
+            font-size: 28px; font-weight: 800; line-height: 1;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
         /* ===== Tools Grid ===== */
         .container { max-width: 1240px; margin: 0 auto; padding: 0 24px 48px; }
         .tools-grid {
@@ -459,6 +496,11 @@
 
         /* ===== Responsive ===== */
         @media (max-width: 768px) {
+            .dashboard-stats { grid-template-columns: 1fr; padding: 0 14px; gap: 10px; }
+            .stat-card { padding: 14px 18px; }
+            .stat-icon { width: 40px; height: 40px; font-size: 20px; }
+            .stat-value { font-size: 22px; }
+            .stat-label { font-size: 12px; }
             .nav { padding: 0 14px; height: 52px; }
             .nav-logo { font-size: 16px; gap: 4px; }
             .nav-cmdk span:not(.nav-kbd) { display: none; }
@@ -590,6 +632,31 @@
         <div class="search-hint">按 <kbd>/</kbd> 搜索，<kbd>⌘K</kbd> 命令面板，<kbd>1</kbd>-<kbd>9</kbd> 快速打开</div>
     </div>
 
+    <!-- Dashboard Stats -->
+    <div class="dashboard-stats" id="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-icon tools">🧰</div>
+            <div class="stat-info">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">可用工具</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon fav">⭐</div>
+            <div class="stat-info">
+                <div class="stat-value" id="stat-fav">0</div>
+                <div class="stat-label">已收藏</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon recent">🕐</div>
+            <div class="stat-info">
+                <div class="stat-value" id="stat-recent">0</div>
+                <div class="stat-label">最近使用</div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div id="fav-bar" class="tb-recent-bar" style="display:none">
             <div class="tb-recent-title">⭐ 我的收藏</div>
@@ -715,6 +782,7 @@
             }
         }
         renderFavBar();
+        updateDashboardStats();
     }
     function isFavorite(toolId) {
         return getFavorites().includes(toolId);
@@ -881,19 +949,35 @@
         }
     });
 
+    // ===== Dashboard 统计更新 =====
+    function updateDashboardStats() {
+        const totalEl = document.getElementById('stat-total');
+        const favEl = document.getElementById('stat-fav');
+        const recentEl = document.getElementById('stat-recent');
+        if (totalEl) totalEl.textContent = TOOLS.length;
+        if (favEl) favEl.textContent = getFavorites().length;
+        if (recentEl) {
+            const recent = window.ToolboxRecent ? ToolboxRecent.getAll() : [];
+            recentEl.textContent = recent.length;
+        }
+    }
+
     renderTools();
     renderRecent();
     renderFavBar();
+    updateDashboardStats();
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
             renderRecent();
             renderFavBar();
+            updateDashboardStats();
         }
     });
     // 异步前缀设置后重新渲染最近使用（回退场景）
     document.addEventListener('userprefix-ready', function() {
         renderRecent();
         renderFavBar();
+        updateDashboardStats();
     });
     </script>
 </body>

@@ -19,6 +19,7 @@ from jinja2 import BytecodeCache
 import auth
 import db
 import ai_utils
+import feishu_push
 
 # 性能优化：Whingoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -1476,6 +1477,116 @@ def api_get_theme():
         'theme_mode': theme_mode,
         'accent_color': accent_color
     })
+
+
+# ==================== v5.0 飞书推送 API ====================
+
+@app.route('/api/settings/feishu', methods=['GET'])
+def api_get_feishu():
+    """获取用户飞书 Webhook 配置"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'status': 'error', 'error': '请先登录'}), 401
+    webhook = db.get_feishu_webhook(user['id'])
+    return jsonify({
+        'status': 'success',
+        'webhook': webhook,
+        'configured': bool(webhook)
+    })
+
+
+@app.route('/api/settings/feishu', methods=['POST'])
+def api_set_feishu():
+    """保存用户飞书 Webhook 配置"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'status': 'error', 'error': '请先登录'}), 401
+    data = request.get_json(silent=True) or {}
+    webhook = (data.get('webhook') or '').strip()
+    if webhook and not webhook.startswith('https://open.feishu.cn/open-apis/bot/v2/hook/'):
+        return jsonify({'status': 'error', 'error': 'Webhook URL 格式不正确，应以 https://open.feishu.cn/open-apis/bot/v2/hook/ 开头'}), 400
+    db.set_feishu_webhook(user['id'], webhook)
+    return jsonify({'status': 'success', 'configured': bool(webhook)})
+
+
+@app.route('/api/feishu/test', methods=['POST'])
+def api_feishu_test():
+    """测试飞书 Webhook 连接"""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'status': 'error', 'error': '请先登录'}), 401
+    webhook = db.get_feishu_webhook(user['id'])
+    if not webhook:
+        return jsonify({'status': 'error', 'error': '请先配置飞书 Webhook'}), 400
+    result = feishu_push.send_feishu_text(webhook, '✅ 工具集 v5.0 飞书推送测试成功！')
+    if result['ok']:
+        return jsonify({'status': 'success', 'message': '测试消息已发送'})
+    else:
+        return jsonify({'status': 'error', 'error': result.get('error', '发送失败')}), 502
+
+
+@app.route('/api/feishu/push', methods=['POST'])
+def api_feishu_push():
+    """
+    通用飞书推送接口
+    Body: {
+        "type": "text" | "card" | "weekly" | "meeting",
+        "title": "标题",
+        "content": "正文内容（text类型为纯文本，card类型为Markdown）",
+        "summary": "概要（weekly/meeting类型）",
+        "highlights": "重点（weekly类型）",
+        "plans": "计划（weekly类型）",
+        "decisions": "决议（meeting类型）",
+        "todos": "待办（meeting类型）",
+        "url": "源链接（可选）"
+    }
+    """
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'status': 'error', 'error': '请先登录'}), 401
+    webhook = db.get_feishu_webhook(user['id'])
+    if not webhook:
+        return jsonify({'status': 'error', 'error': '请先在设置中配置飞书 Webhook'}), 400
+
+    data = request.get_json(silent=True) or {}
+    msg_type = data.get('type', 'text')
+    title = data.get('title', '工具集推送')
+    source_url = data.get('url')
+
+    try:
+        if msg_type == 'text':
+            content = data.get('content', '')
+            result = feishu_push.send_feishu_text(webhook, content)
+        elif msg_type == 'card':
+            content = data.get('content', '')
+            result = feishu_push.send_feishu_card(webhook, title, content, header_color='purple', link_url=source_url)
+        elif msg_type == 'weekly':
+            result = feishu_push.send_weekly_report(
+                webhook, title,
+                summary=data.get('summary', ''),
+                highlights=data.get('highlights', ''),
+                plans=data.get('plans', ''),
+                source_url=source_url
+            )
+        elif msg_type == 'meeting':
+            result = feishu_push.send_meeting_minutes(
+                webhook, title,
+                summary=data.get('summary', ''),
+                decisions=data.get('decisions', ''),
+                todos=data.get('todos', ''),
+                source_url=source_url
+            )
+        else:
+            return jsonify({'status': 'error', 'error': f'不支持的消息类型: {msg_type}'}), 400
+
+        if result['ok']:
+            return jsonify({'status': 'success', 'message': '推送成功'})
+        else:
+            return jsonify({'status': 'error', 'error': result.get('error', '推送失败')}), 502
+    except Exception as e:
+        logger.error(f'飞书推送异常: {e}')
+        return jsonify({'status': 'error', 'error': f'推送异常: {str(e)}'}), 500
+
 
 # ==================== 音频转写 API（DashScope Paraformer ASR） ====================
 
