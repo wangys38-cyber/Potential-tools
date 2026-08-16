@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTTF可靠性测试看板 - Potential Tools</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+        .header {
+            padding: 24px 32px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header h1 { font-size: 22px; font-weight: 700; color: #fff; }
+        .header p { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+        .back-btn {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: rgba(255,255,255,0.15); border: none; color: #fff;
+            font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.25); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+        .upload-zone {
+            background: rgba(255,255,255,0.95);
+            border: 2px dashed rgba(102,126,234,0.3);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 16px;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #667eea;
+            background: rgba(255,255,255,0.98);
+            transform: translateY(-2px);
+        }
+        .upload-zone-icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-zone-text { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+        .upload-zone-hint { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+        .paste-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .paste-section textarea {
+            width: 100%; min-height: 100px;
+            padding: 12px; border: 1px solid var(--border);
+            border-radius: 10px; background: var(--bg-secondary);
+            color: var(--text-primary); font-family: monospace; font-size: 12px;
+            resize: vertical;
+        }
+        .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        .action-btn {
+            padding: 8px 18px; border-radius: 10px; border: none;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .action-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .action-btn.ghost { background: var(--bg-secondary); color: var(--text-primary); }
+
+        .file-info {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.95);
+            padding: 12px 16px; border-radius: 12px;
+            margin-bottom: 16px; font-size: 13px;
+        }
+        .file-info-name { font-weight: 600; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-icon { font-size: 24px; margin-bottom: 6px; }
+        .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+        .stat-value.good { color: #10b981; }
+        .stat-value.warn { color: #f59e0b; }
+        .stat-value.bad { color: #ef4444; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+        .panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .panel-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+        .failure-bar { display: flex; height: 32px; border-radius: 8px; overflow: hidden; background: #f0f0f3; }
+        .failure-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; transition: width 0.5s; min-width: 0; }
+
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #e5e5ea; }
+        .timeline-item { position: relative; margin-bottom: 14px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -20px; top: 6px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #ef4444; border: 2px solid #fff;
+        }
+        .timeline-time { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+        .timeline-type { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #fff; margin-right: 6px; }
+        .timeline-text { font-size: 13px; color: var(--text-primary); margin-top: 2px; word-break: break-all; }
+
+        .failure-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .failure-table th { background: #f5f5f7; padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e5ea; }
+        .failure-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f3; }
+        .failure-table tr:hover { background: #fafafa; }
+
+        .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #fff; }
+        .type-crash { background: #ef4444; }
+        .type-reboot { background: #f59e0b; }
+        .type-watchdog { background: #8b5cf6; }
+        .type-malloc { background: #0ea5e9; }
+        .type-panic { background: #dc2626; }
+        .type-other { background: #6b7280; }
+
+        .empty-state { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 56px; margin-bottom: 12px; opacity: 0.5; }
+
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .filter-btn {
+            padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg-card); cursor: pointer; font-size: 12px;
+            transition: all 0.2s;
+        }
+        .filter-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+
+        @media (max-width: 768px) {
+            .header { padding: 16px; }
+            .header h1 { font-size: 18px; }
+            .container { padding: 16px 12px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">←</a>
+        <div>
+            <h1>📊 MTTF可靠性测试看板</h1>
+            <p>设备挂测日志分析 · 失败事件聚类 · MTBF计算 · 趋势追踪</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 上传区 -->
+        <div id="uploadSection">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-zone-icon">📱</div>
+                <div class="upload-zone-text">点击或拖拽上传挂测日志</div>
+                <div class="upload-zone-hint">支持 .log / .txt，自动识别死机、重启、看门狗、Malloc失败、Kernel Panic等</div>
+                <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFile(this.files[0])">
+            </div>
+            <div style="text-align:center;margin:10px 0;color:rgba(255,255,255,0.6);font-size:12px;">或</div>
+            <div class="paste-section">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📋 粘贴日志内容</div>
+                <textarea id="pasteArea" placeholder="粘贴设备挂测日志，支持多行..."></textarea>
+                <div class="btn-row">
+                    <button class="action-btn primary" onclick="analyzePasted()">🔍 分析粘贴内容</button>
+                    <button class="action-btn ghost" onclick="document.getElementById('pasteArea').value=''">清空</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件信息 -->
+        <div class="file-info" id="fileInfo" style="display:none;">
+            <span class="file-info-name" id="fileName"></span>
+            <span id="fileSize" style="font-size:12px;color:var(--text-secondary)"></span>
+            <button class="action-btn ghost" style="margin-left:auto;padding:4px 12px;font-size:12px;" onclick="resetAll()">重新上传</button>
+        </div>
+
+        <!-- 分析结果 -->
+        <div id="analysis" style="display:none;">
+            <!-- 统计卡片 -->
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <!-- 失败类型分布 -->
+            <div class="panel">
+                <div class="panel-title">📈 失败类型分布</div>
+                <div class="failure-bar" id="failureBar"></div>
+                <div id="failureLegend" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11px;"></div>
+            </div>
+
+            <!-- 失败时间线 -->
+            <div class="panel">
+                <div class="panel-title">⏱️ 失败事件时间线</div>
+                <div class="timeline" id="timeline"></div>
+            </div>
+
+            <!-- 失败详情 -->
+            <div class="panel">
+                <div class="panel-title">
+                    📋 失败详情
+                    <button class="action-btn primary" style="margin-left:auto;padding:4px 12px;font-size:11px;" onclick="exportReport()">📥 导出报告</button>
+                </div>
+                <div class="filters" id="filters"></div>
+                <div style="overflow-x:auto;">
+                    <table class="failure-table">
+                        <thead>
+                            <tr><th>时间</th><th>类型</th><th>详情</th></tr>
+                        </thead>
+                        <tbody id="failureTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <p>上传挂测日志后自动分析可靠性指标</p>
+        </div>
+    </div>
+
+    <script>
+        let allFailures = [], currentFilter = 'all';
+        let testMeta = { totalRuntime: 0, deviceId: '', firmware: '' };
+
+        // 失败模式定义
+        const FAILURE_PATTERNS = {
+            crash:    { regex: /(panic|fatal|kernel\s*panic|hardfault|busfault|memfault|死机|crash|abort|assert\s*failed)/i, label: '死机/崩溃', icon: '💥', color: '#ef4444' },
+            reboot:   { regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启|system\s*restart)/i, label: '异常重启', icon: '🔄', color: '#f59e0b' },
+            watchdog: { regex: /(watchdog|wdt|wdog|hung\s*task|soft\s*lockup|hard\s*lockup|看门狗)/i, label: '看门狗超时', icon: '🐕', color: '#8b5cf6' },
+            malloc:   { regex: /(malloc\s*fail|out\s*of\s*memory|oom|heap\s*overflow|allocation\s*failed|内存分配失败)/i, label: 'Malloc失败', icon: '💾', color: '#0ea5e9' },
+            panic:    { regex: /(kernel\s*panic|oops|BUG:|Unable\s+to\s+handle)/i, label: 'Kernel Panic', icon: '💀', color: '#dc2626' },
+        };
+
+        // 时间戳提取
+        const TS_PATTERNS = [
+            /(\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}:\d{2}(?:[.,]\d{1,6})?)/,
+            /\[(.*?\d{2}:\d{2}:\d{2}.*?)\]/,
+            /(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,6})?)/,
+        ];
+
+        function extractTimestamp(line) {
+            for (const pat of TS_PATTERNS) {
+                const m = line.match(pat);
+                if (m) return m[1].trim();
+            }
+            return '';
+        }
+
+        function classifyFailure(line) {
+            for (const [type, pat] of Object.entries(FAILURE_PATTERNS)) {
+                if (pat.regex.test(line)) return { type, ...pat };
+            }
+            return null;
+        }
+
+        // 拖拽上传
+        const uploadZone = document.getElementById('uploadZone');
+        uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+        function handleFile(file) {
+            if (!file) return;
+            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
+            document.getElementById('fileInfo').style.display = 'flex';
+            const reader = new FileReader();
+            reader.onload = e => analyzeLog(e.target.result, file.name);
+            reader.readAsText(file);
+        }
+
+        function analyzePasted() {
+            const text = document.getElementById('pasteArea').value;
+            if (!text.trim()) { showToast('请先粘贴日志内容', 'warning'); return; }
+            document.getElementById('fileName').textContent = '📋 粘贴内容';
+            document.getElementById('fileSize').textContent = (text.length/1024).toFixed(1) + ' KB';
+            document.getElementById('fileInfo').style.display = 'flex';
+            analyzeLog(text, 'pasted_log');
+        }
+
+        function analyzeLog(text, sourceName) {
+            const lines = text.split(/\r?\n/);
+            allFailures = [];
+            let firstTs = null, lastTs = null;
+
+            lines.forEach((line, idx) => {
+                if (!line.trim()) return;
+                const ts = extractTimestamp(line);
+                if (ts) {
+                    if (!firstTs) firstTs = ts;
+                    lastTs = ts;
+                }
+                const failure = classifyFailure(line);
+                if (failure) {
+                    allFailures.push({
+                        line: idx + 1,
+                        timestamp: ts || `L${idx+1}`,
+                        type: failure.type,
+                        label: failure.label,
+                        icon: failure.icon,
+                        color: failure.color,
+                        text: line.trim().substring(0, 300)
+                    });
+                }
+            });
+
+            // 计算运行时长（粗略）
+            testMeta.totalRuntime = lines.length; // 用行数近似
+            testMeta.source = sourceName;
+
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('analysis').style.display = 'block';
+
+            renderStats();
+            renderFailureBar();
+            renderTimeline();
+            renderFilters();
+            renderTable();
+
+            showToast(`分析完成：检测到 ${allFailures.length} 个失败事件`, 'success');
+        }
+
+        function renderStats() {
+            const total = allFailures.length;
+            const runtimeHours = Math.max(1, testMeta.totalRuntime / 1000); // 粗略估算
+            const mttf = total > 0 ? (runtimeHours / total).toFixed(2) : runtimeHours.toFixed(2);
+            const mtbf = total > 1 ? (runtimeHours / (total - 1)).toFixed(2) : 'N/A';
+
+            const typeCounts = {};
+            Object.keys(FAILURE_PATTERNS).forEach(t => typeCounts[t] = 0);
+            allFailures.forEach(f => typeCounts[f.type]++);
+
+            const topType = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0];
+            const topLabel = topType && topType[1] > 0 ? FAILURE_PATTERNS[topType[0]].label : '无';
+
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${testMeta.totalRuntime}</div><div class="stat-label">日志总行数</div></div>
+                <div class="stat-card"><div class="stat-icon">💥</div><div class="stat-value ${total>5?'bad':total>0?'warn':'good'}">${total}</div><div class="stat-label">失败事件数</div></div>
+                <div class="stat-card"><div class="stat-icon">⏱️</div><div class="stat-value ${total>5?'bad':'good'}">${mttf}</div><div class="stat-label">MTTF (估算/千行)</div></div>
+                <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-value">${mtbf}</div><div class="stat-label">MTBF (估算)</div></div>
+                <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" style="font-size:16px;">${topLabel}</div><div class="stat-label">主要失败类型</div></div>
+                <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value ${total===0?'good':'warn'}">${total===0?'PASS':'FAIL'}</div><div class="stat-label">挂测结果</div></div>
+            `;
+        }
+
+        function renderFailureBar() {
+            const counts = {};
+            Object.keys(FAILURE_PATTERNS).forEach(t => counts[t] = 0);
+            allFailures.forEach(f => counts[f.type]++);
+            const total = allFailures.length || 1;
+
+            let barHtml = '';
+            let legendHtml = '';
+            for (const [type, pat] of Object.entries(FAILURE_PATTERNS)) {
+                const count = counts[type];
+                if (count > 0) {
+                    const pct = (count / total * 100).toFixed(1);
+                    barHtml += `<div class="failure-seg" style="width:${pct}%;background:${pat.color};" title="${pat.label}: ${count} (${pct}%)">${pct > 8 ? count : ''}</div>`;
+                    legendHtml += `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${pat.color};"></span>${pat.label}: ${count}</span>`;
+                }
+            }
+            if (!barHtml) barHtml = '<div style="width:100%;background:#10b981;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">无失败事件 ✅</div>';
+            document.getElementById('failureBar').innerHTML = barHtml;
+            document.getElementById('failureLegend').innerHTML = legendHtml;
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timeline');
+            if (allFailures.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:20px;color:#10b981;">🎉 未检测到失败事件，挂测通过！</div>';
+                return;
+            }
+            const show = allFailures.slice(0, 50);
+            container.innerHTML = show.map(f => `
+                <div class="timeline-item">
+                    <div class="timeline-time">${f.timestamp}</div>
+                    <div><span class="timeline-type" style="background:${f.color};">${f.icon} ${f.label}</span></div>
+                    <div class="timeline-text">${escapeHtml(f.text)}</div>
+                </div>
+            `).join('') + (allFailures.length > 50 ? `<div style="text-align:center;color:var(--text-secondary);font-size:12px;padding:8px;">... 还有 ${allFailures.length - 50} 个事件，见下方详情表</div>` : '');
+        }
+
+        function renderFilters() {
+            const counts = {};
+            Object.keys(FAILURE_PATTERNS).forEach(t => counts[t] = 0);
+            allFailures.forEach(f => counts[f.type]++);
+            let html = `<button class="filter-btn ${currentFilter==='all'?'active':''}" onclick="setFilter('all')">全部 (${allFailures.length})</button>`;
+            for (const [type, pat] of Object.entries(FAILURE_PATTERNS)) {
+                if (counts[type] > 0) {
+                    html += `<button class="filter-btn ${currentFilter===type?'active':''}" onclick="setFilter('${type}')">${pat.icon} ${pat.label} (${counts[type]})</button>`;
+                }
+            }
+            document.getElementById('filters').innerHTML = html;
+        }
+
+        function setFilter(f) {
+            currentFilter = f;
+            renderFilters();
+            renderTable();
+        }
+
+        function renderTable() {
+            let filtered = allFailures;
+            if (currentFilter !== 'all') filtered = filtered.filter(f => f.type === currentFilter);
+            document.getElementById('failureTable').innerHTML = filtered.length ? filtered.map(f => `
+                <tr>
+                    <td style="font-family:monospace;font-size:11px;white-space:nowrap;">${f.timestamp}</td>
+                    <td><span class="type-badge type-${f.type}">${f.icon} ${f.label}</span></td>
+                    <td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(f.text)}">${escapeHtml(f.text)}</td>
+                </tr>
+            `).join('') : '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-secondary);">无匹配记录</td></tr>';
+        }
+
+        function exportReport() {
+            if (allFailures.length === 0) { showToast('暂无失败事件', 'warning'); return; }
+            const now = new Date().toLocaleString('zh-CN');
+            const total = allFailures.length;
+            const counts = {};
+            Object.keys(FAILURE_PATTERNS).forEach(t => counts[t] = 0);
+            allFailures.forEach(f => counts[f.type]++);
+
+            let report = `MTTF可靠性测试报告\n`;
+            report += `生成时间: ${now}\n`;
+            report += `日志来源: ${testMeta.source}\n`;
+            report += `日志总行数: ${testMeta.totalRuntime}\n`;
+            report += `失败事件总数: ${total}\n`;
+            report += `\n=== 失败类型统计 ===\n`;
+            for (const [type, pat] of Object.entries(FAILURE_PATTERNS)) {
+                if (counts[type] > 0) report += `${pat.label}: ${counts[type]} (${(counts[type]/total*100).toFixed(1)}%)\n`;
+            }
+            report += `\n=== 失败事件详情 ===\n`;
+            allFailures.forEach((f, i) => {
+                report += `\n[${i+1}] ${f.timestamp} | ${f.label}\n    ${f.text}\n`;
+            });
+
+            const blob = new Blob([report], {type:'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `mttf_report_${Date.now()}.txt`;
+            a.click(); URL.revokeObjectURL(url);
+            showToast('报告已导出', 'success');
+        }
+
+        function resetAll() {
+            allFailures = [];
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('analysis').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('pasteArea').value = '';
+        }
+
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function showToast(msg, type) {
+            if (typeof ToolboxToast !== 'undefined') { ToolboxToast.show(msg, type || 'info'); return; }
+            console.log(msg);
+        }
+    </script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

@@ -50,6 +50,10 @@ def create_pages_blueprint(cached_render):
     def log_analyzer():
         return cached_render('log_analyzer.html')
 
+    @bp.route('/mttf-dashboard')
+    def mttf_dashboard():
+        return cached_render('mttf_dashboard.html')
+
     @bp.route('/email-assistant')
     def email_assistant():
         return cached_render('email_assistant.html')
