@@ -1406,6 +1406,11 @@ const ToolboxCommandPalette = (function() {
         {id:'test-report', icon:'📋', name:'测试报告分析', desc:'测试报告提取+AI分析', url:'/test-report'},
         {id:'meeting-minutes', icon:'🎙️', name:'会议纪要', desc:'语音转写+AI纪要', url:'/meeting-minutes'},
         {id:'weekly-report', icon:'📋', name:'智能周报', desc:'AI生成结构化周报', url:'/weekly-report'},
+        {id:'bug-trend', icon:'📈', name:'Bug趋势看板', desc:'CR Excel自动生成Bug趋势图', url:'/bug-trend'},
+        {id:'release-checklist', icon:'✅', name:'版本发布检查清单', desc:'Bring up→CP→DF→RRR检查项', url:'/release-checklist'},
+        {id:'log-analyzer', icon:'🔍', name:'日志分析器', desc:'设备日志异常关键词聚合', url:'/log-analyzer'},
+        {id:'email-assistant', icon:'✉️', name:'邮件助手', desc:'英文技术邮件模板+翻译', url:'/email-assistant'},
+        {id:'data-viz', icon:'📊', name:'数据可视化Builder', desc:'Excel自选轴生成图表导出', url:'/data-viz'},
         {id:'settings', icon:'⚙️', name:'系统设置', desc:'AI配置、主题定制', url:'/settings'},
     ];
 

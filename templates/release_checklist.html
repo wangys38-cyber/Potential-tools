@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本发布检查清单</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
+        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
+        .container { max-width: 900px; margin: 24px auto; padding: 0 20px; }
+        .progress-bar { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid var(--border); }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .progress-text { font-size: 14px; font-weight: 600; }
+        .progress-percent { font-size: 24px; font-weight: 700; background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg,#4f46e5,#7c3aed); border-radius: 4px; transition: width 0.5s ease; }
+        .stage-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+        .stage-tab { padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .stage-tab.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .stage-tab .stage-count { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); }
+        .stage-tab.active .stage-count { background: rgba(255,255,255,0.2); }
+        .checklist { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+        .checklist-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .checklist-title .go-badge { font-size: 11px; padding: 3px 10px; border-radius: 8px; font-weight: 600; }
+        .go-badge.go { background: rgba(16,185,129,0.15); color: #10b981; }
+        .go-badge.nogo { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .check-item:last-child { border-bottom: none; }
+        .check-item input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: #7c3aed; cursor: pointer; flex-shrink: 0; }
+        .check-item-content { flex: 1; }
+        .check-item-title { font-size: 14px; font-weight: 500; }
+        .check-item-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .check-item.checked .check-item-title { text-decoration: line-through; color: var(--text-secondary); }
+        .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border: none; }
+        .btn:hover { transform: translateY(-1px); }
+        .version-input { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        .version-input label { font-size: 14px; color: var(--text-secondary); }
+        .version-input input { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 14px; flex: 1; min-width: 200px; }
+        @media (max-width: 768px) {
+            .header { padding: 20px 16px; padding-left: 60px; }
+            .header h1 { font-size: 22px; }
+            .container { padding: 0 14px; }
+        }
+    </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">← 返回</a>
+        <h1>✅ 版本发布检查清单</h1>
+        <p>Bring up → CP → DF → RRR 各节点 Go/No-Go 检查项</p>
+    </div>
+    <div class="container">
+        <div class="version-input">
+            <label>版本号：</label>
+            <input type="text" id="versionInput" placeholder="如：V1.78 / V7.9.0.0" oninput="saveState()">
+            <button class="btn" onclick="linkToPlan()">📅 关联项目计划</button>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-header">
+                <span class="progress-text">总体完成度</span>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+        <div class="stage-tabs" id="stageTabs"></div>
+        <div id="checklistContainer"></div>
+        <div class="actions">
+            <button class="btn btn-primary" onclick="exportChecklist()">📋 导出检查结果</button>
+            <button class="btn" onclick="resetAll()">🔄 重置全部</button>
+        </div>
+    </div>
+    <script>
+        const STAGES = [
+            { id: 'bringup', name: 'Bring up', icon: '🌱', items: [
+                {title: '硬件基本功能验证', desc: '开机、充电、按键、屏幕、传感器基础功能正常'},
+                {title: '基础通信验证', desc: '蓝牙/WiFi/NFC 连接与基本数据传输'},
+                {title: '驱动 Bring up', desc: '各模块驱动加载正常，无严重报错'},
+                {title: '电源管理基础', desc: '开关机、休眠唤醒、基础功耗测量'},
+                {title: '开发环境就绪', desc: '调试口、日志输出、烧录工具可用'},
+            ]},
+            { id: 'cp', name: 'CP (Customer Prototype)', icon: '🔧', items: [
+                {title: '核心功能完整', desc: '所有 P0 功能可演示，无 Blocker Bug'},
+                {title: '性能基线达标', desc: '启动时间、响应速度、帧率达到基线要求'},
+                {title: '续航初步验证', desc: '典型场景续航达到预期 80% 以上'},
+                {title: '稳定性测试', desc: '72小时连续运行无死机重启'},
+                {title: 'CR 问题收敛', desc: 'P0/P1 Bug 全部解决，P2 解决率 > 70%'},
+                {title: '硬件版本锁定', desc: '硬件 BOM 锁定，无重大变更'},
+            ]},
+            { id: 'df', name: 'DF (Design For Manufacturing)', icon: '🏭', items: [
+                {title: '量产工艺验证', desc: '产线测试流程跑通，良率达标'},
+                {title: 'EMC/可靠性测试', desc: 'EMC、高低温、跌落、防水等测试通过'},
+                {title: '功耗最终验证', desc: '所有场景续航达到规格书要求'},
+                {title: '固件功能完整', desc: '所有功能开发完成，P0/P1 Bug 清零'},
+                {title: 'CR 解决率 > 95%', desc: '遗留问题均为 P3 且有规避方案'},
+                {title: 'MTTF 达标', desc: '平均无故障时间达到可靠性指标'},
+                {title: '认证测试通过', desc: 'SRRC/CE/FCC/BQB 等认证测试完成'},
+            ]},
+            { id: 'rrr', name: 'RRR (Release Readiness Review)', icon: '🚀', items: [
+                {title: '零 Blocker Bug', desc: '无任何阻断发布的严重问题'},
+                {title: 'CR 全部关闭', desc: '所有已知问题解决或接受风险'},
+                {title: '量产固件锁定', desc: '固件版本冻结，签名验证通过'},
+                {title: '用户手册就绪', desc: '说明书、快速指南、保修卡完成'},
+                {title: 'OTA 升级验证', desc: '升级路径测试通过，回滚方案就绪'},
+                {title: '客服培训完成', desc: 'FAQ、常见问题处理流程培训完毕'},
+                {title: '发布审批通过', desc: '项目经理、测试、质量三方签字'},
+            ]},
+        ];
+
+        let currentStage = 'bringup';
+        let state = {};
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('release_checklist_state');
+                state = saved ? JSON.parse(saved) : {};
+            } catch(e) { state = {}; }
+            if (!state.checks) state.checks = {};
+            if (!state.version) state.version = '';
+            document.getElementById('versionInput').value = state.version || '';
+        }
+
+        function saveState() {
+            state.version = document.getElementById('versionInput').value;
+            try { localStorage.setItem('release_checklist_state', JSON.stringify(state)); } catch(e) {}
+            updateProgress();
+        }
+
+        function renderTabs() {
+            const tabs = document.getElementById('stageTabs');
+            tabs.innerHTML = STAGES.map(s => {
+                const checked = countStage(s.id);
+                const total = s.items.length;
+                return `<div class="stage-tab ${s.id===currentStage?'active':''}" onclick="selectStage('${s.id}')">
+                    <span>${s.icon}</span>${s.name}
+                    <span class="stage-count">${checked}/${total}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function selectStage(id) {
+            currentStage = id;
+            renderTabs();
+            renderChecklist();
+        }
+
+        function countStage(stageId) {
+            const stage = STAGES.find(s => s.id === stageId);
+            return stage.items.filter((_,i) => state.checks[`${stageId}_${i}`]).length;
+        }
+
+        function renderChecklist() {
+            const stage = STAGES.find(s => s.id === currentStage);
+            const checked = countStage(currentStage);
+            const total = stage.items.length;
+            const isGo = checked === total;
+            const container = document.getElementById('checklistContainer');
+            container.innerHTML = `
+                <div class="checklist">
+                    <div class="checklist-title">
+                        ${stage.icon} ${stage.name} 检查项
+                        <span class="go-badge ${isGo?'go':'nogo'}">${isGo?'✅ GO':'⏳ NO-GO'} (${checked}/${total})</span>
+                    </div>
+                    ${stage.items.map((item,i) => {
+                        const key = `${currentStage}_${i}`;
+                        const isChecked = state.checks[key];
+                        return `<div class="check-item ${isChecked?'checked':''}">
+                            <input type="checkbox" ${isChecked?'checked':''} onchange="toggleItem('${key}', this.checked)">
+                            <div class="check-item-content">
+                                <div class="check-item-title">${item.title}</div>
+                                <div class="check-item-desc">${item.desc}</div>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function toggleItem(key, checked) {
+            state.checks[key] = checked;
+            saveState();
+            renderTabs();
+            renderChecklist();
+        }
+
+        function updateProgress() {
+            let total = 0, checked = 0;
+            STAGES.forEach(s => { total += s.items.length; checked += countStage(s.id); });
+            const pct = total ? Math.round(checked/total*100) : 0;
+            document.getElementById('progressPercent').textContent = pct + '%';
+            document.getElementById('progressFill').style.width = pct + '%';
+        }
+
+        function linkToPlan() {
+            if (confirm('跳转到软件计划生成器，可创建关联的项目计划？')) {
+                window.location.href = '/plan-generator';
+            }
+        }
+
+        function exportChecklist() {
+            const version = state.version || '未命名版本';
+            let text = `版本发布检查清单 — ${version}\n生成时间：${new Date().toLocaleString('zh-CN')}\n\n`;
+            STAGES.forEach(s => {
+                const checked = countStage(s.id);
+                text += `\n【${s.icon} ${s.name}】${checked===s.items.length?'✅ GO':'⏳ NO-GO'} (${checked}/${s.items.length})\n`;
+                s.items.forEach((item,i) => {
+                    const key = `${s.id}_${i}`;
+                    text += `${state.checks[key]?'✅':'⬜'} ${item.title}\n`;
+                });
+            });
+            const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `发布检查清单_${version}.txt`;
+            a.click(); URL.revokeObjectURL(url);
+        }
+
+        function resetAll() {
+            if (confirm('确定重置所有检查项？')) {
+                state = {checks:{}, version: state.version};
+                saveState();
+                renderTabs();
+                renderChecklist();
+            }
+        }
+
+        loadState();
+        renderTabs();
+        renderChecklist();
+        updateProgress();
+    </script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

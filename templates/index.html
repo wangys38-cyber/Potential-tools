@@ -632,6 +632,8 @@
             <button class="category-chip" data-cat="notes" onclick="setCategory('notes')">笔记记录</button>
             <button class="category-chip" data-cat="convert" onclick="setCategory('convert')">格式转换</button>
             <button class="category-chip" data-cat="analysis" onclick="setCategory('analysis')">数据分析</button>
+            <button class="category-chip" data-cat="dev" onclick="setCategory('dev')">🛠️ 研发工具</button>
+            <button class="category-chip" data-cat="office" onclick="setCategory('office')">💼 办公效率</button>
             <button class="category-chip" data-cat="manage" onclick="setCategory('manage')">项目管理</button>
             <button class="category-chip" data-cat="fun" onclick="setCategory('fun')">趣味工具</button>
         </div>
@@ -725,6 +727,21 @@
         {id:'weekly-report', icon:'📋', name:'智能周报', cat:'notes', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
          desc:'输入本周工作素材，AI自动生成结构化周报，支持多模型选择',
          features:['AI生成','多模型','一键导出','工作总结','下周计划'], badge:'新'},
+        {id:'bug-trend', icon:'📈', name:'Bug趋势看板', cat:'dev', accent:'#ef4444', bg:'rgba(239,68,68,0.1)',
+         desc:'上传CR Excel，自动生成按固件版本/日期的Bug趋势折线图，多版本对比',
+         features:['趋势图','多版本对比','累计Bug','已解决统计','Excel导入'], badge:'新'},
+        {id:'release-checklist', icon:'✅', name:'版本发布检查清单', cat:'dev', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
+         desc:'Bring up→CP→DF→RRR各节点Go/No-Go检查项模板，自动关联项目计划',
+         features:['4阶段检查','Go/No-Go','进度追踪','导出结果','本地保存'], badge:'新'},
+        {id:'log-analyzer', icon:'🔍', name:'日志分析器', cat:'dev', accent:'#8b5cf6', bg:'rgba(139,92,246,0.1)',
+         desc:'智能手表设备日志关键词提取与异常聚合（死机重启、内存泄露、功耗异常）',
+         features:['死机识别','重启追踪','内存泄露','功耗异常','错误聚合'], badge:'新'},
+        {id:'email-assistant', icon:'✉️', name:'邮件助手', cat:'office', accent:'#0ea5e9', bg:'rgba(14,165,233,0.1)',
+         desc:'英文技术邮件模板生成+一键翻译，覆盖Bug报告、进度同步、问题升级等场景',
+         features:['8种模板','变量填充','中英切换','一键复制','技术邮件'], badge:'新'},
+        {id:'data-viz', icon:'📊', name:'数据可视化Builder', cat:'dev', accent:'#f59e0b', bg:'rgba(245,158,11,0.1)',
+         desc:'上传Excel自选X/Y轴生成柱状图/折线图/饼图，支持导出图片和CSV',
+         features:['多图表类型','自选坐标轴','8种主题色','导出PNG','导出CSV'], badge:'新'},
         {id:'settings', icon:'⚙️', name:'系统设置', cat:'manage', accent:'#6366f1', bg:'rgba(99,102,241,0.1)',
          desc:'AI配置、主题定制、系统诊断',
          features:['AI配置','主题色','系统信息','连接测试'], badge:'新'},

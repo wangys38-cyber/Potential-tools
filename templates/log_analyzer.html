@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志分析器</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
+        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+        .upload-zone { border: 2px dashed var(--border-strong); border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg-card); margin-bottom: 20px; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #7c3aed; background: rgba(124,58,237,0.05); }
+        .upload-zone-icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-zone-text { font-size: 16px; }
+        .upload-zone-hint { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+        .file-info { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--bg-card); border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .file-info-name { flex: 1; font-size: 14px; font-weight: 500; }
+        .file-info-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); text-align: center; }
+        .stat-icon { font-size: 24px; margin-bottom: 6px; }
+        .stat-value { font-size: 24px; font-weight: 700; }
+        .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .stat-card.crash .stat-value { color: #ef4444; }
+        .stat-card.reboot .stat-value { color: #f59e0b; }
+        .stat-card.memory .stat-value { color: #8b5cf6; }
+        .stat-card.power .stat-value { color: #0ea5e9; }
+        .stat-card.error .stat-value { color: #f97316; }
+        .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .filter-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .filter-btn.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .search-box { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
+        .log-panel { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .log-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .log-title { font-size: 14px; font-weight: 600; }
+        .log-count { font-size: 12px; color: var(--text-secondary); }
+        .log-content { max-height: 500px; overflow-y: auto; padding: 12px 20px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; line-height: 1.7; }
+        .log-line { padding: 4px 8px; border-radius: 4px; margin-bottom: 2px; white-space: pre-wrap; word-break: break-all; }
+        .log-line.crash { background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; }
+        .log-line.reboot { background: rgba(245,158,11,0.1); border-left: 3px solid #f59e0b; }
+        .log-line.memory { background: rgba(139,92,246,0.1); border-left: 3px solid #8b5cf6; }
+        .log-line.power { background: rgba(14,165,233,0.1); border-left: 3px solid #0ea5e9; }
+        .log-line.error { background: rgba(249,115,22,0.1); border-left: 3px solid #f97316; }
+        .log-line.warning { background: rgba(234,179,8,0.08); border-left: 3px solid #eab308; }
+        .log-tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 6px; color: #fff; }
+        .log-tag.crash { background: #ef4444; }
+        .log-tag.reboot { background: #f59e0b; }
+        .log-tag.memory { background: #8b5cf6; }
+        .log-tag.power { background: #0ea5e9; }
+        .log-tag.error { background: #f97316; }
+        .log-tag.warning { background: #eab308; color: #000; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 56px; margin-bottom: 16px; }
+        .timeline { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+        .timeline-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+        .timeline-bar { display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: var(--border); }
+        .timeline-seg { height: 100%; transition: width 0.3s; }
+        @media (max-width: 768px) {
+            .header { padding: 20px 16px; padding-left: 60px; }
+            .header h1 { font-size: 22px; }
+            .container { padding: 0 14px; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">← 返回</a>
+        <h1>🔍 日志分析器</h1>
+        <p>智能手表设备日志关键词提取与异常聚合（死机重启、内存泄露、功耗异常）</p>
+    </div>
+    <div class="container">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-zone-icon">📄</div>
+            <div class="upload-zone-text">点击或拖拽上传日志文件</div>
+            <div class="upload-zone-hint">支持 .log / .txt，自动识别死机、重启、内存、功耗、错误等异常</div>
+            <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFile(this.files[0])">
+        </div>
+        <div id="fileInfo" style="display:none" class="file-info">
+            <span id="fileName" class="file-info-name"></span>
+            <span id="fileSize" style="font-size:12px;color:var(--text-secondary)"></span>
+            <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
+        </div>
+        <div id="analysis" style="display:none">
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="timeline">
+                <div class="timeline-title">异常类型分布</div>
+                <div class="timeline-bar" id="timelineBar"></div>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">全部</button>
+                <button class="filter-btn" data-filter="crash" onclick="setFilter('crash')">💥 死机</button>
+                <button class="filter-btn" data-filter="reboot" onclick="setFilter('reboot')">🔄 重启</button>
+                <button class="filter-btn" data-filter="memory" onclick="setFilter('memory')">💾 内存</button>
+                <button class="filter-btn" data-filter="power" onclick="setFilter('power')">🔋 功耗</button>
+                <button class="filter-btn" data-filter="error" onclick="setFilter('error')">❌ 错误</button>
+                <button class="filter-btn" data-filter="warning" onclick="setFilter('warning')">⚠️ 警告</button>
+                <input type="text" class="search-box" id="searchBox" placeholder="搜索日志内容..." oninput="renderLogs()">
+            </div>
+            <div class="log-panel">
+                <div class="log-header">
+                    <span class="log-title">异常日志</span>
+                    <span class="log-count" id="logCount"></span>
+                </div>
+                <div class="log-content" id="logContent"></div>
+            </div>
+        </div>
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <p>上传设备日志后自动分析异常</p>
+        </div>
+    </div>
+    <script>
+        let allLogs = [], currentFilter = 'all';
+        const PATTERNS = {
+            crash: {regex: /(panic|fatal|kernel\s*panic|watchdog|hardfault|busfault|memfault|死机|crash|abort)/i, label: '死机', icon: '💥'},
+            reboot: {regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启)/i, label: '重启', icon: '🔄'},
+            memory: {regex: /(memory\s*leak|out\s*of\s*memory|oom|heap\s*overflow|stack\s*overflow|malloc\s*fail|内存|泄漏)/i, label: '内存', icon: '💾'},
+            power: {regex: /(power\s*consumption|battery\s*drain|low\s*battery|sleep\s*current|功耗|掉电|漏电|电流异常)/i, label: '功耗', icon: '🔋'},
+            error: {regex: /(\berror\b|exception|assert|fail|failed|fault|错误|异常)/i, label: '错误', icon: '❌'},
+            warning: {regex: /(\bwarn\b|warning|deprecated|注意|警告)/i, label: '警告', icon: '⚠️'},
+        };
+
+        const uploadZone = document.getElementById('uploadZone');
+        uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+        function handleFile(file) {
+            if (!file) return;
+            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
+            document.getElementById('fileInfo').style.display = 'flex';
+            const reader = new FileReader();
+            reader.onload = e => analyzeLog(e.target.result);
+            reader.readAsText(file);
+        }
+
+        function analyzeLog(text) {
+            const lines = text.split(/\r?\n/);
+            allLogs = [];
+            lines.forEach((line, idx) => {
+                if (!line.trim()) return;
+                for (const [type, pat] of Object.entries(PATTERNS)) {
+                    if (pat.regex.test(line)) {
+                        allLogs.push({line: idx+1, text: line.trim(), type: type, label: pat.label, icon: pat.icon});
+                        break;
+                    }
+                }
+            });
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('analysis').style.display = 'block';
+            renderStats();
+            renderTimeline();
+            renderLogs();
+        }
+
+        function renderStats() {
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+            const total = allLogs.length;
+            document.getElementById('statsGrid').innerHTML =
+                `<div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${total}</div><div class="stat-label">异常总数</div></div>` +
+                Object.entries(PATTERNS).map(([t,p]) =>
+                    `<div class="stat-card ${t}"><div class="stat-icon">${p.icon}</div><div class="stat-value">${counts[t]}</div><div class="stat-label">${p.label}</div></div>`
+                ).join('');
+        }
+
+        function renderTimeline() {
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+            const total = allLogs.length || 1;
+            const colors = {crash:'#ef4444', reboot:'#f59e0b', memory:'#8b5cf6', power:'#0ea5e9', error:'#f97316', warning:'#eab308'};
+            document.getElementById('timelineBar').innerHTML = Object.entries(counts)
+                .filter(([_,c]) => c > 0)
+                .map(([t,c]) => `<div class="timeline-seg" style="width:${c/total*100}%;background:${colors[t]}" title="${PATTERNS[t].label}: ${c}"></div>`).join('');
+        }
+
+        function setFilter(f) {
+            currentFilter = f;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            let filtered = allLogs;
+            if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
+            if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
+            document.getElementById('logCount').textContent = `显示 ${filtered.length} / ${allLogs.length} 条`;
+            document.getElementById('logContent').innerHTML = filtered.length ? filtered.map(l =>
+                `<div class="log-line ${l.type}"><span class="log-tag ${l.type}">${l.icon} ${l.label}</span><span style="color:var(--text-secondary);margin-right:8px">L${l.line}</span>${escapeHtml(l.text)}</div>`
+            ).join('') : '<div style="text-align:center;padding:40px;color:var(--text-secondary)">无匹配日志</div>';
+        }
+
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function resetUpload() {
+            allLogs = [];
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('analysis').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('fileInput').value = '';
+        }
+    </script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

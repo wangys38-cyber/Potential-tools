@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug 趋势看板</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); -webkit-font-smoothing: antialiased; }
+        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+        .upload-zone { border: 2px dashed var(--border-strong); border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg-card); margin-bottom: 24px; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #7c3aed; background: rgba(124,58,237,0.05); }
+        .upload-zone-icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-zone-text { font-size: 16px; color: var(--text-primary); }
+        .upload-zone-hint { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+        .file-info { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--bg-card); border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .file-info-name { flex: 1; font-size: 14px; font-weight: 500; }
+        .file-info-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; }
+        .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        .control-group label { font-size: 13px; color: var(--text-secondary); }
+        .control-group select, .control-group input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
+        .chart-container { background: var(--bg-card); border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); position: relative; }
+        .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+        .chart-wrapper { position: relative; height: 360px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+        .stat-value { font-size: 28px; font-weight: 700; background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 56px; margin-bottom: 16px; }
+        .version-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .version-pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); transition: all 0.2s; }
+        .version-pill.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        @media (max-width: 768px) {
+            .header { padding: 20px 16px; padding-left: 60px; }
+            .header h1 { font-size: 22px; }
+            .container { padding: 0 14px; }
+            .chart-wrapper { height: 280px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">← 返回</a>
+        <h1>📈 Bug 趋势看板</h1>
+        <p>上传 CR Excel，自动生成按固件版本/日期的 Bug 趋势折线图</p>
+    </div>
+    <div class="container">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-zone-icon">📊</div>
+            <div class="upload-zone-text">点击或拖拽上传 CR Excel 文件</div>
+            <div class="upload-zone-hint">支持 .xlsx / .xls，需包含日期、固件版本、Bug 数量等列</div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+        </div>
+        <div id="fileInfo" style="display:none" class="file-info">
+            <span id="fileName" class="file-info-name"></span>
+            <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
+        </div>
+        <div id="dashboard" style="display:none">
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>X 轴：</label>
+                    <select id="xAxisSelect" onchange="renderCharts()"></select>
+                </div>
+                <div class="control-group">
+                    <label>对比维度：</label>
+                    <select id="compareSelect" onchange="renderCharts()">
+                        <option value="version">按固件版本</option>
+                        <option value="total">累计趋势</option>
+                    </select>
+                </div>
+            </div>
+            <div class="version-pills" id="versionPills"></div>
+            <div class="chart-container">
+                <div class="chart-title">Bug 数量趋势</div>
+                <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">累计 Bug vs 已解决</div>
+                <div class="chart-wrapper"><canvas id="cumulativeChart"></canvas></div>
+            </div>
+        </div>
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">📈</div>
+            <p>上传 CR Excel 后自动生成趋势看板</p>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        let rawData = [], trendChart = null, cumulativeChart = null;
+        const uploadZone = document.getElementById('uploadZone');
+        uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+        function handleFile(file) {
+            if (!file) return;
+            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileInfo').style.display = 'flex';
+            const reader = new FileReader();
+            reader.onload = e => {
+                const wb = XLSX.read(e.target.result, {type:'array'});
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                rawData = XLSX.utils.sheet_to_json(ws, {defval:''});
+                processData();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData() {
+            if (!rawData.length) return;
+            const keys = Object.keys(rawData[0]);
+            const xSelect = document.getElementById('xAxisSelect');
+            xSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+            // 自动选择日期列
+            const dateKey = keys.find(k => /日期|date|time/i.test(k)) || keys[0];
+            xSelect.value = dateKey;
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            renderStats();
+            renderVersionPills();
+            renderCharts();
+        }
+
+        function renderStats() {
+            const keys = Object.keys(rawData[0]);
+            const bugKey = keys.find(k => /bug|缺陷|问题|count|总数/i.test(k)) || keys[1];
+            const resolveKey = keys.find(k => /解决|关闭|resolved|fixed|done/i.test(k));
+            const totalBugs = rawData.reduce((s,r) => s + (parseFloat(r[bugKey])||0), 0);
+            const resolved = resolveKey ? rawData.reduce((s,r) => s + (parseFloat(r[resolveKey])||0), 0) : 0;
+            const versions = new Set(rawData.map(r => r[keys.find(k=>/版本|version|firmware/i.test(k))||keys[0]])).size;
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card"><div class="stat-label">记录总数</div><div class="stat-value">${rawData.length}</div></div>
+                <div class="stat-card"><div class="stat-label">Bug 总数</div><div class="stat-value">${totalBugs}</div></div>
+                <div class="stat-card"><div class="stat-label">已解决</div><div class="stat-value">${resolved}</div></div>
+                <div class="stat-card"><div class="stat-label">固件版本数</div><div class="stat-value">${versions}</div></div>
+            `;
+        }
+
+        function renderVersionPills() {
+            const keys = Object.keys(rawData[0]);
+            const verKey = keys.find(k => /版本|version|firmware/i.test(k)) || keys[0];
+            const versions = [...new Set(rawData.map(r => String(r[verKey])))].filter(Boolean);
+            const pills = document.getElementById('versionPills');
+            pills.innerHTML = '<span class="version-pill active" data-ver="all">全部版本</span>' +
+                versions.map(v => `<span class="version-pill" data-ver="${v}">${v}</span>`).join('');
+            pills.querySelectorAll('.version-pill').forEach(p => {
+                p.onclick = () => { pills.querySelectorAll('.version-pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderCharts(); };
+            });
+        }
+
+        function getFilteredData() {
+            const active = document.querySelector('.version-pill.active');
+            if (!active || active.dataset.ver === 'all') return rawData;
+            const keys = Object.keys(rawData[0]);
+            const verKey = keys.find(k => /版本|version|firmware/i.test(k)) || keys[0];
+            return rawData.filter(r => String(r[verKey]) === active.dataset.ver);
+        }
+
+        function renderCharts() {
+            const data = getFilteredData();
+            if (!data.length) return;
+            const xKey = document.getElementById('xAxisSelect').value;
+            const keys = Object.keys(rawData[0]);
+            const bugKey = keys.find(k => /bug|缺陷|问题|count|总数/i.test(k)) || keys[1];
+            const resolveKey = keys.find(k => /解决|关闭|resolved|fixed|done/i.test(k));
+            const labels = data.map(r => String(r[xKey]));
+            const bugData = data.map(r => parseFloat(r[bugKey])||0);
+            const resolveData = resolveKey ? data.map(r => parseFloat(r[resolveKey])||0) : [];
+
+            if (trendChart) trendChart.destroy();
+            const ctx1 = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Bug 数量', data: bugData,
+                        borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.1)',
+                        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#7c3aed'
+                    }].concat(resolveKey ? [{
+                        label: '已解决', data: resolveData,
+                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+                        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#10b981'
+                    }] : [])
+                },
+                options: { responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } } }
+            });
+
+            // 累计图
+            let cumBug = 0, cumRes = 0;
+            const cumBugData = bugData.map(v => cumBug += v);
+            const cumResData = resolveData.map(v => cumRes += v);
+            if (cumulativeChart) cumulativeChart.destroy();
+            const ctx2 = document.getElementById('cumulativeChart').getContext('2d');
+            cumulativeChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '累计 Bug', data: cumBugData,
+                        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
+                        fill: true, tension: 0.3
+                    }].concat(resolveKey ? [{
+                        label: '累计解决', data: cumResData,
+                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+                        fill: true, tension: 0.3
+                    }] : [])
+                },
+                options: { responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function resetUpload() {
+            rawData = [];
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('fileInput').value = '';
+        }
+    </script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

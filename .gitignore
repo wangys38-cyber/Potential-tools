@@ -17,3 +17,4 @@ switch_to_weasyprint.py
 .DS_Store
 *.log
 .jinja_cache/
+.venv/

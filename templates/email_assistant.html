@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮件助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
+        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
+        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        .sidebar { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 20px; }
+        .sidebar-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .template-list { display: flex; flex-direction: column; gap: 6px; }
+        .template-item { padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .template-item:hover { background: var(--bg-primary); }
+        .template-item.active { background: linear-gradient(135deg,rgba(79,70,229,0.1),rgba(124,58,237,0.1)); border-left: 3px solid #7c3aed; font-weight: 500; }
+        .template-icon { font-size: 18px; flex-shrink: 0; }
+        .main-panel { display: flex; flex-direction: column; gap: 16px; }
+        .form-card { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
+        .form-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #7c3aed; }
+        .form-group textarea { min-height: 80px; resize: vertical; line-height: 1.6; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border: none; }
+        .btn:hover { transform: translateY(-1px); }
+        .preview-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .preview-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .preview-title { font-size: 14px; font-weight: 600; }
+        .preview-body { padding: 24px; font-family: 'SF Pro Text', -apple-system, sans-serif; font-size: 14px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+        .preview-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+        .preview-meta div { margin-bottom: 4px; }
+        .lang-toggle { display: flex; gap: 4px; background: var(--bg-primary); padding: 3px; border-radius: 8px; }
+        .lang-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-secondary); }
+        .lang-btn.active { background: var(--bg-card); color: var(--text-primary); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 10px; background: var(--bg-card); box-shadow: 0 8px 32px rgba(0,0,0,0.15); font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { opacity: 1; }
+        @media (max-width: 768px) {
+            .header { padding: 20px 16px; padding-left: 60px; }
+            .header h1 { font-size: 22px; }
+            .container { grid-template-columns: 1fr; padding: 0 14px; }
+            .sidebar { position: static; }
+            .template-list { flex-direction: row; overflow-x: auto; gap: 8px; }
+            .template-item { white-space: nowrap; flex-shrink: 0; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">← 返回</a>
+        <h1>✉️ 邮件助手</h1>
+        <p>英文技术邮件模板生成 + 一键翻译</p>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-title">邮件模板</div>
+            <div class="template-list" id="templateList"></div>
+        </div>
+        <div class="main-panel">
+            <div class="form-card">
+                <div class="form-title" id="formTitle">填写邮件信息</div>
+                <div id="formFields"></div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="generateEmail()">✨ 生成邮件</button>
+                    <button class="btn" onclick="clearForm()">🗑️ 清空</button>
+                </div>
+            </div>
+            <div class="preview-card" id="previewCard" style="display:none">
+                <div class="preview-header">
+                    <span class="preview-title">邮件预览</span>
+                    <div style="display:flex;gap:10px;align-items:center">
+                        <div class="lang-toggle">
+                            <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
+                            <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">中文</button>
+                        </div>
+                        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="copyEmail()">📋 复制</button>
+                    </div>
+                </div>
+                <div class="preview-body" id="previewBody"></div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        const TEMPLATES = [
+            { id: 'bug', icon: '🐛', name: 'Bug 报告', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
+            { id: 'status', icon: '📊', name: '进度同步', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
+            { id: 'request', icon: '🙏', name: '资源请求', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
+            { id: 'escalation', icon: '🚨', name: '问题升级', fields: ['recipient','subject','issue','impact','previousAttempts','needAction'], desc: 'Escalate a critical issue' },
+            { id: 'followup', icon: '📌', name: '跟进提醒', fields: ['recipient','subject','topic','previousDate','actionNeeded','deadline'], desc: 'Follow up on pending items' },
+            { id: 'apology', icon: '🙇', name: '问题致歉', fields: ['recipient','subject','issue','apology','solution','preventMeasure'], desc: 'Apologize for an issue' },
+            { id: 'release', icon: '🚀', name: '版本发布', fields: ['recipient','subject','version','highlights','changes','knownIssues','download'], desc: 'Announce a new release' },
+            { id: 'meeting', icon: '📅', name: '会议邀请', fields: ['recipient','subject','meetingTitle','time','location','agenda','prep'], desc: 'Schedule a meeting' },
+        ];
+
+        const FIELD_LABELS = {
+            recipient: '收件人 (Recipient)', subject: '主题 (Subject)', bugTitle: 'Bug 标题',
+            severity: '严重程度 (Critical/Major/Minor)', steps: '复现步骤 (Steps to reproduce)',
+            expected: '预期结果 (Expected)', actual: '实际结果 (Actual)', version: '固件版本 (Version)',
+            project: '项目名称 (Project)', progress: '当前进度 (Progress %)', blockers: '阻塞项 (Blockers)',
+            nextSteps: '下一步计划 (Next steps)', requestItem: '请求内容 (Request)', reason: '请求原因 (Reason)',
+            deadline: '截止日期 (Deadline)', impact: '影响范围 (Impact)', issue: '问题描述 (Issue)',
+            previousAttempts: '已尝试方案 (Previous attempts)', needAction: '需要的支持 (Action needed)',
+            topic: '跟进主题 (Topic)', previousDate: '上次沟通日期', actionNeeded: '需要的行动',
+            apology: '致歉内容 (Apology)', solution: '解决方案 (Solution)', preventMeasure: '预防措施 (Prevention)',
+            version: '版本号 (Version)', highlights: '重点更新 (Highlights)', changes: '变更内容 (Changes)',
+            knownIssues: '已知问题 (Known issues)', download: '下载链接 (Download link)',
+            meetingTitle: '会议主题 (Title)', time: '会议时间 (Time)', location: '会议地点 (Location/Link)',
+            agenda: '议程 (Agenda)', prep: '会前准备 (Preparation)',
+        };
+
+        let currentTemplate = TEMPLATES[0];
+        let currentLang = 'en';
+        let generatedEN = '', generatedZH = '';
+
+        function renderTemplateList() {
+            document.getElementById('templateList').innerHTML = TEMPLATES.map(t =>
+                `<div class="template-item ${t.id===currentTemplate.id?'active':''}" onclick="selectTemplate('${t.id}')">
+                    <span class="template-icon">${t.icon}</span>${t.name}
+                </div>`
+            ).join('');
+        }
+
+        function selectTemplate(id) {
+            currentTemplate = TEMPLATES.find(t => t.id === id);
+            renderTemplateList();
+            renderFormFields();
+            document.getElementById('previewCard').style.display = 'none';
+        }
+
+        function renderFormFields() {
+            document.getElementById('formTitle').textContent = currentTemplate.icon + ' ' + currentTemplate.name + ' - 填写信息';
+            document.getElementById('formFields').innerHTML = currentTemplate.fields.map((f, i) => {
+                const isTextarea = ['steps','expected','actual','progress','blockers','nextSteps','reason','impact','issue','previousAttempts','needAction','apology','solution','preventMeasure','highlights','changes','knownIssues','agenda','prep'].includes(f);
+                const label = FIELD_LABELS[f] || f;
+                if (i === 0 || i === 1) {
+                    return `<div class="form-group"><label>${label}</label><input type="text" id="field_${f}" placeholder="${label}"></div>`;
+                }
+                return `<div class="form-group"><label>${label}</label>${isTextarea ? `<textarea id="field_${f}" placeholder="${label}"></textarea>` : `<input type="text" id="field_${f}" placeholder="${label}">`}</div>`;
+            }).join('');
+        }
+
+        function getVal(f) { return document.getElementById('field_'+f)?.value || ''; }
+
+        function generateEmail() {
+            const recipient = getVal('recipient') || '[Recipient]';
+            const subject = getVal('subject') || '[Subject]';
+            let body = '';
+
+            switch(currentTemplate.id) {
+                case 'bug':
+                    body = `Hi ${recipient},
+
+I would like to report a bug found in ${getVal('version') || 'the current version'}.
+
+**Bug Title:** ${getVal('bugTitle') || '[Bug Title]'}
+**Severity:** ${getVal('severity') || '[Severity]'}
+
+**Steps to Reproduce:**
+${getVal('steps') || '[Steps]'}
+
+**Expected Result:**
+${getVal('expected') || '[Expected]'}
+
+**Actual Result:**
+${getVal('actual') || '[Actual]'}
+
+Please let me know if you need any additional information or logs.
+
+Best regards`;
+                    break;
+                case 'status':
+                    body = `Hi ${recipient},
+
+Here is the status update for ${getVal('project') || '[Project]'}.
+
+**Progress:** ${getVal('progress') || '[Progress]'}
+
+**Blockers:**
+${getVal('blockers') || 'None'}
+
+**Next Steps:**
+${getVal('nextSteps') || '[Next steps]'}
+
+Please let me know if you have any questions.
+
+Best regards`;
+                    break;
+                case 'request':
+                    body = `Hi ${recipient},
+
+I am writing to request your support on the following:
+
+**Request:** ${getVal('requestItem') || '[Request]'}
+
+**Reason:**
+${getVal('reason') || '[Reason]'}
+
+**Impact:** ${getVal('impact') || '[Impact]'}
+
+**Deadline:** ${getVal('deadline') || '[Deadline]'}
+
+Your support would be greatly appreciated.
+
+Best regards`;
+                    break;
+                case 'escalation':
+                    body = `Hi ${recipient},
+
+I am escalating the following issue as it requires urgent attention.
+
+**Issue:** ${getVal('issue') || '[Issue]'}
+
+**Impact:**
+${getVal('impact') || '[Impact]'}
+
+**Previous Attempts:**
+${getVal('previousAttempts') || '[Attempts]'}
+
+**Action Needed:**
+${getVal('needAction') || '[Action needed]'}
+
+Please advise on the next steps at your earliest convenience.
+
+Best regards`;
+                    break;
+                case 'followup':
+                    body = `Hi ${recipient},
+
+Following up on our previous discussion about ${getVal('topic') || '[Topic]'} (dated ${getVal('previousDate') || '[Date]'}).
+
+**Action Needed:**
+${getVal('actionNeeded') || '[Action]'}
+
+**Deadline:** ${getVal('deadline') || '[Deadline]'}
+
+Please let me know the current status.
+
+Best regards`;
+                    break;
+                case 'apology':
+                    body = `Hi ${recipient},
+
+I sincerely apologize for ${getVal('issue') || '[the issue]'}.
+
+${getVal('apology') || ''}
+
+**Solution:**
+${getVal('solution') || '[Solution]'}
+
+**Prevention:**
+${getVal('preventMeasure') || '[Prevention]'}
+
+Thank you for your understanding and patience.
+
+Best regards`;
+                    break;
+                case 'release':
+                    body = `Hi ${recipient},
+
+We are pleased to announce the release of ${getVal('version') || '[Version]'}.
+
+**Highlights:**
+${getVal('highlights') || '[Highlights]'}
+
+**Changes:**
+${getVal('changes') || '[Changes]'}
+
+**Known Issues:**
+${getVal('knownIssues') || 'None'}
+
+**Download:** ${getVal('download') || '[Link]'}
+
+Best regards`;
+                    break;
+                case 'meeting':
+                    body = `Hi ${recipient},
+
+I would like to schedule a meeting:
+
+**Title:** ${getVal('meetingTitle') || '[Title]'}
+**Time:** ${getVal('time') || '[Time]'}
+**Location:** ${getVal('location') || '[Location]'}
+
+**Agenda:**
+${getVal('agenda') || '[Agenda]'}
+
+**Preparation:**
+${getVal('prep') || 'None required'}
+
+Please let me know if this time works for you.
+
+Best regards`;
+                    break;
+            }
+
+            generatedEN = `Subject: ${subject}\n\n${body}`;
+            generatedZH = translateToZH(generatedEN);
+            currentLang = 'en';
+            renderPreview();
+            document.getElementById('previewCard').style.display = 'block';
+            showToast('✨ 邮件已生成');
+        }
+
+        function translateToZH(text) {
+            // 简单的关键词翻译（完整翻译需调用 AI API）
+            const dict = {
+                'Hi ': '你好，', 'Best regards': '此致敬礼',
+                'I would like to report': '我想报告', 'I am writing to request': '我写信请求',
+                'I am escalating': '我在此升级', 'Following up on': '跟进',
+                'I sincerely apologize': '我诚挚道歉', 'We are pleased to announce': '我们很高兴地宣布',
+                'I would like to schedule': '我想安排',
+                'Bug Title:': 'Bug 标题：', 'Severity:': '严重程度：',
+                'Steps to Reproduce:': '复现步骤：', 'Expected Result:': '预期结果：',
+                'Actual Result:': '实际结果：', 'Progress:': '进度：',
+                'Blockers:': '阻塞项：', 'Next Steps:': '下一步：',
+                'Request:': '请求：', 'Reason:': '原因：', 'Impact:': '影响：',
+                'Deadline:': '截止日期：', 'Issue:': '问题：',
+                'Previous Attempts:': '已尝试方案：', 'Action Needed:': '需要的支持：',
+                'Solution:': '解决方案：', 'Prevention:': '预防措施：',
+                'Highlights:': '重点更新：', 'Changes:': '变更内容：',
+                'Known Issues:': '已知问题：', 'Download:': '下载：',
+                'Title:': '主题：', 'Time:': '时间：', 'Location:': '地点：',
+                'Agenda:': '议程：', 'Preparation:': '会前准备：',
+                'Please let me know': '请告知', 'Thank you': '感谢',
+                'Subject:': '主题：', 'None': '无',
+            };
+            let result = text;
+            Object.entries(dict).forEach(([en, zh]) => {
+                result = result.split(en).join(zh);
+            });
+            return result + '\n\n---\n（注：完整翻译建议复制后使用 AI 翻译工具润色）';
+        }
+
+        function switchLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+            renderPreview();
+        }
+
+        function renderPreview() {
+            const text = currentLang === 'en' ? generatedEN : generatedZH;
+            const subjectLine = text.split('\n')[0];
+            const body = text.substring(text.indexOf('\n') + 1);
+            document.getElementById('previewBody').innerHTML =
+                `<div class="preview-meta"><div><strong>${subjectLine}</strong></div></div>` +
+                body.replace(/\n/g, '<br>');
+        }
+
+        function copyEmail() {
+            const text = currentLang === 'en' ? generatedEN : generatedZH;
+            navigator.clipboard.writeText(text).then(() => showToast('📋 已复制到剪贴板'));
+        }
+
+        function clearForm() {
+            currentTemplate.fields.forEach(f => { const el = document.getElementById('field_'+f); if(el) el.value = ''; });
+            document.getElementById('previewCard').style.display = 'none';
+            showToast('🗑️ 已清空');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        renderTemplateList();
+        renderFormFields();
+    </script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

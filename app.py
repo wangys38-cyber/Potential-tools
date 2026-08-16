@@ -965,6 +965,31 @@ def plan_generator():
     return cached_render('plan_generator.html')
 
 
+@app.route('/bug-trend')
+def bug_trend():
+    return cached_render('bug_trend.html')
+
+
+@app.route('/release-checklist')
+def release_checklist():
+    return cached_render('release_checklist.html')
+
+
+@app.route('/log-analyzer')
+def log_analyzer():
+    return cached_render('log_analyzer.html')
+
+
+@app.route('/email-assistant')
+def email_assistant():
+    return cached_render('email_assistant.html')
+
+
+@app.route('/data-viz')
+def data_viz():
+    return cached_render('data_viz.html')
+
+
 @app.route('/meeting-minutes')
 def meeting_minutes():
     return cached_render('meeting_minutes.html')
