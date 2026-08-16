@@ -1055,7 +1055,6 @@ def api_jira_search():
     else:
         auth_attempts.append(('none', None))
 
-    import time
     resp = None
     last_status = None
     try:
@@ -1066,36 +1065,29 @@ def api_jira_search():
                 auth_val = None
             for api_path in api_versions:
                 search_url = f"{domain}{api_path}"
-                # 最多尝试 2 次（第二次用于 429 限流重试）
-                for attempt in range(2):
-                    resp = requests.post(search_url, json=payload, auth=auth_val,
-                                         headers=req_headers, timeout=30)
-                    last_status = resp.status_code
-                    if resp.status_code == 200:
-                        break
-                    if resp.status_code == 429:
-                        # 限流：读取 Retry-After，等待后重试一次
-                        retry_after = int(resp.headers.get('Retry-After', 2))
-                        retry_after = min(retry_after, 5)  # 最多等 5 秒
-                        if attempt == 0:
-                            time.sleep(retry_after)
-                            continue
-                    break  # 非 200/429 或第二次仍失败，跳出重试
+                resp = requests.post(search_url, json=payload, auth=auth_val,
+                                     headers=req_headers, timeout=30)
+                last_status = resp.status_code
                 if resp.status_code == 200:
                     break
+                if resp.status_code == 429:
+                    # 限流：立即停止所有尝试，避免加剧限流
+                    retry_after = resp.headers.get('Retry-After', '30')
+                    return jsonify({'error': f'Jira 请求过于频繁(429)：服务器要求等待 {retry_after} 秒后重试。请稍后再试，不要连续点击导入'}), 429
                 if resp.status_code == 404:
                     continue  # api/3 不存在，试 api/2
                 break  # 401/403/其他：换下一种鉴权
-            if resp and resp.status_code == 200:
+            if resp.status_code == 200:
                 break
+            if resp.status_code == 404:
+                continue
+            break  # 非 404：换下一种鉴权
 
         if not resp or resp.status_code != 200:
             if last_status == 401:
                 return jsonify({'error': 'Jira 鉴权失败(401)：已尝试邮箱/短用户名/Bearer三种方式。Jira Server 请确认用户名(短账号)和密码；或生成 Personal Access Token 填入 Token 栏'}), 401
             if last_status == 403:
                 return jsonify({'error': 'Jira 无权限(403)：当前账号无权访问该 filter 或项目'}), 403
-            if last_status == 429:
-                return jsonify({'error': 'Jira 请求过于频繁(429)：请等待 10-30 秒后重试，或减少导入频率'}), 429
             if last_status == 404:
                 return jsonify({'error': f'Jira API 未找到(404)：请确认域名 {domain} 是否正确'}), 404
             return jsonify({'error': f'Jira API 返回 {last_status}: {resp.text[:200] if resp else "无响应"}'}), last_status or 502

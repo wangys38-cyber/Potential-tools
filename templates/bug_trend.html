@@ -53,6 +53,16 @@
         .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .error-msg { background: rgba(239,68,68,0.1); color: #ef4444; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px; display: none; }
+        .browser-panel { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .browser-panel-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .browser-panel-title .badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(16,185,129,0.15); color: #10b981; font-weight: 600; }
+        .csv-drop-zone { border: 2px dashed var(--border-strong); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; margin-top: 12px; transition: all 0.3s; display: none; }
+        .csv-drop-zone:hover, .csv-drop-zone.dragover { border-color: #10b981; background: rgba(16,185,129,0.05); }
+        .csv-drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+        .csv-export-link { display: inline-block; padding: 8px 16px; border-radius: 8px; background: linear-gradient(135deg,#10b981,#059669); color: #fff; text-decoration: none; font-size: 13px; font-weight: 500; margin-top: 8px; }
+        .divider { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 16px 0; position: relative; }
+        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
+        .divider::before { left: 0; } .divider::after { right: 0; }
         @media (max-width: 768px) {
             .header { padding: 20px 16px; padding-left: 60px; }
             .header h1 { font-size: 22px; }
@@ -97,6 +107,30 @@
                     支持：Jira 搜索页 URL（<code>?jql=</code> / <code>?filter=86482</code>）或直接输入 JQL。Jira Cloud 填邮箱+API Token；Jira Server 填用户名+密码或 Personal Access Token。配置仅存本地。
                 </div>
                 <div class="error-msg" id="jiraError"></div>
+            </div>
+            <div class="divider">或</div>
+            <div class="browser-panel">
+                <div class="browser-panel-title">🌐 浏览器免登录导入 <span class="badge">推荐</span></div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">
+                    你已在浏览器登录 Jira，可直接用当前会话导入，无需 Token。若被 CORS 拦截，可一键导出 CSV 后拖入。
+                </div>
+                <div class="jira-input-row">
+                    <input type="text" id="browserJiraUrl" placeholder="粘贴 Jira filter 链接，如：https://edart.motorola.com/issues/?filter=86482">
+                    <button class="jira-import-btn" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="importFromBrowser()">🌐 浏览器导入</button>
+                </div>
+                <div id="csvFallback" style="display:none;margin-top:14px">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
+                        ⚠️ 浏览器直接请求被 CORS 拦截。请点击下方按钮在 Jira 导出 CSV，然后拖到下方区域：
+                    </div>
+                    <a id="csvExportLink" class="csv-export-link" target="_blank" rel="noopener">📥 一键导出 Jira CSV（全字段）</a>
+                    <div class="csv-drop-zone" id="csvDropZone" onclick="document.getElementById('csvFileInput').click()">
+                        <div class="csv-drop-zone-icon">📂</div>
+                        <div style="font-size:14px">拖拽 CSV 到这里 或 点击选择</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">支持 Jira 导出的 .csv 文件</div>
+                        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFile(this.files[0])">
+                    </div>
+                </div>
+                <div class="error-msg" id="browserError"></div>
             </div>
         </div>
         <div id="fileInfo" style="display:none" class="file-info">
@@ -406,6 +440,151 @@
         ['jiraDomain','jiraEmail','jiraToken'].forEach(id => {
             document.getElementById(id).addEventListener('change', saveJiraConfig);
         });
+
+        // ===== 浏览器免登录导入 =====
+        function extractFilterInfo(url) {
+            try {
+                const u = new URL(url);
+                const params = new URLSearchParams(u.search);
+                const domain = u.origin;
+                let filterId = params.get('filter');
+                let jql = params.get('jql');
+                if (!filterId) {
+                    const m = url.match(/filter[=/](\d+)/);
+                    if (m) filterId = m[1];
+                }
+                return { domain, filterId, jql };
+            } catch(e) { return null; }
+        }
+
+        async function importFromBrowser() {
+            const url = document.getElementById('browserJiraUrl').value.trim();
+            const errorEl = document.getElementById('browserError');
+            errorEl.style.display = 'none';
+            if (!url) { showBrowserError('请粘贴 Jira filter 链接'); return; }
+            const info = extractFilterInfo(url);
+            if (!info || !info.domain) { showBrowserError('无法解析 Jira 链接'); return; }
+
+            // 构建 JQL
+            const jql = info.jql || (info.filterId ? `filter=${info.filterId}` : '');
+            if (!jql) { showBrowserError('链接中未找到 filter ID 或 JQL'); return; }
+
+            // 尝试浏览器直接请求（带 cookie）
+            const apiUrl = `${info.domain}/rest/api/2/search`;
+            const body = JSON.stringify({
+                jql: jql, maxResults: 500,
+                fields: ['summary','status','created','resolutiondate','fixVersions','issuetype','priority','assignee']
+            });
+
+            try {
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: body,
+                });
+                if (!resp.ok) {
+                    if (resp.status === 401) throw new Error('未登录或会话已过期，请先在浏览器登录 Jira');
+                    if (resp.status === 403) throw new Error('无权限访问该 filter');
+                    throw new Error(`Jira 返回 ${resp.status}`);
+                }
+                const data = await resp.json();
+                if (!data.issues || !data.issues.length) {
+                    showBrowserError('未找到任何 CR 数据');
+                    return;
+                }
+                // 转换为统一格式并处理
+                const issues = data.issues.map(issue => ({
+                    key: issue.key,
+                    summary: issue.fields?.summary || '',
+                    status: issue.fields?.status?.name || 'Unknown',
+                    created: (issue.fields?.created || '').slice(0,10),
+                    resolved: (issue.fields?.resolutiondate || '').slice(0,10),
+                    version: issue.fields?.fixVersions?.[0]?.name || '未指定',
+                }));
+                processJiraData(issues);
+                document.getElementById('fileName').textContent = `🌐 浏览器导入: ${issues.length} 条 CR`;
+                document.getElementById('fileInfo').style.display = 'flex';
+            } catch(e) {
+                // CORS 或网络错误 → 显示 CSV 导出降级方案
+                console.warn('Browser import failed:', e);
+                showCsvFallback(info, jql);
+                showBrowserError(`浏览器直接导入失败（${e.message}），请使用下方 CSV 导出方式`);
+            }
+        }
+
+        function showCsvFallback(info, jql) {
+            const fallback = document.getElementById('csvFallback');
+            fallback.style.display = 'block';
+            // 构建 Jira CSV 导出链接
+            const csvUrl = `${info.domain}/sr/jira.issueviews:searchrequest-csv-all-fields/temp/SearchRequest.csv?jql=${encodeURIComponent(jql)}&tempMax=1000`;
+            document.getElementById('csvExportLink').href = csvUrl;
+        }
+
+        function showBrowserError(msg) {
+            const el = document.getElementById('browserError');
+            el.textContent = '❌ ' + msg;
+            el.style.display = 'block';
+        }
+
+        // CSV 拖拽处理
+        const csvDropZone = document.getElementById('csvDropZone');
+        if (csvDropZone) {
+            csvDropZone.addEventListener('dragover', e => { e.preventDefault(); csvDropZone.classList.add('dragover'); });
+            csvDropZone.addEventListener('dragleave', () => csvDropZone.classList.remove('dragover'));
+            csvDropZone.addEventListener('drop', e => {
+                e.preventDefault(); csvDropZone.classList.remove('dragover');
+                if (e.dataTransfer.files[0]) handleCsvFile(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleCsvFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const text = e.target.result;
+                const issues = parseJiraCsv(text);
+                if (!issues.length) { showBrowserError('CSV 解析失败或为空'); return; }
+                processJiraData(issues);
+                document.getElementById('fileName').textContent = `📂 CSV导入: ${issues.length} 条 CR`;
+                document.getElementById('fileInfo').style.display = 'flex';
+            };
+            reader.readAsText(file);
+        }
+
+        function parseJiraCsv(text) {
+            // 简单 CSV 解析（支持引号包裹）
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) return [];
+            const parseLine = line => {
+                const result = []; let cur = ''; let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"') { inQuotes = !inQuotes; }
+                    else if (c === ',' && !inQuotes) { result.push(cur); cur = ''; }
+                    else { cur += c; }
+                }
+                result.push(cur);
+                return result;
+            };
+            const headers = parseLine(lines[0]).map(h => h.trim());
+            const idx = name => headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
+            const iKey = idx('Issue key'), iSummary = idx('Summary'), iStatus = idx('Status');
+            const iCreated = idx('Created'), iResolved = idx('Resolved'), iVersion = idx('Fix Version');
+            const issues = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = parseLine(lines[i]);
+                issues.push({
+                    key: cols[iKey] || '',
+                    summary: cols[iSummary] || '',
+                    status: cols[iStatus] || 'Unknown',
+                    created: (cols[iCreated] || '').slice(0,10),
+                    resolved: (cols[iResolved] || '').slice(0,10),
+                    version: cols[iVersion] || '未指定',
+                });
+            }
+            return issues;
+        }
     </script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
