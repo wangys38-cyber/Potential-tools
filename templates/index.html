@@ -501,11 +501,15 @@
             .stat-icon { width: 40px; height: 40px; font-size: 20px; }
             .stat-value { font-size: 22px; }
             .stat-label { font-size: 12px; }
-            .nav { padding: 0 14px; height: 52px; }
-            .nav-logo { font-size: 16px; gap: 4px; }
+            .nav { padding: 0 14px; height: 52px; overflow: hidden; }
+            .nav-right { gap: 6px; flex-shrink: 0; }
+            .nav-logo { font-size: 16px; gap: 4px; flex-shrink: 0; }
             .nav-cmdk span:not(.nav-kbd) { display: none; }
             .nav-cmdk { padding: 5px 10px; min-height: 38px; }
             .nav-cmdk svg { width: 16px; height: 16px; }
+            .user-info .logout-btn { padding: 5px 10px; font-size: 11px; }
+            .user-info .login-btn { padding: 7px 14px; font-size: 12px; }
+            .user-info .avatar, .user-info .avatar-placeholder { width: 28px; height: 28px; font-size: 12px; }
             .hero { padding: 40px 16px 24px; }
             .hero h1 { font-size: 36px; }
             .hero p { font-size: 15px; }
@@ -556,11 +560,13 @@
             .fav-btn { padding: 6px; font-size: 14px; }
         }
         @media (max-width: 360px) {
-            .nav { padding: 0 10px; }
+            .nav { padding: 0 10px; overflow: hidden; }
             .nav-logo { font-size: 13px; }
             .hero h1 { font-size: 26px; }
             .hero p { font-size: 12px; }
             .nav-cmdk { display: none; }
+            .nav-btn[title="设置"] { display: none; }
+            .user-info .logout-btn { padding: 4px 8px; font-size: 10px; }
             .tool-card { padding: 14px; }
             .tool-icon { width: 36px; height: 36px; font-size: 18px; }
             .tool-card h2 { font-size: 14px; }

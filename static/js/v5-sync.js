@@ -232,41 +232,36 @@
     function createUI() {
         if (document.getElementById('v5-sync-btn')) return;
 
+        var isMobile = window.innerWidth <= 480;
+
         var btn = document.createElement('button');
         btn.id = 'v5-sync-btn';
+        btn.className = 'v5-sync-btn';
         btn.title = '云端同步';
-        btn.style.cssText =
-            'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;' +
-            'border-radius:10px;border:1px solid rgba(255,255,255,0.6);' +
-            'background:rgba(255,255,255,0.5);backdrop-filter:blur(10px);' +
-            'cursor:pointer;font-size:13px;color:var(--text-primary);' +
-            'transition:all 0.25s;font-family:inherit;';
-        btn.innerHTML = '<span id="v5-sync-icon">☁️</span><span id="v5-sync-label">同步</span>';
-        btn.onmouseenter = function() { this.style.transform = 'translateY(-1px)'; this.style.boxShadow = '0 4px 12px rgba(102,126,234,0.15)'; };
-        btn.onmouseleave = function() { this.style.transform = 'none'; this.style.boxShadow = 'none'; };
+        btn.innerHTML = '<span id="v5-sync-icon" class="v5-sync-icon">☁️</span>' +
+            (isMobile ? '' : '<span id="v5-sync-label" class="v5-sync-label">同步</span>');
         btn.onclick = function() { sync(true); };
 
         // 插入到 header 区域
         var header = document.querySelector('.header') || document.querySelector('.nav') || document.querySelector('header');
         if (header) {
-            // 尝试插入到 header 的右侧
             var existingRight = header.querySelector('.header-right, .nav-right, .header-actions');
             if (existingRight) {
                 existingRight.appendChild(btn);
             } else {
                 header.style.position = 'relative';
-                btn.style.position = 'absolute';
-                btn.style.top = '50%';
-                btn.style.right = '20px';
-                btn.style.transform = 'translateY(-50%)';
+                btn.classList.add('v5-sync-btn-absolute');
+                if (isMobile) {
+                    btn.style.right = '10px';
+                    btn.style.top = '50%';
+                    btn.style.transform = 'translateY(-50%)';
+                } else {
+                    btn.style.right = '20px';
+                    btn.style.top = '50%';
+                    btn.style.transform = 'translateY(-50%)';
+                }
                 header.appendChild(btn);
             }
-        }
-
-        // 暗色模式适配
-        if (document.documentElement.getAttribute('data-theme') === 'dark') {
-            btn.style.background = 'rgba(30,30,40,0.5)';
-            btn.style.borderColor = 'rgba(255,255,255,0.08)';
         }
     }
 
@@ -301,9 +296,32 @@
         }
     }
 
-    // 旋转动画
+    // 样式注入
     var style = document.createElement('style');
-    style.textContent = '@keyframes v5spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+    style.textContent =
+        '@keyframes v5spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}' +
+        '.v5-sync-btn{' +
+            'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;' +
+            'border-radius:10px;border:1px solid rgba(255,255,255,0.6);' +
+            'background:rgba(255,255,255,0.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
+            'cursor:pointer;font-size:13px;color:var(--text-primary);' +
+            'transition:all 0.25s;font-family:inherit;flex-shrink:0;white-space:nowrap;' +
+        '}' +
+        '.v5-sync-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,0.15)}' +
+        '.v5-sync-btn-absolute{position:absolute;z-index:10}' +
+        '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center}' +
+        '.v5-sync-label{font-size:13px}' +
+        '[data-theme="dark"] .v5-sync-btn{' +
+            'background:rgba(30,30,40,0.5);border-color:rgba(255,255,255,0.08)' +
+        '}' +
+        '@media (max-width:480px){' +
+            '.v5-sync-btn{padding:5px 8px;gap:4px}' +
+            '.v5-sync-label{display:none}' +
+            '.v5-sync-btn-absolute{right:10px!important}' +
+        '}' +
+        '@media (max-width:360px){' +
+            '.v5-sync-btn{padding:4px 6px}' +
+        '}';
     document.head.appendChild(style);
 
     // ===== Toast 提示（兼容各页面）=====
