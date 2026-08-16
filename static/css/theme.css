@@ -27,10 +27,10 @@
     --tb-text-inverse: #ffffff;
 
     /* 主题色 */
-    --tb-accent: #0071e3;
-    --tb-accent-hover: #0077ed;
-    --tb-accent-pressed: #006edb;
-    --tb-accent-light: rgba(0, 113, 227, 0.1);
+    --tb-accent: #7c3aed;
+    --tb-accent-hover: #8b5cf6;
+    --tb-accent-pressed: #6d28d9;
+    --tb-accent-light: rgba(124, 58, 237, 0.1);
 
     /* 语义色 */
     --tb-success: #34c759;
@@ -124,10 +124,10 @@
     --tb-text-inverse: #1d1d1f;
 
     /* 主题色 */
-    --tb-accent: #0a84ff;
-    --tb-accent-hover: #3a9eff;
-    --tb-accent-pressed: #0066cc;
-    --tb-accent-light: rgba(10, 132, 255, 0.15);
+    --tb-accent: #a78bfa;
+    --tb-accent-hover: #c4b5fd;
+    --tb-accent-pressed: #8b5cf6;
+    --tb-accent-light: rgba(167, 139, 250, 0.15);
 
     /* 语义色 */
     --tb-success: #30d158;
