@@ -38,6 +38,21 @@
         .version-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
         .version-pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); transition: all 0.2s; }
         .version-pill.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .source-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); padding: 4px; border-radius: 12px; border: 1px solid var(--border); width: fit-content; }
+        .source-tab { padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; color: var(--text-secondary); }
+        .source-tab.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; }
+        .jira-panel { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .jira-config { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+        .jira-config input { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; width: 100%; }
+        .jira-input-row { display: flex; gap: 10px; }
+        .jira-input-row input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; }
+        .jira-import-btn { padding: 10px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; }
+        .jira-import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .jira-hint { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+        .jira-hint code { background: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-msg { background: rgba(239,68,68,0.1); color: #ef4444; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px; display: none; }
         @media (max-width: 768px) {
             .header { padding: 20px 16px; padding-left: 60px; }
             .header h1 { font-size: 22px; }
@@ -55,11 +70,35 @@
         <p>上传 CR Excel，自动生成按固件版本/日期的 Bug 趋势折线图</p>
     </div>
     <div class="container">
+        <div class="source-tabs">
+            <div class="source-tab active" data-source="excel" onclick="switchSource('excel')">📊 Excel 上传</div>
+            <div class="source-tab" data-source="jira" onclick="switchSource('jira')">🔗 Jira 导入</div>
+        </div>
+        <div id="excelPanel">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <div class="upload-zone-icon">📊</div>
             <div class="upload-zone-text">点击或拖拽上传 CR Excel 文件</div>
             <div class="upload-zone-hint">支持 .xlsx / .xls，需包含日期、固件版本、Bug 数量等列</div>
             <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+        </div>
+        </div>
+        <div id="jiraPanel" style="display:none">
+            <div class="jira-panel">
+                <div class="jira-config">
+                    <input type="text" id="jiraDomain" placeholder="Jira 域名 (如 https://xxx.atlassian.net)">
+                    <input type="text" id="jiraEmail" placeholder="邮箱 (Jira Cloud)">
+                    <input type="password" id="jiraToken" placeholder="API Token">
+                </div>
+                <div class="jira-input-row">
+                    <input type="text" id="jiraInput" placeholder="粘贴 Jira 搜索链接 或 输入 JQL，如：project = PROJ AND type = Bug">
+                    <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()">🔗 导入 CR</button>
+                </div>
+                <div class="jira-hint">
+                    支持：Jira 搜索结果页 URL（含 <code>?jql=</code> 或 <code>?filter=</code>）、直接输入 JQL 查询。
+                    配置自动保存在本地，不会上传。Jira Server 可留空邮箱和 Token。
+                </div>
+                <div class="error-msg" id="jiraError"></div>
+            </div>
         </div>
         <div id="fileInfo" style="display:none" class="file-info">
             <span id="fileName" class="file-info-name"></span>
@@ -233,6 +272,141 @@
             document.getElementById('emptyState').style.display = 'block';
             document.getElementById('fileInput').value = '';
         }
+
+        // ===== Jira 导入功能 =====
+        function switchSource(src) {
+            document.querySelectorAll('.source-tab').forEach(t => t.classList.toggle('active', t.dataset.source === src));
+            document.getElementById('excelPanel').style.display = src === 'excel' ? 'block' : 'none';
+            document.getElementById('jiraPanel').style.display = src === 'jira' ? 'block' : 'none';
+        }
+
+        // 加载/保存 Jira 配置
+        function loadJiraConfig() {
+            try {
+                const cfg = JSON.parse(localStorage.getItem('jira_config') || '{}');
+                document.getElementById('jiraDomain').value = cfg.domain || '';
+                document.getElementById('jiraEmail').value = cfg.email || '';
+                document.getElementById('jiraToken').value = cfg.token || '';
+            } catch(e) {}
+        }
+        function saveJiraConfig() {
+            const cfg = {
+                domain: document.getElementById('jiraDomain').value.trim(),
+                email: document.getElementById('jiraEmail').value.trim(),
+                token: document.getElementById('jiraToken').value.trim(),
+            };
+            try { localStorage.setItem('jira_config', JSON.stringify(cfg)); } catch(e) {}
+            return cfg;
+        }
+
+        async function importFromJira() {
+            const cfg = saveJiraConfig();
+            const input = document.getElementById('jiraInput').value.trim();
+            const errorEl = document.getElementById('jiraError');
+            const btn = document.getElementById('jiraImportBtn');
+
+            if (!cfg.domain) { showJiraError('请填写 Jira 域名'); return; }
+            if (!input) { showJiraError('请输入 Jira 搜索链接或 JQL'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 导入中...';
+            errorEl.style.display = 'none';
+
+            // 判断是 URL 还是 JQL
+            const isUrl = /^https?:\/\//i.test(input);
+            const payload = {
+                domain: cfg.domain,
+                email: cfg.email,
+                api_token: cfg.token,
+                max_results: 500,
+            };
+            if (isUrl) { payload.jira_url = input; } else { payload.jql = input; }
+
+            try {
+                const resp = await fetch('/api/jira-search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload),
+                });
+                const data = await resp.json();
+                if (!resp.ok) { throw new Error(data.error || '导入失败'); }
+
+                if (!data.issues || data.issues.length === 0) {
+                    throw new Error('未找到任何 CR 数据，请检查 JQL 或链接');
+                }
+
+                processJiraData(data.issues);
+                document.getElementById('fileName').textContent = `🔗 Jira: ${data.returned}/${data.total} 条 CR`;
+                document.getElementById('fileInfo').style.display = 'flex';
+                switchSource('excel'); // 切回显示看板
+            } catch(e) {
+                showJiraError(e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔗 导入 CR';
+            }
+        }
+
+        function showJiraError(msg) {
+            const el = document.getElementById('jiraError');
+            el.textContent = '❌ ' + msg;
+            el.style.display = 'block';
+        }
+
+        // 将 Jira issues 聚合为趋势数据
+        function processJiraData(issues) {
+            // 按日期聚合：新增Bug（created）、已解决Bug（resolved）
+            const dateMap = {};
+            const versionSet = new Set();
+
+            issues.forEach(issue => {
+                const version = issue.version || '未指定';
+                versionSet.add(version);
+
+                // 新增
+                if (issue.created) {
+                    const key = issue.created;
+                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解决: 0, 版本: version};
+                    dateMap[key].新增Bug++;
+                }
+                // 已解决
+                if (issue.resolved) {
+                    const key = issue.resolved;
+                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解决: 0, 版本: version};
+                    dateMap[key].已解决++;
+                }
+            });
+
+            // 转为数组并按日期排序，计算累计
+            rawData = Object.values(dateMap).sort((a, b) => a.日期.localeCompare(b.日期));
+            let cumulative = 0;
+            rawData.forEach(row => {
+                cumulative += row.新增Bug - row.已解决;
+                row.累计Bug = Math.max(0, cumulative);
+                row.固件版本 = row.版本;
+            });
+
+            if (!rawData.length) { showJiraError('数据中没有有效的日期信息'); return; }
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            // 填充 X 轴选择
+            const keys = Object.keys(rawData[0]);
+            const xSelect = document.getElementById('xAxisSelect');
+            xSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+            xSelect.value = '日期';
+
+            renderStats();
+            renderVersionPills();
+            renderCharts();
+        }
+
+        // 页面加载时初始化 Jira 配置
+        loadJiraConfig();
+        ['jiraDomain','jiraEmail','jiraToken'].forEach(id => {
+            document.getElementById(id).addEventListener('change', saveJiraConfig);
+        });
     </script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>

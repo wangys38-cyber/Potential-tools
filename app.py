@@ -990,6 +990,116 @@ def data_viz():
     return cached_render('data_viz.html')
 
 
+@app.route('/api/jira-search', methods=['POST'])
+def api_jira_search():
+    """Jira 搜索代理 — 通过 JQL 或 Jira 链接获取 CR 数据"""
+    data = request.get_json(force=True)
+    domain = data.get('domain', '').strip().rstrip('/')
+    email = data.get('email', '').strip()
+    api_token = data.get('api_token', '').strip()
+    jql = data.get('jql', '').strip()
+    jira_url = data.get('jira_url', '').strip()
+    max_results = min(int(data.get('max_results', 500)), 1000)
+
+    if not domain:
+        return jsonify({'error': '请填写 Jira 域名'}), 400
+
+    # 如果传入 Jira 链接，尝试从中提取 JQL
+    if jira_url and not jql:
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(jira_url)
+            params = parse_qs(parsed.query)
+            if 'jql' in params:
+                jql = params['jql'][0]
+            elif 'filter' in params:
+                # filter ID 需要额外请求获取 JQL
+                filter_id = params['filter'][0]
+                filter_url = f"{domain}/rest/api/3/filter/{filter_id}"
+                auth = (email, api_token) if email and api_token else None
+                resp = requests.get(filter_url, auth=auth, timeout=15,
+                                    headers={'Accept': 'application/json'})
+                if resp.status_code == 200:
+                    jql = resp.json().get('jql', '')
+                else:
+                    # 尝试 api/2 (Jira Server)
+                    filter_url2 = f"{domain}/rest/api/2/filter/{filter_id}"
+                    resp2 = requests.get(filter_url2, auth=auth, timeout=15,
+                                         headers={'Accept': 'application/json'})
+                    if resp2.status_code == 200:
+                        jql = resp2.json().get('jql', '')
+        except Exception:
+            pass
+
+    if not jql:
+        return jsonify({'error': '请提供 JQL 或 Jira 搜索链接'}), 400
+
+    auth = (email, api_token) if email and api_token else None
+    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+
+    # 先尝试 Jira Cloud (api/3)，失败则用 api/2 (Server)
+    search_url = f"{domain}/rest/api/3/search"
+    payload = {
+        'jql': jql,
+        'maxResults': max_results,
+        'fields': ['summary', 'status', 'created', 'resolutiondate',
+                   'fixVersions', 'issuetype', 'priority', 'assignee', 'reporter']
+    }
+
+    try:
+        resp = requests.post(search_url, json=payload, auth=auth, headers=headers, timeout=30)
+        if resp.status_code == 404:
+            # 回退到 Jira Server API
+            search_url = f"{domain}/rest/api/2/search"
+            resp = requests.post(search_url, json=payload, auth=auth, headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return jsonify({'error': f'Jira API 返回 {resp.status_code}: {resp.text[:200]}'}), resp.status_code
+
+        result = resp.json()
+        issues = result.get('issues', [])
+        total = result.get('total', len(issues))
+
+        # 转换为统一格式
+        cr_data = []
+        for issue in issues:
+            fields = issue.get('fields', {})
+            status = fields.get('status', {}).get('name', 'Unknown')
+            created = fields.get('created', '')[:10] if fields.get('created') else ''
+            resolved = fields.get('resolutiondate', '')[:10] if fields.get('resolutiondate') else ''
+            fix_versions = [v.get('name', '') for v in fields.get('fixVersions', [])]
+            version = fix_versions[0] if fix_versions else '未指定'
+            issuetype = fields.get('issuetype', {}).get('name', '')
+            priority = fields.get('priority', {}).get('name', '')
+            assignee = fields.get('assignee', {}).get('displayName', '未分配') if fields.get('assignee') else '未分配'
+
+            cr_data.append({
+                'key': issue.get('key', ''),
+                'summary': fields.get('summary', ''),
+                'status': status,
+                'created': created,
+                'resolved': resolved,
+                'version': version,
+                'issuetype': issuetype,
+                'priority': priority,
+                'assignee': assignee,
+                'is_resolved': 1 if resolved else 0,
+            })
+
+        return jsonify({
+            'total': total,
+            'returned': len(cr_data),
+            'issues': cr_data,
+            'jql': jql,
+        })
+
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Jira 请求超时，请检查网络或代理设置'}), 504
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': '无法连接到 Jira 服务器，请检查域名和网络'}), 502
+    except Exception as e:
+        return jsonify({'error': f'请求失败: {str(e)}'}), 500
+
+
 @app.route('/meeting-minutes')
 def meeting_minutes():
     return cached_render('meeting_minutes.html')
