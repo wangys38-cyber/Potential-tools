@@ -84,6 +84,15 @@
             <div class="upload-zone-hint">支持 .log / .txt，自动识别死机、重启、内存、功耗、错误等异常</div>
             <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFile(this.files[0])">
         </div>
+        <div style="text-align:center;margin:12px 0;color:var(--text-secondary);font-size:13px;">或</div>
+        <div class="paste-section" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:10px;">📋 粘贴日志内容</div>
+            <textarea id="pasteArea" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);color:var(--text-primary);font-family:monospace;font-size:12px;resize:vertical;" placeholder="在此粘贴设备日志内容，支持多行..."></textarea>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+                <button class="action-btn" onclick="analyzePastedLog()" style="flex:1;">🔍 分析粘贴内容</button>
+                <button class="action-btn" onclick="document.getElementById('pasteArea').value=''" style="flex:0 0 auto;">清空</button>
+            </div>
+        </div>
         <div id="fileInfo" style="display:none" class="file-info">
             <span id="fileName" class="file-info-name"></span>
             <span id="fileSize" style="font-size:12px;color:var(--text-secondary)"></span>
@@ -109,6 +118,7 @@
                 <div class="log-header">
                     <span class="log-title">异常日志</span>
                     <span class="log-count" id="logCount"></span>
+                    <button class="action-btn" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="exportLogs()">📥 导出</button>
                 </div>
                 <div class="log-content" id="logContent"></div>
             </div>
@@ -204,6 +214,32 @@
         }
 
         function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function analyzePastedLog() {
+            const text = document.getElementById('pasteArea').value;
+            if (!text.trim()) { showToast('请先粘贴日志内容', 'warning'); return; }
+            document.getElementById('fileName').textContent = '📋 粘贴内容';
+            document.getElementById('fileSize').textContent = (text.length / 1024).toFixed(1) + ' KB';
+            document.getElementById('fileInfo').style.display = 'flex';
+            analyzeLog(text);
+            showToast('分析完成，共 ' + allLogs.length + ' 条异常', 'success');
+        }
+
+        function exportLogs() {
+            if (allLogs.length === 0) { showToast('暂无日志可导出', 'warning'); return; }
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            let filtered = allLogs;
+            if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
+            if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
+            const lines = filtered.map(l => `[${l.label}] L${l.line}: ${l.text}`);
+            const header = `日志分析报告\n生成时间: ${new Date().toLocaleString()}\n异常总数: ${allLogs.length}\n导出条数: ${filtered.length}\n${'='.repeat(60)}\n\n`;
+            const blob = new Blob([header + lines.join('\n')], {type: 'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `log_analysis_${Date.now()}.txt`;
+            a.click(); URL.revokeObjectURL(url);
+            showToast('已导出 ' + filtered.length + ' 条日志', 'success');
+        }
 
         function resetUpload() {
             allLogs = [];

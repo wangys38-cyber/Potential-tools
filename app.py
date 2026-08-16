@@ -2417,11 +2417,18 @@ def api_test_report_analyze_sheet():
             logger.info(f"[分析任务 {task_id}] 开始分析: file={file_path}, sheet={sheet_name}")
             gc.collect()
             t0 = time.time()
-            result = _analyze_sheet_detail(file_path, sheet_name)
+
+            def _progress_cb(percent, msg):
+                _background_tasks[task_id]['progress'] = percent
+                _background_tasks[task_id]['progress_msg'] = msg
+                _save_task_meta(task_id, _background_tasks[task_id])
+
+            result = _analyze_sheet_detail(file_path, sheet_name, progress_cb=_progress_cb)
             elapsed = time.time() - t0
             logger.info(f"[分析任务 {task_id}] 分析完成，耗时 {elapsed:.1f}s, 测试项数={len(result.get('test_items', []))}")
             _background_tasks[task_id]['result'] = result
             _background_tasks[task_id]['status'] = 'done'
+            _background_tasks[task_id]['progress'] = 100
             _save_task_meta(task_id, _background_tasks[task_id])
         except Exception as e:
             error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'

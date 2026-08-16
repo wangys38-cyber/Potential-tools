@@ -1036,12 +1036,29 @@ tbody tr:nth-child(even) {{ background: #f8fafc; }}
     return html
 
 
-def _analyze_sheet_detail(file_path, sheet_name, return_debug=False):
+def _analyze_sheet_detail(file_path, sheet_name, return_debug=False, progress_cb=None):
     """分析单个Sheet的详细内容"""
-    reader = ExcelReader(file_path)
-    reader.open()
-    rows = reader.get_sheet_data(sheet_name)
-    reader.close()
+    import os as _os
+    file_size = _os.path.getsize(file_path) if _os.path.exists(file_path) else 0
+    use_fast = file_size > 10 * 1024 * 1024
+
+    if use_fast:
+        # 大文件用 pandas 快速读取（比 openpyxl 快5-10倍）
+        import pandas as _pd
+        if progress_cb:
+            progress_cb(10, "正在读取Excel文件...")
+        _df = _pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl', dtype=str, na_filter=False, header=None)
+        rows = _df.values.tolist()
+        rows = [[str(c).strip() if c is not None else '' for c in row] for row in rows]
+        del _df
+        if progress_cb:
+            progress_cb(25, f"读取完成，共 {len(rows)} 行，正在分析...")
+    else:
+        reader = ExcelReader(file_path)
+        reader.open()
+        rows = reader.get_sheet_data(sheet_name)
+        reader.close()
+
     debug_info = {'sheet_name': sheet_name, 'total_rows': len(rows), 'first_10_rows': [], 'detected_headers': [], 'info_end_row': 0, 'data_rows_count': 0}
 
     if not rows:

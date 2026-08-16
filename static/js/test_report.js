@@ -128,7 +128,7 @@ let currentFileId = null;
                 startLoadingSteps();
 
                 let pollCount = 0;
-                const maxPolls = 280;
+                const maxPolls = 600; // 15分钟（大文件需要更长时间）
                 while (pollCount < maxPolls) {
                     await new Promise(r => setTimeout(r, 1500));
                     const statusResp = await fetch('/api/task-status', {
@@ -146,9 +146,14 @@ let currentFileId = null;
                     } else if (statusResult.status === 'error') {
                         throw new Error(statusResult.error || '分析失败');
                     }
+                    // 显示服务器返回的进度
+                    if (statusResult.progress_msg) {
+                        const loadingText = document.querySelector('.loading-text, .loading-message, [class*="loading"] p');
+                        if (loadingText) loadingText.textContent = statusResult.progress_msg;
+                    }
                     pollCount++;
                 }
-                throw new Error('分析超时，请重试');
+                throw new Error('分析超时（超过15分钟），请重试或减少数据量');
             } catch (err) {
                 stopLoadingSteps();
                 showToast('分析失败: ' + (err.message || '未知错误'), 'error');
