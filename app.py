@@ -1040,20 +1040,22 @@ def api_jira_search():
                    'fixVersions', 'issuetype', 'priority', 'assignee', 'reporter']
     }
 
-    # 构建多种鉴权尝试方案（Jira Cloud 用邮箱+Token，Jira Server 用短用户名+密码/PAT，PAT 也可用 Bearer）
+    # 判断 Jira Cloud 还是 Server：Cloud 域名含 .atlassian.net
+    is_cloud = '.atlassian.net' in domain
+    # API 版本：Cloud 先试 api/3 再 api/2；Server 直接用 api/2（减少请求数，避免限流）
+    api_versions = ['/rest/api/3/search', '/rest/api/2/search'] if is_cloud else ['/rest/api/2/search']
+
+    # 构建鉴权尝试方案（先邮箱，再短用户名，最后 Bearer Token）
     auth_attempts = []
     if email and api_token:
         auth_attempts.append(('basic', (email, api_token)))
         if '@' in email:
-            short_user = email.split('@')[0]
-            auth_attempts.append(('basic', (short_user, api_token)))
+            auth_attempts.append(('basic', (email.split('@')[0], api_token)))
         auth_attempts.append(('bearer', api_token))
     else:
         auth_attempts.append(('none', None))
 
-    # API 版本尝试：先 api/3 (Cloud)，再 api/2 (Server)
-    api_versions = ['/rest/api/3/search', '/rest/api/2/search']
-
+    import time
     resp = None
     last_status = None
     try:
@@ -1064,25 +1066,38 @@ def api_jira_search():
                 auth_val = None
             for api_path in api_versions:
                 search_url = f"{domain}{api_path}"
-                resp = requests.post(search_url, json=payload, auth=auth_val,
-                                     headers=req_headers, timeout=30)
-                last_status = resp.status_code
+                # 最多尝试 2 次（第二次用于 429 限流重试）
+                for attempt in range(2):
+                    resp = requests.post(search_url, json=payload, auth=auth_val,
+                                         headers=req_headers, timeout=30)
+                    last_status = resp.status_code
+                    if resp.status_code == 200:
+                        break
+                    if resp.status_code == 429:
+                        # 限流：读取 Retry-After，等待后重试一次
+                        retry_after = int(resp.headers.get('Retry-After', 2))
+                        retry_after = min(retry_after, 5)  # 最多等 5 秒
+                        if attempt == 0:
+                            time.sleep(retry_after)
+                            continue
+                    break  # 非 200/429 或第二次仍失败，跳出重试
                 if resp.status_code == 200:
                     break
                 if resp.status_code == 404:
                     continue  # api/3 不存在，试 api/2
-                # 401/403/其他：跳出 api 版本循环，换下一种鉴权
-                break
+                break  # 401/403/其他：换下一种鉴权
             if resp and resp.status_code == 200:
                 break
 
         if not resp or resp.status_code != 200:
             if last_status == 401:
-                return jsonify({'error': 'Jira 鉴权失败(401)：已尝试邮箱/短用户名/Bearer三种方式。Jira Server 请确认用户名(短账号，非邮箱)和密码；或在Jira个人设置生成 Personal Access Token 填入 Token 栏'}), 401
+                return jsonify({'error': 'Jira 鉴权失败(401)：已尝试邮箱/短用户名/Bearer三种方式。Jira Server 请确认用户名(短账号)和密码；或生成 Personal Access Token 填入 Token 栏'}), 401
             if last_status == 403:
                 return jsonify({'error': 'Jira 无权限(403)：当前账号无权访问该 filter 或项目'}), 403
+            if last_status == 429:
+                return jsonify({'error': 'Jira 请求过于频繁(429)：请等待 10-30 秒后重试，或减少导入频率'}), 429
             if last_status == 404:
-                return jsonify({'error': f'Jira API 未找到(404)：请确认域名 {domain} 是否正确，以及是否为 Jira 实例'}), 404
+                return jsonify({'error': f'Jira API 未找到(404)：请确认域名 {domain} 是否正确'}), 404
             return jsonify({'error': f'Jira API 返回 {last_status}: {resp.text[:200] if resp else "无响应"}'}), last_status or 502
 
         result = resp.json()
