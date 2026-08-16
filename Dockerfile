@@ -31,6 +31,10 @@ COPY ai_utils.py .
 COPY bp_ai.py .
 COPY bp_user.py .
 COPY feishu_push.py .
+COPY date_utils.py .
+COPY report_builders.py .
+COPY excel_analyzers.py .
+COPY routes/ ./routes/
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY railway.toml .
