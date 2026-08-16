@@ -1649,7 +1649,7 @@ const ToolboxCommandPalette = (function() {
                 var tool = TOOLS.find(function(t) { return t.id === item.id || t.url === item.url; });
                 if (tool) ToolboxRecent.record(tool.id, tool.name, tool.icon);
             }
-            window.open(item.url, '_blank');
+            window.location.href = item.url;
         } else if (item.action) {
             setTimeout(item.action, 100);
         }

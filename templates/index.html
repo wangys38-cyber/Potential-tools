@@ -904,7 +904,7 @@
         if (tool && window.ToolboxRecent) {
             ToolboxRecent.record(tool.id, tool.name, tool.icon);
         }
-        window.open(url, '_blank', 'noopener,noreferrer');
+        window.location.href = url;
     }
     function handleCardClick(e, url) { e.preventDefault(); e.stopPropagation(); openTool(url); }
 
