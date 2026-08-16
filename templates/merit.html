@@ -9,157 +9,231 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --gold: #f5c842;
+            --gold-light: #ffe082;
+            --gold-dark: #d4a017;
+            --glass-bg: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.12);
+        }
+
         body {
-            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: radial-gradient(ellipse at center top, #2a1f3d 0%, #1a1528 40%, #0f0c1a 100%);
+            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Serif SC', serif;
+            background: linear-gradient(170deg, #1a1033 0%, #2d1b4e 25%, #4a2c6a 50%, #6b3a5c 75%, #8b4a3a 100%);
             min-height: 100vh; overflow: hidden; color: #fff;
             user-select: none; -webkit-user-select: none;
+            position: relative;
         }
 
-        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-        .star { position: absolute; background: rgba(255,255,255,0.6); border-radius: 50%; animation: twinkle 3s ease-in-out infinite; }
-        @keyframes twinkle { 0%,100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.3); } }
+        /* 背景光晕 */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse 60% 40% at 50% 30%, rgba(245,200,66,0.08), transparent),
+                radial-gradient(ellipse 80% 60% at 20% 80%, rgba(139,74,58,0.3), transparent),
+                radial-gradient(ellipse 80% 60% at 80% 20%, rgba(74,44,106,0.4), transparent);
+        }
+        body::after {
+            content: ''; position: fixed; width: 600px; height: 600px;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%);
+            border-radius: 50%; z-index: 0; pointer-events: none;
+            animation: glowPulse 4s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0%,100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+        }
 
+        /* 星星/粒子 */
+        .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .star {
+            position: absolute; background: rgba(255,255,255,0.7); border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+            box-shadow: 0 0 4px rgba(255,255,255,0.5);
+        }
+        @keyframes twinkle { 0%,100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 0.9; transform: scale(1.2); } }
+
+        /* 顶部按钮 */
+        .reset-btn, .back-btn {
+            position: fixed; top: 20px; z-index: 100;
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--glass-border); border-radius: 14px;
+            padding: 10px 18px; color: rgba(255,255,255,0.6); font-size: 13px;
+            cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            text-decoration: none; font-weight: 500; letter-spacing: 0.02em;
+        }
+        .reset-btn { left: 20px; }
+        .back-btn { left: 110px; }
+        .reset-btn:hover { color: #ff8a80; border-color: rgba(255,138,128,0.3); background: rgba(255,138,128,0.08); transform: translateY(-1px); }
+        .back-btn:hover { color: #fff; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+
+        /* 总功德卡片 */
         .total-merit {
-            position: fixed; top: 24px; right: 24px;
-            background: rgba(255,255,255,0.08); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255,215,0,0.15); border-radius: 20px; padding: 18px 28px;
-            text-align: center; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.3); min-width: 140px;
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            background: linear-gradient(135deg, rgba(245,200,66,0.12), rgba(212,160,23,0.06));
+            backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(245,200,66,0.2); border-radius: 20px;
+            padding: 16px 26px; text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            min-width: 140px;
         }
-        .total-merit .label { font-size: 12px; color: rgba(255,215,0,0.7); letter-spacing: 2px; margin-bottom: 6px; }
-        .total-merit .value { font-size: 36px; font-weight: 700; color: #FFD700; text-shadow: 0 0 20px rgba(255,215,0,0.4); font-variant-numeric: tabular-nums; line-height: 1; }
-        .total-merit .unit { font-size: 14px; color: rgba(255,215,0,0.5); margin-left: 4px; }
-
-        .today-merit {
-            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px 32px;
-            text-align: center; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .total-merit .label {
+            font-size: 11px; color: var(--gold); letter-spacing: 3px; margin-bottom: 8px;
+            text-transform: uppercase; opacity: 0.8;
         }
-        .today-merit .label { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 2px; margin-bottom: 4px; }
-        .today-merit .value { font-size: 24px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
-        .today-merit .date { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+        .total-merit .value {
+            font-size: 38px; font-weight: 800; line-height: 1;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            font-variant-numeric: tabular-nums;
+            filter: drop-shadow(0 0 12px rgba(245,200,66,0.3));
+        }
+        .total-merit .unit { font-size: 13px; color: var(--gold); opacity: 0.6; margin-left: 4px; font-weight: 500; }
 
+        /* 场景 */
         .scene { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; cursor: pointer; }
         .fish-area { position: relative; width: 380px; height: 340px; }
 
-        /* ===== 木鱼主体 ===== */
+        /* 木鱼光环 */
+        .fish-area::before {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(245,200,66,0.08) 0%, transparent 70%);
+            border-radius: 50%; pointer-events: none; z-index: 0;
+        }
+
+        /* 木鱼主体 */
         .wooden-fish-wrap {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            transition: transform 0.06s ease-out;
+            transition: transform 0.06s ease-out; z-index: 5;
         }
         .wooden-fish-wrap.knock {
             transform: translate(-50%, -47%) scaleY(0.95) scaleX(1.02);
         }
+        .fish-svg {
+            width: 360px; height: 280px; display: block;
+            filter: drop-shadow(0 24px 40px rgba(0,0,0,0.5)) drop-shadow(0 0 20px rgba(245,200,66,0.1));
+        }
 
-        /* SVG木鱼充满容器 */
-        .fish-svg { width: 360px; height: 280px; display: block; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5)); }
-
-        /* ===== 木鱼锤 ===== */
+        /* 木鱼锤 */
         .mallet-wrap {
-            position: absolute;
-            top: -60px; right: 0px;
-            width: 220px; height: 200px;
-            z-index: 20; pointer-events: none;
-            transform-origin: 80% 85%;
-            transform: rotate(-30deg);
+            position: absolute; top: -60px; right: 0px;
+            width: 220px; height: 200px; z-index: 20; pointer-events: none;
+            transform-origin: 80% 85%; transform: rotate(-30deg);
             transition: transform 0.04s ease-out;
         }
-        .mallet-wrap.knock { animation: malletSwing 0.4s cubic-bezier(0.25, 0.1, 0.35, 1); }
+        .mallet-wrap.knock { animation: malletSwing 0.4s cubic-bezier(0.25,0.1,0.35,1); }
         @keyframes malletSwing {
-            0%   { transform: rotate(-30deg); }
-            30%  { transform: rotate(22deg); }
-            45%  { transform: rotate(15deg); }
+            0% { transform: rotate(-30deg); }
+            30% { transform: rotate(22deg); }
+            45% { transform: rotate(15deg); }
             100% { transform: rotate(-30deg); }
         }
-        .mallet-svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4)); }
+        .mallet-svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4)); }
 
+        /* 提示文字 */
         .hint {
             position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%);
-            font-size: 14px; color: rgba(255,255,255,0.3); letter-spacing: 3px; white-space: nowrap;
+            font-size: 13px; color: rgba(255,255,255,0.25); letter-spacing: 6px; white-space: nowrap;
+            animation: hintPulse 2.5s ease-in-out infinite;
         }
+        @keyframes hintPulse { 0%,100% { opacity: 0.25; } 50% { opacity: 0.5; } }
 
+        /* 功德+1 弹出 */
         .merit-popup {
-            position: absolute; font-size: 28px; font-weight: 700; color: #FFD700;
-            text-shadow: 0 0 15px rgba(255,215,0,0.6), 0 2px 4px rgba(0,0,0,0.3);
+            position: absolute; font-size: 26px; font-weight: 800;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            filter: drop-shadow(0 0 10px rgba(245,200,66,0.5));
             pointer-events: none; white-space: nowrap; z-index: 50;
             animation: floatUp 1.2s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
         }
         @keyframes floatUp {
             0% { opacity: 0; transform: translateY(0) scale(0.5); }
-            20% { opacity: 1; transform: translateY(-20px) scale(1.2); }
-            100% { opacity: 0; transform: translateY(-120px) scale(1); }
+            20% { opacity: 1; transform: translateY(-20px) scale(1.3); }
+            100% { opacity: 0; transform: translateY(-130px) scale(1); }
         }
 
+        /* 涟漪 */
         .ripple {
-            position: absolute; border-radius: 50%; border: 2px solid rgba(255,215,0,0.4);
+            position: absolute; border-radius: 50%; border: 2px solid rgba(245,200,66,0.4);
             pointer-events: none; z-index: 5; transform: translate(-50%, -50%);
-            animation: rippleExpand 0.8s ease-out forwards;
+            animation: rippleExpand 0.9s ease-out forwards;
         }
-        @keyframes rippleExpand { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 340px; height: 340px; opacity: 0; } }
+        @keyframes rippleExpand { 0% { width: 0; height: 0; opacity: 1; border-width: 3px; } 100% { width: 360px; height: 360px; opacity: 0; border-width: 1px; } }
 
+        /* 闪光 */
         .flash {
             position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
-            width: 120px; height: 120px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,230,150,0.5) 0%, transparent 70%);
+            width: 140px; height: 140px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,230,150,0.6) 0%, rgba(245,200,66,0.2) 40%, transparent 70%);
             pointer-events: none; z-index: 15;
-            animation: flashFade 0.4s ease-out forwards;
+            animation: flashFade 0.5s ease-out forwards;
         }
         @keyframes flashFade {
-            0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); }
-            100% { opacity: 0; transform: translate(-50%,-50%) scale(2.5); }
+            0% { opacity: 1; transform: translate(-50%,-50%) scale(0.4); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(2.8); }
         }
 
-        .reset-btn, .back-btn {
-            position: fixed; top: 24px;
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-            padding: 10px 18px; color: rgba(255,255,255,0.5); font-size: 12px;
-            cursor: pointer; transition: all 0.2s; z-index: 100; text-decoration: none;
+        /* 今日功德卡片 */
+        .today-merit {
+            position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); z-index: 100;
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border); border-radius: 18px;
+            padding: 14px 36px; text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
+            min-width: 180px;
         }
-        .reset-btn { left: 24px; }
-        .back-btn { left: 130px; }
-        .reset-btn:hover { color: #ff6b6b; border-color: rgba(255,107,107,0.3); }
-        .back-btn:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+        .today-merit .label { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 3px; margin-bottom: 6px; text-transform: uppercase; }
+        .today-merit .value { font-size: 26px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+        .today-merit .date { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 6px; letter-spacing: 0.05em; }
 
+        /* 成就弹窗 */
         .achievement {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
-            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.15));
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,215,0,0.3); border-radius: 20px;
-            padding: 30px 50px; text-align: center; z-index: 200;
-            box-shadow: 0 0 60px rgba(255,215,0,0.2);
-            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            background: linear-gradient(135deg, rgba(245,200,66,0.12), rgba(212,160,23,0.06));
+            backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
+            border: 1px solid rgba(245,200,66,0.25); border-radius: 24px;
+            padding: 32px 56px; text-align: center; z-index: 200;
+            box-shadow: 0 0 80px rgba(245,200,66,0.15), 0 16px 48px rgba(0,0,0,0.4);
+            transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
         }
         .achievement.show { transform: translate(-50%,-50%) scale(1); }
-        .achievement .icon { font-size: 48px; margin-bottom: 10px; }
-        .achievement .title { font-size: 20px; font-weight: 700; color: #FFD700; margin-bottom: 6px; }
+        .achievement .icon { font-size: 52px; margin-bottom: 12px; animation: iconBounce 0.6s ease-out; }
+        @keyframes iconBounce { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .achievement .title { font-size: 22px; font-weight: 800; color: var(--gold); margin-bottom: 8px; letter-spacing: 0.02em; }
         .achievement .desc { font-size: 14px; color: rgba(255,255,255,0.6); }
 
+        /* 响应式 */
         @media (max-width: 768px) {
             .fish-area { width: 310px; height: 290px; }
             .fish-svg { width: 290px; height: 220px; }
             .mallet-wrap { width: 180px; height: 165px; top: -50px; }
-            .total-merit { padding: 14px 20px; min-width: 110px; }
+            .total-merit { padding: 12px 18px; min-width: 110px; top: 16px; right: 16px; }
             .total-merit .value { font-size: 28px; }
-            .reset-btn, .back-btn { padding: 12px 20px; min-height: 44px; }
-            .back-btn { left: 120px; }
+            .reset-btn, .back-btn { padding: 10px 16px; top: 16px; font-size: 12px; }
+            .reset-btn { left: 16px; }
+            .back-btn { left: 100px; }
             body { overflow-x: hidden; overflow-y: auto !important; }
-            .achievement { padding: 24px 30px; }
+            .achievement { padding: 24px 32px; }
             .achievement .title { font-size: 18px; }
             .achievement .desc { font-size: 13px; }
+            .today-merit { bottom: 28px; padding: 12px 28px; }
+            .today-merit .value { font-size: 22px; }
         }
-
         @media (max-width: 360px) {
             .fish-area { width: 270px; height: 250px; }
             .fish-svg { width: 250px; height: 190px; }
             .mallet-wrap { width: 155px; height: 140px; top: -42px; }
             .total-merit { min-width: 90px; padding: 10px 14px; }
             .total-merit .value { font-size: 22px; }
-            .back-btn { left: 110px; }
-            .reset-btn { left: 16px; }
-            .hint { font-size: 12px; letter-spacing: 2px; }
+            .back-btn { left: 92px; }
+            .reset-btn { left: 12px; }
+            .hint { font-size: 11px; letter-spacing: 3px; }
             .merit-popup { font-size: 22px; }
         }
     </style>
