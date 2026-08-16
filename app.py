@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for, make_response, Response, stream_with_context
+from flask import Flask, render_template, request, send_file, send_from_directory, jsonify, redirect, session, url_for, make_response, Response, stream_with_context, g
 import os
 import sys
 import re
@@ -29,7 +29,31 @@ from flask_sock import Sock
 import websocket as _ws_client  # websocket-client，连接 DashScope
 
 import datetime as _dt
-_STATIC_VERSION = _dt.datetime.now().strftime('%Y%m%d%H%M')
+
+def _get_static_version():
+    """静态资源版本号：优先用 git commit hash，其次用 app.py mtime，避免每分钟变化导致缓存失效"""
+    _base = os.path.abspath(os.path.dirname(__file__))
+    # 1. Railway 注入的 git commit
+    sha = os.environ.get('RAILWAY_GIT_COMMIT_SHA', '')
+    if sha:
+        return sha[:8]
+    # 2. 尝试读取本地 git HEAD
+    try:
+        import subprocess
+        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
+                              capture_output=True, text=True, timeout=2, cwd=_base)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    # 3. 回退到 app.py 修改时间（仅代码变更时才变）
+    try:
+        mtime = os.path.getmtime(os.path.join(_base, 'app.py'))
+        return _dt.datetime.fromtimestamp(mtime).strftime('%Y%m%d%H%M')
+    except Exception:
+        return _dt.datetime.now().strftime('%Y%m%d%H%M')
+
+_STATIC_VERSION = _get_static_version()
 
 _CST = timezone(timedelta(hours=8))
 
@@ -62,16 +86,19 @@ app.config['COMPRESS_MIMETYPES'] = [
 app.config['COMPRESS_LEVEL'] = 6
 app.config['COMPRESS_MIN_SIZE'] = 500  # 仅压缩大于500B的响应，避免小响应压缩开销
 
+# 生产环境检测（需在 WhiteNoise 配置前定义）
+_is_production = bool(os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'))
+
 # Whitenoise: 直接服务静态文件，跳过Flask请求处理（性能提升10倍+）
+# 静态资源都带 ?v=版本号 做 cache busting，生产环境可安全长期缓存
 app.wsgi_app = WhiteNoise(
     app.wsgi_app,
     root=static_dir,
     prefix='/static/',
-    max_age=3600,  # 浏览器缓存1小时
+    max_age=31536000 if _is_production else 0,  # 生产环境缓存1年，开发环境不缓存
 )
 
 # 生产环境优化：关闭模板自动重载（避免每次请求检查文件修改时间）
-_is_production = bool(os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'))
 app.config['TEMPLATES_AUTO_RELOAD'] = not _is_production
 app.config['DEBUG'] = not _is_production
 app.secret_key = auth.SESSION_SECRET
@@ -83,8 +110,8 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = _is_production  # HTTPS环境下启用Secure
 
-# 静态文件缓存 — 浏览器缓存1小时，减少重复请求
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600 if _is_production else 0
+# 静态文件缓存 — 生产环境长期缓存（带版本号cache busting），开发环境不缓存
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000 if _is_production else 0
 
 # Jinja2 字节码缓存 — 避免每次请求重新解析模板文件（解析速度提升5-10倍）
 _jinja_cache_dir = '/dev/shm/jinja_cache' if _is_production else os.path.join(base_dir, '.jinja_cache')
@@ -413,7 +440,7 @@ class ExcelReader:
             if self._read_only and len(rows) <= 2:
                 try:
                     self._wb.close()
-                except:
+                except Exception:
                     pass
                 from openpyxl import load_workbook
                 self._wb = load_workbook(self.file_path, data_only=True, read_only=False)
@@ -823,6 +850,31 @@ _call_ai_stream = ai_utils.call_ai_stream
 # /api/ai-config (GET/POST), /api/ai-test
 # 保留 get_ai_config/_call_ai/_call_ai_stream 别名供 app.py 其他路由调用
 
+# ==================== 认证装饰器 ====================
+def login_required(f):
+    """严格登录装饰器：未登录返回401，登录用户存入 g.user"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'error': '请先登录'}), 401
+        g.user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
+def login_required_or_guest(f):
+    """登录或访客装饰器：ALLOW_GUEST=true 时允许访客访问，否则要求登录"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = auth.get_current_user()
+        if not user and not auth.ALLOW_GUEST:
+            return jsonify({'error': '请先登录'}), 401
+        g.user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
 # === 页面路由 ===
 @app.route('/')
 def index():
@@ -1143,11 +1195,9 @@ def meeting_minutes():
 
 
 @app.route('/api/generate-minutes', methods=['POST'])
+@login_required
 def api_generate_minutes():
     """AI生成会议纪要"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
 
     data = request.get_json(silent=True) or {}
     transcript = data.get('transcript', '').strip()
@@ -1218,11 +1268,9 @@ def api_generate_minutes():
 
 
 @app.route('/api/generate-minutes-stream', methods=['POST'])
+@login_required
 def api_generate_minutes_stream():
     """SSE 流式版：AI生成会议纪要 — 边生成边输出"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
 
     data = request.get_json(silent=True) or {}
     transcript = data.get('transcript', '').strip()
@@ -1281,11 +1329,9 @@ def api_generate_minutes_stream():
 
 # === v3.0 OCR 图片文字识别 ===
 @app.route('/api/ocr', methods=['POST'])
+@login_required_or_guest
 def api_ocr():
     """OCR 图片文字识别 — 使用 qwen-vl 多模态模型"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     # 支持 base64 图片或文件上传
     import base64
@@ -1398,11 +1444,9 @@ def weekly_report():
 
 
 @app.route('/api/weekly-report', methods=['POST'])
+@login_required_or_guest
 def api_weekly_report():
     """AI 智能周报生成"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     data = request.get_json(silent=True) or {}
     notes = data.get('notes', '').strip()
@@ -1481,11 +1525,9 @@ def api_weekly_report():
 
 
 @app.route('/api/weekly-report-stream', methods=['POST'])
+@login_required
 def api_weekly_report_stream():
     """SSE 流式版：AI 智能周报生成 — 边生成边输出"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
 
     data = request.get_json(silent=True) or {}
     notes = data.get('notes', '').strip()
@@ -1563,11 +1605,9 @@ def settings():
 
 
 @app.route('/api/system-info', methods=['GET'])
+@login_required_or_guest
 def api_system_info():
     """系统诊断信息"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     import psutil
     p = psutil.Process()
@@ -1613,12 +1653,10 @@ def api_system_info():
 
 
 @app.route('/api/settings/theme', methods=['POST'])
+@login_required_or_guest
 def api_save_theme():
     """保存用户主题偏好（主题色、模式）"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
-
+    user = g.user
     data = request.get_json(silent=True) or {}
     theme_mode = data.get('theme_mode', 'auto')  # light / dark / auto
     accent_color = data.get('accent_color', '')   # hex color
@@ -1816,11 +1854,9 @@ def api_sync_status():
 # ==================== 音频转写 API（DashScope Paraformer ASR） ====================
 
 @app.route('/api/upload-audio', methods=['POST'])
+@login_required
 def api_upload_audio():
     """上传音频文件 — 异步处理：先保存文件，后台线程上传DashScope并提交转写"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -1972,11 +2008,9 @@ def api_upload_audio():
 
 
 @app.route('/api/transcription-status/<task_id>')
+@login_required
 def api_transcription_status(task_id):
     """查询转写任务状态 — 支持后台任务 + DashScope双重状态查询"""
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -2362,7 +2396,8 @@ def realtime_asr_proxy(ws):
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'pid': os.getpid()})
+    """健康检查端点，供 Railway / 负载均衡使用"""
+    return jsonify({'status': 'ok', 'version': _STATIC_VERSION, 'pid': os.getpid()})
 
 
 @app.route('/favicon.ico')
@@ -2376,12 +2411,12 @@ def favicon():
 
 
 @app.route('/api/debug')
+@login_required
 def api_debug():
-    """诊断端点：返回部署版本、内存、任务状态等信息（需登录）"""
+    """诊断端点：返回部署版本、内存、任务状态等信息（需登录，生产环境禁用）"""
+    if _is_production:
+        return jsonify({'error': 'debug endpoint disabled in production'}), 403
     # 安全：要求登录才能访问
-    user = auth.get_current_user()
-    if not user:
-        return jsonify({'error': '请先登录'}), 401
     import psutil
     p = psutil.Process()
     mem_info = p.memory_info()
@@ -2538,8 +2573,11 @@ def api_test_report_analyze_sheet():
 
 
 @app.route('/api/test-report-debug', methods=['POST'])
+@login_required
 def api_test_report_debug():
-    """诊断端点：返回Excel解析的详细信息，帮助排查解析为空的问题"""
+    """诊断端点：返回Excel解析的详细信息（需登录，生产环境禁用）"""
+    if _is_production:
+        return jsonify({'error': 'debug endpoint disabled in production'}), 403
     data = request.json or {}
     file_id = data.get('file_id', '')
     sheet_name = data.get('sheet_name', '')
@@ -2631,11 +2669,9 @@ def api_test_report_download(filename):
 
 
 @app.route('/api/test-report-ai-analysis', methods=['POST'])
+@login_required_or_guest
 def api_test_report_ai_analysis():
     """v3.0: AI 增强测试报告分析 — 生成测试总结和风险洞察"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -2710,11 +2746,9 @@ def api_test_report_ai_analysis():
 
 
 @app.route('/api/test-report-ai-stream', methods=['POST'])
+@login_required_or_guest
 def api_test_report_ai_stream():
     """SSE 流式版：AI 增强测试报告分析 — 边生成边输出"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -3780,7 +3814,7 @@ def _compare_target_actual(target_val, actual_val):
             if has_percent and num > 1:
                 num = num / 100.0
             return num
-        except:
+        except (ValueError, TypeError):
             return None
 
     target_num = parse_number(target_val)
@@ -6757,11 +6791,9 @@ def _build_excel_selected_report_html(structured_data, selected_data, selected_c
 
 # === v3.0: AI 增强 CR 问题分析 ===
 @app.route('/api/excel-analyze-ai', methods=['POST'])
+@login_required_or_guest
 def api_excel_analyze_ai():
     """v3.0: AI 增强 CR 问题分析 — 根因分析和改进建议"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -6842,11 +6874,9 @@ def api_excel_analyze_ai():
 
 
 @app.route('/api/excel-analyze-ai-stream', methods=['POST'])
+@login_required_or_guest
 def api_excel_analyze_ai_stream():
     """SSE 流式版：AI 增强 CR 问题分析 — 边生成边输出"""
-    user = auth.get_current_user()
-    if not user and not auth.ALLOW_GUEST:
-        return jsonify({'error': '请先登录'}), 401
 
     ai_config = get_ai_config()
     if not ai_config.get('enabled'):
@@ -7563,3 +7593,4 @@ if __name__ == '__main__':
         logger.error(f"启动失败: {e}")
         logger.error(traceback.format_exc())
         print(f"启动失败: {str(e)}")
+
