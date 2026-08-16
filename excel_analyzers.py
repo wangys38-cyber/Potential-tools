@@ -670,3 +670,293 @@ def _safe_get(cells, idx):
         return ''
     return str(cells[idx]).strip() if cells[idx] else ''
 
+
+# ============================================================
+# 高性能分析（pandas 版）— 适用于大文件（>10MB）
+# ============================================================
+
+def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
+    """使用 pandas 的高性能分析，适合大文件。
+
+    Args:
+        file_path: Excel 文件路径
+        sheet_name: 要分析的 sheet 名
+        progress_cb: 进度回调函数 progress_cb(percent, message)
+
+    Returns:
+        与 _analyze_issue_sheet 相同格式的结果字典
+    """
+    import time
+    import gc
+    import pandas as pd
+
+    t0 = time.time()
+    _log_mem("Fast分析开始：pandas读取Excel")
+
+    if progress_cb:
+        progress_cb(5, "正在读取Excel文件...")
+
+    # pandas 读取（dtype=str 避免类型推断，na_filter=False 避免空值被转NaN）
+    try:
+        df = pd.read_excel(
+            file_path,
+            sheet_name=sheet_name,
+            engine='openpyxl',
+            dtype=str,
+            na_filter=False
+        )
+    except Exception as e:
+        logger.error(f"pandas读取失败，回退到openpyxl: {e}")
+        return _analyze_issue_sheet(file_path, sheet_name)
+
+    _log_mem(f"pandas读取完成：{len(df)}行 x {len(df.columns)}列")
+    if progress_cb:
+        progress_cb(20, f"读取完成，共 {len(df)} 行，正在分析...")
+
+    if df.empty or len(df) < 1:
+        return {
+            'summary': {}, 'severity_values': [], 'severity_detected': False,
+            'module_stats': {}, 'dev_stats': {}, 'daily_stats': [],
+            'suggestions': [], 'unverified_issues': [], 'detected_columns': {},
+            'sample_data': [], 'headers': list(df.columns)
+        }
+
+    headers = [str(c).strip() if c else '' for c in df.columns]
+    col_map = _detect_issue_columns(headers)
+    logger.info(f"Fast字段识别: {col_map}")
+
+    # Severity 列有效性检测（采样前30行）
+    severity_warning = ''
+    severity_col_idx = col_map.get('severity', -1)
+    if severity_col_idx >= 0 and severity_col_idx < len(headers):
+        sample_sev = df.iloc[:30, severity_col_idx].astype(str).str.strip()
+        sample_sev = sample_sev[sample_sev != '']
+        valid_count = sum(1 for v in sample_sev if _is_valid_severity_value(v))
+        if len(sample_sev) > 0 and valid_count == 0:
+            # 扫描所有列找正确的 severity
+            best_col, best_ratio = -1, 0
+            for ci in range(len(headers)):
+                if ci == severity_col_idx:
+                    continue
+                col_vals = df.iloc[:30, ci].astype(str).str.strip()
+                col_vals = col_vals[col_vals != '']
+                if len(col_vals) == 0:
+                    continue
+                col_valid = sum(1 for v in col_vals if _is_valid_severity_value(v))
+                ratio = col_valid / len(col_vals)
+                if ratio > 0.5 and ratio > best_ratio:
+                    best_ratio, best_col = ratio, ci
+            if best_col >= 0:
+                col_map['severity'] = best_col
+                severity_warning = f"已自动切换到 '{headers[best_col]}' 列"
+            else:
+                severity_warning = "Severity列值不标准"
+    elif severity_col_idx < 0:
+        # 未检测到，扫描所有列
+        best_col, best_ratio = -1, 0
+        for ci in range(len(headers)):
+            col_vals = df.iloc[:30, ci].astype(str).str.strip()
+            col_vals = col_vals[col_vals != '']
+            if len(col_vals) == 0:
+                continue
+            col_valid = sum(1 for v in col_vals if _is_valid_severity_value(v))
+            ratio = col_valid / len(col_vals)
+            if ratio > 0.5 and ratio > best_ratio:
+                best_ratio, best_col = ratio, ci
+        if best_col >= 0:
+            col_map['severity'] = best_col
+            severity_warning = f"已自动识别 '{headers[best_col]}' 列为严重程度"
+
+    if progress_cb:
+        progress_cb(35, "正在统计严重程度...")
+
+    # 提取需要的列（避免处理全部列）
+    def get_col(name):
+        idx = col_map.get(name, -1)
+        if idx >= 0 and idx < len(headers):
+            return df.iloc[:, idx].astype(str).str.strip()
+        return pd.Series([''] * len(df))
+
+    col_id = get_col('id')
+    col_title = get_col('title')
+    col_module = get_col('module')
+    col_severity = get_col('severity')
+    col_status = get_col('status')
+    col_developer = get_col('developer')
+    col_created = get_col('created_date')
+    col_resolved = get_col('resolved_date')
+    col_closed = get_col('closed_date')
+    col_fix_version = get_col('fix_version')
+    col_resolution = get_col('resolution')
+
+    total = len(df)
+
+    # 严重程度统计（向量化）
+    by_severity = {'blocker': 0, 'critical': 0, 'major': 0, 'minor': 0, 'trivial': 0}
+    by_severity_resolved = {'blocker': 0, 'critical': 0, 'major': 0, 'minor': 0, 'trivial': 0}
+    severity_values = set()
+    severity_levels = col_severity.map(lambda x: _match_severity_level(x) if x else '')
+
+    for level in by_severity:
+        mask = severity_levels == level
+        by_severity[level] = int(mask.sum())
+
+    # 状态判断（向量化）
+    status_lower = col_status.str.lower()
+    resolved_mask = status_lower.str.contains('resolved|fixed|closed|done|已解决|已关闭', na=False, regex=True)
+    resolved = int(resolved_mask.sum())
+
+    # 严重程度已解决统计
+    for level in by_severity_resolved:
+        by_severity_resolved[level] = int((severity_levels == level) & resolved_mask).sum()
+
+    severity_values = set(col_severity[col_severity != ''].unique())
+
+    if progress_cb:
+        progress_cb(55, "正在统计模块和研发...")
+
+    # 模块统计（向量化 groupby）
+    module_mask = col_module != ''
+    module_data = pd.DataFrame({
+        'module': col_module[module_mask],
+        'resolved': resolved_mask[module_mask]
+    })
+    module_grouped = module_data.groupby('module')['resolved'].agg(['count', 'sum'])
+    by_module = {}
+    for mod, row in module_grouped.iterrows():
+        by_module[mod] = {
+            'total': int(row['count']),
+            'resolved': int(row['sum']),
+            'unresolved': int(row['count'] - row['sum'])
+        }
+
+    # 研发统计
+    dev_mask = col_developer != ''
+    dev_data = pd.DataFrame({
+        'developer': col_developer[dev_mask],
+        'module': col_module[dev_mask],
+        'resolved': resolved_mask[dev_mask]
+    })
+    dev_grouped = dev_data.groupby('developer')['resolved'].agg(['count', 'sum'])
+    dev_modules = dev_data.groupby('developer')['module'].apply(lambda x: list(set(x[x != '']))).to_dict()
+    by_developer = {}
+    for dev, row in dev_grouped.iterrows():
+        by_developer[dev] = {
+            'total': int(row['count']),
+            'resolved': int(row['sum']),
+            'unresolved': int(row['count'] - row['sum']),
+            'modules': dev_modules.get(dev, [])
+        }
+
+    if progress_cb:
+        progress_cb(75, "正在统计日期趋势...")
+
+    # 日期统计（向量化）
+    from date_utils import normalize_date
+    daily_stats = {}
+
+    created_dates = col_created[col_created != ''].map(normalize_date)
+    created_dates = created_dates[created_dates != '']
+    for d in created_dates:
+        if d not in daily_stats:
+            daily_stats[d] = {'new': 0, 'resolved': 0}
+        daily_stats[d]['new'] += 1
+
+    resolved_dates = col_resolved[col_resolved != ''].map(normalize_date)
+    resolved_dates = resolved_dates[resolved_dates != '']
+    for d in resolved_dates:
+        if d not in daily_stats:
+            daily_stats[d] = {'new': 0, 'resolved': 0}
+        daily_stats[d]['resolved'] += 1
+
+    daily_stats_list = [{'date': d, **v} for d, v in sorted(daily_stats.items())]
+
+    if progress_cb:
+        progress_cb(90, "正在生成建议和样本...")
+
+    # 样本数据（前20行）
+    sample_data = []
+    for i in range(min(20, total)):
+        sample_data.append({
+            'id': col_id.iloc[i],
+            'title': col_title.iloc[i],
+            'module': col_module.iloc[i],
+            'severity': col_severity.iloc[i],
+            'status': col_status.iloc[i],
+            'developer': col_developer.iloc[i],
+        })
+
+    # 未验证问题（状态包含 unverified/待验证）
+    unverified_mask = status_lower.str.contains('unverified|待验证|reopened|重新打开', na=False, regex=True)
+    unverified_issues = []
+    for i in df.index[unverified_mask][:50]:
+        unverified_issues.append({
+            'id': col_id.loc[i],
+            'title': col_title.loc[i],
+            'module': col_module.loc[i],
+            'severity': col_severity.loc[i],
+            'status': col_status.loc[i],
+            'developer': col_developer.loc[i],
+        })
+
+    # 建议
+    suggestions = []
+    if severity_warning:
+        suggestions.append(severity_warning)
+    if total > 0 and by_severity['blocker'] > 0:
+        suggestions.append(f"存在 {by_severity['blocker']} 个 Blocker 问题，需优先处理")
+    if total > 0 and (total - resolved) / total > 0.5:
+        suggestions.append(f"未解决率超过50%（{total - resolved}/{total}），建议加速修复")
+
+    # 计算比率
+    def calc_rate(count):
+        return round(count / total * 100, 1) if total > 0 else 0
+
+    bc_total = by_severity['blocker'] + by_severity['critical']
+    bc_resolved = by_severity_resolved['blocker'] + by_severity_resolved['critical']
+    bc_rate = round(bc_resolved / bc_total * 100, 1) if bc_total > 0 else 0
+
+    summary = {
+        'total_issues': total,
+        'total_resolved': resolved,
+        'total_unresolved': total - resolved,
+        'resolution_rate': calc_rate(resolved),
+        'blocker_total': by_severity['blocker'],
+        'blocker_resolved': by_severity_resolved['blocker'],
+        'critical_total': by_severity['critical'],
+        'critical_resolved': by_severity_resolved['critical'],
+        'major_total': by_severity['major'],
+        'major_resolved': by_severity_resolved['major'],
+        'minor_total': by_severity['minor'],
+        'minor_resolved': by_severity_resolved['minor'],
+        'trivial_total': by_severity['trivial'],
+        'trivial_resolved': by_severity_resolved['trivial'],
+        'bc_total': bc_total,
+        'bc_resolved': bc_resolved,
+        'bc_rate': bc_rate,
+    }
+
+    # 释放内存
+    del df, module_data, dev_data
+    gc.collect()
+
+    elapsed = time.time() - t0
+    _log_mem(f"Fast分析完成，耗时 {elapsed:.1f}s")
+    if progress_cb:
+        progress_cb(100, f"分析完成，耗时 {elapsed:.1f}s")
+
+    return {
+        'summary': summary,
+        'severity_values': sorted(list(severity_values)),
+        'severity_detected': col_map.get('severity', -1) >= 0,
+        'module_stats': by_module,
+        'dev_stats': by_developer,
+        'daily_stats': daily_stats_list,
+        'suggestions': suggestions,
+        'unverified_issues': unverified_issues,
+        'detected_columns': col_map,
+        'sample_data': sample_data,
+        'headers': headers,
+        'analysis_time': round(elapsed, 1),
+    }
+

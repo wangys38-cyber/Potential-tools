@@ -3485,8 +3485,8 @@ def api_excel_analyze():
     file.seek(0, 2)
     file_size = file.tell()
     file.seek(0)
-    if file_size > 50 * 1024 * 1024:
-        return jsonify({'error': f'文件过大({file_size // 1024 // 1024}MB)，云端最大支持50MB。大文件请使用本地部署：git clone https://github.com/wangys38-cyber/CR-tools.git'}), 413
+    if file_size > 200 * 1024 * 1024:
+        return jsonify({'error': f'文件过大({file_size // 1024 // 1024}MB)，云端最大支持200MB。超大文件建议使用分片上传或本地部署'}), 413
 
     orig_ext = os.path.splitext(file.filename)[1].lower()
     if orig_ext not in ('.xlsx', '.xls'):
@@ -3561,7 +3561,7 @@ def _delete_task_meta(task_id):
     db.delete_task(task_id)
 
 import threading
-from excel_analyzers import _analyze_issue_sheet, _detect_issue_columns, _is_valid_severity_value, _log_mem, _match_severity_level, _safe_get
+from excel_analyzers import _analyze_issue_sheet, _analyze_issue_sheet_fast, _detect_issue_columns, _is_valid_severity_value, _log_mem, _match_severity_level, _safe_get
 
 @app.route('/api/excel-analyze-fields', methods=['POST'])
 def api_excel_analyze_fields():
@@ -3723,19 +3723,21 @@ def api_task_status():
         if task is None:
             return jsonify({'status': 'error', 'error': '任务不存在或已过期，请重新上传文件'}), 400
 
-    # 检查任务是否超时（超过 7 分钟仍在 processing 视为超时）
+    # 检查任务是否超时（超过 15 分钟仍在 processing 视为超时，大文件需要更长时间）
     if task['status'] == 'processing':
         created_at = task.get('created_at', 0)
-        if created_at and (time.time() - created_at) > 420:
+        if created_at and (time.time() - created_at) > 900:
             task['status'] = 'error'
-            task['error'] = '分析超时（超过7分钟），可能是文件过大或格式异常，请尝试减少数据量或转换为 .xlsx 格式'
+            task['error'] = '分析超时（超过15分钟），可能是文件过大或格式异常，请尝试减少数据量或转换为 .xlsx 格式'
             _save_task_meta(task_id, task)
 
     resp = {'status': task['status']}
 
-    if task['status'] == 'done':
+    if task['status'] == 'processing':
+        resp['progress'] = task.get('progress', 0)
+        resp['progress_msg'] = task.get('progress_msg', '正在分析...')
+    elif task['status'] == 'done':
         resp['data'] = task['result']
-        # 清理已完成的任务（延迟清理，让客户端有机会获取结果）
     elif task['status'] == 'error':
         resp['error'] = task['error']
 
@@ -3785,13 +3787,28 @@ def api_excel_analyze_sheet():
             gc.collect()
             _log_mem("开始分析前")
             t0 = time.time()
-            result = _analyze_issue_sheet(file_path, sheet_name)
+
+            # 判断文件大小，>10MB 使用 pandas 高速分析
+            file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+            use_fast = file_size > 10 * 1024 * 1024
+            logger.info(f"分析模式: {'fast(pandas)' if use_fast else 'standard(openpyxl)'}, 文件大小: {file_size/1024/1024:.1f}MB")
+
+            if use_fast:
+                def progress_cb(percent, message):
+                    _background_tasks[task_id]['progress'] = percent
+                    _background_tasks[task_id]['progress_msg'] = message
+                    _save_task_meta(task_id, _background_tasks[task_id])
+                result = _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=progress_cb)
+            else:
+                result = _analyze_issue_sheet(file_path, sheet_name)
+
             elapsed = time.time() - t0
             _log_mem(f"分析完成，耗时 {elapsed:.1f}s")
             gc.collect()
 
             _background_tasks[task_id]['result'] = result
             _background_tasks[task_id]['status'] = 'done'
+            _background_tasks[task_id]['progress'] = 100
             _save_task_meta(task_id, _background_tasks[task_id])
         except Exception as e:
             error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'

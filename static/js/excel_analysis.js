@@ -496,9 +496,9 @@ function showToast(msg, type) {
                 }
 
                 const taskId = initResult.data.task_id;
-                // 轮询任务状态
+                // 轮询任务状态（最多 900 次 = 15分钟，大文件需要更长时间）
                 let pollCount = 0;
-                const maxPolls = 400; // 最多轮询 400 次（约 6.5 分钟）
+                const maxPolls = 900;
                 while (pollCount < maxPolls) {
                     await new Promise(r => setTimeout(r, 1000));
                     const statusResp = await fetch('/api/task-status', {
@@ -511,18 +511,32 @@ function showToast(msg, type) {
                     if (statusResult.status === 'done') {
                         analyzing.classList.remove('show');
                         analyzing.querySelector('p').textContent = '正在解析Excel数据...';
+                        const pb = document.getElementById('analysisProgressBar');
+                        if (pb) pb.style.display = 'none';
                         currentAnalysisData = statusResult.data;
-                        // 合并 file_name
                         currentAnalysisData.file_name = currentFileName;
                         displayResults();
                         return;
                     } else if (statusResult.status === 'error') {
+                        const pb = document.getElementById('analysisProgressBar');
+                        if (pb) pb.style.display = 'none';
                         throw new Error(statusResult.error || '分析失败');
                     }
                     pollCount++;
-                    analyzing.querySelector('p').textContent = `正在生成分析报告... (${pollCount}s)`;
+                    // 显示服务器返回的进度信息
+                    const progressBar = document.getElementById('analysisProgressBar');
+                    const progressFill = document.getElementById('analysisProgressFill');
+                    if (statusResult.progress !== undefined) {
+                        if (progressBar) progressBar.style.display = 'block';
+                        if (progressFill) progressFill.style.width = statusResult.progress + '%';
+                        const pct = statusResult.progress || 0;
+                        analyzing.querySelector('p').textContent = `${statusResult.progress_msg || '正在分析...'} (${pct}%)`;
+                    } else {
+                        if (progressBar) progressBar.style.display = 'none';
+                        analyzing.querySelector('p').textContent = `正在生成分析报告... (${pollCount}s)`;
+                    }
                 }
-                throw new Error('分析超时，请重试');
+                throw new Error('分析超时（超过15分钟），请重试或减少数据量');
 
             } catch (err) {
                 analyzing.classList.remove('show');
