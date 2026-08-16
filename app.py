@@ -1004,30 +1004,28 @@ def api_jira_search():
     if not domain:
         return jsonify({'error': '请填写 Jira 域名'}), 400
 
+    # 域名归一化：缺少 scheme 时自动补 https://
+    if domain and not domain.startswith(('http://', 'https://')):
+        domain = 'https://' + domain
+
     # 如果传入 Jira 链接，尝试从中提取 JQL
     if jira_url and not jql:
         try:
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import urlparse, parse_qs, unquote
             parsed = urlparse(jira_url)
             params = parse_qs(parsed.query)
             if 'jql' in params:
-                jql = params['jql'][0]
+                jql = unquote(params['jql'][0])
             elif 'filter' in params:
-                # filter ID 需要额外请求获取 JQL
+                # JQL 原生支持 filter=ID 语法，直接使用，无需额外请求 filter 接口
                 filter_id = params['filter'][0]
-                filter_url = f"{domain}/rest/api/3/filter/{filter_id}"
-                auth = (email, api_token) if email and api_token else None
-                resp = requests.get(filter_url, auth=auth, timeout=15,
-                                    headers={'Accept': 'application/json'})
-                if resp.status_code == 200:
-                    jql = resp.json().get('jql', '')
-                else:
-                    # 尝试 api/2 (Jira Server)
-                    filter_url2 = f"{domain}/rest/api/2/filter/{filter_id}"
-                    resp2 = requests.get(filter_url2, auth=auth, timeout=15,
-                                         headers={'Accept': 'application/json'})
-                    if resp2.status_code == 200:
-                        jql = resp2.json().get('jql', '')
+                jql = f"filter={filter_id}"
+            else:
+                # 尝试从路径中提取 filter ID，如 /issues/?filter=86482 或 /browse/PROJ-123
+                import re
+                m = re.search(r'filter[=/](\d+)', jira_url)
+                if m:
+                    jql = f"filter={m.group(1)}"
         except Exception:
             pass
 
@@ -1053,6 +1051,10 @@ def api_jira_search():
             search_url = f"{domain}/rest/api/2/search"
             resp = requests.post(search_url, json=payload, auth=auth, headers=headers, timeout=30)
         if resp.status_code != 200:
+            if resp.status_code == 401:
+                return jsonify({'error': 'Jira 鉴权失败(401)：请检查邮箱和 API Token。Jira Server 用户请在 Token 栏填入 Personal Access Token 或登录密码'}), 401
+            if resp.status_code == 403:
+                return jsonify({'error': 'Jira 无权限(403)：当前账号无权访问该 filter 或项目'}), 403
             return jsonify({'error': f'Jira API 返回 {resp.status_code}: {resp.text[:200]}'}), resp.status_code
 
         result = resp.json()

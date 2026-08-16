@@ -87,15 +87,14 @@
                 <div class="jira-config">
                     <input type="text" id="jiraDomain" placeholder="Jira 域名 (如 https://xxx.atlassian.net)">
                     <input type="text" id="jiraEmail" placeholder="邮箱 (Jira Cloud)">
-                    <input type="password" id="jiraToken" placeholder="API Token">
+                    <input type="password" id="jiraToken" placeholder="API Token / PAT / 密码">
                 </div>
                 <div class="jira-input-row">
                     <input type="text" id="jiraInput" placeholder="粘贴 Jira 搜索链接 或 输入 JQL，如：project = PROJ AND type = Bug">
                     <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()">🔗 导入 CR</button>
                 </div>
                 <div class="jira-hint">
-                    支持：Jira 搜索结果页 URL（含 <code>?jql=</code> 或 <code>?filter=</code>）、直接输入 JQL 查询。
-                    配置自动保存在本地，不会上传。Jira Server 可留空邮箱和 Token。
+                    支持：Jira 搜索页 URL（<code>?jql=</code> / <code>?filter=86482</code>）或直接输入 JQL。Jira Cloud 填邮箱+API Token；Jira Server 填用户名+密码或 Personal Access Token。配置仅存本地。
                 </div>
                 <div class="error-msg" id="jiraError"></div>
             </div>
