@@ -2179,5 +2179,19 @@ function deleteDoc(docId, title){
 }
 </script>
 <script src="/static/js/components.js?v=20260814v10"></script>
+<style>
+/* v5.5 玻璃拟态最终覆盖（确保优先级高于动态加载的样式） */
+body { background: transparent !important; background-color: transparent !important; }
+html { background: #f0f2f8 !important; }
+.sidebar { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(24px) saturate(180%) !important; -webkit-backdrop-filter: blur(24px) saturate(180%) !important; }
+.main-header { background: rgba(255,255,255,0.55) !important; backdrop-filter: blur(24px) saturate(180%) !important; }
+.note-card, .note-item, .card { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(16px) saturate(160%) !important; border-radius: 14px !important; }
+.new-btn { background: linear-gradient(135deg,#7c3aed,#6366f1) !important; }
+.search-bar { background: rgba(255,255,255,0.65) !important; backdrop-filter: blur(12px) !important; }
+.logo-text { background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.nav-item.active { background: linear-gradient(135deg,rgba(124,58,237,0.12),rgba(99,102,241,0.08)) !important; color:#7c3aed !important; box-shadow: inset 2px 0 0 #7c3aed; }
+[data-theme*="dark"] .sidebar, [data-theme*="dark"] .main-header, [data-theme*="dark"] .note-card { background: rgba(30,30,40,0.6) !important; }
+[data-theme*="dark"] html { background: #0f0f1a !important; }
+</style>
 </body>
 </html>
