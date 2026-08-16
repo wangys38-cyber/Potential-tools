@@ -344,6 +344,22 @@
             <div class="test-result" id="feishuTestResult"></div>
         </div>
 
+        <!-- 云端数据同步 -->
+        <div class="section" id="sync-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">☁️ 云端数据同步</h2>
+                    <div class="section-desc">多设备间自动同步收藏、功德、项目信息、主题等数据，登录后即可使用</div>
+                </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="manualSync()">🔄 立即同步</button>
+                <button class="btn btn-ghost" onclick="viewSyncStatus()">📊 查看状态</button>
+            </div>
+            <div class="test-result" id="syncResult" style="display:none;"></div>
+            <div id="syncStatusDetail" style="display:none; margin-top: 16px; padding: 14px; border-radius: 10px; background: var(--bg-primary); font-size: 13px;"></div>
+        </div>
+
         <!-- 外观设置 -->
         <div class="section">
             <div class="section-header">
@@ -729,6 +745,74 @@
             }
         }
 
+        // ==================== 云端同步 ====================
+        async function manualSync() {
+            const resultEl = document.getElementById('syncResult');
+            resultEl.style.display = 'block';
+            resultEl.className = 'test-result';
+            resultEl.textContent = '🔄 正在同步...';
+            try {
+                if (window.V5Sync) {
+                    await window.V5Sync.sync(false);
+                    const state = window.V5Sync.getState();
+                    if (state.status === 'success') {
+                        resultEl.textContent = '✅ 同步完成';
+                        resultEl.classList.add('show', 'success');
+                    } else {
+                        resultEl.textContent = '❌ ' + (state.error || '同步失败');
+                        resultEl.classList.add('show', 'error');
+                    }
+                } else {
+                    // fallback: 直接调用 API
+                    const pullResp = await fetch('/api/sync/pull');
+                    const pullData = await pullResp.json();
+                    if (pullData.status === 'success') {
+                        resultEl.textContent = '✅ 已连接云端同步服务';
+                        resultEl.classList.add('show', 'success');
+                    } else {
+                        resultEl.textContent = '❌ ' + (pullData.error || '同步失败');
+                        resultEl.classList.add('show', 'error');
+                    }
+                }
+            } catch (e) {
+                resultEl.textContent = '❌ 同步异常: ' + e.message;
+                resultEl.classList.add('show', 'error');
+            }
+            setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
+        }
+
+        async function viewSyncStatus() {
+            const detailEl = document.getElementById('syncStatusDetail');
+            detailEl.style.display = 'block';
+            detailEl.textContent = '📊 正在获取同步状态...';
+            try {
+                const resp = await fetch('/api/sync/status');
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    const names = {favorites:'收藏工具', merit:'功德数据', projects:'项目信息', theme:'主题设置', form_drafts:'表单草稿', settings:'用户设置'};
+                    let html = '<div style="font-weight:600;margin-bottom:8px;">☁️ 云端同步状态</div>';
+                    let hasData = false;
+                    Object.keys(data.sync_status).forEach(function(k) {
+                        const ts = data.sync_status[k];
+                        if (ts > 0) {
+                            hasData = true;
+                            const d = new Date(ts * 1000);
+                            html += '<div style="display:flex;justify-content:space-between;padding:4px 0;">' +
+                                '<span>' + (names[k] || k) + '</span>' +
+                                '<span style="color:var(--text-secondary);">' + d.toLocaleString('zh-CN') + '</span></div>';
+                        }
+                    });
+                    if (!hasData) html += '<div style="color:var(--text-secondary);">暂无同步数据，点击「立即同步」开始</div>';
+                    html += '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">服务器时间: ' + new Date(data.server_time * 1000).toLocaleString('zh-CN') + '</div>';
+                    detailEl.innerHTML = html;
+                } else {
+                    detailEl.textContent = '❌ ' + (data.error || '获取状态失败');
+                }
+            } catch (e) {
+                detailEl.textContent = '❌ 请求失败: ' + e.message;
+            }
+        }
+
         // ===== 主题设置 =====
         let currentAccent = '#0071e3';
 
@@ -823,5 +907,6 @@
         }
     </script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

@@ -691,6 +691,76 @@ def save_note_state(user_id, state_data):
         return now
 
 
+# ==================== v5.2 多设备数据同步 ====================
+
+# 同步数据类型白名单
+SYNC_TYPES = {'favorites', 'merit', 'projects', 'theme', 'form_drafts', 'settings'}
+
+
+def get_sync_state(user_id, data_type):
+    """获取某类同步数据的最新状态"""
+    if data_type not in SYNC_TYPES:
+        return None
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT content, created_at FROM user_data WHERE user_id = :user_id AND data_type = :data_type ORDER BY created_at DESC LIMIT 1"),
+            {'user_id': user_id, 'data_type': data_type}
+        ).fetchone()
+        if not row:
+            return None
+        m = row._mapping
+        try:
+            data = json.loads(m['content']) if m['content'] else None
+        except (json.JSONDecodeError, TypeError):
+            data = None
+        return {'data': data, 'updated_at': m.get('created_at', 0)}
+
+
+def set_sync_state(user_id, data_type, content):
+    """保存某类同步数据（upsert，单记录模式），返回时间戳"""
+    if data_type not in SYNC_TYPES:
+        return 0
+    with engine.begin() as conn:
+        now = time.time()
+        content_str = json.dumps(content, ensure_ascii=False) if isinstance(content, (dict, list)) else str(content)
+        # 先尝试更新最新记录
+        result = conn.execute(
+            text("UPDATE user_data SET content = :content, created_at = :created_at WHERE user_id = :user_id AND data_type = :data_type AND id = (SELECT id FROM user_data WHERE user_id = :user_id AND data_type = :data_type ORDER BY created_at DESC LIMIT 1)"),
+            {'content': content_str, 'created_at': now, 'user_id': user_id, 'data_type': data_type}
+        )
+        if result.rowcount == 0:
+            try:
+                conn.execute(
+                    text("INSERT INTO user_data (user_id, data_type, title, content, created_at) VALUES (:user_id, :data_type, :title, :content, :created_at)"),
+                    {'user_id': user_id, 'data_type': data_type, 'title': data_type, 'content': content_str, 'created_at': now}
+                )
+            except Exception:
+                conn.execute(
+                    text("UPDATE user_data SET content = :content, created_at = :created_at WHERE user_id = :user_id AND data_type = :data_type AND id = (SELECT id FROM user_data WHERE user_id = :user_id AND data_type = :data_type ORDER BY created_at DESC LIMIT 1)"),
+                    {'content': content_str, 'created_at': now, 'user_id': user_id, 'data_type': data_type}
+                )
+        return now
+
+
+def get_all_sync_states(user_id):
+    """获取用户所有同步数据（用于全量拉取）"""
+    result = {}
+    for dtype in SYNC_TYPES:
+        state = get_sync_state(user_id, dtype)
+        if state:
+            result[dtype] = state
+    return result
+
+
+def get_sync_status(user_id):
+    """获取同步状态：各类型最新更新时间"""
+    status = {}
+    for dtype in SYNC_TYPES:
+        state = get_sync_state(user_id, dtype)
+        status[dtype] = state['updated_at'] if state else 0
+    return status
+
+
 # ==================== 用户级 AI 配置 ====================
 
 def get_user_ai_config(user_id):
