@@ -963,10 +963,10 @@ const ToolboxAIChat = (function() {
         style.textContent = `
             .tb-aichat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(99,102,241,0.4);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
             .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.5)}
-            .tb-aichat-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
+            .tb-aichat-panel{position:fixed;top:0;right:0;width:400px;height:100vh;transform:translateX(100%);background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
             @media (max-width: 768px) {
                 .tb-aichat-panel {
-                    width: 100vw !important;
+                    width: 100vw !important;will-change:transform;
                     height: 100vh !important;
                     height: 100dvh !important;
                     right: 0 !important;
@@ -975,21 +975,21 @@ const ToolboxAIChat = (function() {
                     padding-top: env(safe-area-inset-top);
                 }
                 .tb-aichat-fab {
-                    bottom: 80px !important;
-                    right: 16px !important;
-                    bottom: max(80px, env(safe-area-inset-bottom)) !important;
+                    width:44px !important;height:44px !important;font-size:18px !important;
+                    bottom: max(70px, env(safe-area-inset-bottom)) !important;
+                    right: 14px !important;
                 }
                 .tb-aichat-input-area {
                     padding-bottom: env(safe-area-inset-bottom) !important;
                 }
             }
-            .tb-aichat-panel.open{right:0}
+            .tb-aichat-panel.open{transform:translateX(0)}
             [data-theme="dark"] .tb-aichat-panel{background:#1a1a2e;box-shadow:-4px 0 24px rgba(0,0,0,0.5)}
             .tb-aichat-header{padding:16px 20px;border-bottom:1px solid var(--tb-border,#e5e5ea);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
             [data-theme="dark"] .tb-aichat-header{border-color:rgba(255,255,255,0.08)}
             .tb-aichat-title{font-size:16px;font-weight:600;color:var(--tb-text,#1d1d1f);display:flex;align-items:center;gap:8px}
             [data-theme="dark"] .tb-aichat-title{color:#f0f0f2}
-            .tb-aichat-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--tb-text-muted,#86868b);padding:4px;line-height:1}
+            .tb-aichat-close{background:none;border:none;font-size:28px;cursor:pointer;color:var(--tb-text-muted,#86868b);padding:8px 12px;line-height:1;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
             [data-theme="dark"] .tb-aichat-close{color:#9b9ba3}
             .tb-aichat-models{padding:8px 16px;border-bottom:1px solid var(--tb-border,#e5e5ea);flex-shrink:0}
             [data-theme="dark"] .tb-aichat-models{border-color:rgba(255,255,255,0.08)}
