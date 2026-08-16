@@ -1,0 +1,275 @@
+/* ============================================================
+   UX Enhancements — 暗色模式覆盖 + 响应式 + Loading + Toast
+   通用增强样式，适用于所有工具页面
+   ============================================================ */
+
+/* ===== 暗色模式：覆盖硬编码的白色背景和黑色文字 ===== */
+[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+    background-color: #1a1a1e !important;
+    color: #f0f0f2 !important;
+}
+
+/* 覆盖硬编码白色背景的卡片/容器 */
+[data-theme="dark"] .header,
+[data-theme="dark"] .input-section,
+[data-theme="dark"] .result-section,
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .container > div,
+[data-theme="dark"] section,
+[data-theme="dark"] .box {
+    background-color: #2c2c30 !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    color: #f0f0f2 !important;
+}
+
+/* 覆盖硬编码白色背景 */
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background-color: #fff"],
+[data-theme="dark"] [style*="background-color: #ffffff"],
+[data-theme="dark"] [style*="background:white"],
+[data-theme="dark"] [style*="background: white"] {
+    background-color: #2c2c30 !important;
+}
+
+/* 覆盖硬编码黑色文字 */
+[data-theme="dark"] [style*="color: #000"],
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color: #1d1d1f"],
+[data-theme="dark"] [style*="color:black"] {
+    color: #f0f0f2 !important;
+}
+
+/* 表格暗色模式 */
+[data-theme="dark"] table,
+[data-theme="dark"] th,
+[data-theme="dark"] td {
+    border-color: rgba(255,255,255,0.08) !important;
+}
+[data-theme="dark"] th {
+    background-color: rgba(255,255,255,0.04) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] tr:hover {
+    background-color: rgba(255,255,255,0.03) !important;
+}
+
+/* 输入框暗色模式 */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background-color: #242428 !important;
+    color: #f0f0f2 !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: #6b6b73 !important;
+}
+
+/* 按钮暗色模式 */
+[data-theme="dark"] button,
+[data-theme="dark"] .btn,
+[data-theme="dark"] .action-btn {
+    border-color: rgba(255,255,255,0.12) !important;
+}
+
+/* 代码块暗色模式 */
+[data-theme="dark"] pre,
+[data-theme="dark"] code {
+    background-color: #1a1a1e !important;
+    color: #e0e0e0 !important;
+}
+
+/* ===== 响应式：移动端适配 ===== */
+@media (max-width: 768px) {
+    body {
+        padding: 12px !important;
+    }
+
+    .header {
+        flex-direction: column !important;
+        gap: 12px !important;
+        text-align: center !important;
+        padding: 16px !important;
+    }
+
+    .header h1 {
+        font-size: 20px !important;
+    }
+
+    .container {
+        padding: 0 !important;
+    }
+
+    .input-section,
+    .result-section {
+        padding: 16px !important;
+    }
+
+    .input-row {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    .input-group {
+        width: 100% !important;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .action-btn,
+    .btn {
+        flex: 1 1 calc(50% - 4px) !important;
+        min-width: 0 !important;
+        padding: 10px 12px !important;
+        font-size: 13px !important;
+    }
+
+    table {
+        font-size: 12px !important;
+        display: block !important;
+        overflow-x: auto !important;
+    }
+
+    th, td {
+        padding: 8px 6px !important;
+        white-space: nowrap !important;
+    }
+
+    .plan-table {
+        font-size: 11px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 18px !important;
+    }
+
+    .action-btn,
+    .btn {
+        flex: 1 1 100% !important;
+    }
+
+    .input-section h2,
+    .result-section h2 {
+        font-size: 15px !important;
+    }
+}
+
+/* ===== Loading Spinner ===== */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(124,58,237,0.2);
+    border-top-color: #7c3aed;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+.loading-overlay .spinner-large {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.loading-overlay .loading-text {
+    color: #fff;
+    margin-top: 16px;
+    font-size: 14px;
+    text-align: center;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Toast 通知增强（兼容 components.js 的 ToolboxToast） ===== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    font-size: 14px;
+    animation: toastIn 0.3s ease;
+    max-width: 360px;
+    border-left: 4px solid #7c3aed;
+}
+
+.toast.success { border-left-color: #34c759; }
+.toast.error { border-left-color: #ff3b30; }
+.toast.warning { border-left-color: #ff9500; }
+.toast.info { border-left-color: #5ac8fa; }
+
+[data-theme="dark"] .toast {
+    background: #2c2c30;
+    color: #f0f0f2;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+}
+
+/* ===== 拖拽上传高亮 ===== */
+.drag-over {
+    outline: 2px dashed #7c3aed !important;
+    outline-offset: -8px !important;
+    background: rgba(124,58,237,0.05) !important;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #86868b;
+}
+.empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+[data-theme="dark"] .empty-state {
+    color: #6b6b73;
+}
