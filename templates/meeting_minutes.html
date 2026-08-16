@@ -234,6 +234,7 @@
         [data-theme="dark"] .minutes-panel,
         [data-theme="dark"] .toast { background: var(--bg-card); }
     </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
     <div class="page">
@@ -513,6 +514,7 @@
                     <div class="panel-actions">
                         <button class="btn btn-ghost btn-sm" onclick="copyMinutes()">📋 复制</button>
                         <button class="btn btn-ghost btn-sm" onclick="pushMinutesToFeishu()">📨 推飞书</button>
+                        <button class="btn btn-ghost btn-sm" onclick="sendToPlanGenerator()">📅 → 项目计划</button>
                         <button class="btn btn-ghost btn-sm" onclick="downloadMinutes()">💾 下载</button>
                     </div>
                 </div>
@@ -1688,6 +1690,44 @@
             }
         }
 
+        // ==================== 工具间流转：待办 → 项目计划 ====================
+        function sendToPlanGenerator() {
+            if (!minutesHTML) { showToast('暂无纪要，请先生成', 'warning'); return; }
+            const temp = document.createElement('div'); temp.innerHTML = minutesHTML;
+            const text = temp.innerText;
+            // 提取待办事项：匹配 "待办" "行动项" "TODO" 等关键词后的列表
+            const todoPatterns = [
+                /(?:待办事项|行动项|TODO|待办|Action Items?)[\s\S]*?(?=\n\n[A-Z\u4e00-\u9fa5]|$)/i,
+            ];
+            let todos = '';
+            for (const pat of todoPatterns) {
+                const m = text.match(pat);
+                if (m && m[0].trim().length > 5) { todos = m[0].trim(); break; }
+            }
+            if (!todos) {
+                // 如果没找到明确的待办段，提取所有带 checkbox / 数字 / - 的行
+                const lines = text.split('\n').filter(l =>
+                    /^\s*[-*•]/.test(l) || /^\s*\d+[.)]/.test(l) || /☐|✅|■/.test(l)
+                );
+                todos = lines.join('\n');
+            }
+            const title = document.getElementById('meetingTitle').value.trim() || '会议项目';
+            const transferData = {
+                source: 'meeting-minutes',
+                title: title,
+                todos: todos || text.substring(0, 1000),
+                fullText: text.substring(0, 2000),
+                timestamp: new Date().toISOString()
+            };
+            try {
+                sessionStorage.setItem('v5_plan_transfer', JSON.stringify(transferData));
+                showToast('📅 正在跳转到项目计划生成器...', 'info');
+                setTimeout(() => { window.location.href = '/plan-generator'; }, 500);
+            } catch(e) {
+                showToast('❌ 数据传递失败: ' + e.message, 'error');
+            }
+        }
+
         // ==================== 工具函数 ====================
         function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
         function showToast(msg, type, duration) {
@@ -1739,5 +1779,6 @@
             attendees: 'attendees'
         }, 3000);
     </script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

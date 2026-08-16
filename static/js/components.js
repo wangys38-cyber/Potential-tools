@@ -1416,22 +1416,81 @@ const ToolboxCommandPalette = (function() {
         {icon:'🤖', name:'打开 AI 对话', desc:'AI Chat Assistant', action:function(){ if(typeof ToolboxAIChat!=='undefined') ToolboxAIChat.open(); }},
         {icon:'🔍', name:'OCR 图片识别', desc:'Paste image to recognize', action:function(){ if(typeof ToolboxOCR!=='undefined') ToolboxOCR.open(); }},
         {icon:'⭐', name:'查看收藏工具', desc:'Go to favorites', action:function(){ window.location.href='/'; }},
+        {icon:'🏠', name:'返回首页', desc:'Back to home', action:function(){ window.location.href='/'; }},
+        {icon:'⚙️', name:'打开设置', desc:'Open settings', action:function(){ window.location.href='/settings'; }},
         {icon:'🔄', name:'刷新页面', desc:'Reload page', action:function(){ location.reload(); }},
     ];
 
+    // v5.0 上下文感知命令：根据当前页面显示工具内功能
+    var CONTEXT_COMMANDS = {
+        '/meeting-minutes': [
+            {icon:'🎤', name:'开始录音', desc:'Start recording', action:function(){ var b=document.querySelector('button[onclick*="startRecording"], #startRecBtn'); if(b) b.click(); }},
+            {icon:'⏹️', name:'停止录音', desc:'Stop recording', action:function(){ var b=document.querySelector('button[onclick*="stopRecording"], #stopRecBtn'); if(b) b.click(); }},
+            {icon:'✨', name:'生成会议纪要', desc:'Generate minutes', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
+            {icon:'📋', name:'复制纪要', desc:'Copy minutes', action:function(){ if(typeof copyMinutes==='function') copyMinutes(); }},
+            {icon:'📨', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushMinutesToFeishu==='function') pushMinutesToFeishu(); }},
+        ],
+        '/weekly-report': [
+            {icon:'✨', name:'生成周报', desc:'Generate weekly report', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
+            {icon:'📋', name:'复制周报', desc:'Copy report', action:function(){ if(typeof copyReport==='function') copyReport(); }},
+            {icon:'🖨️', name:'导出/打印', desc:'Export / Print', action:function(){ if(typeof exportReport==='function') exportReport(); }},
+            {icon:'📨', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushToFeishu==='function') pushToFeishu(); }},
+        ],
+        '/md2pdf': [
+            {icon:'📄', name:'选择文件', desc:'Select file', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'🔄', name:'开始转换', desc:'Convert to PDF', action:function(){ var b=document.querySelector('button[onclick*="convert"], #convertBtn'); if(b) b.click(); }},
+        ],
+        '/excel-analysis': [
+            {icon:'📊', name:'上传Excel', desc:'Upload Excel', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'✨', name:'AI 根因分析', desc:'AI root cause analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
+        ],
+        '/test-report': [
+            {icon:'📋', name:'上传测试报告', desc:'Upload test report', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'✨', name:'AI 分析', desc:'AI analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
+        ],
+        '/plan-generator': [
+            {icon:'📅', name:'生成计划', desc:'Generate plan', action:function(){ if(typeof generatePlan==='function') generatePlan(); }},
+            {icon:'📥', name:'导出CSV', desc:'Export CSV', action:function(){ var b=document.querySelector('button[onclick*="export"], #exportBtn'); if(b) b.click(); }},
+        ],
+        '/project-info': [
+            {icon:'📊', name:'新建项目', desc:'New project', action:function(){ var b=document.querySelector('button[onclick*="newProject"], #newProjectBtn'); if(b) b.click(); }},
+            {icon:'💾', name:'保存项目', desc:'Save project', action:function(){ var b=document.querySelector('button[onclick*="save"], #saveBtn'); if(b) b.click(); }},
+        ],
+        '/settings': [
+            {icon:'🤖', name:'AI 配置', desc:'AI config', action:function(){ window.location.hash='#ai-config'; }},
+            {icon:'📨', name:'飞书推送配置', desc:'Feishu push config', action:function(){ window.location.hash='#feishu'; }},
+            {icon:'🎨', name:'主题设置', desc:'Theme settings', action:function(){ window.location.hash='#theme'; }},
+        ],
+    };
+
+    function getContextCommands() {
+        var path = window.location.pathname;
+        // 匹配路径（支持末尾有无斜杠）
+        for (var key in CONTEXT_COMMANDS) {
+            if (path === key || path === key + '/' || path.indexOf(key) === 0) {
+                return CONTEXT_COMMANDS[key].map(function(c) {
+                    return {icon:c.icon, name:c.name, desc:c.desc, type:'action', action:c.action, category:'当前页面'};
+                });
+            }
+        }
+        return [];
+    }
+
     function buildItems(query) {
         var toolItems = TOOLS.map(function(t) {
-            return {icon:t.icon, name:t.name, desc:t.desc, type:'tool', url:t.url};
+            return {icon:t.icon, name:t.name, desc:t.desc, type:'tool', url:t.url, category:'工具'};
         });
         var cmdItems = COMMANDS.map(function(c) {
-            return {icon:c.icon, name:c.name, desc:c.desc, type:'cmd', action:c.action};
+            return {icon:c.icon, name:c.name, desc:c.desc, type:'cmd', action:c.action, category:'快捷命令'};
         });
-        var all = toolItems.concat(cmdItems);
+        var actionItems = getContextCommands();
+        var all = actionItems.concat(toolItems).concat(cmdItems);
         if (!query) return all;
         query = query.toLowerCase();
         return all.filter(function(item) {
             return item.name.toLowerCase().indexOf(query) >= 0 ||
-                   item.desc.toLowerCase().indexOf(query) >= 0;
+                   item.desc.toLowerCase().indexOf(query) >= 0 ||
+                   (item.category && item.category.toLowerCase().indexOf(query) >= 0);
         });
     }
 
@@ -1524,7 +1583,7 @@ const ToolboxCommandPalette = (function() {
         }
         list.innerHTML = items.map(function(item, i) {
             var sel = i === selectedIndex ? ' selected' : '';
-            var typeLabel = item.type === 'cmd' ? '命令' : '工具';
+            var typeLabel = item.type === 'cmd' ? '命令' : (item.type === 'action' ? '当前页' : '工具');
             return '<div class="tb-cp-item' + sel + '" data-idx="' + i + '">' +
                 '<div class="tb-cp-item-icon">' + item.icon + '</div>' +
                 '<div class="tb-cp-item-text">' +

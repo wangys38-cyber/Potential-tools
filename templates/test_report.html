@@ -824,6 +824,7 @@
         /* User provider badge */
         [data-theme="dark"] .user-bar .user-provider { background: rgba(255,255,255,0.06) !important; }
     </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
     <div class="container">
@@ -1846,5 +1847,6 @@
     <!-- 阻止 components.js 自动注入导航栏（本页已有自带 header 和 user-bar） -->
     <div id="tb-nav-bar" style="display:none"></div>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

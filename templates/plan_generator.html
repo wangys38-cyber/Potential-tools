@@ -615,6 +615,7 @@
         [data-theme="dark"] .timeline-node.milestone .timeline-card { background: rgba(255, 149, 0, 0.08); }
         [data-theme="dark"] .plan-table td[style*="#999"] { color: var(--text-tertiary) !important; }
     </style>
+<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
     <div class="header">
@@ -973,8 +974,44 @@
         }
 
         document.getElementById('firstNode').valueAsDate = new Date();
+
+        // ==================== v5.0 工具间流转：接收会议纪要待办 ====================
+        (function checkPlanTransfer() {
+            try {
+                var raw = sessionStorage.getItem('v5_plan_transfer');
+                if (!raw) return;
+                var data = JSON.parse(raw);
+                if (data.source !== 'meeting-minutes') return;
+                sessionStorage.removeItem('v5_plan_transfer');
+
+                // 显示流转提示横幅
+                var banner = document.createElement('div');
+                banner.style.cssText = 'margin:0 0 16px;padding:14px 18px;border-radius:12px;' +
+                    'background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(99,102,241,0.1));' +
+                    'border:1px solid rgba(124,58,237,0.2);display:flex;align-items:flex-start;gap:12px;';
+                var todosHtml = (data.todos || '').substring(0, 500).replace(/\n/g, '<br>');
+                banner.innerHTML =
+                    '<div style="font-size:24px;">📅</div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">来自会议纪要：' + (data.title || '未命名会议') + '</div>' +
+                        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">已提取待办事项，可作为计划参考</div>' +
+                        '<div style="font-size:12px;line-height:1.6;max-height:80px;overflow-y:auto;">' + todosHtml + '</div>' +
+                        '<div style="margin-top:8px;display:flex;gap:8px;">' +
+                            '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">关闭</button>' +
+                        '</div>' +
+                    '</div>';
+                var formSection = document.querySelector('.form-section, .input-group')?.closest('div[class*="section"]') || document.querySelector('.container > div:first-child');
+                if (formSection && formSection.parentNode) {
+                    formSection.parentNode.insertBefore(banner, formSection);
+                } else {
+                    document.querySelector('.container').insertBefore(banner, document.querySelector('.container').firstChild);
+                }
+                showToast('📋 已从会议纪要导入待办事项', 'info');
+            } catch(e) { console.warn('Plan transfer error:', e); }
+        })();
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
