@@ -67,7 +67,8 @@ body::before {
 }
 
 /* ===== 侧边栏 — 深色玻璃 ===== */
-body .sidebar {
+html html body .sidebar {
+  display: flex !important;
   width: 260px !important;
   flex-shrink: 0 !important;
   background: rgba(15, 15, 35, 0.72) !important;
@@ -82,19 +83,19 @@ body .sidebar {
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
 }
 
-body .sidebar::-webkit-scrollbar {
+html body .sidebar::-webkit-scrollbar {
   width: 4px !important;
 }
-body .sidebar::-webkit-scrollbar-thumb {
+html body .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Logo */
-body .sidebar .logo {
+html body .sidebar .logo {
   padding: 0 8px 24px !important;
 }
 
-body .sidebar .logo-icon {
+html body .sidebar .logo-icon {
   width: 42px !important;
   height: 42px !important;
   border-radius: 12px !important;
@@ -103,19 +104,19 @@ body .sidebar .logo-icon {
   font-size: 20px !important;
 }
 
-body .sidebar .logo-text {
+html body .sidebar .logo-text {
   font-size: 18px !important;
   font-weight: 800 !important;
   color: #ffffff !important;
 }
 
-body .sidebar .logo-sub {
+html body .sidebar .logo-sub {
   font-size: 11px !important;
   color: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* 新建按钮 */
-body .sidebar .new-btn {
+html body .sidebar .new-btn {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -134,22 +135,22 @@ body .sidebar .new-btn {
   cursor: pointer !important;
 }
 
-body .sidebar .new-btn:hover {
+html body .sidebar .new-btn:hover {
   background: linear-gradient(135deg, #5a6fd6, #6a3d8f) !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55) !important;
 }
 
-body .sidebar .new-btn:active {
+html body .sidebar .new-btn:active {
   transform: translateY(0) !important;
 }
 
 /* 导航 */
-body .sidebar .nav-section {
+html body .sidebar .nav-section {
   margin-bottom: 24px !important;
 }
 
-body .sidebar .nav-label {
+html body .sidebar .nav-label {
   font-size: 10px !important;
   font-weight: 700 !important;
   color: rgba(255, 255, 255, 0.35) !important;
@@ -159,7 +160,7 @@ body .sidebar .nav-label {
   margin-bottom: 8px !important;
 }
 
-body .sidebar .nav-item {
+html body .sidebar .nav-item {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
@@ -176,31 +177,31 @@ body .sidebar .nav-item {
   cursor: pointer !important;
 }
 
-body .sidebar .nav-item:hover {
+html body .sidebar .nav-item:hover {
   background: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
   transform: translateX(3px) !important;
 }
 
-body .sidebar .nav-item.active {
+html body .sidebar .nav-item.active {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.4), rgba(118, 75, 162, 0.4)) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3) !important;
 }
 
-body .sidebar .nav-item svg {
+html body .sidebar .nav-item svg {
   width: 17px !important;
   height: 17px !important;
   flex-shrink: 0 !important;
   opacity: 0.8 !important;
 }
 
-body .sidebar .nav-item.active svg {
+html body .sidebar .nav-item.active svg {
   opacity: 1 !important;
 }
 
-body .sidebar .nav-count {
+html body .sidebar .nav-count {
   margin-left: auto !important;
   font-size: 11px !important;
   color: rgba(255, 255, 255, 0.5) !important;
@@ -211,7 +212,7 @@ body .sidebar .nav-count {
 }
 
 /* 侧边栏底部 */
-body .sidebar .sidebar-footer {
+html body .sidebar .sidebar-footer {
   margin-top: auto !important;
   padding-top: 16px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -220,7 +221,7 @@ body .sidebar .sidebar-footer {
   gap: 6px !important;
 }
 
-body .sidebar .view-toggle {
+html body .sidebar .view-toggle {
   display: flex !important;
   gap: 2px !important;
   background: rgba(255, 255, 255, 0.06) !important;
@@ -228,7 +229,7 @@ body .sidebar .view-toggle {
   padding: 4px !important;
 }
 
-body .sidebar .view-toggle button {
+html body .sidebar .view-toggle button {
   width: 32px !important;
   height: 28px !important;
   border-radius: 7px !important;
@@ -242,18 +243,18 @@ body .sidebar .view-toggle button {
   cursor: pointer !important;
 }
 
-body .sidebar .view-toggle button.active {
+html body .sidebar .view-toggle button.active {
   background: rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-body .sidebar .view-toggle svg {
+html body .sidebar .view-toggle svg {
   width: 16px !important;
   height: 16px !important;
 }
 
-body .sidebar .settings-btn {
+html body .sidebar .settings-btn {
   width: 32px !important;
   height: 28px !important;
   border-radius: 7px !important;
@@ -268,18 +269,18 @@ body .sidebar .settings-btn {
   cursor: pointer !important;
 }
 
-body .sidebar .settings-btn:hover {
+html body .sidebar .settings-btn:hover {
   background: rgba(255, 255, 255, 0.1) !important;
   color: #ffffff !important;
 }
 
-body .sidebar .settings-btn svg {
+html body .sidebar .settings-btn svg {
   width: 16px !important;
   height: 16px !important;
   transition: transform 0.3s !important;
 }
 
-body .sidebar .settings-btn:hover svg {
+html body .sidebar .settings-btn:hover svg {
   transform: rotate(45deg) !important;
 }
 
@@ -574,12 +575,13 @@ body .note-card:nth-child(6), body .note-item:nth-child(6) { animation-delay: 0.
   body .app {
     flex-direction: column !important;
   }
-  body .sidebar {
+  html body .sidebar {
+    display: flex !important;
     width: 100% !important;
     height: auto !important;
     position: relative !important;
     padding: 16px !important;
-    background: rgba(15, 15, 35, 0.85) !important;
+    background: rgba(15, 15, 35, 0.92) !important;
   }
   body .main {
     padding: 16px !important;
