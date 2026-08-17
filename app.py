@@ -20,6 +20,8 @@ import auth
 import db
 import ai_utils
 import feishu_push
+import report_builders
+from report_builders import _analyze_sheet_detail, _build_cr_analysis_report_html, _build_test_report_pdf_html
 from routes.pages import create_pages_blueprint
 
 # 性能优化：Whingoise直接服务静态文件，Flask-Compress启用gzip
