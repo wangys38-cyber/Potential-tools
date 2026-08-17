@@ -174,6 +174,37 @@
             <div class="tag-list" id="blockerTags"></div>
         </div>
 
+        <!-- 自动化设置 -->
+        <div class="panel">
+            <div class="panel-title" style="cursor:pointer;" onclick="toggleSettings()">
+                ⚙️ 自动化设置
+                <span class="badge" id="autoStatus">未配置</span>
+                <span style="margin-left:auto;font-size:12px;" id="settingsToggle">▼</span>
+            </div>
+            <div id="settingsPanel" style="display:none;margin-top:12px;">
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">保存后，页面加载时自动拉取Jira数据并生成站会</div>
+                <div class="input-row">
+                    <input type="text" id="cfgJiraUrl" placeholder="Jira筛选器URL 或 JQL（每日自动拉取昨日已解决）">
+                </div>
+                <div class="input-row">
+                    <input type="text" id="cfgFeishuWebhook" placeholder="飞书Webhook URL（可选，自动推送用）">
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;margin:8px 0;font-size:13px;">
+                    <label><input type="checkbox" id="cfgAutoFetch"> 页面加载时自动拉取Jira</label>
+                    <label><input type="checkbox" id="cfgAutoGenerate"> 拉取后自动生成站会文本</label>
+                    <label><input type="checkbox" id="cfgAutoPush"> 生成后自动推送到飞书</label>
+                </div>
+                <div class="input-row">
+                    <input type="time" id="cfgReminderTime" value="09:30" style="flex:0 0 120px;">
+                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cfgReminder"> 每日提醒写站会</label>
+                </div>
+                <div class="btn-group">
+                    <button class="action-btn primary" onclick="saveSettings()">💾 保存设置</button>
+                    <button class="action-btn ghost" onclick="clearSettings()">🗑️ 清除</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 生成按钮 -->
         <div class="panel" style="text-align:center;">
             <button class="action-btn primary" style="padding:12px 32px;font-size:15px;" onclick="generateStandup()" id="generateBtn">
@@ -181,6 +212,9 @@
             </button>
             <button class="action-btn ghost" style="padding:12px 20px;font-size:14px;margin-left:8px;" onclick="aiGenerateStandup()" id="aiBtn">
                 🤖 AI润色
+            </button>
+            <button class="action-btn success" style="padding:12px 24px;font-size:14px;margin-left:8px;" onclick="fullAuto()" id="autoBtn">
+                🚀 一键全自动
             </button>
         </div>
 
@@ -439,11 +473,165 @@
             console.log(msg);
         }
 
+        // ==================== 自动化设置 ====================
+        const CFG_KEY = 'standup_auto_config';
+        let autoConfig = {};
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            const toggle = document.getElementById('settingsToggle');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                toggle.textContent = '▲';
+            } else {
+                panel.style.display = 'none';
+                toggle.textContent = '▼';
+            }
+        }
+
+        function saveSettings() {
+            autoConfig = {
+                jiraUrl: document.getElementById('cfgJiraUrl').value.trim(),
+                feishuWebhook: document.getElementById('cfgFeishuWebhook').value.trim(),
+                autoFetch: document.getElementById('cfgAutoFetch').checked,
+                autoGenerate: document.getElementById('cfgAutoGenerate').checked,
+                autoPush: document.getElementById('cfgAutoPush').checked,
+                reminder: document.getElementById('cfgReminder').checked,
+                reminderTime: document.getElementById('cfgReminderTime').value,
+            };
+            localStorage.setItem(CFG_KEY, JSON.stringify(autoConfig));
+            updateAutoStatus();
+            if (autoConfig.reminder) setupReminder();
+            showToast('自动化设置已保存', 'success');
+        }
+
+        function loadSettings() {
+            try {
+                autoConfig = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+            } catch(e) { autoConfig = {}; }
+            document.getElementById('cfgJiraUrl').value = autoConfig.jiraUrl || '';
+            document.getElementById('cfgFeishuWebhook').value = autoConfig.feishuWebhook || '';
+            document.getElementById('cfgAutoFetch').checked = !!autoConfig.autoFetch;
+            document.getElementById('cfgAutoGenerate').checked = !!autoConfig.autoGenerate;
+            document.getElementById('cfgAutoPush').checked = !!autoConfig.autoPush;
+            document.getElementById('cfgReminder').checked = !!autoConfig.reminder;
+            document.getElementById('cfgReminderTime').value = autoConfig.reminderTime || '09:30';
+            updateAutoStatus();
+        }
+
+        function clearSettings() {
+            localStorage.removeItem(CFG_KEY);
+            autoConfig = {};
+            document.getElementById('cfgJiraUrl').value = '';
+            document.getElementById('cfgFeishuWebhook').value = '';
+            document.getElementById('cfgAutoFetch').checked = false;
+            document.getElementById('cfgAutoGenerate').checked = false;
+            document.getElementById('cfgAutoPush').checked = false;
+            document.getElementById('cfgReminder').checked = false;
+            updateAutoStatus();
+            showToast('设置已清除', 'success');
+        }
+
+        function updateAutoStatus() {
+            const status = document.getElementById('autoStatus');
+            const features = [];
+            if (autoConfig.autoFetch) features.push('自动拉取');
+            if (autoConfig.autoGenerate) features.push('自动生成');
+            if (autoConfig.autoPush) features.push('自动推送');
+            if (autoConfig.reminder) features.push('提醒');
+            status.textContent = features.length > 0 ? features.join('+') : '未配置';
+            status.style.background = features.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(102,126,234,0.1)';
+            status.style.color = features.length > 0 ? '#10b981' : '#667eea';
+        }
+
+        // 一键全自动：拉取Jira → 生成 → 推送飞书
+        async function fullAuto() {
+            const btn = document.getElementById('autoBtn');
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            try {
+                // 1. 拉取Jira
+                if (autoConfig.jiraUrl || document.getElementById('jiraUrl').value) {
+                    btn.textContent = '🔗 拉取Jira中...';
+                    const url = document.getElementById('jiraUrl').value.trim() || autoConfig.jiraUrl;
+                    if (url) {
+                        document.getElementById('jiraUrl').value = url;
+                        await importFromJira();
+                    }
+                }
+
+                // 2. 生成站会文本
+                btn.textContent = '✨ 生成中...';
+                generateStandup();
+                await new Promise(r => setTimeout(r, 500));
+
+                // 3. 自动推送飞书
+                if (autoConfig.autoPush || autoConfig.feishuWebhook) {
+                    btn.textContent = '📨 推送飞书中...';
+                    await pushToFeishu();
+                }
+
+                // 4. 保存历史
+                saveStandup();
+                showToast('🎉 全自动完成！站会已生成并推送', 'success');
+            } catch(e) {
+                showToast('全自动执行失败: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // 每日提醒
+        let reminderTimer = null;
+        function setupReminder() {
+            if (!autoConfig.reminder || !autoConfig.reminderTime) return;
+            if (reminderTimer) clearInterval(reminderTimer);
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            reminderTimer = setInterval(() => {
+                const now = new Date();
+                const [h, m] = autoConfig.reminderTime.split(':').map(Number);
+                if (now.getHours() === h && now.getMinutes() === m && now.getSeconds() < 5) {
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('🗓️ 每日站会提醒', {
+                            body: '该写今天的站会了！点击打开站会助手',
+                            icon: '/static/favicon.ico'
+                        });
+                    }
+                    showToast('🗓️ 站会提醒：该写今天的站会了！', 'info');
+                }
+            }, 30000);
+        }
+
+        // 页面加载时自动执行
+        async function autoRunOnLoad() {
+            loadSettings();
+            if (autoConfig.autoFetch && autoConfig.jiraUrl) {
+                showToast('🔗 正在自动拉取Jira数据...', 'info');
+                document.getElementById('jiraUrl').value = autoConfig.jiraUrl;
+                try {
+                    await importFromJira();
+                    if (autoConfig.autoGenerate) {
+                        generateStandup();
+                        if (autoConfig.autoPush) {
+                            setTimeout(() => pushToFeishu(), 1000);
+                        }
+                    }
+                } catch(e) {
+                    showToast('自动拉取失败: ' + e.message, 'warning');
+                }
+            }
+            if (autoConfig.reminder) setupReminder();
+        }
+
         // 初始化
         renderTags('yesterday');
         renderTags('today');
         renderTags('blocker');
         renderHistory();
+        autoRunOnLoad();
     </script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
