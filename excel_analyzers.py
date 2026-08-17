@@ -3,6 +3,7 @@ import re
 import time
 import gc
 import logging
+from date_utils import normalize_date
 
 logger = logging.getLogger(__name__)
 
