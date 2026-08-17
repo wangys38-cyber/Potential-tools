@@ -1038,6 +1038,7 @@ tbody tr:nth-child(even) {{ background: #f8fafc; }}
 
 def _analyze_sheet_detail(file_path, sheet_name, return_debug=False, progress_cb=None):
     """分析单个Sheet的详细内容"""
+    from app import ExcelReader  # 延迟导入避免循环引用
     import os as _os
     file_size = _os.path.getsize(file_path) if _os.path.exists(file_path) else 0
     use_fast = file_size > 10 * 1024 * 1024

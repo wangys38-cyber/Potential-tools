@@ -17,6 +17,7 @@ def _log_mem(label):
 
 def _analyze_issue_sheet(file_path, sheet_name):
     """分析问题列表Sheet，返回前端期望的数据格式"""
+    from app import ExcelReader  # 延迟导入避免循环引用
     _log_mem("分析开始：读取Excel")
     t0 = time.time()
     reader = ExcelReader(file_path)
@@ -616,8 +617,8 @@ def _detect_issue_columns(headers):
     headers_lower = [str(h).lower().strip() for h in headers]
 
     for i, h in enumerate(headers_lower):
-        # 问题编号 - 精确匹配 "key"（排除 "issue key", "edart key" 等）
-        if h == 'key':
+        # 问题编号 - 匹配 "key" 或 "issue key"（Jira 导出标准列名）
+        if h == 'key' or h == 'issue key':
             col_map['id'] = i
         elif any(kw in h for kw in ['title', 'summary', '标题', '描述']):
             col_map['title'] = i
