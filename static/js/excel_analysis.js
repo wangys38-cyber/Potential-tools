@@ -78,8 +78,8 @@ function showToast(msg, type) {
         });
 
         function onFileSelected(file) {
-            if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
-                showError('只支持 .xlsx 或 .xls 格式的Excel文件');
+            if (!file.name.toLowerCase().match(/\.(xlsx|xls|csv)$/)) {
+                showError('只支持 .xlsx、.xls 或 .csv 格式的文件');
                 return;
             }
 

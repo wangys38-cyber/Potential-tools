@@ -312,17 +312,35 @@ except ImportError as e:
 from date_utils import normalize_date
 
 class ExcelReader:
-    """统一的 Excel 读取器，支持 .xls 和 .xlsx 格式，以及 HTML 格式的 Excel 文件"""
+    """统一的 Excel 读取器，支持 .xls、.xlsx、.csv 格式，以及 HTML 格式的 Excel 文件"""
     
     def __init__(self, file_path):
         self.file_path = file_path
         self.ext = os.path.splitext(file_path)[1].lower()
         self._wb = None
         self._is_xls = self.ext == '.xls'
+        self._is_csv = self.ext == '.csv'
         self._is_html = False
         self._read_only = False
+        self._csv_data = None  # CSV 数据缓存
         
     def open(self):
+        # CSV 格式：用 pandas 读取（自动检测编码）
+        if self._is_csv:
+            import pandas as pd
+            # 尝试多种编码
+            for encoding in ['utf-8', 'utf-8-sig', 'gbk', 'gb2312', 'latin1']:
+                try:
+                    df = pd.read_csv(self.file_path, encoding=encoding, dtype=str, keep_default_na=False)
+                    self._csv_data = df
+                    return self
+                except (UnicodeDecodeError, Exception):
+                    continue
+            # 全部失败，用 latin1 兜底
+            df = pd.read_csv(self.file_path, encoding='latin1', dtype=str, keep_default_na=False)
+            self._csv_data = df
+            return self
+
         # 检测是否是 HTML 格式的假 Excel 文件
         if self._is_xls:
             with open(self.file_path, 'rb') as f:
@@ -347,11 +365,16 @@ class ExcelReader:
         return self
     
     def close(self):
+        if self._is_csv:
+            self._csv_data = None
+            return
         if self._wb and not self._is_xls and not self._is_html:
             self._wb.close()
     
     @property
     def sheetnames(self):
+        if self._is_csv:
+            return ['Sheet1']
         if self._is_html:
             return ['Sheet1']  # HTML 格式默认返回一个 sheet
         if self._is_xls:
@@ -360,6 +383,17 @@ class ExcelReader:
     
     def get_sheet_data(self, sheet_name):
         """获取指定 sheet 的所有行数据，返回 list of lists"""
+        if self._is_csv:
+            if self._csv_data is None:
+                self.open()
+            df = self._csv_data
+            # 表头 + 数据行
+            headers = [str(h).strip() for h in df.columns.tolist()]
+            rows = [headers]
+            for _, row in df.iterrows():
+                rows.append([str(v).strip() if v is not None else '' for v in row.tolist()])
+            return rows
+
         if self._is_html:
             return self._parse_html_excel()
         
@@ -2343,10 +2377,10 @@ def api_test_report_upload():
 
     filename_lower = file.filename.lower()
     if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
-        return jsonify({'error': '只支持Excel文件(.xlsx, .xls)'}), 400
+        return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     orig_ext = os.path.splitext(file.filename)[1].lower()
-    if orig_ext not in ('.xlsx', '.xls'):
+    if orig_ext not in ('.xlsx', '.xls', '.csv'):
         orig_ext = '.xlsx'
 
     try:
@@ -2392,7 +2426,7 @@ def api_test_report_analyze_sheet():
         return jsonify({'error': '缺少sheet_name'}), 400
 
     file_path = None
-    for ext in ['.xlsx', '.xls']:
+    for ext in ['.xlsx', '.xls', '.csv']:
         candidate = os.path.join(app.config['UPLOAD_FOLDER'], f"test_report_{file_id}{ext}")
         if os.path.exists(candidate):
             file_path = candidate
@@ -2459,7 +2493,7 @@ def api_test_report_debug():
         return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
-    for ext in ['.xlsx', '.xls']:
+    for ext in ['.xlsx', '.xls', '.csv']:
         candidate = os.path.join(app.config['UPLOAD_FOLDER'], f"test_report_{file_id}{ext}")
         if os.path.exists(candidate):
             file_path = candidate
@@ -3301,10 +3335,10 @@ def api_upload_init():
 
     filename_lower = filename.lower()
     if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
-        return jsonify({'error': '只支持Excel文件(.xlsx, .xls)'}), 400
+        return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     orig_ext = os.path.splitext(filename)[1].lower()
-    if orig_ext not in ('.xlsx', '.xls'):
+    if orig_ext not in ('.xlsx', '.xls', '.csv'):
         orig_ext = '.xlsx'
 
     upload_id = secrets.token_hex(8)  # 16位不可预测的随机ID
@@ -3486,7 +3520,7 @@ def api_excel_analyze():
 
     filename_lower = file.filename.lower()
     if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
-        return jsonify({'error': '只支持Excel文件(.xlsx, .xls)'}), 400
+        return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     # 检查文件大小（云平台内存有限）
     file.seek(0, 2)
@@ -3496,7 +3530,7 @@ def api_excel_analyze():
         return jsonify({'error': f'文件过大({file_size // 1024 // 1024}MB)，云端最大支持200MB。超大文件建议使用分片上传或本地部署'}), 413
 
     orig_ext = os.path.splitext(file.filename)[1].lower()
-    if orig_ext not in ('.xlsx', '.xls'):
+    if orig_ext not in ('.xlsx', '.xls', '.csv'):
         orig_ext = '.xlsx'
 
     try:
@@ -3588,7 +3622,7 @@ def api_excel_analyze_fields():
         return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
-    for ext in ['.xlsx', '.xls']:
+    for ext in ['.xlsx', '.xls', '.csv']:
         candidate = os.path.join(app.config['UPLOAD_FOLDER'], f"excel_{file_id}{ext}")
         if os.path.exists(candidate):
             file_path = candidate
@@ -3769,7 +3803,7 @@ def api_excel_analyze_sheet():
         return jsonify({'error': '无效的文件ID'}), 400
 
     file_path = None
-    for ext in ['.xlsx', '.xls']:
+    for ext in ['.xlsx', '.xls', '.csv']:
         candidate = os.path.join(app.config['UPLOAD_FOLDER'], f"excel_{file_id}{ext}")
         if os.path.exists(candidate):
             file_path = candidate
@@ -4175,7 +4209,7 @@ def api_excel_parse():
 
     filename_lower = file.filename.lower()
     if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
-        return jsonify({'error': '只支持Excel文件(.xlsx, .xls)'}), 400
+        return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     try:
         file_id = hashlib.md5(f"{time.time()}_{file.filename}".encode()).hexdigest()[:16]
