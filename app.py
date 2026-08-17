@@ -2376,7 +2376,7 @@ def api_test_report_upload():
         return jsonify({'error': '请选择文件'}), 400
 
     filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
+    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls') or filename_lower.endswith('.csv')):
         return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     orig_ext = os.path.splitext(file.filename)[1].lower()
@@ -3334,7 +3334,7 @@ def api_upload_init():
         return jsonify({'error': '缺少必要参数: filename, total_chunks'}), 400
 
     filename_lower = filename.lower()
-    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
+    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls') or filename_lower.endswith('.csv')):
         return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     orig_ext = os.path.splitext(filename)[1].lower()
@@ -3519,7 +3519,7 @@ def api_excel_analyze():
         return jsonify({'error': '请选择文件'}), 400
 
     filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
+    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls') or filename_lower.endswith('.csv')):
         return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     # 检查文件大小（云平台内存有限）
@@ -4208,7 +4208,7 @@ def api_excel_parse():
         return jsonify({'error': '请选择文件'}), 400
 
     filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls')):
+    if not (filename_lower.endswith('.xlsx') or filename_lower.endswith('.xls') or filename_lower.endswith('.csv')):
         return jsonify({'error': '只支持Excel/CSV文件(.xlsx, .xls, .csv)'}), 400
 
     try:
