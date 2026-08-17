@@ -327,8 +327,8 @@
             <div class="section-header">
                 <span class="section-icon">📨</span>
                 <div>
-                    <div class="section-title">飞书推送</div>
-                    <div class="section-desc">配置飞书群机器人 Webhook，一键推送周报、会议纪要等到飞书群</div>
+                    <div class="section-title">飞书推送 <span id="feishuConfigStatus" style="font-size:12px;font-weight:400;margin-left:8px;"></span></div>
+                    <div class="section-desc">配置飞书群机器人 Webhook，一键推送周报、会议纪要、CR分析等到飞书群（随账号保存，换设备自动同步）</div>
                 </div>
             </div>
 
@@ -708,6 +708,15 @@
                 if (data.status === 'success') {
                     document.getElementById('feishuWebhook').value = data.webhook || '';
                     document.getElementById('feishuSecret').value = data.secret || '';
+                    // 显示配置状态
+                    const statusEl = document.getElementById('feishuConfigStatus');
+                    if (statusEl) {
+                        if (data.webhook) {
+                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置</span>';
+                        } else {
+                            statusEl.innerHTML = '<span style="color:#f59e0b;">○ 未配置</span>';
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('加载飞书配置失败:', e);
@@ -725,7 +734,16 @@
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    showToast('飞书配置已保存');
+                    showToast('飞书配置已保存（随账号同步）');
+                    // 更新配置状态
+                    const statusEl = document.getElementById('feishuConfigStatus');
+                    if (statusEl) {
+                        if (webhook) {
+                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置</span>';
+                        } else {
+                            statusEl.innerHTML = '<span style="color:#f59e0b;">○ 未配置</span>';
+                        }
+                    }
                 } else {
                     showToast(data.error || '保存失败');
                 }

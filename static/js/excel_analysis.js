@@ -552,6 +552,12 @@ function showToast(msg, type) {
             const d = currentAnalysisData;
             const s = d.summary || {};
 
+            // 显示推送按钮和文件名
+            const pushBtn = document.getElementById('pushFeishuBtn');
+            if (pushBtn) pushBtn.style.display = 'inline-block';
+            const fileNameEl = document.getElementById('reportFileName');
+            if (fileNameEl) fileNameEl.textContent = d.file_name ? `— ${d.file_name}` : '';
+
             document.getElementById('summaryGrid').innerHTML = `
                 <div class="summary-card">
                     <div class="num">${s.total_issues || 0}</div>
@@ -1493,4 +1499,102 @@ function showToast(msg, type) {
                     </div>
                 </div>
             `;
+        }
+
+        // ===== 推送到飞书 =====
+        async function pushToFeishu() {
+            if (!currentAnalysisData) {
+                alert('请先分析文件');
+                return;
+            }
+
+            const btn = document.getElementById('pushFeishuBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ 推送中...';
+            btn.disabled = true;
+
+            try {
+                const d = currentAnalysisData;
+                const s = d.summary || {};
+                const fileName = d.file_name || 'CR分析报告';
+
+                // 构建 Markdown 内容
+                let md = `**📊 CR 分析报告**\n\n`;
+                md += `📁 文件：${fileName}\n\n`;
+
+                // 总览
+                md += `**📈 总览**\n`;
+                md += `- 问题总数：${s.total_issues || 0}\n`;
+                md += `- 已解决：${s.total_resolved || 0}\n`;
+                md += `- 未解决：${s.total_unresolved || 0}\n`;
+                md += `- 解决率：${s.resolution_rate || 0}%\n\n`;
+
+                // Severity 分布
+                if (s.blocker_total !== undefined || s.critical_total !== undefined) {
+                    md += `**⚠️ Severity 分布**\n`;
+                    if (s.blocker_total !== undefined) md += `- 🔴 Blocker：${s.blocker_total} (${s.blocker_rate || 0}%)\n`;
+                    if (s.critical_total !== undefined) md += `- 🟠 Critical：${s.critical_total} (${s.critical_rate || 0}%)\n`;
+                    if (s.major_total !== undefined) md += `- 🟡 Major：${s.major_total} (${s.major_rate || 0}%)\n`;
+                    if (s.minor_total !== undefined) md += `- 🔵 Minor：${s.minor_total} (${s.minor_rate || 0}%)\n`;
+                    if (s.trivial_total !== undefined) md += `- ⚪ Trivial：${s.trivial_total} (${s.trivial_rate || 0}%)\n`;
+                    if (s.blocker_critical_rate !== undefined) md += `- B+C 解决率：${s.blocker_critical_rate}% (${s.blocker_critical_total || 0})\n`;
+                    md += `\n`;
+                }
+
+                // 模块统计 TOP 5
+                const moduleStats = d.module_stats || {};
+                const topModules = Object.entries(moduleStats)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .slice(0, 5);
+                if (topModules.length > 0) {
+                    md += `**📦 模块分布 TOP5**\n`;
+                    topModules.forEach(([mod, stats], i) => {
+                        const rate = stats.total > 0 ? (stats.resolved / stats.total * 100).toFixed(1) : 0;
+                        md += `${i + 1}. ${mod}：${stats.total}个（已解决${stats.resolved}，解决率${rate}%）\n`;
+                    });
+                    md += `\n`;
+                }
+
+                // 智能分析建议
+                const suggestions = d.suggestions || d.analysis_suggestions || [];
+                if (suggestions.length > 0) {
+                    md += `**💡 智能分析建议**\n`;
+                    suggestions.slice(0, 5).forEach((item, i) => {
+                        const text = typeof item === 'string' ? item : (item.text || item.suggestion || JSON.stringify(item));
+                        md += `${i + 1}. ${text}\n`;
+                    });
+                }
+
+                // 调用飞书推送 API
+                const resp = await fetch('/api/feishu/push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'card',
+                        title: `📊 CR分析报告 - ${fileName}`,
+                        content: md,
+                        url: window.location.href
+                    })
+                });
+
+                const result = await resp.json();
+
+                if (result.status === 'success') {
+                    btn.innerHTML = '✅ 推送成功';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || '推送失败');
+                }
+
+            } catch (err) {
+                btn.innerHTML = '❌ 推送失败';
+                alert(`推送失败：${err.message}`);
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            }
         }
