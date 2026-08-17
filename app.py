@@ -328,18 +328,74 @@ class ExcelReader:
         # CSV 格式：用 pandas 读取（自动检测编码）
         if self._is_csv:
             import pandas as pd
-            # 尝试多种编码
-            for encoding in ['utf-8', 'utf-8-sig', 'gbk', 'gb2312', 'latin1']:
+            import csv as csv_module
+            # 自动检测分隔符
+            try:
+                with open(self.file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    sample = f.read(8192)
                 try:
-                    df = pd.read_csv(self.file_path, encoding=encoding, dtype=str, keep_default_na=False)
-                    self._csv_data = df
-                    return self
-                except (UnicodeDecodeError, Exception):
+                    dialect = csv_module.Sniffer().sniff(sample, delimiters=',;\t|')
+                    delimiter = dialect.delimiter
+                except csv_module.Error:
+                    delimiter = ','
+            except Exception:
+                delimiter = ','
+
+            # 尝试多种编码 + 自动检测的分隔符
+            for encoding in ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'latin1']:
+                try:
+                    df = pd.read_csv(
+                        self.file_path,
+                        encoding=encoding,
+                        dtype=str,
+                        keep_default_na=False,
+                        sep=delimiter,
+                        engine='python',
+                        on_bad_lines='skip'
+                    )
+                    if len(df.columns) > 1 or (len(df.columns) == 1 and delimiter != ','):
+                        self._csv_data = df
+                        return self
+                    # 如果只有1列且分隔符是逗号，可能是分隔符不对，尝试其他分隔符
+                    for alt_delim in [';', '\t', '|']:
+                        try:
+                            df2 = pd.read_csv(
+                                self.file_path,
+                                encoding=encoding,
+                                dtype=str,
+                                keep_default_na=False,
+                                sep=alt_delim,
+                                engine='python',
+                                on_bad_lines='skip'
+                            )
+                            if len(df2.columns) > 1:
+                                self._csv_data = df2
+                                return self
+                        except Exception:
+                            continue
+                except Exception:
                     continue
-            # 全部失败，用 latin1 兜底
-            df = pd.read_csv(self.file_path, encoding='latin1', dtype=str, keep_default_na=False)
-            self._csv_data = df
-            return self
+
+            # 全部失败，用 csv 模块兜底
+            try:
+                for encoding in ['utf-8-sig', 'utf-8', 'gbk', 'latin1']:
+                    try:
+                        rows = []
+                        with open(self.file_path, 'r', encoding=encoding, errors='replace', newline='') as f:
+                            reader = csv_module.reader(f)
+                            for row in reader:
+                                rows.append(row)
+                        if rows and len(rows) > 0:
+                            import pandas as pd
+                            df = pd.DataFrame(rows[1:], columns=rows[0]) if len(rows) > 1 else pd.DataFrame(columns=rows[0])
+                            self._csv_data = df
+                            return self
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
+            raise ValueError('无法解析CSV文件，请检查文件格式和编码')
 
         # 检测是否是 HTML 格式的假 Excel 文件
         if self._is_xls:
@@ -387,12 +443,20 @@ class ExcelReader:
             if self._csv_data is None:
                 self.open()
             df = self._csv_data
-            # 表头 + 数据行
-            headers = [str(h).strip() for h in df.columns.tolist()]
-            rows = [headers]
-            for _, row in df.iterrows():
-                rows.append([str(v).strip() if v is not None else '' for v in row.tolist()])
-            return rows
+            try:
+                # 表头 + 数据行（使用 values 提高性能）
+                headers = [str(h).strip() if h is not None else '' for h in df.columns.tolist()]
+                rows = [headers]
+                # 使用 itertuples 比 iterrows 更快
+                for row in df.itertuples(index=False, name=None):
+                    rows.append([str(v).strip() if v is not None else '' for v in row])
+                return rows
+            except Exception as e:
+                logger.warning(f"CSV get_sheet_data 失败，尝试备选方式: {e}")
+                # 备选：直接转 list
+                headers = [str(h) for h in df.columns.tolist()]
+                rows = [headers] + df.values.tolist()
+                return [[str(v).strip() if v is not None else '' for v in row] for row in rows]
 
         if self._is_html:
             return self._parse_html_excel()
