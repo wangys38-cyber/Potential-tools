@@ -638,6 +638,9 @@ a{color:var(--accent);text-decoration:none}
 
 <!-- Mobile Top Bar -->
 <div class="mobile-topbar">
+  <button class="mt-menu-btn" onclick="toggleSidebar()" title="菜单">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="mt-logo">
     <span class="mt-logo-icon">📝</span>
     <span>牛马笔记</span>
@@ -658,6 +661,8 @@ a{color:var(--accent);text-decoration:none}
 </button>
 
 <div class="app" id="app">
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="logo">
@@ -1625,6 +1630,16 @@ function setSort(key, label){
   render();
 }
 
+/* ===== Mobile Sidebar Toggle ===== */
+function toggleSidebar(){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar && overlay) {
+    sidebar.classList.toggle('sidebar-open');
+    overlay.classList.toggle('active');
+  }
+}
+
 /* ===== Settings ===== */
 function openSettings(){
   renderThemeGrid();
@@ -2181,18 +2196,32 @@ function deleteDoc(docId, title){
 </script>
 <script src="/static/js/components.js?v=20260814v10"></script>
 <style>
-/* v5.5 玻璃拟态最终覆盖（确保优先级高于动态加载的样式） */
+/* v6.0 深色玻璃拟态最终覆盖 */
 body { background: transparent !important; background-color: transparent !important; }
-html { background: #f0f2f8 !important; }
-.sidebar { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(24px) saturate(180%) !important; -webkit-backdrop-filter: blur(24px) saturate(180%) !important; }
-.main-header { background: rgba(255,255,255,0.55) !important; backdrop-filter: blur(24px) saturate(180%) !important; }
-.note-card, .note-item, .card { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(16px) saturate(160%) !important; border-radius: 14px !important; }
-.new-btn { background: linear-gradient(135deg,#7c3aed,#6366f1) !important; }
-.search-bar { background: rgba(255,255,255,0.65) !important; backdrop-filter: blur(12px) !important; }
-.logo-text { background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-.nav-item.active { background: linear-gradient(135deg,rgba(124,58,237,0.12),rgba(99,102,241,0.08)) !important; color:#7c3aed !important; box-shadow: inset 2px 0 0 #7c3aed; }
-[data-theme*="dark"] .sidebar, [data-theme*="dark"] .main-header, [data-theme*="dark"] .note-card { background: rgba(30,30,40,0.6) !important; }
-[data-theme*="dark"] html { background: #0f0f1a !important; }
+html { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; background-attachment: fixed !important; }
+.sidebar { background: rgba(15, 15, 35, 0.75) !important; backdrop-filter: blur(24px) saturate(180%) !important; -webkit-backdrop-filter: blur(24px) saturate(180%) !important; border-right: 1px solid rgba(255,255,255,0.08) !important; }
+.main-header { background: rgba(255, 255, 255, 0.85) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; border: 1px solid rgba(255,255,255,0.3) !important; border-radius: 16px !important; }
+.note-card, .note-item, .card { background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(12px) saturate(160%) !important; -webkit-backdrop-filter: blur(12px) saturate(160%) !important; border-radius: 16px !important; border: 1px solid rgba(255,255,255,0.35) !important; box-shadow: 0 4px 16px rgba(102,126,234,0.1) !important; transition: all 0.25s ease !important; }
+.note-card:hover, .note-item:hover { transform: translateY(-4px) !important; box-shadow: 0 12px 32px rgba(102,126,234,0.2) !important; border-color: rgba(102,126,234,0.4) !important; }
+.new-btn { background: linear-gradient(135deg,#667eea,#764ba2) !important; box-shadow: 0 4px 16px rgba(102,126,234,0.4) !important; }
+.search-bar { background: rgba(255, 255, 255, 0.6) !important; backdrop-filter: blur(12px) !important; border: 1px solid rgba(255,255,255,0.3) !important; }
+.logo-text { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: none !important; -webkit-background-clip: initial !important; background-clip: initial !important; }
+.logo-sub { color: rgba(255,255,255,0.5) !important; }
+.nav-label { color: rgba(255,255,255,0.35) !important; }
+.nav-item { color: rgba(255,255,255,0.75) !important; }
+.nav-item:hover { background: rgba(255,255,255,0.08) !important; color: #ffffff !important; }
+.nav-item.active { background: linear-gradient(135deg,rgba(102,126,234,0.4),rgba(118,75,162,0.4)) !important; color:#ffffff !important; box-shadow: 0 2px 12px rgba(102,126,234,0.3) !important; }
+.nav-count { color: rgba(255,255,255,0.5) !important; background: rgba(255,255,255,0.1) !important; }
+.sidebar-footer { border-top: 1px solid rgba(255,255,255,0.08) !important; }
+.view-toggle { background: rgba(255,255,255,0.06) !important; }
+.view-toggle button { color: rgba(255,255,255,0.5) !important; }
+.view-toggle button.active { background: rgba(255,255,255,0.15) !important; color: #ffffff !important; }
+.settings-btn { color: rgba(255,255,255,0.5) !important; }
+.settings-btn:hover { background: rgba(255,255,255,0.1) !important; color: #ffffff !important; }
+[data-theme*="dark"] .sidebar { background: rgba(15, 15, 35, 0.85) !important; }
+[data-theme*="dark"] html { background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%) !important; }
+[data-theme*="dark"] .note-card, [data-theme*="dark"] .note-item { background: rgba(30, 30, 55, 0.8) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+[data-theme*="dark"] .main-header { background: rgba(30, 30, 55, 0.8) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
 </style>
 </body>
 </html>

@@ -573,22 +573,69 @@ body .note-card:nth-child(6), body .note-item:nth-child(6) { animation-delay: 0.
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
   body .app {
-    flex-direction: column !important;
+    flex-direction: row !important;
   }
-  html body .sidebar {
+  html html body .sidebar {
     display: flex !important;
-    width: 100% !important;
-    height: auto !important;
-    position: relative !important;
-    padding: 16px !important;
-    background: rgba(15, 15, 35, 0.92) !important;
+    width: 280px !important;
+    height: 100vh !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 1000 !important;
+    padding: 20px 14px !important;
+    background: rgba(15, 15, 35, 0.95) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3) !important;
+  }
+  html html body .sidebar.sidebar-open {
+    transform: translateX(0) !important;
   }
   body .main {
     padding: 16px !important;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
   body .main-header {
     padding: 12px 16px !important;
     top: 0 !important;
     position: relative !important;
+  }
+  /* 侧边栏遮罩层 */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(4px);
+  }
+  .sidebar-overlay.active {
+    display: block;
+  }
+  /* 汉堡菜单按钮 */
+  .mt-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    color: #667eea;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .mt-menu-btn:active {
+    transform: scale(0.95);
+    background: rgba(102, 126, 234, 0.2);
+  }
+  .mt-menu-btn svg {
+    width: 20px;
+    height: 20px;
   }
 }
