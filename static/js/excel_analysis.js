@@ -263,7 +263,8 @@ function showToast(msg, type) {
             formData.append('file', file);
             const resp = await fetch('/api/excel-analyze', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: { 'X-Skip-Loading': 'true' }
             });
             const result = await resp.json();
             if (!resp.ok || result.status !== 'success') {
@@ -303,7 +304,7 @@ function showToast(msg, type) {
                     try {
                         const fieldsResp = await fetch('/api/excel-analyze-fields', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-Skip-Loading': 'true' },
                             body: JSON.stringify({ file_id: fileId, sheet_name: currentSheet })
                         });
                         const fieldsResult = await fieldsResp.json();
@@ -483,7 +484,7 @@ function showToast(msg, type) {
                 // 启动后台分析，轮询结果
                 const resp = await fetch('/api/excel-analyze-sheet', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Skip-Loading': 'true' },
                     body: JSON.stringify({ 
                         file_id: currentFileId, 
                         sheet_name: currentSheet 

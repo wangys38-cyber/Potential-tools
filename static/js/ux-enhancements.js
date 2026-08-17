@@ -125,8 +125,10 @@
         activeRequests++;
         const isAPI = typeof url === 'string' && url.startsWith('/api/');
         const isUpload = isAPI && (url.includes('upload') || url.includes('analyze') || url.includes('generate'));
+        // 支持通过 X-Skip-Loading header 跳过全局 loading（页面有自己的进度显示时使用）
+        const skipLoading = options && options.headers && options.headers['X-Skip-Loading'] === 'true';
 
-        if (isUpload && !loadingTimer) {
+        if (isUpload && !loadingTimer && !skipLoading) {
             loadingTimer = setTimeout(function() {
                 if (activeRequests > 0) showLoading('处理中...');
             }, 500);
