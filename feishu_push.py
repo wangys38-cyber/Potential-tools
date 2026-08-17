@@ -148,7 +148,7 @@ def send_feishu_card(webhook_url, title, markdown_content, header_color='blue', 
     elements = [
         {
             'tag': 'markdown',
-            'content': markdown_content[:3000]  # 飞书卡片内容长度限制
+            'content': markdown_content[:28000]  # 飞书卡片Markdown内容限制约30000字符，留余量
         }
     ]
     if link_url:

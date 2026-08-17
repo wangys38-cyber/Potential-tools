@@ -1560,8 +1560,23 @@ function showToast(msg, type) {
                 const suggestions = d.suggestions || d.analysis_suggestions || [];
                 if (suggestions.length > 0) {
                     md += `**💡 智能分析建议**\n`;
-                    suggestions.slice(0, 5).forEach((item, i) => {
-                        const text = typeof item === 'string' ? item : (item.text || item.suggestion || JSON.stringify(item));
+                    suggestions.slice(0, 10).forEach((item, i) => {
+                        let text;
+                        if (typeof item === 'string') {
+                            text = item;
+                        } else if (item.title && item.detail) {
+                            text = `${item.title}\n   ${item.detail}`;
+                        } else if (item.title) {
+                            text = item.title;
+                        } else if (item.detail) {
+                            text = item.detail;
+                        } else if (item.text) {
+                            text = item.text;
+                        } else if (item.suggestion) {
+                            text = item.suggestion;
+                        } else {
+                            text = JSON.stringify(item);
+                        }
                         md += `${i + 1}. ${text}\n`;
                     });
                 }
