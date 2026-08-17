@@ -1596,9 +1596,11 @@ def api_get_feishu():
     if not user:
         return jsonify({'status': 'error', 'error': '请先登录'}), 401
     webhook = db.get_feishu_webhook(user['id'])
+    secret = db.get_feishu_secret(user['id'])
     return jsonify({
         'status': 'success',
         'webhook': webhook,
+        'secret': secret,
         'configured': bool(webhook)
     })
 
@@ -1611,9 +1613,11 @@ def api_set_feishu():
         return jsonify({'status': 'error', 'error': '请先登录'}), 401
     data = request.get_json(silent=True) or {}
     webhook = (data.get('webhook') or '').strip()
+    secret = (data.get('secret') or '').strip()
     if webhook and not webhook.startswith('https://open.feishu.cn/open-apis/bot/v2/hook/'):
         return jsonify({'status': 'error', 'error': 'Webhook URL 格式不正确，应以 https://open.feishu.cn/open-apis/bot/v2/hook/ 开头'}), 400
     db.set_feishu_webhook(user['id'], webhook)
+    db.set_feishu_secret(user['id'], secret)
     return jsonify({'status': 'success', 'configured': bool(webhook)})
 
 
@@ -1624,9 +1628,10 @@ def api_feishu_test():
     if not user:
         return jsonify({'status': 'error', 'error': '请先登录'}), 401
     webhook = db.get_feishu_webhook(user['id'])
+    secret = db.get_feishu_secret(user['id'])
     if not webhook:
         return jsonify({'status': 'error', 'error': '请先配置飞书 Webhook'}), 400
-    result = feishu_push.send_feishu_text(webhook, '✅ 工具集 v5.0 飞书推送测试成功！')
+    result = feishu_push.send_feishu_text(webhook, '✅ 工具集 v5.0 飞书推送测试成功！', secret=secret)
     if result['ok']:
         return jsonify({'status': 'success', 'message': '测试消息已发送'})
     else:
@@ -1653,6 +1658,7 @@ def api_feishu_push():
     if not user:
         return jsonify({'status': 'error', 'error': '请先登录'}), 401
     webhook = db.get_feishu_webhook(user['id'])
+    secret = db.get_feishu_secret(user['id'])
     if not webhook:
         return jsonify({'status': 'error', 'error': '请先在设置中配置飞书 Webhook'}), 400
 
@@ -1664,17 +1670,18 @@ def api_feishu_push():
     try:
         if msg_type == 'text':
             content = data.get('content', '')
-            result = feishu_push.send_feishu_text(webhook, content)
+            result = feishu_push.send_feishu_text(webhook, content, secret=secret)
         elif msg_type == 'card':
             content = data.get('content', '')
-            result = feishu_push.send_feishu_card(webhook, title, content, header_color='purple', link_url=source_url)
+            result = feishu_push.send_feishu_card(webhook, title, content, header_color='purple', link_url=source_url, secret=secret)
         elif msg_type == 'weekly':
             result = feishu_push.send_weekly_report(
                 webhook, title,
                 summary=data.get('summary', ''),
                 highlights=data.get('highlights', ''),
                 plans=data.get('plans', ''),
-                source_url=source_url
+                source_url=source_url,
+                secret=secret
             )
         elif msg_type == 'meeting':
             result = feishu_push.send_meeting_minutes(
@@ -1682,7 +1689,8 @@ def api_feishu_push():
                 summary=data.get('summary', ''),
                 decisions=data.get('decisions', ''),
                 todos=data.get('todos', ''),
-                source_url=source_url
+                source_url=source_url,
+                secret=secret
             )
         else:
             return jsonify({'status': 'error', 'error': f'不支持的消息类型: {msg_type}'}), 400

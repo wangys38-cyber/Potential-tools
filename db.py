@@ -185,6 +185,12 @@ def init_db():
         except Exception:
             pass  # 列已存在
 
+        # v5.1: 添加 feishu_secret 列用于飞书签名校验
+        try:
+            conn.execute(text("ALTER TABLE user_preferences ADD COLUMN feishu_secret TEXT DEFAULT ''"))
+        except Exception:
+            pass  # 列已存在
+
         # ==================== 索引 ====================
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data ON user_data(user_id, data_type)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_uid)"))
@@ -830,6 +836,38 @@ def set_feishu_webhook(user_id, webhook_url):
             conn.execute(
                 text("INSERT INTO user_preferences (user_id, theme, language, accent_color, feishu_webhook, updated_at) VALUES (:user_id, 'auto', 'zh-CN', '', :feishu_webhook, :updated_at)"),
                 {'user_id': user_id, 'feishu_webhook': webhook_url, 'updated_at': now}
+            )
+
+
+def get_feishu_secret(user_id):
+    """读取用户飞书签名密钥"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT feishu_secret FROM user_preferences WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
+        if not row:
+            return ''
+        return row[0] or ''
+
+
+def set_feishu_secret(user_id, secret):
+    """保存用户飞书签名密钥"""
+    with engine.begin() as conn:
+        now = time.time()
+        row = conn.execute(
+            text("SELECT user_id FROM user_preferences WHERE user_id = :user_id"),
+            {'user_id': user_id}
+        ).fetchone()
+        if row:
+            conn.execute(
+                text("UPDATE user_preferences SET feishu_secret = :feishu_secret, updated_at = :updated_at WHERE user_id = :user_id"),
+                {'feishu_secret': secret, 'updated_at': now, 'user_id': user_id}
+            )
+        else:
+            conn.execute(
+                text("INSERT INTO user_preferences (user_id, theme, language, accent_color, feishu_secret, updated_at) VALUES (:user_id, 'auto', 'zh-CN', '', :feishu_secret, :updated_at)"),
+                {'user_id': user_id, 'feishu_secret': secret, 'updated_at': now}
             )
 
 

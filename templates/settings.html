@@ -338,6 +338,12 @@
                 <div class="form-hint">在飞书群设置 → 群机器人 → 添加自定义机器人，复制 Webhook 地址粘贴到此处</div>
             </div>
 
+            <div class="form-group">
+                <label class="form-label">签名密钥（可选）</label>
+                <input type="password" class="form-input" id="feishuSecret" placeholder="机器人开启了签名校验时填写">
+                <div class="form-hint">如果机器人开启了「签名校验」，请填写密钥。未开启则留空。</div>
+            </div>
+
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
                 <button class="btn btn-primary" onclick="saveFeishuConfig()">💾 保存配置</button>
                 <button class="btn btn-secondary" onclick="testFeishu()">🔌 发送测试消息</button>
@@ -701,6 +707,7 @@
                 const data = await resp.json();
                 if (data.status === 'success') {
                     document.getElementById('feishuWebhook').value = data.webhook || '';
+                    document.getElementById('feishuSecret').value = data.secret || '';
                 }
             } catch (e) {
                 console.error('加载飞书配置失败:', e);
@@ -709,11 +716,12 @@
 
         async function saveFeishuConfig() {
             const webhook = document.getElementById('feishuWebhook').value.trim();
+            const secret = document.getElementById('feishuSecret').value.trim();
             try {
                 const resp = await fetch('/api/settings/feishu', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({webhook})
+                    body: JSON.stringify({webhook, secret})
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {

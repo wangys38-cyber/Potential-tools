@@ -17,6 +17,10 @@
 
 import json
 import logging
+import time
+import hmac
+import hashlib
+import base64
 import requests
 
 logger = logging.getLogger(__name__)
@@ -46,11 +50,32 @@ def _validate_webhook(webhook_url):
     return True, ''
 
 
-def _post(webhook_url, payload, timeout=10):
+def _gen_sign(secret):
+    """
+    生成飞书机器人签名
+    算法：timestamp + "\n" + secret → HMAC-SHA256 → Base64
+    """
+    timestamp = str(int(time.time()))
+    string_to_sign = f"{timestamp}\n{secret}"
+    hmac_code = hmac.new(
+        string_to_sign.encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).digest()
+    sign = base64.b64encode(hmac_code).decode("utf-8")
+    return timestamp, sign
+
+
+def _post(webhook_url, payload, timeout=10, secret=None):
     """发送 POST 请求到飞书 Webhook"""
     valid, err = _validate_webhook(webhook_url)
     if not valid:
         return {'ok': False, 'error': err}
+
+    # 如果配置了签名密钥，添加 timestamp 和 sign
+    if secret:
+        timestamp, sign = _gen_sign(secret)
+        payload['timestamp'] = timestamp
+        payload['sign'] = sign
 
     try:
         resp = requests.post(
@@ -73,26 +98,27 @@ def _post(webhook_url, payload, timeout=10):
         return {'ok': False, 'error': f'未知错误: {e}'}
 
 
-def send_feishu_text(webhook_url, text):
+def send_feishu_text(webhook_url, text, secret=None):
     """
     发送纯文本消息
     :param webhook_url: 飞书机器人 Webhook URL
     :param text: 文本内容
+    :param secret: 可选，飞书机器人签名密钥
     """
     payload = {
         'msg_type': 'text',
         'content': {'text': text}
     }
-    return _post(webhook_url, payload)
+    return _post(webhook_url, payload, secret=secret)
 
 
-def send_feishu_rich_text(webhook_url, title, content_lines):
+def send_feishu_rich_text(webhook_url, title, content_lines, secret=None):
     """
     发送富文本消息（post 类型）
     :param webhook_url: 飞书机器人 Webhook URL
     :param title: 标题
-    :param content_lines: 二维数组，每行是一个元素列表，元素格式如:
-        [{"tag":"text","text":"内容"}, {"tag":"a","text":"链接","href":"https://..."}, {"tag":"at","user_id":"all"}]
+    :param content_lines: 二维数组
+    :param secret: 可选，飞书机器人签名密钥
     """
     payload = {
         'msg_type': 'post',
@@ -105,18 +131,19 @@ def send_feishu_rich_text(webhook_url, title, content_lines):
             }
         }
     }
-    return _post(webhook_url, payload)
+    return _post(webhook_url, payload, secret=secret)
 
 
-def send_feishu_card(webhook_url, title, markdown_content, header_color='blue', link_url=None, link_text='查看详情'):
+def send_feishu_card(webhook_url, title, markdown_content, header_color='blue', link_url=None, link_text='查看详情', secret=None):
     """
     发送交互卡片消息（适合周报、会议纪要等结构化内容）
     :param webhook_url: 飞书机器人 Webhook URL
     :param title: 卡片标题
-    :param markdown_content: Markdown 格式正文（飞书卡片支持部分 Markdown）
-    :param header_color: 标题栏颜色: blue/green/orange/red/purple/grey
+    :param markdown_content: Markdown 格式正文
+    :param header_color: 标题栏颜色
     :param link_url: 可选，底部跳转链接
     :param link_text: 链接按钮文字
+    :param secret: 可选，飞书机器人签名密钥
     """
     elements = [
         {
@@ -147,10 +174,10 @@ def send_feishu_card(webhook_url, title, markdown_content, header_color='blue', 
             'elements': elements
         }
     }
-    return _post(webhook_url, payload)
+    return _post(webhook_url, payload, secret=secret)
 
 
-def send_weekly_report(webhook_url, title, summary, highlights, plans, source_url=None):
+def send_weekly_report(webhook_url, title, summary, highlights, plans, source_url=None, secret=None):
     """
     专用：推送周报到飞书（卡片格式）
     """
@@ -169,11 +196,12 @@ def send_weekly_report(webhook_url, title, summary, highlights, plans, source_ur
         markdown_content=markdown_content,
         header_color='purple',
         link_url=source_url,
-        link_text='查看完整周报'
+        link_text='查看完整周报',
+        secret=secret
     )
 
 
-def send_meeting_minutes(webhook_url, title, summary, decisions, todos, source_url=None):
+def send_meeting_minutes(webhook_url, title, summary, decisions, todos, source_url=None, secret=None):
     """
     专用：推送会议纪要到飞书（卡片格式）
     """
@@ -192,5 +220,6 @@ def send_meeting_minutes(webhook_url, title, summary, decisions, todos, source_u
         markdown_content=markdown_content,
         header_color='blue',
         link_url=source_url,
-        link_text='查看完整纪要'
+        link_text='查看完整纪要',
+        secret=secret
     )
