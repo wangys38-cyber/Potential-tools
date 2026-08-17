@@ -508,29 +508,62 @@ body .empty-icon {
 }
 
 /* ===== 模态框 ===== */
-body .modal,
 body .modal-overlay,
-body .dialog {
+body .dialog-overlay {
   background: rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
 }
 
-body .modal-content,
-body .modal-body,
-body .dialog-content {
-  background: rgba(255, 255, 255, 0.95) !important;
+body .modal,
+body .dialog {
+  background: rgba(255, 255, 255, 0.92) !important;
   backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
   border-radius: 20px !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-  padding: 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden !important;
 }
 
-[data-theme="dark"] body .modal-content,
-[data-theme="dark-ocean"] body .modal-content {
-  background: rgba(30, 30, 55, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+body .modal-header,
+body .modal-body,
+body .modal-footer,
+body .modal-content,
+body .dialog-content {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+body .modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  padding: 18px 24px !important;
+}
+
+body .modal-body {
+  padding: 24px !important;
+}
+
+body .modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  padding: 16px 24px !important;
+}
+
+[data-theme="dark"] body .modal,
+[data-theme="dark-ocean"] body .modal,
+[data-theme="dark"] body .dialog,
+[data-theme="dark-ocean"] body .dialog {
+  background: rgba(30, 30, 55, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] body .modal-header,
+[data-theme="dark-ocean"] body .modal-header,
+[data-theme="dark"] body .modal-footer,
+[data-theme="dark-ocean"] body .modal-footer {
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* ===== 滚动条 ===== */
@@ -638,4 +671,153 @@ body .note-card:nth-child(6), body .note-item:nth-child(6) { animation-delay: 0.
     width: 20px;
     height: 20px;
   }
+}
+
+/* ===== 弹窗内表单元素统一玻璃拟态 ===== */
+body .modal .form-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  margin-bottom: 8px !important;
+}
+
+body .modal .form-input,
+body .modal .form-textarea,
+body .modal input[type="text"],
+body .modal input[type="date"],
+body .modal textarea {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+  transition: all 0.2s !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+body .modal .form-input:focus,
+body .modal .form-textarea:focus,
+body .modal input[type="text"]:focus,
+body .modal input[type="date"]:focus,
+body .modal textarea:focus {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+  outline: none !important;
+}
+
+body .modal .form-textarea {
+  min-height: 120px !important;
+  resize: vertical !important;
+  line-height: 1.6 !important;
+}
+
+body .modal .color-picker {
+  gap: 10px !important;
+}
+
+body .modal .color-dot {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: 2px solid transparent !important;
+  transition: all 0.2s !important;
+  cursor: pointer !important;
+}
+
+body .modal .color-dot:hover {
+  transform: scale(1.15) !important;
+}
+
+body .modal .color-dot.selected {
+  border-color: #fff !important;
+  box-shadow: 0 0 0 2px #667eea !important;
+}
+
+body .modal .btn {
+  padding: 10px 22px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s !important;
+  cursor: pointer !important;
+  border: none !important;
+}
+
+body .modal .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+body .modal .btn-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+body .modal .btn-secondary {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+body .modal .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+body .modal .modal-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+
+body .modal .modal-close {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  color: rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s !important;
+}
+
+body .modal .modal-close:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* 暗色主题弹窗表单 */
+[data-theme="dark"] body .modal .form-label,
+[data-theme="dark-ocean"] body .modal .form-label {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="dark"] body .modal .form-input,
+[data-theme="dark-ocean"] body .modal .form-input,
+[data-theme="dark"] body .modal .form-textarea,
+[data-theme="dark-ocean"] body .modal .form-textarea {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="dark"] body .modal .form-input:focus,
+[data-theme="dark-ocean"] body .modal .form-input:focus {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] body .modal .modal-title,
+[data-theme="dark-ocean"] body .modal .modal-title {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="dark"] body .modal .modal-close,
+[data-theme="dark-ocean"] body .modal .modal-close {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme="dark"] body .modal .btn-secondary,
+[data-theme="dark-ocean"] body .modal .btn-secondary {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
