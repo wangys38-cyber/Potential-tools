@@ -1,5 +1,6 @@
 """Excel 分析模块 — 从 app.py 提取"""
 import re
+import time
 import logging
 
 logger = logging.getLogger(__name__)
