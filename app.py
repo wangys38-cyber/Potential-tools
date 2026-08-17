@@ -3353,7 +3353,7 @@ def _load_chunk_meta(upload_id):
         return None
     filename = session['filename']
     ext = os.path.splitext(filename)[1].lower()
-    if ext not in ('.xlsx', '.xls'):
+    if ext not in ('.xlsx', '.xls', '.csv'):
         ext = '.xlsx'
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"excel_{upload_id}{ext}")
     return {
