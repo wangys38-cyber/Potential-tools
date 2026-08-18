@@ -160,6 +160,18 @@ th, td {
 .nav .nav-logo, .navbar .nav-logo, .tb-nav-bar .tb-nav-title,
 .tb-nav-bar .tb-nav-user-name, .tb-nav-bar .tb-nav-home {
     color: rgba(0, 0, 0, 0.8) !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-right: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* 子功能标题统一黑色 */
+h1, h2, h3, .page-title, .tool-title, .section-title,
+.hero h1, .hero-title, [class*="title"] {
+    color: #1a1a1a !important;
 }
 
 .nav a:hover, .navbar a:hover, .top-bar a:hover, .header-bar a:hover, .tb-nav-bar a:hover,

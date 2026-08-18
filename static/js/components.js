@@ -801,12 +801,12 @@ const ToolboxNav = (function() {
         bar.className = 'tb-nav-bar';
 
         var leftHtml = '';
-        if (opts.showHome !== false) {
-            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></a>';
-        }
 
-        // 中间分类标签（和首页一致）
+        // 中间分类标签（和首页一致），公文包放在最前面
         var centerHtml = '<div class="tb-nav-center">';
+        if (opts.showHome !== false) {
+            centerHtml += '<a href="/" class="tb-nav-home" title="返回首页"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></a>';
+        }
         var categories = [
             {id: 'all', name: '全部'},
             {id: 'fav', name: '收藏'},
@@ -842,7 +842,7 @@ const ToolboxNav = (function() {
         }
 
         bar.innerHTML =
-            '<div class="tb-nav-left">' + leftHtml + '</div>' +
+            (leftHtml ? '<div class="tb-nav-left">' + leftHtml + '</div>' : '') +
             centerHtml +
             '<div class="tb-nav-right">' + rightHtml + '</div>';
 
