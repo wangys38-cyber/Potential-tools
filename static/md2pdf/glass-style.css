@@ -1,0 +1,471 @@
+/* ===== PDF快转 玻璃拟态风格覆盖 ===== */
+
+/* 页面背景 - 紫蓝渐变 */
+html body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%) !important;
+    background-attachment: fixed !important;
+    min-height: 100vh !important;
+    color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* 水印预览 - 隐藏旧的全屏水印（由PDF生成时处理） */
+html body .watermark-preview {
+    display: none !important;
+}
+
+/* 顶部 Header - 玻璃拟态 */
+html body .header {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    padding: 28px 30px !important;
+}
+
+html body .header h1 {
+    color: #fff !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
+    font-size: 32px !important;
+    font-weight: 800 !important;
+}
+
+html body .header p {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 14px !important;
+    margin-top: 6px !important;
+}
+
+/* 容器 */
+html body .container {
+    max-width: 1400px !important;
+    margin: 24px auto !important;
+    padding: 0 20px !important;
+}
+
+/* 水印设置卡片 - 玻璃拟态 */
+html body .watermark-settings {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    padding: 18px 24px !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 15px !important;
+    flex-wrap: wrap !important;
+}
+
+html body .watermark-settings label {
+    color: rgba(0, 0, 0, 0.65) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+html body .watermark-settings input[type="text"] {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    color: rgba(0, 0, 0, 0.85) !important;
+    transition: all 0.2s !important;
+    flex: 1 !important;
+    min-width: 200px !important;
+}
+
+html body .watermark-settings input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+    outline: none !important;
+}
+
+html body .watermark-settings .hint {
+    color: rgba(0, 0, 0, 0.4) !important;
+    font-size: 12px !important;
+}
+
+/* 上传区域 - 玻璃拟态 */
+html body .upload-area {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 2px dashed rgba(102, 126, 234, 0.4) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+    transition: all 0.3s !important;
+    padding: 40px 20px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    margin-bottom: 20px !important;
+}
+
+html body .upload-area:hover,
+html body .upload-area.dragover {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: #667eea !important;
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+html body .upload-area .upload-icon {
+    font-size: 48px !important;
+    margin-bottom: 12px !important;
+}
+
+html body .upload-area .upload-text {
+    color: rgba(0, 0, 0, 0.8) !important;
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    margin-bottom: 6px !important;
+}
+
+html body .upload-area .upload-hint {
+    color: rgba(0, 0, 0, 0.45) !important;
+    font-size: 13px !important;
+}
+
+/* 进度容器 - 玻璃拟态 */
+html body .progress-container {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    padding: 20px 24px !important;
+    margin-bottom: 20px !important;
+}
+
+html body .progress-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 14px !important;
+}
+
+html body .progress-header h3 {
+    color: rgba(0, 0, 0, 0.8) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+
+html body .progress-info {
+    color: rgba(0, 0, 0, 0.5) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+html body .progress-bar {
+    background: rgba(0, 0, 0, 0.06) !important;
+    border-radius: 10px !important;
+    height: 8px !important;
+    overflow: hidden !important;
+    margin-bottom: 14px !important;
+}
+
+html body .progress-fill {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+    height: 100% !important;
+    border-radius: 10px !important;
+    transition: width 0.3s ease !important;
+}
+
+html body .file-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+}
+
+/* 主内容区 - 双栏布局 */
+html body .main-content {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+    margin-bottom: 20px !important;
+}
+
+/* Panel 卡片 - 玻璃拟态 */
+html body .panel {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+html body .panel-header {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    padding: 14px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+html body .panel-header .icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+}
+
+html body .panel-header .icon.blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+html body .panel-header .icon.green {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+}
+
+html body .panel-header h2 {
+    color: rgba(0, 0, 0, 0.8) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+
+/* 编辑器区域 */
+html body .editor-area {
+    flex: 1 !important;
+    display: flex !important;
+}
+
+html body .editor-area textarea {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 400px !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: none !important;
+    color: rgba(0, 0, 0, 0.85) !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    padding: 20px !important;
+    resize: none !important;
+    outline: none !important;
+}
+
+html body .editor-area textarea:focus {
+    background: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* 预览区域 */
+html body .preview-area {
+    flex: 1 !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+    padding: 24px !important;
+    color: rgba(0, 0, 0, 0.85) !important;
+    line-height: 1.8 !important;
+    overflow-y: auto !important;
+    min-height: 400px !important;
+}
+
+html body .preview-area h1,
+html body .preview-area h2,
+html body .preview-area h3 {
+    color: rgba(0, 0, 0, 0.9) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    padding-bottom: 8px !important;
+    margin-top: 20px !important;
+    margin-bottom: 12px !important;
+}
+
+html body .preview-area h1:first-child,
+html body .preview-area h2:first-child,
+html body .preview-area h3:first-child {
+    margin-top: 0 !important;
+}
+
+html body .preview-area table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin: 12px 0 !important;
+}
+
+html body .preview-area th,
+html body .preview-area td {
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 12px !important;
+    text-align: left !important;
+}
+
+html body .preview-area th {
+    background: rgba(102, 126, 234, 0.1) !important;
+    font-weight: 600 !important;
+}
+
+html body .preview-area code {
+    background: rgba(0, 0, 0, 0.06) !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+}
+
+html body .preview-area pre {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    overflow-x: auto !important;
+}
+
+html body .preview-area pre code {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* 操作按钮区 */
+html body .actions {
+    display: flex !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    margin-bottom: 30px !important;
+}
+
+/* 按钮 - 玻璃拟态 */
+html body .btn {
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+    cursor: pointer !important;
+    border: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+html body .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+html body .btn-primary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+html body .btn-upload {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3) !important;
+}
+
+html body .btn-upload:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4) !important;
+}
+
+html body .btn-word {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3) !important;
+}
+
+html body .btn-word:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4) !important;
+}
+
+html body .batch-btn {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3) !important;
+}
+
+html body .batch-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4) !important;
+}
+
+html body .btn-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3) !important;
+}
+
+html body .btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* Spinner */
+html body .spinner {
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: #fff !important;
+    border-radius: 50% !important;
+    animation: spin 0.8s linear infinite !important;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    html body .main-content {
+        grid-template-columns: 1fr !important;
+    }
+
+    html body .editor-area textarea,
+    html body .preview-area {
+        min-height: 300px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    html body .header {
+        padding: 20px 16px !important;
+    }
+
+    html body .header h1 {
+        font-size: 24px !important;
+    }
+
+    html body .container {
+        padding: 0 12px !important;
+        margin: 16px auto !important;
+    }
+
+    html body .watermark-settings {
+        padding: 16px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    html body .upload-area {
+        padding: 30px 16px !important;
+    }
+
+    html body .actions {
+        flex-direction: column !important;
+    }
+
+    html body .actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}

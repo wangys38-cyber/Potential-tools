@@ -3937,6 +3937,12 @@ def api_excel_analyze_sheet():
 
     return jsonify({'status': 'success', 'data': {'task_id': task_id}})
 
+# Playwright PDF 渲染（延迟导入，避免启动时依赖缺失导致整个应用崩溃）
+try:
+    from playwright.sync_api import sync_playwright as _sync_playwright
+except ImportError:
+    _sync_playwright = None
+
 _pdf_render_lock = threading.Lock()
 _pw_instance = None
 _pw_browser = None
@@ -3944,6 +3950,8 @@ _pw_browser = None
 def _get_pw_browser():
     """获取或创建全局 Chromium 浏览器实例（复用，避免每次冷启动）"""
     global _pw_instance, _pw_browser
+    if _sync_playwright is None:
+        raise RuntimeError("Playwright 未安装，请运行: pip install playwright && playwright install chromium")
     if _pw_browser is not None:
         try:
             _ = _pw_browser.version
