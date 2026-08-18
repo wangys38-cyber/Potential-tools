@@ -2,6 +2,7 @@
         let currentMode = 'system';
         let transcriptEntries = [];
         let minutesHTML = '';
+        let minutesMarkdown = '';
         let startTime = 0;
         let timerInterval = null;
         let isUploading = false;
@@ -1091,6 +1092,7 @@
                         ? ToolboxMarkdown.renderSafe(fullText || '')
                         : escapeHtml(fullText || '').replace(/\n/g, '<br>');
                     minutesHTML = html;
+                    minutesMarkdown = fullText || '';
                     area.innerHTML = html;
                     showToast('会议纪要已生成', 'success');
                 },
@@ -1122,6 +1124,41 @@
             const a = document.createElement('a'); a.href = url; a.download = `${title}_${date.replace(/\//g,'')}.html`; a.click();
             URL.revokeObjectURL(url);
             showToast('已下载', 'success');
+        }
+
+        async function downloadMinutesAsPDF() {
+            if (!minutesMarkdown && !minutesHTML) { showToast('暂无纪要', 'warning'); return; }
+            const title = document.getElementById('meetingTitle').value.trim() || '会议纪要';
+            const date = new Date().toLocaleDateString('zh-CN');
+            const attendees = document.getElementById('attendees').value.trim() || '';
+
+            // 构建完整的markdown内容（含标题、日期、参会人）
+            let mdContent = minutesMarkdown;
+            if (!mdContent && minutesHTML) {
+                // 如果没有原始markdown，从HTML提取纯文本作为降级
+                const temp = document.createElement('div'); temp.innerHTML = minutesHTML;
+                mdContent = temp.innerText;
+            }
+            const fullMarkdown = `# ${title}\n\n📅 日期: ${date}\n👥 参会人员: ${attendees}\n\n---\n\n${mdContent}`;
+
+            try {
+                showToast('正在生成PDF...', 'info');
+                const resp = await fetch('/api/md2pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: fullMarkdown })
+                });
+                const result = await resp.json();
+                if (result.filename) {
+                    // 直接在新窗口打开PDF预览
+                    window.open('/download/' + result.filename, '_blank');
+                    showToast('PDF已生成', 'success');
+                } else {
+                    throw new Error(result.error || '生成失败');
+                }
+            } catch (err) {
+                showToast('PDF生成失败: ' + err.message, 'error');
+            }
         }
 
         // ==================== 推送到飞书 ====================
