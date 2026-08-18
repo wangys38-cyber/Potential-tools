@@ -1562,6 +1562,20 @@ function showToast(msg, type) {
                     md += `\n`;
                 }
 
+                // 问题遗留最多的研发 TOP10
+                const devStats = d.dev_stats || {};
+                const topDevs = Object.entries(devStats)
+                    .sort((a, b) => (b[1].unresolved || 0) - (a[1].unresolved || 0))
+                    .slice(0, 10);
+                if (topDevs.length > 0) {
+                    md += `**👤 问题遗留最多研发 TOP10**\n`;
+                    topDevs.forEach(([dev, stats], i) => {
+                        const rate = stats.total > 0 ? (stats.resolved / stats.total * 100).toFixed(1) : 0;
+                        md += `${i + 1}. ${dev}：遗留${stats.unresolved || 0}个（总数${stats.total}，已解决${stats.resolved}，解决率${rate}%）\n`;
+                    });
+                    md += `\n`;
+                }
+
                 // 智能分析建议
                 const suggestions = d.suggestions || d.analysis_suggestions || [];
                 if (suggestions.length > 0) {
