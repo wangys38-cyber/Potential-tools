@@ -3969,6 +3969,28 @@ def _get_pw_browser():
     logger.info("Chromium 浏览器实例已创建（全局复用）")
     return _pw_browser
 
+# PDF快转 - 与前端实时预览完全一致的样式（从 .preview-area CSS 提取）
+MD2PDF_PREVIEW_CSS = """
+        body { font-family: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 40px; background: #fff; color: #333; font-size: 14px; line-height: 1.8; }
+        h1 { font-size: 26px; font-weight: bold; border-bottom: 2px solid #667eea; padding-bottom: 12px; margin-bottom: 20px; color: #333; }
+        h2 { font-size: 22px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; color: #333; }
+        h3 { font-size: 19px; font-weight: bold; margin-top: 25px; margin-bottom: 12px; color: #333; }
+        h4 { font-size: 17px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; color: #333; }
+        p { margin-bottom: 15px; text-indent: 2em; }
+        ul, ol { margin-bottom: 15px; padding-left: 2em; }
+        li { margin-bottom: 8px; }
+        blockquote { border-left: 4px solid #667eea; padding: 12px 16px; margin: 15px 0; color: #666; font-style: italic; background-color: #f5f3ff; border-radius: 0 8px 8px 0; }
+        code { background-color: #f4f4f4; padding: 3px 8px; border-radius: 4px; font-family: "Consolas", "Courier New", monospace; font-size: 0.9em; }
+        pre { background-color: #2d2d2d; color: #ccc; padding: 16px; border-radius: 10px; overflow-x: auto; margin-bottom: 15px; white-space: pre-wrap; word-break: break-all; }
+        pre code { background-color: transparent; padding: 0; color: inherit; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f5f3ff; font-weight: bold; color: #667eea; }
+        a { color: #667eea; text-decoration: none; font-weight: 500; }
+        img { max-width: 100%; height: auto; border-radius: 8px; }
+        hr { border: none; border-top: 2px dashed #ddd; margin: 25px 0; }
+"""
+
 def _render_pdf(html_path, pdf_path, margin=None, extra_wait_ms=0, wait_selector=None):
     """使用全局 Chromium 实例渲染 PDF（线程安全）。
 
@@ -4024,14 +4046,7 @@ def api_md2pdf():
 <head>
     <meta charset="utf-8">
     <style>
-        body {{ font-family: -apple-system, "Segoe UI", Roboto, sans-serif; padding: 40px; line-height: 1.8; }}
-        h1, h2, h3 {{ margin-top: 1.5em; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 1em 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px 12px; }}
-        th {{ background: #f5f5f7; }}
-        pre {{ background: #f5f5f7; padding: 16px; border-radius: 8px; overflow-x: auto; }}
-        code {{ font-family: "SF Mono", Monaco, Consolas, monospace; }}
-        blockquote {{ border-left: 4px solid #0071e3; margin: 1em 0; padding: 0.5em 1em; background: #f9f9f9; }}
+{MD2PDF_PREVIEW_CSS}
     </style>
 </head>
 <body>{html_content}</body>
@@ -4116,14 +4131,7 @@ def api_convert():
 <head>
     <meta charset="utf-8">
     <style>
-        body {{ font-family: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 40px; line-height: 1.8; }}
-        h1, h2, h3 {{ margin-top: 1.5em; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 1em 0; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px 12px; }}
-        th {{ background: #f5f5f7; }}
-        pre {{ background: #f5f5f7; padding: 16px; border-radius: 8px; overflow-x: auto; }}
-        code {{ font-family: "SF Mono", Monaco, Consolas, monospace; }}
-        blockquote {{ border-left: 4px solid #0071e3; margin: 1em 0; padding: 0.5em 1em; background: #f9f9f9; }}
+{MD2PDF_PREVIEW_CSS}
     </style>
 </head>
 <body>
