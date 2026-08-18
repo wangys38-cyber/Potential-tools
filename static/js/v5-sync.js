@@ -238,7 +238,9 @@
         btn.id = 'v5-sync-btn';
         btn.className = 'v5-sync-btn';
         btn.title = '云端同步';
-        btn.innerHTML = '<span id="v5-sync-icon" class="v5-sync-icon">☁️</span>' +
+        btn.innerHTML = '<span id="v5-sync-icon" class="v5-sync-icon">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>' +
+            '</span>' +
             (isMobile ? '' : '<span id="v5-sync-label" class="v5-sync-label">同步</span>');
         btn.onclick = function() { sync(true); };
 
@@ -283,26 +285,30 @@
         var btn = document.getElementById('v5-sync-btn');
         if (!icon || !label) return;
 
+        var syncSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
+        var checkSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        var warnSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
         if (state.status === 'syncing') {
-            icon.textContent = '🔄';
+            icon.innerHTML = syncSVG;
             icon.style.animation = 'v5spin 1s linear infinite';
             label.textContent = '同步中';
         } else if (state.status === 'success') {
-            icon.textContent = '✅';
+            icon.innerHTML = checkSVG;
             icon.style.animation = 'none';
             label.textContent = '已同步';
             setTimeout(function() {
                 if (state.status === 'success') {
-                    icon.textContent = '☁️';
+                    icon.innerHTML = syncSVG;
                     label.textContent = '同步';
                 }
             }, 2000);
         } else if (state.status === 'error') {
-            icon.textContent = '⚠️';
+            icon.innerHTML = warnSVG;
             icon.style.animation = 'none';
             label.textContent = '同步失败';
         } else {
-            icon.textContent = '☁️';
+            icon.innerHTML = syncSVG;
             icon.style.animation = 'none';
             label.textContent = '同步';
         }
@@ -313,28 +319,31 @@
     style.textContent =
         '@keyframes v5spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}' +
         '.v5-sync-btn{' +
-            'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;' +
-            'border-radius:10px;border:1px solid rgba(255,255,255,0.6);' +
-            'background:rgba(255,255,255,0.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
-            'cursor:pointer;font-size:13px;color:var(--text-primary);' +
-            'transition:all 0.25s;font-family:inherit;flex-shrink:0;white-space:nowrap;' +
+            'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;' +
+            'border-radius:999px;border:1px solid var(--tb-border,rgba(0,0,0,0.1));' +
+            'background:var(--tb-bg-hover,rgba(0,0,0,0.05));' +
+            'cursor:pointer;font-size:13px;font-weight:500;color:var(--tb-text-primary,#333);' +
+            'transition:all 0.2s;font-family:inherit;flex-shrink:0;white-space:nowrap;line-height:1;' +
         '}' +
-        '.v5-sync-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,0.15)}' +
+        '.v5-sync-btn:hover{background:var(--tb-bg-active,rgba(0,0,0,0.08));transform:translateY(-1px)}' +
+        '.v5-sync-btn:active{transform:translateY(0)}' +
         '.v5-sync-btn-absolute{position:absolute;z-index:10}' +
-        '.v5-sync-btn-in-nav{margin-right:12px;padding:4px 10px;font-size:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;backdrop-filter:blur(10px)}' +
-        '.v5-sync-btn-in-nav:hover{background:rgba(255,255,255,0.25)}' +
-        '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center}' +
-        '.v5-sync-label{font-size:13px}' +
+        '.v5-sync-btn-in-nav{margin-right:8px;padding:6px 12px;font-size:13px;background:var(--tb-bg-hover);border:1px solid var(--tb-border);color:var(--tb-text-primary);backdrop-filter:none}' +
+        '.v5-sync-btn-in-nav:hover{background:var(--tb-bg-active)}' +
+        '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px}' +
+        '.v5-sync-icon svg{display:block}' +
+        '.v5-sync-label{font-size:13px;font-weight:500}' +
         '[data-theme="dark"] .v5-sync-btn{' +
-            'background:rgba(30,30,40,0.5);border-color:rgba(255,255,255,0.08)' +
+            'background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9)' +
         '}' +
+        '[data-theme="dark"] .v5-sync-btn:hover{background:rgba(255,255,255,0.15)}' +
         '@media (max-width:480px){' +
-            '.v5-sync-btn{padding:5px 8px;gap:4px}' +
+            '.v5-sync-btn{padding:5px 10px;gap:4px}' +
             '.v5-sync-label{display:none}' +
             '.v5-sync-btn-absolute{right:10px!important}' +
         '}' +
         '@media (max-width:360px){' +
-            '.v5-sync-btn{padding:4px 6px}' +
+            '.v5-sync-btn{padding:4px 8px}' +
         '}';
     document.head.appendChild(style);
 
