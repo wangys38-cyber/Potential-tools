@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -1366,6 +1366,8 @@
 
         function saveToStorage() {
             localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(projects));
+            // 触发云端同步
+            window.dispatchEvent(new CustomEvent('v5-data-changed'));
         }
 
         function renderProjectList(filter = '') {
@@ -2101,6 +2103,11 @@
         }
 
         loadProjects();
+
+        // 云端同步完成后重新加载项目数据
+        window.addEventListener('v5-synced', function() {
+            loadProjects();
+        });
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>

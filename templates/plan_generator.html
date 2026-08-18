@@ -1157,6 +1157,8 @@
         function savePlansToStorage() {
             localStorage.setItem(PLANS_STORAGE_KEY, JSON.stringify(savedPlans));
             updatePlanCountBadge();
+            // 触发云端同步
+            window.dispatchEvent(new CustomEvent('v5-data-changed'));
         }
 
         function updatePlanCountBadge() {
@@ -1428,6 +1430,11 @@
 
         // 初始化拖拽和粘贴监听
         document.addEventListener('DOMContentLoaded', function() {
+            // 云端同步完成后重新加载计划列表
+            window.addEventListener('v5-synced', function() {
+                loadSavedPlans();
+                renderSavedPlans();
+            });
             const dropArea = document.getElementById('ocrUploadArea');
             if (dropArea) {
                 dropArea.addEventListener('dragover', function(e) {

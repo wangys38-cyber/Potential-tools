@@ -11,8 +11,9 @@
     var META_KEY = 'v5_sync_meta';
     var SYNC_INTERVAL = 5 * 60 * 1000; // 5分钟自动同步
     var DEBOUNCE_DELAY = 2000; // 变更后2秒防抖推送
+    var _USER_PREFIX = window._USER_PREFIX || '';
 
-    // 同步类别定义：sync_type → { keys: [localStorage keys], name, icon }
+    // 同步类别定义：sync_type → { keys: [localStorage keys], name, icon, prefix: bool }
     var CATEGORIES = {
         favorites: {
             keys: ['toolbox_favorites_v2', 'toolbox_favorites'],
@@ -24,8 +25,12 @@
             name: '功德数据', icon: '🔔'
         },
         projects: {
-            keys: ['projectInfoData_v2', 'projectInfoData', 'PROJECT_STORAGE_KEY'],
+            keys: [_USER_PREFIX + 'projectInfoData', 'projectInfoData', 'PROJECT_STORAGE_KEY'],
             name: '项目信息', icon: '📊'
+        },
+        plans: {
+            keys: [_USER_PREFIX + 'saved_plans', 'saved_plans'],
+            name: '项目计划', icon: '📋'
         },
         theme: {
             keys: ['toolbox_theme'],
