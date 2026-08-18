@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -256,17 +256,17 @@
     </style>
 <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-</head>
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"></head>
 <body>
-    <div class="header">
-        <div class="header-left">
-            <a href="/" class="back-btn">←</a>
-            <h1>⚙️ 设置</h1>
-        </div>
-        <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
-    </div>
+    <!-- 全局导航栏 -->
+    <div id="tb-nav-bar"></div>
 
     <div class="container">
+        <!-- 页面标题 -->
+        <div style="padding:20px 0 10px;">
+            <h1 style="font-size:24px;font-weight:800;color:var(--text-primary);">⚙️ 设置</h1>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">配置 AI、飞书推送等服务（随账号保存，换设备自动同步）</p>
+        </div>
         <!-- AI 配置 -->
         <div class="section">
             <div class="section-header">
@@ -480,8 +480,7 @@
     <div class="toast" id="toast"></div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <!-- 阻止 components.js 自动注入导航栏（本页已有自带 header） -->
-    <div id="tb-nav-bar" style="display:none"></div>
+    <!-- 全局导航栏已在页面顶部注入 -->
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
         // ===== 初始化 =====

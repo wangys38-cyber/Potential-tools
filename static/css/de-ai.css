@@ -1,0 +1,167 @@
+/* ===== 去AI味全局样式覆盖 ===== */
+/* 弱化玻璃拟态、减小圆角、移除渐变文字、克制阴影 */
+
+/* 通用卡片：弱化玻璃拟态 */
+.card, .glass-card, .panel, .stat-card, .tool-card, .upload-area,
+.result-card, .summary-card, .chart-card, .config-card {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 14px !important;
+}
+
+/* 悬浮效果：克制 */
+.card:hover, .glass-card:hover, .panel:hover, .stat-card:hover, .tool-card:hover,
+.result-card:hover, .summary-card:hover, .chart-card:hover {
+    transform: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 按钮：减小圆角、移除渐变 */
+.btn, .btn-primary, .btn-secondary, .btn-ghost, .action-btn,
+.plan-card-btn, .tool-btn, .fav-btn {
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-primary, .btn-primary:hover {
+    background: #4f46e5 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.btn-primary:hover {
+    background: #4338ca !important;
+}
+
+/* 渐变文字 → 纯色 */
+.gradient-text, [style*="background-clip: text"], [style*="-webkit-background-clip: text"] {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    color: inherit !important;
+}
+
+/* 输入框：减小圆角 */
+input, select, textarea, .input-field, .form-input {
+    border-radius: 8px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+    border-color: rgba(79, 70, 229, 0.4) !important;
+}
+
+/* 标签/徽章：减小圆角 */
+.badge, .tag, .chip, .node-tag, .category-chip, .severity-badge {
+    border-radius: 6px !important;
+}
+
+/* 模态框/弹窗 */
+.modal, .modal-content, .popup, .dropdown-menu {
+    border-radius: 14px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 进度条 */
+.progress-bar, .progress {
+    border-radius: 4px !important;
+}
+
+/* 表格 */
+table, .data-table {
+    border-radius: 10px !important;
+    overflow: hidden;
+}
+
+th, td {
+    border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 导航栏：弱化玻璃拟态 */
+.nav, .navbar, .top-bar, .header-bar {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: none !important;
+}
+
+/* 搜索框 */
+.search-box, .search-input, .search-field {
+    border-radius: 10px !important;
+    background: #fff !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    backdrop-filter: none !important;
+}
+
+.search-box:focus-within, .search-input:focus {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08) !important;
+    border-color: rgba(79, 70, 229, 0.4) !important;
+    transform: none !important;
+}
+
+/* 页面背景：简洁 */
+body {
+    background: linear-gradient(180deg, #fafbfc 0%, #f4f5f7 100%) !important;
+}
+
+/* 移除浮动光球/装饰背景 */
+.bg-orbs, .bg-orb, .floating-shapes, .gradient-bg {
+    display: none !important;
+}
+
+/* Toast提示 */
+.toast, .toast-message, .notification {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 标签页 */
+.tab-btn, .tab-item {
+    border-radius: 8px !important;
+}
+
+/* 开关 */
+.switch, .toggle {
+    border-radius: 20px !important;
+}
+
+/* 下拉选择 */
+select {
+    background-image: none !important;
+}
+
+/* 代码块 */
+pre, code, .code-block {
+    border-radius: 8px !important;
+}
+
+/* 头像 */
+.avatar, .avatar-img {
+    border-radius: 50% !important;
+    border: 2px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
