@@ -242,25 +242,37 @@
             (isMobile ? '' : '<span id="v5-sync-label" class="v5-sync-label">同步</span>');
         btn.onclick = function() { sync(true); };
 
-        // 插入到 header 区域
-        var header = document.querySelector('.header') || document.querySelector('.nav') || document.querySelector('header');
-        if (header) {
-            var existingRight = header.querySelector('.header-right, .nav-right, .header-actions');
-            if (existingRight) {
-                existingRight.appendChild(btn);
+        // 优先插入到全局导航栏右侧，其次插入到页面 header
+        var navBar = document.getElementById('tb-nav-bar');
+        if (navBar) {
+            // 全局导航栏：插入到右侧 user-bar 之前
+            var userBar = navBar.querySelector('.tb-user-bar, .user-bar');
+            if (userBar) {
+                userBar.parentNode.insertBefore(btn, userBar);
             } else {
-                header.style.position = 'relative';
-                btn.classList.add('v5-sync-btn-absolute');
-                if (isMobile) {
-                    btn.style.right = '10px';
-                    btn.style.top = '50%';
-                    btn.style.transform = 'translateY(-50%)';
+                navBar.appendChild(btn);
+            }
+            btn.classList.add('v5-sync-btn-in-nav');
+        } else {
+            var header = document.querySelector('.header') || document.querySelector('.nav') || document.querySelector('header');
+            if (header) {
+                var existingRight = header.querySelector('.header-right, .nav-right, .header-actions');
+                if (existingRight) {
+                    existingRight.appendChild(btn);
                 } else {
-                    btn.style.right = '20px';
-                    btn.style.top = '50%';
-                    btn.style.transform = 'translateY(-50%)';
+                    header.style.position = 'relative';
+                    btn.classList.add('v5-sync-btn-absolute');
+                    if (isMobile) {
+                        btn.style.right = '10px';
+                        btn.style.top = '50%';
+                        btn.style.transform = 'translateY(-50%)';
+                    } else {
+                        btn.style.right = '20px';
+                        btn.style.top = '50%';
+                        btn.style.transform = 'translateY(-50%)';
+                    }
+                    header.appendChild(btn);
                 }
-                header.appendChild(btn);
             }
         }
     }
@@ -309,6 +321,8 @@
         '}' +
         '.v5-sync-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,0.15)}' +
         '.v5-sync-btn-absolute{position:absolute;z-index:10}' +
+        '.v5-sync-btn-in-nav{margin-right:12px;padding:4px 10px;font-size:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;backdrop-filter:blur(10px)}' +
+        '.v5-sync-btn-in-nav:hover{background:rgba(255,255,255,0.25)}' +
         '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center}' +
         '.v5-sync-label{font-size:13px}' +
         '[data-theme="dark"] .v5-sync-btn{' +
