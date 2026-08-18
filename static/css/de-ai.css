@@ -20,21 +20,65 @@
     border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 按钮：减小圆角、移除渐变 */
+/* 按钮：减小圆角、移除渐变、底色改为黑色 */
 .btn, .btn-primary, .btn-secondary, .btn-ghost, .action-btn,
-.plan-card-btn, .tool-btn, .fav-btn {
+.plan-card-btn, .tool-btn, .fav-btn, .category-chip, .tab-btn {
     border-radius: 8px !important;
     transition: all 0.15s ease !important;
 }
 
-.btn-primary, .btn-primary:hover {
-    background: #4f46e5 !important;
+.btn-primary, .btn-primary:hover,
+.tool-btn, .tool-btn:hover,
+.plan-card-btn:not(.danger), .plan-card-btn:not(.danger):hover,
+.action-btn:not(.danger):not(.secondary), .action-btn:not(.danger):not(.secondary):hover,
+.category-chip.active, .category-chip.active:hover,
+input[type="submit"], button[type="submit"] {
+    background: #1a1a1a !important;
+    color: #fff !important;
+    border: 1px solid #1a1a1a !important;
     box-shadow: none !important;
     transform: none !important;
 }
 
-.btn-primary:hover {
-    background: #4338ca !important;
+.btn-primary:hover,
+.tool-btn:hover,
+.plan-card-btn:not(.danger):hover,
+.action-btn:not(.danger):not(.secondary):hover,
+.category-chip.active:hover,
+input[type="submit"]:hover, button[type="submit"]:hover {
+    background: #333 !important;
+    border-color: #333 !important;
+}
+
+/* 次要按钮保持白色 */
+.btn-secondary, .btn-ghost, .btn-secondary:hover, .btn-ghost:hover {
+    background: #fff !important;
+    color: #333 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-secondary:hover, .btn-ghost:hover {
+    background: #f5f5f5 !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 危险按钮保持红色 */
+.btn-danger, .danger, .btn-danger:hover, .danger:hover {
+    background: #ef4444 !important;
+    color: #fff !important;
+    border: 1px solid #ef4444 !important;
+}
+
+/* 分类标签未激活状态 */
+.category-chip:not(.active) {
+    background: #fff !important;
+    color: #666 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.category-chip:not(.active):hover {
+    background: #f5f5f5 !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 渐变文字 → 纯色 */
@@ -84,13 +128,73 @@ th, td {
     border-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-/* 导航栏：弱化玻璃拟态 */
-.nav, .navbar, .top-bar, .header-bar {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+/* 导航栏：Apple风格黑色半透明毛玻璃 */
+.nav, .navbar, .top-bar, .header-bar, .tb-nav-bar {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+    border-bottom: none !important;
     box-shadow: none !important;
+    color: #fff !important;
+}
+
+/* 导航栏内文字和链接：白色 */
+.nav a, .navbar a, .top-bar a, .header-bar a, .tb-nav-bar a,
+.nav button, .navbar button, .top-bar button, .header-bar button, .tb-nav-bar button,
+.nav .nav-logo, .navbar .nav-logo, .tb-nav-bar .tb-nav-title,
+.tb-nav-bar .tb-nav-user-name, .tb-nav-bar .tb-nav-home {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.nav a:hover, .navbar a:hover, .top-bar a:hover, .header-bar a:hover, .tb-nav-bar a:hover,
+.nav button:hover, .navbar button:hover, .top-bar button:hover, .header-bar button:hover, .tb-nav-bar button:hover {
+    color: #fff !important;
+}
+
+/* 导航栏内按钮样式 */
+.nav .nav-btn, .navbar .nav-btn, .tb-nav-bar .tb-nav-theme,
+.tb-nav-bar .tb-nav-right button, .tb-nav-bar .tb-nav-right a:not(.tb-nav-home):not(.tb-nav-logout) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.nav .nav-btn:hover, .navbar .nav-btn:hover, .tb-nav-bar .tb-nav-theme:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* 导航栏登录按钮 */
+.tb-nav-bar .tb-nav-login-btn, .nav .login-btn {
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+}
+
+.tb-nav-bar .tb-nav-login-btn:hover, .nav .login-btn:hover {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #000 !important;
+}
+
+/* 导航栏退出按钮 */
+.tb-nav-bar .tb-nav-logout {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.tb-nav-bar .tb-nav-logout:hover {
+    color: #fff !important;
+}
+
+/* 导航栏命令面板按钮 */
+.nav .nav-cmdk, .navbar .nav-cmdk {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.nav .nav-cmdk:hover, .navbar .nav-cmdk:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
 }
 
 /* 搜索框 */
