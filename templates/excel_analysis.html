@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -25,17 +25,6 @@
     <div id="cloudEnvBanner" style="display:none;background:linear-gradient(90deg,#fff7e6,#fff);border-left:4px solid #faad14;padding:10px 18px;font-size:13px;color:#613400;">
         <strong>☁️ 云端模式</strong>：当前部署在共享云环境。大文件（&gt;20MB 的 HTML 格式 xls）可能因内存不足解析失败，建议 <a href="https://github.com/wangys38-cyber/CR-tools" target="_blank" style="color:#1677ff;text-decoration:underline;">本地部署</a> 获得最佳体验。
     </div>
-    <div class="header">
-        <div>
-            <h1>📊 CR问题分析工具</h1>
-            <p>上传Excel文档，自动分析CR问题数据，生成可视化报告与PDF</p>
-        </div>
-        <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
-            <button class="btn btn-secondary" onclick="toggleHistoryPanel()">📜 历史记录</button>
-            <a href="/" class="btn btn-secondary" style="text-decoration:none;">← 返回首页</a>
-            <button class="btn btn-secondary" onclick="resetAll()">重新开始</button>
-        </div>
-    </div>
 
     <!-- 历史记录面板 -->
     <div id="historyPanel" style="display:none;position:fixed;top:60px;right:20px;width:380px;max-height:70vh;background:var(--tb-bg,#fff);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:10000;overflow:hidden;border:1px solid var(--tb-border,rgba(0,0,0,0.1));">
@@ -49,6 +38,10 @@
     <div class="container">
         <!-- Step 1: Upload -->
         <div class="card" id="uploadCard">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;">📊 CR问题分析</h3>
+                <button class="btn btn-secondary btn-sm" onclick="toggleHistoryPanel()">📜 历史记录</button>
+            </div>
             <div class="upload-area" id="uploadArea">
                 <div class="icon">📁</div>
                 <h3>上传Excel/CSV文件</h3>
