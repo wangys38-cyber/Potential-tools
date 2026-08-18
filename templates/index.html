@@ -613,7 +613,7 @@
     </div>
 
     <div class="hero">
-        <div class="hero-badge"><span class="hero-badge-dot"></span>10 款工具 · 持续更新中</div>
+        <div class="hero-badge"><span class="hero-badge-dot"></span><span id="toolCount">10</span> 款工具 · 持续更新中</div>
         <h1>效率工具集</h1>
         <p>一站式工具平台，集成笔记、转换、分析等实用工具</p>
     </div>
@@ -753,6 +753,12 @@
          desc:'AI配置、主题定制、系统诊断',
          features:['AI配置','主题色','系统信息','连接测试'], badge:'新'},
     ];
+
+    // 动态更新工具数量
+    document.addEventListener('DOMContentLoaded', function() {
+        const countEl = document.getElementById('toolCount');
+        if (countEl) countEl.textContent = TOOLS.length;
+    });
 
     let currentCategory = 'all';
 
