@@ -31,6 +31,10 @@ function showToast(msg, type) {
         let currentSheet = '';
         let currentFileId = '';
 
+        // 历史记录
+        const HISTORY_KEY = (window._USER_PREFIX || '') + 'cr_analysis_history';
+        const MAX_HISTORY = 5;
+
         function getDefaultWatermark() {
             const now = new Date();
             const y = now.getFullYear();
@@ -878,6 +882,9 @@ function showToast(msg, type) {
 
             document.getElementById('watermarkConfig').classList.add('show');
             resultCard.classList.add('show');
+
+            // 保存到历史记录
+            saveToHistory();
         }
 
         let modulePieChart = null;
@@ -1936,4 +1943,93 @@ function showToast(msg, type) {
                 ctx.fillText(l.label, legendX + 16, legendY + 4);
                 legendX += 100;
             });
+        }
+
+        // ==================== 历史记录 ====================
+        function saveToHistory() {
+            if (!currentAnalysisData || !currentAnalysisData.summary) return;
+            try {
+                const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                const record = {
+                    id: 'hist_' + Date.now(),
+                    file_name: currentFileName || '未命名',
+                    total_issues: currentAnalysisData.summary?.total_issues || 0,
+                    resolved: currentAnalysisData.summary?.resolved || 0,
+                    unresolved: currentAnalysisData.summary?.unresolved || 0,
+                    time: new Date().toLocaleString('zh-CN'),
+                    timestamp: Date.now(),
+                    data: currentAnalysisData
+                };
+                // 去重：如果文件名相同且时间接近，覆盖
+                const existingIdx = history.findIndex(h => h.file_name === record.file_name && Date.now() - h.timestamp < 60000);
+                if (existingIdx >= 0) {
+                    history[existingIdx] = record;
+                } else {
+                    history.unshift(record);
+                }
+                // 只保留最近5条
+                if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            } catch(e) { console.warn('保存历史记录失败', e); }
+        }
+
+        function loadHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            } catch(e) { return []; }
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+            const history = loadHistory();
+            if (history.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--tb-text-secondary,#999);font-size:13px;">暂无历史记录<br><span style="font-size:12px;opacity:0.7;">分析完成后自动保存最近5条</span></div>';
+                return;
+            }
+            list.innerHTML = history.map(h => `
+                <div class="history-item" onclick="loadFromHistory('${h.id}')" style="padding:12px 14px;border-radius:10px;cursor:pointer;transition:all 0.15s;margin-bottom:6px;border:1px solid transparent;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:600;font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(h.file_name)}</span>
+                        <span style="font-size:11px;color:var(--tb-text-secondary,#999);flex-shrink:0;margin-left:8px;">${h.time}</span>
+                    </div>
+                    <div style="display:flex;gap:12px;font-size:12px;color:var(--tb-text-secondary,#666);">
+                        <span>📊 ${h.total_issues} 问题</span>
+                        <span style="color:#34c759;">✅ ${h.resolved} 已解决</span>
+                        <span style="color:#ff3b30;">⚠️ ${h.unresolved} 未解决</span>
+                    </div>
+                </div>
+            `).join('');
+            // 添加hover样式
+            list.querySelectorAll('.history-item').forEach(el => {
+                el.addEventListener('mouseenter', () => { el.style.background = 'rgba(0,0,0,0.03)'; el.style.borderColor = 'rgba(0,0,0,0.08)'; });
+                el.addEventListener('mouseleave', () => { el.style.background = ''; el.style.borderColor = 'transparent'; });
+            });
+        }
+
+        function toggleHistoryPanel() {
+            const panel = document.getElementById('historyPanel');
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                renderHistoryList();
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function loadFromHistory(id) {
+            const history = loadHistory();
+            const record = history.find(h => h.id === id);
+            if (!record) { showToast('记录不存在', 'error'); return; }
+            currentAnalysisData = record.data;
+            currentFileName = record.file_name;
+            // 隐藏上传区域，显示结果
+            document.getElementById('uploadCard').style.display = 'none';
+            document.getElementById('columnConfigCard').style.display = 'none';
+            displayResults();
+            toggleHistoryPanel();
+            showToast('已加载历史记录', 'success');
+            // 滚动到结果区域
+            document.getElementById('resultCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
