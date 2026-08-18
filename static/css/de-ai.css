@@ -128,73 +128,86 @@ th, td {
     border-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-/* 导航栏：Apple风格黑色半透明毛玻璃 */
+/* 导航栏：白色背景 */
 .nav, .navbar, .top-bar, .header-bar, .tb-nav-bar {
-    background: rgba(0, 0, 0, 0.8) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
     backdrop-filter: saturate(180%) blur(20px) !important;
     -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
-    border-bottom: none !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: none !important;
-    color: #fff !important;
+    color: #1a1a1a !important;
 }
 
-/* 导航栏内文字和链接：白色 */
+/* 导航栏内文字和链接：黑色 */
 .nav a, .navbar a, .top-bar a, .header-bar a, .tb-nav-bar a,
 .nav button, .navbar button, .top-bar button, .header-bar button, .tb-nav-bar button,
 .nav .nav-logo, .navbar .nav-logo, .tb-nav-bar .tb-nav-title,
 .tb-nav-bar .tb-nav-user-name, .tb-nav-bar .tb-nav-home {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(0, 0, 0, 0.8) !important;
 }
 
 .nav a:hover, .navbar a:hover, .top-bar a:hover, .header-bar a:hover, .tb-nav-bar a:hover,
 .nav button:hover, .navbar button:hover, .top-bar button:hover, .header-bar button:hover, .tb-nav-bar button:hover {
-    color: #fff !important;
+    color: #000 !important;
 }
 
 /* 导航栏内按钮样式 */
 .nav .nav-btn, .navbar .nav-btn, .tb-nav-bar .tb-nav-theme,
 .tb-nav-bar .tb-nav-right button, .tb-nav-bar .tb-nav-right a:not(.tb-nav-home):not(.tb-nav-logout) {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    color: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .nav .nav-btn:hover, .navbar .nav-btn:hover, .tb-nav-bar .tb-nav-theme:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
+    background: rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
 /* 导航栏登录按钮 */
 .tb-nav-bar .tb-nav-login-btn, .nav .login-btn {
-    background: #fff !important;
-    color: #000 !important;
+    background: #1a1a1a !important;
+    color: #fff !important;
     border: none !important;
 }
 
 .tb-nav-bar .tb-nav-login-btn:hover, .nav .login-btn:hover {
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: #000 !important;
+    background: #333 !important;
+    color: #fff !important;
 }
 
 /* 导航栏退出按钮 */
 .tb-nav-bar .tb-nav-logout {
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(0, 0, 0, 0.5) !important;
 }
 
 .tb-nav-bar .tb-nav-logout:hover {
-    color: #fff !important;
+    color: #000 !important;
 }
 
 /* 导航栏命令面板按钮 */
 .nav .nav-cmdk, .navbar .nav-cmdk {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    color: rgba(255, 255, 255, 0.7) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: rgba(0, 0, 0, 0.6) !important;
 }
 
 .nav .nav-cmdk:hover, .navbar .nav-cmdk:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-    color: #fff !important;
+    background: rgba(0, 0, 0, 0.07) !important;
+    color: #000 !important;
+}
+
+/* 导航栏中间分类标签 */
+.nav-category {
+    color: rgba(0, 0, 0, 0.6) !important;
+}
+.nav-category:hover {
+    color: #000 !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+.nav-category.active {
+    color: #000 !important;
+    background: rgba(0, 0, 0, 0.08) !important;
 }
 
 /* 搜索框 */
