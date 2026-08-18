@@ -1629,20 +1629,34 @@ function showToast(msg, type) {
                 alert('请输入研发名字');
                 return;
             }
-            if (!currentAnalysisData || !currentAnalysisData.all_issues) {
+            if (!currentAnalysisData) {
                 alert('请先分析文件');
                 return;
             }
 
-            const issues = currentAnalysisData.all_issues;
-            // 筛选该研发的问题（模糊匹配，不区分大小写）
             const nameLower = name.toLowerCase();
+
+            // 1. 从 dev_stats 获取准确的总数（和下方统计表一致）
+            const devStats = currentAnalysisData.dev_stats || {};
+            let matchedDev = null;
+            let matchedStats = null;
+            for (const [devName, stats] of Object.entries(devStats)) {
+                const dn = devName.toLowerCase();
+                if (dn === nameLower || dn.includes(nameLower) || nameLower.includes(dn)) {
+                    matchedDev = devName;
+                    matchedStats = stats;
+                    break;
+                }
+            }
+
+            // 2. 从 all_issues 筛选该研发的问题（用于趋势图）
+            const issues = currentAnalysisData.all_issues || [];
             const devIssues = issues.filter(i => {
                 const dev = (i.developer || '').toLowerCase();
                 return dev === nameLower || dev.includes(nameLower) || nameLower.includes(dev);
             });
 
-            if (devIssues.length === 0) {
+            if (!matchedStats && devIssues.length === 0) {
                 document.getElementById('developerTrendStats').style.display = 'none';
                 document.getElementById('developerTrendChart').style.display = 'none';
                 document.getElementById('developerTrendEmpty').style.display = 'block';
@@ -1650,64 +1664,70 @@ function showToast(msg, type) {
                 return;
             }
 
-            // 统计总览
-            let total = devIssues.length;
-            let resolved = 0, unresolved = 0, reopened = 0;
-            devIssues.forEach(i => {
-                const status = (i.status || '').toLowerCase();
-                const isResolved = ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'].some(k => status.includes(k));
-                const isReopened = ['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k));
-                if (isReopened) reopened++;
-                if (isResolved) resolved++;
-                else unresolved++;
-            });
-
-            // 计算近30天每天的 resolved 和 reopened
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const dailyData = [];
-            for (let i = 29; i >= 0; i--) {
-                const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
-                dailyData.push({ date: dateStr, resolved: 0, reopened: 0, new: 0 });
+            // 3. 统计总览（优先用 dev_stats 准确数据）
+            let total, resolved, unresolved;
+            if (matchedStats) {
+                total = matchedStats.total || 0;
+                resolved = matchedStats.resolved || 0;
+                unresolved = matchedStats.unresolved || 0;
+            } else {
+                total = devIssues.length;
+                resolved = 0; unresolved = 0;
+                devIssues.forEach(i => {
+                    const status = (i.status || '').toLowerCase();
+                    const isResolved = ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'].some(k => status.includes(k));
+                    if (isResolved) resolved++; else unresolved++;
+                });
             }
-            const dateMap = {};
-            dailyData.forEach(d => dateMap[d.date] = d);
 
+            // 统计 reopen 数（从 all_issues 中）
+            let reopened = 0;
             devIssues.forEach(i => {
-                // resolved 日期
-                const resDate = (i.resolved_date || '').trim();
-                if (resDate) {
-                    const normalized = normalizeDateStr(resDate);
-                    if (normalized && dateMap[normalized]) {
-                        dateMap[normalized].resolved++;
-                    }
-                }
-                // created 日期
-                const createDate = (i.create_date || '').trim();
-                if (createDate) {
-                    const normalized = normalizeDateStr(createDate);
-                    if (normalized && dateMap[normalized]) {
-                        dateMap[normalized].new++;
-                    }
-                }
-                // reopen 状态的问题，用 resolved_date 作为 reopen 日期（如果有），否则用 created_date
                 const status = (i.status || '').toLowerCase();
-                const isReopened = ['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k));
-                if (isReopened) {
-                    const reopenDate = (i.resolved_date || i.created_date || '').trim();
-                    if (reopenDate) {
-                        const normalized = normalizeDateStr(reopenDate);
-                        if (normalized && dateMap[normalized]) {
-                            dateMap[normalized].reopened++;
-                        }
-                    }
+                if (['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k))) {
+                    reopened++;
                 }
             });
 
-            // 渲染统计卡片
+            // 4. 根据 all_issues 中的实际日期范围生成趋势数据（不限制30天）
+            const dateSet = new Set();
+            devIssues.forEach(i => {
+                const resDate = normalizeDateStr((i.resolved_date || '').trim());
+                const createDate = normalizeDateStr((i.create_date || '').trim());
+                if (resDate) dateSet.add(resDate);
+                if (createDate) dateSet.add(createDate);
+            });
+
+            let dailyData = [];
+            if (dateSet.size > 0) {
+                const sortedDates = Array.from(dateSet).sort();
+                const startDate = new Date(sortedDates[0]);
+                const endDate = new Date(sortedDates[sortedDates.length - 1]);
+                const dateMap = {};
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    const item = { date: dateStr, resolved: 0, reopened: 0, new: 0 };
+                    dailyData.push(item);
+                    dateMap[dateStr] = item;
+                }
+
+                devIssues.forEach(i => {
+                    const resDate = normalizeDateStr((i.resolved_date || '').trim());
+                    if (resDate && dateMap[resDate]) dateMap[resDate].resolved++;
+                    const createDate = normalizeDateStr((i.create_date || '').trim());
+                    if (createDate && dateMap[createDate]) dateMap[createDate].new++;
+                    const status = (i.status || '').toLowerCase();
+                    if (['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k))) {
+                        const reopenDate = normalizeDateStr((i.resolved_date || i.create_date || '').trim());
+                        if (reopenDate && dateMap[reopenDate]) dateMap[reopenDate].reopened++;
+                    }
+                });
+            }
+
+            // 5. 渲染统计卡片
             const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
+            const sampleWarning = (matchedStats && devIssues.length < total) ? `<div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">⚠️ 趋势图基于样本数据（${devIssues.length}/${total}），完整统计以卡片数字为准</div>` : '';
+
             document.getElementById('developerTrendStats').style.display = 'grid';
             document.getElementById('developerTrendStats').innerHTML = `
                 <div style="background:var(--bg);border-radius:12px;padding:16px;text-align:center;border:1px solid var(--border);">
@@ -1733,9 +1753,25 @@ function showToast(msg, type) {
             `;
 
             // 渲染图表
-            document.getElementById('developerTrendChart').style.display = 'block';
-            document.getElementById('developerTrendEmpty').style.display = 'none';
-            drawDevTrendChart(dailyData, name);
+            if (dailyData.length > 0) {
+                document.getElementById('developerTrendChart').style.display = 'block';
+                document.getElementById('developerTrendEmpty').style.display = 'none';
+                drawDevTrendChart(dailyData, matchedDev || name);
+                // 添加样本警告
+                const chartEl = document.getElementById('developerTrendChart');
+                const existingWarning = chartEl.querySelector('.sample-warning');
+                if (existingWarning) existingWarning.remove();
+                if (sampleWarning) {
+                    const warningDiv = document.createElement('div');
+                    warningDiv.className = 'sample-warning';
+                    warningDiv.innerHTML = sampleWarning;
+                    chartEl.appendChild(warningDiv);
+                }
+            } else {
+                document.getElementById('developerTrendChart').style.display = 'none';
+                document.getElementById('developerTrendEmpty').style.display = 'block';
+                document.getElementById('developerTrendEmpty').innerHTML = `📊 已找到研发「${escapeHtml(matchedDev || name)}」的 ${total} 个问题，但样本数据中暂无日期信息可绘制趋势图${sampleWarning}`;
+            }
         }
 
         function normalizeDateStr(dateStr) {
