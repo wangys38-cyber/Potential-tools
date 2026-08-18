@@ -479,7 +479,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
             'resolution': issue.get('resolution', ''),
         })
     all_issues_brief.sort(key=lambda x: x.get('create_date', ''), reverse=True)
-    all_issues_brief = all_issues_brief[:200]
+    all_issues_brief = all_issues_brief[:500]
     
     # 释放大列表内存
     sample_data = data_rows[:3] if data_rows else []
@@ -940,6 +940,20 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
         'bc_rate': bc_rate,
     }
 
+    # all_issues（最多500条，用于前端研发趋势等功能）
+    all_issues_brief = []
+    for i in range(min(500, total)):
+        all_issues_brief.append({
+            'id': str(col_id.iloc[i]) if i < len(col_id) else '',
+            'title': str(col_title.iloc[i]) if i < len(col_title) else '',
+            'module': str(col_module.iloc[i]) if i < len(col_module) else '',
+            'developer': str(col_developer.iloc[i]) if i < len(col_developer) else '',
+            'status': str(col_status.iloc[i]) if i < len(col_status) else '',
+            'severity': str(col_severity.iloc[i]) if i < len(col_severity) else '',
+            'create_date': str(col_created.iloc[i]) if i < len(col_created) else '',
+            'resolved_date': str(col_resolved.iloc[i]) if i < len(col_resolved) else '',
+        })
+
     # 释放内存
     del df, module_data, dev_data
     gc.collect()
@@ -956,6 +970,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
         'module_stats': by_module,
         'dev_stats': by_developer,
         'daily_stats': daily_stats_list,
+        'all_issues': all_issues_brief,
         'suggestions': suggestions,
         'unverified_issues': unverified_issues,
         'detected_columns': col_map,

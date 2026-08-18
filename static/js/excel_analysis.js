@@ -684,6 +684,12 @@ function showToast(msg, type) {
                     `;
                 }).join('');
 
+            // 填充研发名字下拉列表
+            const devList = document.getElementById('developerList');
+            if (devList && d.developers) {
+                devList.innerHTML = d.developers.map(dev => `<option value="${escapeHtml(dev.name || dev)}">`).join('');
+            }
+
             document.getElementById('developersTable').innerHTML = `
                 <table>
                     <thead>
@@ -1613,4 +1619,249 @@ function showToast(msg, type) {
                     btn.disabled = false;
                 }, 2000);
             }
+        }
+
+        // ===== 研发个人解单趋势 =====
+        function renderDeveloperTrend() {
+            const nameInput = document.getElementById('developerTrendInput');
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('请输入研发名字');
+                return;
+            }
+            if (!currentAnalysisData || !currentAnalysisData.all_issues) {
+                alert('请先分析文件');
+                return;
+            }
+
+            const issues = currentAnalysisData.all_issues;
+            // 筛选该研发的问题（模糊匹配，不区分大小写）
+            const nameLower = name.toLowerCase();
+            const devIssues = issues.filter(i => {
+                const dev = (i.developer || '').toLowerCase();
+                return dev === nameLower || dev.includes(nameLower) || nameLower.includes(dev);
+            });
+
+            if (devIssues.length === 0) {
+                document.getElementById('developerTrendStats').style.display = 'none';
+                document.getElementById('developerTrendChart').style.display = 'none';
+                document.getElementById('developerTrendEmpty').style.display = 'block';
+                document.getElementById('developerTrendEmpty').innerHTML = `❌ 未找到研发「${escapeHtml(name)}」的问题记录`;
+                return;
+            }
+
+            // 统计总览
+            let total = devIssues.length;
+            let resolved = 0, unresolved = 0, reopened = 0;
+            devIssues.forEach(i => {
+                const status = (i.status || '').toLowerCase();
+                const isResolved = ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'].some(k => status.includes(k));
+                const isReopened = ['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k));
+                if (isReopened) reopened++;
+                if (isResolved) resolved++;
+                else unresolved++;
+            });
+
+            // 计算近30天每天的 resolved 和 reopened
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dailyData = [];
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                dailyData.push({ date: dateStr, resolved: 0, reopened: 0, new: 0 });
+            }
+            const dateMap = {};
+            dailyData.forEach(d => dateMap[d.date] = d);
+
+            devIssues.forEach(i => {
+                // resolved 日期
+                const resDate = (i.resolved_date || '').trim();
+                if (resDate) {
+                    const normalized = normalizeDateStr(resDate);
+                    if (normalized && dateMap[normalized]) {
+                        dateMap[normalized].resolved++;
+                    }
+                }
+                // created 日期
+                const createDate = (i.create_date || '').trim();
+                if (createDate) {
+                    const normalized = normalizeDateStr(createDate);
+                    if (normalized && dateMap[normalized]) {
+                        dateMap[normalized].new++;
+                    }
+                }
+                // reopen 状态的问题，用 resolved_date 作为 reopen 日期（如果有），否则用 created_date
+                const status = (i.status || '').toLowerCase();
+                const isReopened = ['reopen', 'reopened', '重新打开', '重新开启'].some(k => status.includes(k));
+                if (isReopened) {
+                    const reopenDate = (i.resolved_date || i.created_date || '').trim();
+                    if (reopenDate) {
+                        const normalized = normalizeDateStr(reopenDate);
+                        if (normalized && dateMap[normalized]) {
+                            dateMap[normalized].reopened++;
+                        }
+                    }
+                }
+            });
+
+            // 渲染统计卡片
+            const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
+            document.getElementById('developerTrendStats').style.display = 'grid';
+            document.getElementById('developerTrendStats').innerHTML = `
+                <div style="background:var(--bg);border-radius:12px;padding:16px;text-align:center;border:1px solid var(--border);">
+                    <div style="font-size:12px;color:var(--text-3);margin-bottom:4px;">问题总数</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--text);">${total}</div>
+                </div>
+                <div style="background:rgba(52,199,89,0.1);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(52,199,89,0.2);">
+                    <div style="font-size:12px;color:#34c759;margin-bottom:4px;">已解决</div>
+                    <div style="font-size:24px;font-weight:800;color:#34c759;">${resolved}</div>
+                </div>
+                <div style="background:rgba(255,59,48,0.1);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,59,48,0.2);">
+                    <div style="font-size:12px;color:#ff3b30;margin-bottom:4px;">未解决</div>
+                    <div style="font-size:24px;font-weight:800;color:#ff3b30;">${unresolved}</div>
+                </div>
+                <div style="background:rgba(255,149,0,0.1);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,149,0,0.2);">
+                    <div style="font-size:12px;color:#ff9500;margin-bottom:4px;">Reopen</div>
+                    <div style="font-size:24px;font-weight:800;color:#ff9500;">${reopened}</div>
+                </div>
+                <div style="background:rgba(102,126,234,0.1);border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(102,126,234,0.2);">
+                    <div style="font-size:12px;color:#667eea;margin-bottom:4px;">解决率</div>
+                    <div style="font-size:24px;font-weight:800;color:#667eea;">${rate}%</div>
+                </div>
+            `;
+
+            // 渲染图表
+            document.getElementById('developerTrendChart').style.display = 'block';
+            document.getElementById('developerTrendEmpty').style.display = 'none';
+            drawDevTrendChart(dailyData, name);
+        }
+
+        function normalizeDateStr(dateStr) {
+            if (!dateStr) return '';
+            // 尝试多种格式
+            const cleaned = dateStr.trim().replace(/[年月]/g, '-').replace(/[日]/g, '').replace(/\//g, '-').replace(/\./g, '-');
+            const parts = cleaned.split(/[-T\s]/);
+            if (parts.length >= 3) {
+                const y = parts[0].padStart(4, '20');
+                const m = parts[1].padStart(2, '0');
+                const d = parts[2].padStart(2, '0');
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            // 尝试 Date 解析
+            const parsed = new Date(dateStr);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toISOString().split('T')[0];
+            }
+            return '';
+        }
+
+        function drawDevTrendChart(dailyData, name) {
+            const canvas = document.getElementById('devTrendCanvas');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = 300 * dpr;
+            ctx.scale(dpr, dpr);
+            const W = rect.width;
+            const H = 300;
+
+            ctx.clearRect(0, 0, W, H);
+
+            const padding = { top: 30, right: 20, bottom: 50, left: 50 };
+            const chartW = W - padding.left - padding.right;
+            const chartH = H - padding.top - padding.bottom;
+
+            // 找最大值
+            let maxVal = 1;
+            dailyData.forEach(d => {
+                maxVal = Math.max(maxVal, d.resolved, d.reopened, d.new);
+            });
+            maxVal = Math.ceil(maxVal * 1.2);
+
+            // 画网格线
+            ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+            ctx.lineWidth = 1;
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + chartH - (i / 5) * chartH;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(W - padding.right, y);
+                ctx.stroke();
+                const val = Math.round((i / 5) * maxVal);
+                ctx.textAlign = 'right';
+                ctx.fillText(val, padding.left - 8, y + 4);
+            }
+
+            // X轴日期标签（每隔5天显示一个）
+            ctx.textAlign = 'center';
+            dailyData.forEach((d, i) => {
+                if (i % 5 === 0 || i === dailyData.length - 1) {
+                    const x = padding.left + (i / (dailyData.length - 1)) * chartW;
+                    const label = d.date.slice(5); // MM-DD
+                    ctx.fillText(label, x, H - padding.bottom + 20);
+                }
+            });
+
+            // 画线函数
+            function drawLine(data, color, fillColor) {
+                ctx.beginPath();
+                data.forEach((d, i) => {
+                    const x = padding.left + (i / (data.length - 1)) * chartW;
+                    const y = padding.top + chartH - (d / maxVal) * chartH;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                // 填充区域
+                ctx.lineTo(padding.left + chartW, padding.top + chartH);
+                ctx.lineTo(padding.left, padding.top + chartH);
+                ctx.closePath();
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+
+                // 画点
+                data.forEach((d, i) => {
+                    if (d > 0) {
+                        const x = padding.left + (i / (data.length - 1)) * chartW;
+                        const y = padding.top + chartH - (d / maxVal) * chartH;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                    }
+                });
+            }
+
+            // 画三条线
+            drawLine(dailyData.map(d => d.new), '#ff9500', 'rgba(255,149,0,0.08)');
+            drawLine(dailyData.map(d => d.resolved), '#34c759', 'rgba(52,199,89,0.08)');
+            drawLine(dailyData.map(d => d.reopened), '#ff3b30', 'rgba(255,59,48,0.08)');
+
+            // 图例
+            const legendY = 12;
+            const legends = [
+                { color: '#34c759', label: '每日解决' },
+                { color: '#ff3b30', label: '每日Reopen' },
+                { color: '#ff9500', label: '每日新增' }
+            ];
+            let legendX = padding.left;
+            legends.forEach(l => {
+                ctx.fillStyle = l.color;
+                ctx.fillRect(legendX, legendY - 6, 12, 12);
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(l.label, legendX + 16, legendY + 4);
+                legendX += 100;
+            });
         }
