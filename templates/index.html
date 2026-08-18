@@ -357,21 +357,13 @@
         .tool-footer { display: flex; align-items: center; justify-content: space-between; }
         .tool-btn {
             display: inline-flex; align-items: center; gap: 5px;
-            padding: 9px 20px; background: var(--gradient-accent); color: #fff;
-            border-radius: 12px; text-decoration: none;
-            font-weight: 600; font-size: 13px; border: none; cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); font-family: inherit;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
-            position: relative; overflow: hidden;
+            padding: 8px 18px; background: #1a1a1a; color: #fff;
+            border-radius: 8px; text-decoration: none;
+            font-weight: 500; font-size: 13px; border: none; cursor: pointer;
+            transition: all 0.15s ease; font-family: inherit;
         }
-        .tool-btn::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-            transition: left 0.5s;
-        }
-        .tool-btn:hover::before { left: 100%; }
-        .tool-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35); }
-        .tool-btn svg { width: 15px; height: 15px; }
+        .tool-btn:hover { background: #333; }
+        .tool-btn svg { display: none; }
 
         .tool-shortcut {
             margin-left: auto;
@@ -386,13 +378,13 @@
         }
 
         .fav-btn {
-            background: none; border: none; cursor: pointer;
-            font-size: 18px; padding: 6px;
-            opacity: 0.3; transition: all 0.25s;
-            border-radius: 8px;
+            background: #1a1a1a; border: none; cursor: pointer;
+            font-size: 13px; padding: 8px 14px;
+            color: #fff; transition: all 0.15s ease;
+            border-radius: 8px; font-weight: 500; font-family: inherit;
         }
-        .fav-btn:hover { opacity: 0.8; transform: scale(1.15); }
-        .fav-btn.active { opacity: 1; }
+        .fav-btn:hover { background: #333; }
+        .fav-btn.active { background: #1a1a1a; }
 
         /* ===== Favorites & Recent ===== */
         .tb-recent-bar { margin-bottom: 20px; }
@@ -840,10 +832,9 @@
                 <div class="tool-footer">
                     <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">
                         打开
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                     <button onclick="toggleFavorite('${t.id}', event)" class="fav-btn ${isFav ? 'active' : ''}" title="${isFav ? '取消收藏' : '收藏'}">
-                        ${isFav ? '⭐' : '☆'}
+                        ${isFav ? '已收藏' : '收藏'}
                     </button>
                 </div>
             </div>
