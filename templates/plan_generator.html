@@ -801,8 +801,8 @@
                     <p style="font-size:12px;color:var(--tb-text-secondary,#999);margin-top:6px;">选择当前正在进行的节点，之前的节点自动标记为已完成</p>
                 </div>
                 <div style="margin-bottom:8px;">
-                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">节点列表</label>
-                    <div id="qe_nodesList" style="border:1px solid var(--tb-border,#ddd);border-radius:10px;max-height:200px;overflow-y:auto;"></div>
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">节点列表（可编辑名称和日期）</label>
+                    <div id="qe_nodesList" style="border:1px solid var(--tb-border,#ddd);border-radius:10px;max-height:280px;overflow-y:auto;"></div>
                 </div>
             </div>
             <div style="padding:14px 22px;border-top:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:flex-end;gap:10px;">
@@ -1226,7 +1226,7 @@
             document.getElementById('qe_projectName').value = plan.projectName || '';
             document.getElementById('qe_startDate').value = plan.startDate || '';
 
-            // 填充节点下拉和列表
+            // 填充节点下拉和可编辑列表
             const nodeSelect = document.getElementById('qe_currentNode');
             const nodesList = document.getElementById('qe_nodesList');
             nodeSelect.innerHTML = '<option value="">— 未开始 —</option>';
@@ -1237,14 +1237,28 @@
                 if (n.status === 'in-progress') currentNodeIdx = i;
                 const opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = `${i + 1}. ${n.name} (${n.date || ''})`;
+                opt.textContent = `${i + 1}. ${n.name}`;
                 nodeSelect.appendChild(opt);
 
+                // 可编辑的节点行
                 const row = document.createElement('div');
-                row.style.cssText = 'padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:8px;font-size:13px;';
+                row.style.cssText = 'padding:10px 12px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px;';
+                row.dataset.index = i;
+
                 const statusColor = n.status === 'done' ? '#10b981' : n.status === 'in-progress' ? '#f59e0b' : '#9ca3af';
                 const statusIcon = n.status === 'done' ? '✅' : n.status === 'in-progress' ? '🔄' : '⬜';
-                row.innerHTML = `<span style="font-size:14px;">${statusIcon}</span><span style="flex:1;">${i + 1}. ${n.name}</span><span style="color:${statusColor};font-size:12px;">${n.date || ''}</span>`;
+
+                row.innerHTML = `
+                    <span style="font-size:14px;flex-shrink:0;" title="节点状态">${statusIcon}</span>
+                    <span style="font-size:12px;color:var(--tb-text-secondary,#999);flex-shrink:0;min-width:24px;">${i + 1}.</span>
+                    <input type="text" class="qe-node-name" value="${escapeHtml(n.name)}" style="flex:1;padding:6px 10px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:13px;min-width:0;" placeholder="节点名称">
+                    <input type="date" class="qe-node-date" value="${n.date || ''}" style="padding:6px 8px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:12px;flex-shrink:0;width:130px;">
+                    <select class="qe-node-status" style="padding:6px 8px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:12px;flex-shrink:0;background:#fff;">
+                        <option value="pending" ${n.status === 'pending' ? 'selected' : ''}>未开始</option>
+                        <option value="in-progress" ${n.status === 'in-progress' ? 'selected' : ''}>进行中</option>
+                        <option value="done" ${n.status === 'done' ? 'selected' : ''}>已完成</option>
+                    </select>
+                `;
                 nodesList.appendChild(row);
             });
             nodeSelect.value = currentNodeIdx >= 0 ? currentNodeIdx : '';
@@ -1272,16 +1286,25 @@
             plan.projectName = newName;
             plan.startDate = newDate;
 
-            // 更新节点状态
+            // 保存每个节点的修改
+            const nodeRows = document.querySelectorAll('#qe_nodesList > div');
+            nodeRows.forEach((row, i) => {
+                if (!plan.nodes[i]) return;
+                const nameInput = row.querySelector('.qe-node-name');
+                const dateInput = row.querySelector('.qe-node-date');
+                const statusSelect = row.querySelector('.qe-node-status');
+                if (nameInput) plan.nodes[i].name = nameInput.value.trim() || plan.nodes[i].name;
+                if (dateInput) plan.nodes[i].date = dateInput.value;
+                if (statusSelect) plan.nodes[i].status = statusSelect.value;
+            });
+
+            // 如果选择了当前进度节点，自动更新之前节点为已完成
             if (currentNodeIdx !== '') {
                 const idx = parseInt(currentNodeIdx);
                 plan.nodes.forEach((n, i) => {
                     if (i < idx) n.status = 'done';
                     else if (i === idx) n.status = 'in-progress';
-                    else n.status = 'pending';
                 });
-            } else {
-                plan.nodes.forEach(n => n.status = 'pending');
             }
 
             plan.updatedAt = Date.now();
@@ -1291,6 +1314,8 @@
                 currentProjectName = newName;
                 document.getElementById('projectNameDisplay').textContent = newName;
                 document.getElementById('firstNode').value = newDate;
+                currentPlan = plan.nodes.map(n => ({ ...n, dateObj: new Date(n.date) }));
+                renderTable();
             }
 
             savePlansToStorage();
