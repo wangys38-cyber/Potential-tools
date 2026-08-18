@@ -1159,6 +1159,25 @@
             showToast('计划已删除', 'success');
         }
 
+        function editPlanName(id, event) {
+            event.stopPropagation();
+            const plan = savedPlans.find(p => p.id === id);
+            if (!plan) return;
+            const newName = prompt('请输入新的项目名称：', plan.projectName);
+            if (newName === null) return;
+            const trimmed = newName.trim();
+            if (!trimmed) { showToast('项目名称不能为空', 'warning'); return; }
+            plan.projectName = trimmed;
+            plan.updatedAt = Date.now();
+            if (currentPlanId === id) {
+                currentProjectName = trimmed;
+                document.getElementById('projectNameDisplay').textContent = trimmed;
+            }
+            savePlansToStorage();
+            renderPlansList();
+            showToast('项目名称已更新', 'success');
+        }
+
         function renderPlansList() {
             const container = document.getElementById('plansContainer');
             const empty = document.getElementById('emptyPlans');
@@ -1186,6 +1205,7 @@
                     '<div class="plan-card-nodes">' + nodeTags + '</div>' +
                     '<div class="plan-card-actions">' +
                         '<button class="plan-card-btn" onclick="loadPlan(\'' + plan.id + '\')">📂 打开</button>' +
+                        '<button class="plan-card-btn" onclick="editPlanName(\'' + plan.id + '\', event)">✏️ 编辑</button>' +
                         '<button class="plan-card-btn" onclick="pushPlanToFeishuById(\'' + plan.id + '\', event)">📤 飞书</button>' +
                         '<button class="plan-card-btn danger" onclick="deletePlan(\'' + plan.id + '\', event)">🗑️ 删除</button>' +
                     '</div>' +
