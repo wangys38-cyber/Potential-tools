@@ -801,14 +801,33 @@ const ToolboxNav = (function() {
         bar.className = 'tb-nav-bar';
 
         var leftHtml = '';
-        if (opts.showHome !== false && !isHome) {
-            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页 (Esc)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></a>';
-        }
-        if (opts.title) {
-            leftHtml += '<span class="tb-nav-title">' + escapeHtml(opts.title) + '</span>';
+        if (opts.showHome !== false) {
+            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></a>';
         }
 
+        // 中间分类标签（和首页一致）
+        var centerHtml = '<div class="tb-nav-center">';
+        var categories = [
+            {id: 'all', name: '全部'},
+            {id: 'fav', name: '收藏'},
+            {id: 'notes', name: '笔记'},
+            {id: 'convert', name: '转换'},
+            {id: 'analysis', name: '分析'},
+            {id: 'dev', name: '研发'},
+            {id: 'office', name: '办公'},
+            {id: 'manage', name: '管理'},
+            {id: 'fun', name: '趣味'}
+        ];
+        categories.forEach(function(cat) {
+            centerHtml += '<a href="/?cat=' + cat.id + '" class="tb-nav-category" data-cat="' + cat.id + '">' + cat.name + '</a>';
+        });
+        centerHtml += '</div>';
+
         var rightHtml = '';
+        // 搜索图标
+        rightHtml += '<a href="/?focus=search" class="tb-nav-btn" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></a>';
+        // 设置按钮
+        rightHtml += '<a href="/settings" class="tb-nav-btn" title="设置">⚙️</a>';
         if (opts.extraActions) {
             opts.extraActions.forEach(function(a) {
                 rightHtml += a.html;
@@ -824,6 +843,7 @@ const ToolboxNav = (function() {
 
         bar.innerHTML =
             '<div class="tb-nav-left">' + leftHtml + '</div>' +
+            centerHtml +
             '<div class="tb-nav-right">' + rightHtml + '</div>';
 
         document.body.insertBefore(bar, document.body.firstChild);

@@ -136,6 +136,22 @@ th, td {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: none !important;
     color: #1a1a1a !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 20px !important;
+    height: 52px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+}
+.tb-nav-left, .tb-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.tb-nav-right {
+    margin-left: auto;
 }
 
 /* 导航栏内文字和链接：黑色 */
@@ -162,6 +178,51 @@ th, td {
 .nav .nav-btn:hover, .navbar .nav-btn:hover, .tb-nav-bar .tb-nav-theme:hover {
     background: rgba(0, 0, 0, 0.08) !important;
     border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 导航栏中间分类标签 */
+.tb-nav-center {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+}
+.tb-nav-category {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 12px;
+    font-weight: 400;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.tb-nav-category:hover {
+    color: #000;
+    background: rgba(0, 0, 0, 0.05);
+}
+.tb-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.7);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+.tb-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #000;
 }
 
 /* 导航栏登录按钮 */
