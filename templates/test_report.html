@@ -9,35 +9,64 @@
     <link rel="stylesheet" href="/static/css/test_report.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+<style>
+    /* 页面标题区 - 玻璃拟态 */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 24px 28px;
+        margin: 20px 0;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        flex-wrap: wrap;
+    }
+    .page-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: #1a1a2e;
+        margin: 0 0 4px 0;
+    }
+    .page-subtitle {
+        font-size: 13px;
+        color: rgba(0, 0, 0, 0.5);
+        margin: 0;
+    }
+    .page-action-btn {
+        white-space: nowrap;
+    }
+    @media (max-width: 600px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        .page-actions {
+            display: flex;
+            justify-content: center;
+        }
+    }
+</style>
 </head>
 <body>
+    <!-- 全局导航栏占位（components.js 自动注入玻璃拟态导航栏） -->
+    <div id="tb-nav-bar"></div>
+
     <div class="container">
-        <!-- Header with Logos -->
-        <div class="header">
-            <img src="/static/logo_left.jpg" alt="QA Logo" class="header-logo">
-            <div class="header-text">
-                <h1>📋 测试报告分析工具</h1>
-                <div class="subtitle">上传Excel报告 → 选择Sheet页 → 查看智能分析结果</div>
+        <!-- 页面标题区 -->
+        <div class="page-header">
+            <div class="page-title-area">
+                <h1 class="page-title">📋 测试报告分析工具</h1>
+                <p class="page-subtitle">上传Excel报告 → 选择Sheet页 → 查看智能分析结果</p>
             </div>
-            <img src="/static/logo_right.jpg" alt="Analytics Logo" class="header-logo-right">
-        </div>
-
-        <a href="/" style="position:absolute;top:16px;right:16px;z-index:100;padding:8px 16px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);border-radius:10px;text-decoration:none;color:#333;font-size:14px;border:1px solid #e5e5e5;box-shadow:0 2px 8px rgba(0,0,0,0.1);">← 返回首页</a>
-
-        <!-- 用户栏 -->
-        <div class="user-bar" id="userBar">
-            {% if current_user %}
-                {% if current_user.avatar %}
-                    <img src="{{ current_user.avatar }}" class="user-avatar" alt="avatar">
-                {% else %}
-                    <div class="user-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:600;">{{ current_user.name[:1] if current_user.name else '?' }}</div>
-                {% endif %}
-                <span class="user-name">{{ current_user.name }}</span>
-                <span class="user-provider">{{ '飞书' if current_user.provider == 'feishu' else 'Google' }}</span>
-                <a href="/auth/logout" class="logout-link">退出</a>
-            {% else %}
-                <a href="/login" class="login-link">登录</a>
-            {% endif %}
+            <div class="page-actions">
+                <a href="/" class="btn btn-secondary page-action-btn">← 返回首页</a>
+            </div>
         </div>
 
         <!-- 上传区 -->
@@ -200,8 +229,7 @@
 
     <script src="/static/js/test_report.js?v={{ STATIC_VERSION }}"></script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <!-- 阻止 components.js 自动注入导航栏（本页已有自带 header 和 user-bar） -->
-    <div id="tb-nav-bar" style="display:none"></div>
+    <!-- 全局导航栏已在页面顶部注入 -->
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
