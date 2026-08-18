@@ -634,6 +634,8 @@
         .plan-card-nodes { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; }
         .plan-card-nodes .node-tag { display: inline-block; padding: 2px 8px; background: var(--bg-secondary); border-radius: var(--radius-full); font-size: 11px; margin: 2px 3px 2px 0; }
         .plan-card-nodes .node-tag.milestone { background: rgba(255,149,0,0.12); color: #ff9500; }
+        .plan-card-nodes .node-tag.done { background: rgba(16,185,129,0.12); color: #10b981; text-decoration: line-through; opacity: 0.7; }
+        .plan-card-nodes .node-tag.in-progress { background: rgba(245,158,11,0.15); color: #f59e0b; font-weight: 600; }
         .plan-card-actions { display: flex; gap: 8px; }
         .plan-card-btn { flex: 1; padding: 8px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); border-radius: var(--radius-md); font-size: 12px; cursor: pointer; transition: all 0.2s; }
         .plan-card-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -771,6 +773,41 @@
                     <p>还没有保存的计划</p>
                     <p style="font-size:13px;margin-top:8px;opacity:0.7;">生成计划后点击「保存计划」即可收藏</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 计划快速编辑弹窗 -->
+    <div id="quickEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;">
+        <div style="background:var(--tb-bg,#fff);border-radius:16px;width:90%;max-width:520px;max-height:85vh;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
+            <div style="padding:18px 22px;border-bottom:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;font-size:17px;font-weight:600;">✏️ 编辑项目计划</h3>
+                <button onclick="closeQuickEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--tb-text-secondary,#999);padding:0;">✕</button>
+            </div>
+            <div style="padding:20px 22px;overflow-y:auto;max-height:calc(85vh - 130px);">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">项目名称</label>
+                    <input type="text" id="qe_projectName" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">开始日期</label>
+                    <input type="date" id="qe_startDate" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">当前进度节点</label>
+                    <select id="qe_currentNode" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;background:#fff;">
+                        <option value="">— 未开始 —</option>
+                    </select>
+                    <p style="font-size:12px;color:var(--tb-text-secondary,#999);margin-top:6px;">选择当前正在进行的节点，之前的节点自动标记为已完成</p>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">节点列表</label>
+                    <div id="qe_nodesList" style="border:1px solid var(--tb-border,#ddd);border-radius:10px;max-height:200px;overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div style="padding:14px 22px;border-top:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:flex-end;gap:10px;">
+                <button onclick="closeQuickEdit()" style="padding:9px 20px;border:1px solid var(--tb-border,#ddd);border-radius:10px;background:var(--tb-bg-hover,#f5f5f5);cursor:pointer;font-size:14px;">取消</button>
+                <button onclick="saveQuickEdit()" style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;cursor:pointer;font-size:14px;font-weight:500;">💾 保存</button>
             </div>
         </div>
     </div>
@@ -1178,6 +1215,90 @@
             showToast('项目名称已更新', 'success');
         }
 
+        // ==================== 快速编辑弹窗 ====================
+        let _editingPlanId = null;
+
+        function openQuickEdit(planId) {
+            const plan = savedPlans.find(p => p.id === planId);
+            if (!plan) return;
+            _editingPlanId = planId;
+
+            document.getElementById('qe_projectName').value = plan.projectName || '';
+            document.getElementById('qe_startDate').value = plan.startDate || '';
+
+            // 填充节点下拉和列表
+            const nodeSelect = document.getElementById('qe_currentNode');
+            const nodesList = document.getElementById('qe_nodesList');
+            nodeSelect.innerHTML = '<option value="">— 未开始 —</option>';
+            nodesList.innerHTML = '';
+
+            let currentNodeIdx = -1;
+            plan.nodes.forEach((n, i) => {
+                if (n.status === 'in-progress') currentNodeIdx = i;
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${i + 1}. ${n.name} (${n.date || ''})`;
+                nodeSelect.appendChild(opt);
+
+                const row = document.createElement('div');
+                row.style.cssText = 'padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:8px;font-size:13px;';
+                const statusColor = n.status === 'done' ? '#10b981' : n.status === 'in-progress' ? '#f59e0b' : '#9ca3af';
+                const statusIcon = n.status === 'done' ? '✅' : n.status === 'in-progress' ? '🔄' : '⬜';
+                row.innerHTML = `<span style="font-size:14px;">${statusIcon}</span><span style="flex:1;">${i + 1}. ${n.name}</span><span style="color:${statusColor};font-size:12px;">${n.date || ''}</span>`;
+                nodesList.appendChild(row);
+            });
+            nodeSelect.value = currentNodeIdx >= 0 ? currentNodeIdx : '';
+
+            const modal = document.getElementById('quickEditModal');
+            modal.style.display = 'flex';
+        }
+
+        function closeQuickEdit() {
+            document.getElementById('quickEditModal').style.display = 'none';
+            _editingPlanId = null;
+        }
+
+        function saveQuickEdit() {
+            if (!_editingPlanId) return;
+            const plan = savedPlans.find(p => p.id === _editingPlanId);
+            if (!plan) return;
+
+            const newName = document.getElementById('qe_projectName').value.trim();
+            const newDate = document.getElementById('qe_startDate').value;
+            const currentNodeIdx = document.getElementById('qe_currentNode').value;
+
+            if (!newName) { showToast('项目名称不能为空', 'warning'); return; }
+
+            plan.projectName = newName;
+            plan.startDate = newDate;
+
+            // 更新节点状态
+            if (currentNodeIdx !== '') {
+                const idx = parseInt(currentNodeIdx);
+                plan.nodes.forEach((n, i) => {
+                    if (i < idx) n.status = 'done';
+                    else if (i === idx) n.status = 'in-progress';
+                    else n.status = 'pending';
+                });
+            } else {
+                plan.nodes.forEach(n => n.status = 'pending');
+            }
+
+            plan.updatedAt = Date.now();
+
+            // 如果当前正在编辑这个计划，同步更新
+            if (currentPlanId === _editingPlanId) {
+                currentProjectName = newName;
+                document.getElementById('projectNameDisplay').textContent = newName;
+                document.getElementById('firstNode').value = newDate;
+            }
+
+            savePlansToStorage();
+            renderPlansList();
+            closeQuickEdit();
+            showToast('计划已更新', 'success');
+        }
+
         function renderPlansList() {
             const container = document.getElementById('plansContainer');
             const empty = document.getElementById('emptyPlans');
@@ -1189,12 +1310,16 @@
             empty.style.display = 'none';
             container.innerHTML = savedPlans.map(plan => {
                 const milestoneCount = plan.nodes.filter(n => n.isMilestone).length;
+                const doneCount = plan.nodes.filter(n => n.status === 'done').length;
+                const currentNode = plan.nodes.find(n => n.status === 'in-progress');
+                const progressPct = plan.nodes.length > 0 ? Math.round((doneCount / plan.nodes.length) * 100) : 0;
+                const progressText = currentNode ? `📍 ${currentNode.name}` : (doneCount === plan.nodes.length && plan.nodes.length > 0 ? '✅ 已完成' : '⏳ 未开始');
                 const nodeTags = plan.nodes.slice(0, 6).map(n =>
-                    '<span class="node-tag' + (n.isMilestone ? ' milestone' : '') + '">' + n.name + '</span>'
+                    '<span class="node-tag' + (n.isMilestone ? ' milestone' : '') + (n.status === 'done' ? ' done' : '') + (n.status === 'in-progress' ? ' in-progress' : '') + '">' + n.name + '</span>'
                 ).join('') + (plan.nodes.length > 6 ? '<span class="node-tag">+' + (plan.nodes.length - 6) + '</span>' : '');
                 const updated = new Date(plan.updatedAt);
                 const updatedStr = updated.getFullYear() + '-' + String(updated.getMonth()+1).padStart(2,'0') + '-' + String(updated.getDate()).padStart(2,'0') + ' ' + String(updated.getHours()).padStart(2,'0') + ':' + String(updated.getMinutes()).padStart(2,'0');
-                return '<div class="plan-card" onclick="loadPlan(\'' + plan.id + '\')">' +
+                return '<div class="plan-card" onclick="openQuickEdit(\'' + plan.id + '\')">' +
                     '<div class="plan-card-title">📋 ' + escapeHtml(plan.projectName) + '</div>' +
                     '<div class="plan-card-meta">' +
                         '<span>🏷️ ' + (projectConfigs[plan.projectType]?.name || plan.projectType) + '</span>' +
@@ -1202,10 +1327,14 @@
                         '<span>⭐ ' + milestoneCount + '里程碑</span>' +
                         '<span>🕐 ' + updatedStr + '</span>' +
                     '</div>' +
+                    '<div class="plan-card-progress" style="margin:8px 0;padding:8px 12px;background:rgba(102,126,234,0.08);border-radius:8px;font-size:12px;color:var(--tb-text-secondary,#666);display:flex;justify-content:space-between;align-items:center;">' +
+                        '<span>' + progressText + '</span>' +
+                        '<span style="font-weight:600;color:#667eea;">' + doneCount + '/' + plan.nodes.length + ' (' + progressPct + '%)</span>' +
+                    '</div>' +
                     '<div class="plan-card-nodes">' + nodeTags + '</div>' +
                     '<div class="plan-card-actions">' +
-                        '<button class="plan-card-btn" onclick="loadPlan(\'' + plan.id + '\')">📂 打开</button>' +
-                        '<button class="plan-card-btn" onclick="editPlanName(\'' + plan.id + '\', event)">✏️ 编辑</button>' +
+                        '<button class="plan-card-btn" onclick="loadPlan(\'' + plan.id + '\');event.stopPropagation();">📂 打开</button>' +
+                        '<button class="plan-card-btn" onclick="openQuickEdit(\'' + plan.id + '\');event.stopPropagation();">✏️ 编辑</button>' +
                         '<button class="plan-card-btn" onclick="pushPlanToFeishuById(\'' + plan.id + '\', event)">📤 飞书</button>' +
                         '<button class="plan-card-btn danger" onclick="deletePlan(\'' + plan.id + '\', event)">🗑️ 删除</button>' +
                     '</div>' +
