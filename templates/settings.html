@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -543,10 +543,9 @@
                         if (d.model) html += `<div>🤖 模型: ${d.model}</div>`;
                         detail.innerHTML = html;
                         document.getElementById('currentConfigDisplay').style.display = 'block';
-                        // 如果不在编辑模式，隐藏表单
-                        if (!_isEditing) {
-                            document.getElementById('aiConfigForm').style.display = 'none';
-                        }
+                        // 始终显示表单，方便编辑
+                        document.getElementById('aiConfigForm').style.display = 'block';
+                        document.getElementById('aiKey').placeholder = '留空则不修改，输入新Key则替换';
                     } else {
                         document.getElementById('currentConfigDisplay').style.display = 'none';
                         document.getElementById('aiConfigForm').style.display = 'block';
