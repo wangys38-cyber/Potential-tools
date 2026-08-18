@@ -802,7 +802,7 @@ const ToolboxNav = (function() {
 
         var leftHtml = '';
         if (opts.showHome !== false && !isHome) {
-            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页 (Esc)">← 首页</a>';
+            leftHtml += '<a href="/" class="tb-nav-home" title="返回首页 (Esc)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></a>';
         }
         if (opts.title) {
             leftHtml += '<span class="tb-nav-title">' + escapeHtml(opts.title) + '</span>';
