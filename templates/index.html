@@ -378,13 +378,13 @@
         }
 
         .fav-btn {
-            background: #1a1a1a; border: none; cursor: pointer;
-            font-size: 13px; padding: 8px 14px;
-            color: #fff; transition: all 0.15s ease;
-            border-radius: 8px; font-weight: 500; font-family: inherit;
+            background: none; border: none; cursor: pointer;
+            font-size: 18px; padding: 6px;
+            color: #1a1a1a; transition: all 0.15s ease;
+            border-radius: 8px; opacity: 0.4;
         }
-        .fav-btn:hover { background: #333; }
-        .fav-btn.active { background: #1a1a1a; }
+        .fav-btn:hover { opacity: 0.8; }
+        .fav-btn.active { opacity: 1; color: #1a1a1a; }
 
         /* ===== Favorites & Recent ===== */
         .tb-recent-bar { margin-bottom: 20px; }
@@ -834,7 +834,7 @@
                         打开
                     </button>
                     <button onclick="toggleFavorite('${t.id}', event)" class="fav-btn ${isFav ? 'active' : ''}" title="${isFav ? '取消收藏' : '收藏'}">
-                        ${isFav ? '已收藏' : '收藏'}
+                        ${isFav ? '★' : '☆'}
                     </button>
                 </div>
             </div>
