@@ -5520,12 +5520,14 @@ def download_file(filename):
     # 先检查UPLOAD_FOLDER
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
     if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
+        is_pdf = safe_name.lower().endswith('.pdf')
+        return send_file(filepath, as_attachment=not is_pdf)
 
     # 再检查PDF_FOLDER
     filepath = os.path.join(app.config['PDF_FOLDER'], safe_name)
     if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
+        is_pdf = safe_name.lower().endswith('.pdf')
+        return send_file(filepath, as_attachment=not is_pdf)
 
     return jsonify({'error': '文件不存在'}), 404
 # === NoteNB 笔记应用路由 ===

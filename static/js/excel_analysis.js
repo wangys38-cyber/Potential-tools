@@ -1601,6 +1601,28 @@ function showToast(msg, type) {
                     });
                 }
 
+                // 先生成PDF报告
+                btn.innerHTML = '📄 生成PDF中...';
+                let pdfUrl = window.location.href;
+                try {
+                    const pdfResp = await fetch('/api/excel-analyze-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            analysis_data: currentAnalysisData,
+                            file_name: fileName
+                        })
+                    });
+                    const pdfResult = await pdfResp.json();
+                    if (pdfResult.status === 'success' && pdfResult.filename) {
+                        pdfUrl = window.location.origin + '/download/' + pdfResult.filename;
+                    }
+                } catch (pdfErr) {
+                    console.warn('PDF生成失败，使用网页链接:', pdfErr);
+                }
+
+                btn.innerHTML = '⏳ 推送中...';
+
                 // 调用飞书推送 API
                 const resp = await fetch('/api/feishu/push', {
                     method: 'POST',
@@ -1609,7 +1631,7 @@ function showToast(msg, type) {
                         type: 'card',
                         title: `📊 CR分析报告 - ${fileName}`,
                         content: md,
-                        url: window.location.href
+                        url: pdfUrl
                     })
                 });
 
