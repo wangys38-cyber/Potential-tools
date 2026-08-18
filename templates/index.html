@@ -330,8 +330,9 @@
             width: 52px; height: 52px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
             font-size: 26px; flex-shrink: 0;
-            background: var(--card-bg, rgba(102, 126, 234, 0.1));
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
+            filter: grayscale(1);
             transition: transform 0.3s;
         }
         .tool-card:hover .tool-icon { transform: scale(1.08) rotate(-3deg); }
@@ -339,8 +340,9 @@
         .tool-badge {
             font-size: 10px; padding: 3px 10px; border-radius: 8px;
             font-weight: 700; margin-top: 3px; display: inline-block;
-            background: var(--card-bg, rgba(102, 126, 234, 0.1));
-            color: var(--card-accent, #7c3aed);
+            background: #ffffff;
+            color: #1a1a1a;
+            border: 1px solid rgba(0,0,0,0.1);
             text-transform: uppercase; letter-spacing: 0.5px;
         }
         .tool-card p {
