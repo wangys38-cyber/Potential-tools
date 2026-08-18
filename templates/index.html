@@ -87,6 +87,19 @@
             font-size: 20px;
         }
         .nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+        .nav-search-btn { display: flex; align-items: center; justify-content: center; }
+        .nav-search-box {
+            display: none; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 8px;
+            background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08);
+        }
+        .nav-search-box.show { display: flex; }
+        .nav-search-box svg { width: 16px; height: 16px; color: rgba(0,0,0,0.4); flex-shrink: 0; }
+        .nav-search-box input {
+            border: none; background: none; outline: none;
+            font-size: 13px; color: #000; width: 180px; font-family: inherit;
+        }
+        .nav-search-box input::placeholder { color: rgba(0,0,0,0.4); }
 
         .nav-btn {
             width: 36px; height: 36px; border-radius: 8px;
@@ -541,11 +554,14 @@
             <button class="nav-category" data-cat="fun" onclick="setCategory('fun')">趣味</button>
         </div>
         <div class="nav-right">
-            <button class="nav-cmdk" onclick="ToolboxCommandPalette.open()" title="命令面板 (⌘K)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" stroke-linecap="round"/></svg>
-                <span>搜索</span>
-                <kbd class="nav-kbd">⌘K</kbd>
+            <button class="nav-btn nav-search-btn" onclick="toggleNavSearch()" title="搜索">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
             </button>
+            <div class="nav-search-box" id="navSearchBox">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+                <input type="text" id="navSearchInput" placeholder="搜索工具..." oninput="filterTools()" autofocus>
+                <button onclick="toggleNavSearch()" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;padding:0 4px;">✕</button>
+            </div>
             <a href="/settings" target="_blank" rel="noopener noreferrer" class="nav-btn" title="设置">⚙️</a>
             <button class="nav-btn" onclick="toggleTheme()" id="theme-btn" title="切换主题">🌙</button>
             <div class="user-info">
@@ -569,7 +585,7 @@
         <p>一站式工具平台，集成笔记、转换、分析等实用工具</p>
     </div>
 
-    <div class="search-section">
+    <div class="search-section" style="display:none;">
         <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
             <input type="text" id="search-input" placeholder="搜索工具名称或功能..." oninput="filterTools()">
@@ -779,7 +795,9 @@
     function renderTools() {
         const grid = document.getElementById('tools-grid');
         const noResults = document.getElementById('no-results');
-        const query = document.getElementById('search-input').value.toLowerCase().trim();
+        const navSearchInput = document.getElementById('navSearchInput');
+        const oldSearchInput = document.getElementById('search-input');
+        const query = (navSearchInput?.value || oldSearchInput?.value || '').toLowerCase().trim();
         const countEl = document.getElementById('search-count');
 
         let filtered = TOOLS.filter(t => {
@@ -855,6 +873,31 @@
     }
 
     function filterTools() { renderTools(); }
+
+    function toggleNavSearch() {
+        const box = document.getElementById('navSearchBox');
+        const btn = document.querySelector('.nav-search-btn');
+        if (box.classList.contains('show')) {
+            box.classList.remove('show');
+            btn.style.display = 'flex';
+            document.getElementById('navSearchInput').value = '';
+            renderTools();
+        } else {
+            box.classList.add('show');
+            btn.style.display = 'none';
+            setTimeout(() => document.getElementById('navSearchInput').focus(), 50);
+        }
+    }
+
+    // ESC关闭导航栏搜索
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const box = document.getElementById('navSearchBox');
+            if (box && box.classList.contains('show')) {
+                toggleNavSearch();
+            }
+        }
+    });
 
     function setCategory(cat) {
         currentCategory = cat;
