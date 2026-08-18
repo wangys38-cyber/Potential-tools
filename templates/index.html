@@ -522,9 +522,14 @@
 <body>
     <div class="nav">
         <div class="nav-left">
-            <a href="/" class="nav-logo">🧰 工具集</a>
         </div>
         <div class="nav-center">
+            <span style="cursor:pointer;margin-right:4px;display:flex;align-items:center;" onclick="location.href='/'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+            </span>
             <button class="nav-category active" data-cat="all" onclick="setCategory('all')">全部</button>
             <button class="nav-category" data-cat="fav" onclick="setCategory('fav')">收藏</button>
             <button class="nav-category" data-cat="notes" onclick="setCategory('notes')">笔记</button>
