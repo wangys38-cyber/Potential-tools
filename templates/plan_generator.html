@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -664,6 +664,29 @@
         .action-btn.feishu:hover { box-shadow: 0 4px 12px rgba(0,214,185,0.3); }
         .action-btn.save { background: linear-gradient(135deg, #5856d6, #af52de); color: #fff; border: none; }
         .action-btn.save:hover { box-shadow: 0 4px 12px rgba(88,86,214,0.3); }
+
+        /* ===== OCR 图片识别 ===== */
+        .ocr-section { margin-bottom: 20px; }
+        .ocr-upload-area {
+            display: flex; align-items: center; gap: 16px;
+            padding: 20px 24px; border: 2px dashed rgba(0,0,0,0.12);
+            border-radius: 12px; cursor: pointer; transition: all 0.2s;
+            background: rgba(0,0,0,0.02);
+        }
+        .ocr-upload-area:hover { border-color: #4f46e5; background: rgba(79,70,229,0.04); }
+        .ocr-upload-area.dragover { border-color: #4f46e5; background: rgba(79,70,229,0.08); }
+        .ocr-icon { font-size: 32px; flex-shrink: 0; }
+        .ocr-text { display: flex; flex-direction: column; gap: 2px; }
+        .ocr-text strong { font-size: 15px; color: var(--text-primary); }
+        .ocr-text span { font-size: 12px; color: var(--text-secondary); }
+        .ocr-loading { display: flex; align-items: center; gap: 12px; padding: 16px 24px; color: var(--text-secondary); font-size: 14px; }
+        .ocr-loading .spinner { width: 20px; height: 20px; border: 2px solid rgba(79,70,229,0.2); border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .ocr-result { margin-top: 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; overflow: hidden; }
+        .ocr-result-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; font-weight: 600; }
+        .ocr-close { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text-secondary); padding: 2px 6px; }
+        .ocr-result-content { padding: 16px 18px; max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--text-secondary); }
+        .ocr-actions { display: flex; gap: 10px; padding: 12px 18px; border-top: 1px solid rgba(0,0,0,0.06); background: rgba(0,0,0,0.02); }
     </style>
 <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
@@ -681,6 +704,33 @@
         </div>
 
         <div id="tab-generator" class="tab-content active">
+        <!-- 图片识别区域 -->
+        <div class="ocr-section" id="ocrSection">
+            <div class="ocr-upload-area" id="ocrUploadArea" onclick="document.getElementById('ocrFileInput').click()">
+                <div class="ocr-icon">📷</div>
+                <div class="ocr-text">
+                    <strong>截图识别计划</strong>
+                    <span>上传图片 / 拖拽 / Ctrl+V 粘贴截图，自动识别项目名称和节点</span>
+                </div>
+                <input type="file" id="ocrFileInput" accept="image/*" style="display:none" onchange="handleOCRFile(this.files[0])">
+            </div>
+            <div class="ocr-result" id="ocrResult" style="display:none;">
+                <div class="ocr-result-header">
+                    <span>📝 识别结果</span>
+                    <button class="ocr-close" onclick="clearOCRResult()">✕</button>
+                </div>
+                <div class="ocr-result-content" id="ocrResultContent"></div>
+                <div class="ocr-actions">
+                    <button class="btn btn-secondary" onclick="applyOCRResult()">✅ 应用到计划</button>
+                    <button class="btn btn-ghost" onclick="clearOCRResult()">重新识别</button>
+                </div>
+            </div>
+            <div class="ocr-loading" id="ocrLoading" style="display:none;">
+                <div class="spinner"></div>
+                <span>正在识别图片内容...</span>
+            </div>
+        </div>
+
         <div class="input-section">
             <h2>输入参数</h2>
             <div class="input-row">
@@ -1371,6 +1421,169 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        // ==================== OCR 图片识别 ====================
+        let _ocrText = '';
+
+        // 初始化拖拽和粘贴监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('ocrUploadArea');
+            if (dropArea) {
+                dropArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    dropArea.classList.add('dragover');
+                });
+                dropArea.addEventListener('dragleave', function() {
+                    dropArea.classList.remove('dragover');
+                });
+                dropArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    dropArea.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        handleOCRFile(file);
+                    }
+                });
+            }
+            // 全局粘贴监听
+            document.addEventListener('paste', function(e) {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                for (let item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            e.preventDefault();
+                            handleOCRFile(file);
+                            break;
+                        }
+                    }
+                }
+            });
+        });
+
+        function handleOCRFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('请选择图片文件', 'warning');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('图片不能超过10MB', 'warning');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                recognizeImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function recognizeImage(imageData) {
+            const loading = document.getElementById('ocrLoading');
+            const result = document.getElementById('ocrResult');
+            const uploadArea = document.getElementById('ocrUploadArea');
+
+            uploadArea.style.display = 'none';
+            result.style.display = 'none';
+            loading.style.display = 'flex';
+
+            try {
+                const resp = await fetch('/api/ocr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: imageData,
+                        prompt: '请识别图片中的项目计划内容。提取：1.项目名称 2.所有节点名称及其对应的日期（如果有）。按顺序列出每个节点，格式为：节点名称 - 日期。如果没有明确日期，只列节点名称。只输出提取的信息，不要其他说明。'
+                    })
+                });
+                const data = await resp.json();
+                if (data.status === 'success' && data.text) {
+                    _ocrText = data.text;
+                    document.getElementById('ocrResultContent').textContent = data.text;
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
+                    showToast('识别成功，点击"应用到计划"', 'success');
+                } else {
+                    throw new Error(data.error || '识别失败');
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                uploadArea.style.display = 'flex';
+                showToast('识别失败: ' + err.message, 'error');
+            }
+        }
+
+        function applyOCRResult() {
+            if (!_ocrText) {
+                showToast('没有识别结果', 'warning');
+                return;
+            }
+            // 解析识别结果，提取节点
+            const lines = _ocrText.split('\n').filter(l => l.trim());
+            const nodes = [];
+            let projectName = '';
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                // 尝试提取项目名称
+                if (!projectName && (line.includes('项目') || line.includes('计划') || line.length < 20)) {
+                    const nameMatch = line.match(/[：:]\s*(.+)/);
+                    if (nameMatch) {
+                        projectName = nameMatch[1].trim();
+                    } else if (!line.includes('-') && !line.match(/\d{4}/)) {
+                        projectName = line.replace(/^[\d.\s]+/, '').trim();
+                    }
+                }
+                // 提取节点：名称 - 日期 或 名称 日期
+                const dateMatch = line.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
+                let nodeName = line.replace(/^[\d.\s|-]+/, '').trim();
+                if (dateMatch) {
+                    nodeName = nodeName.replace(dateMatch[1], '').replace(/[-–—|]/g, '').trim();
+                }
+                if (nodeName && nodeName.length > 1 && nodeName.length < 50) {
+                    nodes.push({
+                        name: nodeName,
+                        date: dateMatch ? dateMatch[1].replace(/\//g, '-') : ''
+                    });
+                }
+            }
+
+            if (nodes.length === 0) {
+                showToast('未识别到有效节点，请手动输入', 'warning');
+                return;
+            }
+
+            // 应用到计划
+            currentPlan = nodes.map((n, i) => ({
+                index: i + 1,
+                name: n.name,
+                duration: 1,
+                date: n.date || '',
+                dateObj: n.date ? new Date(n.date) : new Date(),
+                totalWeeks: i,
+                isMilestone: false,
+                status: 'pending'
+            }));
+
+            if (projectName) {
+                currentProjectName = projectName;
+                document.getElementById('projectNameDisplay').textContent = projectName;
+                document.getElementById('projectNameDisplay').style.display = 'inline';
+                document.getElementById('editNameBtn').style.display = 'inline-block';
+            }
+
+            renderTable();
+            showToast(`已应用 ${nodes.length} 个节点`, 'success');
+        }
+
+        function clearOCRResult() {
+            _ocrText = '';
+            document.getElementById('ocrResult').style.display = 'none';
+            document.getElementById('ocrLoading').style.display = 'none';
+            document.getElementById('ocrUploadArea').style.display = 'flex';
+            document.getElementById('ocrFileInput').value = '';
         }
 
         // 项目名编辑
