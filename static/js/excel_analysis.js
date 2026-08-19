@@ -158,124 +158,9 @@ function showToast(msg, type) {
             errorMsg.classList.remove('show');
         }
 
-        // 分块大小：2MB（平衡吞吐量与请求体大小限制）
-        const CHUNK_SIZE = 2 * 1024 * 1024;
-        // 并发上传数：2 路（降低并发避免竞态和服务器压力）
-        const UPLOAD_CONCURRENCY = 2;
-        // 单块最大重试次数
-        const MAX_CHUNK_RETRIES = 3;
-
-        async function uploadFileChunked(file) {
-            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-
-            // 1. 初始化分块上传
-            const initResp = await fetch('/api/upload-init', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: file.name,
-                    total_size: file.size,
-                    total_chunks: totalChunks
-                })
-            });
-            const initResult = await initResp.json();
-            if (!initResp.ok || initResult.status !== 'success') {
-                throw new Error(initResult.error || '初始化上传失败');
-            }
-            const uploadId = initResult.data.upload_id;
-
-            // 2. 上传单个分块（带重试）
-            let uploadedCount = 0;
-            const uploadSingleChunk = async (i) => {
-                const start = i * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, file.size);
-                const chunk = file.slice(start, end);
-
-                let lastError;
-                for (let attempt = 0; attempt < MAX_CHUNK_RETRIES; attempt++) {
-                    try {
-                        const formData = new FormData();
-                        formData.append('upload_id', uploadId);
-                        formData.append('chunk_index', i);
-                        formData.append('offset', start);
-                        formData.append('chunk', chunk, `chunk_${i}`);
-
-                        const chunkResp = await fetch('/api/upload-chunk', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const chunkResult = await chunkResp.json();
-                        if (!chunkResp.ok || chunkResult.status !== 'success') {
-                            throw new Error(chunkResult.error || `分块 ${i} 上传失败`);
-                        }
-                        uploadedCount++;
-                        const progress = Math.round(uploadedCount / totalChunks * 100);
-                        analyzing.querySelector('p').textContent = `正在上传文件... ${progress}%`;
-                        return; // 成功则退出重试循环
-                    } catch (err) {
-                        lastError = err;
-                        // 等待后重试（指数退避：1s, 2s, 4s）
-                        if (attempt < MAX_CHUNK_RETRIES - 1) {
-                            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-                        }
-                    }
-                }
-                throw lastError || new Error(`分块 ${i} 上传失败（重试${MAX_CHUNK_RETRIES}次后仍失败）`);
-            };
-
-            // 分批并发：每批 UPLOAD_CONCURRENCY 个
-            for (let i = 0; i < totalChunks; i += UPLOAD_CONCURRENCY) {
-                const batch = [];
-                for (let j = i; j < Math.min(i + UPLOAD_CONCURRENCY, totalChunks); j++) {
-                    batch.push(uploadSingleChunk(j));
-                }
-                await Promise.all(batch);
-            }
-
-            // 3. 完成上传（支持自动补传缺失分块）
-            let completeResp = await fetch('/api/upload-complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ upload_id: uploadId })
-            });
-            let completeResult = await completeResp.json();
-
-            // 如果有缺失分块，自动补传后重试
-            if (!completeResp.ok && completeResult.missing_chunks && completeResult.missing_chunks.length > 0) {
-                analyzing.querySelector('p').textContent = `补传缺失分块... (${completeResult.missing_chunks.length}个)`;
-                for (const idx of completeResult.missing_chunks) {
-                    await uploadSingleChunk(idx);
-                }
-                // 重新完成
-                completeResp = await fetch('/api/upload-complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ upload_id: uploadId })
-                });
-                completeResult = await completeResp.json();
-            }
-
-            if (!completeResp.ok || completeResult.status !== 'success') {
-                throw new Error(completeResult.error || '文件组装失败');
-            }
-
-            return completeResult.data;
-        }
-
-        async function uploadFileDirect(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            const resp = await fetch('/api/excel-analyze', {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Skip-Loading': 'true' }
-            });
-            const result = await resp.json();
-            if (!resp.ok || result.status !== 'success') {
-                throw new Error(result.error || '分析失败，请重试');
-            }
-            return result.data;
-        }
+        // v5.0: 上传逻辑已迁移至统一组件 ToolboxUpload
+        // 大文件使用 ToolboxUpload.uploadChunked()，小文件使用 ToolboxUpload.directUpload()
+        // 详见 static/js/components.js
 
         async function analyzeFile(file) {
             if (isAnalyzing) { showToast('正在分析中，请稍候...', 'info'); return; }
@@ -283,13 +168,22 @@ function showToast(msg, type) {
             try {
                 let data;
 
-                // 文件大于 1MB 时使用分块上传，否则直接上传
+                // 文件大于 1MB 时使用统一组件分片上传，否则直接上传
                 if (file.size > 1024 * 1024) {
                     analyzing.querySelector('p').textContent = '正在上传文件... 0%';
-                    data = await uploadFileChunked(file);
+                    data = await ToolboxUpload.uploadChunked(file, {
+                        accept: '.xlsx,.xls,.csv',
+                        onProgress: function(uploaded, total) {
+                            analyzing.querySelector('p').textContent = '正在上传文件... ' + Math.round(uploaded / total * 100) + '%';
+                        }
+                    });
                 } else {
                     analyzing.querySelector('p').textContent = '正在解析Excel数据...';
-                    data = await uploadFileDirect(file);
+                    var directResp = await ToolboxUpload.directUpload(file, '/api/excel-analyze', {
+                        headers: { 'X-Skip-Loading': 'true' }
+                    });
+                    if (directResp.status !== 'success') throw new Error(directResp.error || '分析失败');
+                    data = directResp.data;
                 }
 
                 const fileId = data.file_id;

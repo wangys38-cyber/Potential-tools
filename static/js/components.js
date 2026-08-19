@@ -691,13 +691,16 @@ const ToolboxUpload = (function() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filename: state.file.name,
-                        fileSize: state.file.size,
-                        chunkSize: chunkSize
+                        total_size: state.file.size,
+                        total_chunks: state.totalChunks
                     })
                 });
                 var initData = await initResp.json();
-                if (initData.error) throw new Error(initData.error);
-                state.uploadId = initData.upload_id;
+                if (initData.error || (initData.status && initData.status !== 'success')) {
+                    throw new Error(initData.error || '初始化上传失败');
+                }
+                state.uploadId = initData.upload_id || (initData.data && initData.data.upload_id);
+                if (!state.uploadId) throw new Error('未获取到 upload_id');
                 state.totalChunks = initData.total_chunks || state.totalChunks;
 
                 if (state.progressUI) state.progressUI.setStatus('正在上传分块...');
@@ -709,27 +712,31 @@ const ToolboxUpload = (function() {
                 var completeResp = await fetch('/api/upload-complete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ upload_id: state.uploadId, filename: state.file.name })
+                    body: JSON.stringify({ upload_id: state.uploadId })
                 });
                 var completeData = await completeResp.json();
 
-                if (completeData.missing_chunks && completeData.missing_chunks.length > 0) {
+                // 后端返回 400 时可能带 missing_chunks，自动补传
+                if (!completeResp.ok && completeData.missing_chunks && completeData.missing_chunks.length > 0) {
                     ToolboxToast.warning('检测到 ' + completeData.missing_chunks.length + ' 个缺失分块，正在重试...');
                     if (state.progressUI) state.progressUI.setStatus('补传缺失分块...');
                     await retryMissingChunks(completeData.missing_chunks);
                     completeResp = await fetch('/api/upload-complete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ upload_id: state.uploadId, filename: state.file.name })
+                        body: JSON.stringify({ upload_id: state.uploadId })
                     });
                     completeData = await completeResp.json();
                 }
 
-                if (completeData.error) throw new Error(completeData.error);
+                if (completeData.error || (completeData.status && completeData.status !== 'success')) {
+                    throw new Error(completeData.error || '文件组装失败');
+                }
 
+                var resultData = completeData.data || completeData;
                 state.isUploading = false;
                 if (state.progressUI) { state.progressUI.setProgress(100); state.progressUI.setStatus('上传完成'); }
-                if (options.onComplete) options.onComplete(state.uploadId, state.file.name, completeData);
+                if (options.onComplete) options.onComplete(resultData.file_id || state.uploadId, state.file.name, resultData);
             } catch (err) {
                 state.isUploading = false;
                 if (state.progressUI) state.progressUI.setError('上传失败: ' + err.message);
@@ -761,11 +768,14 @@ const ToolboxUpload = (function() {
                     formData.append('upload_id', state.uploadId);
                     formData.append('chunk_index', index);
                     formData.append('total_chunks', state.totalChunks);
+                    formData.append('offset', start);
                     formData.append('chunk', chunk);
 
                     var resp = await fetch('/api/upload-chunk', { method: 'POST', body: formData });
                     var data = await resp.json();
-                    if (data.error) throw new Error(data.error);
+                    if (data.error || (data.status && data.status !== 'success')) {
+                        throw new Error(data.error || ('分块 ' + index + ' 上传失败'));
+                    }
 
                     state.uploadedChunks++;
                     var pct = state.uploadedChunks / state.totalChunks * 100;
@@ -809,7 +819,7 @@ const ToolboxUpload = (function() {
      * 直接上传模式（小文件，直接 POST 到指定 URL）
      * @param {File} file
      * @param {string} url - 上传地址
-     * @param {Object} options - { fieldName, extraData, progressContainer, onProgress, onComplete, onError }
+     * @param {Object} options - { fieldName, extraData, headers, progressContainer, onProgress, onComplete, onError }
      */
     async function directUpload(file, url, options) {
         options = options || {};
@@ -828,6 +838,13 @@ const ToolboxUpload = (function() {
         return new Promise(function(resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
+
+            // 设置自定义请求头
+            if (options.headers) {
+                Object.keys(options.headers).forEach(function(k) {
+                    xhr.setRequestHeader(k, options.headers[k]);
+                });
+            }
 
             xhr.upload.addEventListener('progress', function(e) {
                 if (e.lengthComputable) {
@@ -875,9 +892,52 @@ const ToolboxUpload = (function() {
         });
     }
 
+    /**
+     * 静态分片上传（无需 DOM 绑定，返回 Promise）
+     * @param {File} file
+     * @param {Object} options - { chunkSize, concurrency, maxRetries, onProgress, progressContainer }
+     * @returns {Promise<Object>} 解析为 { file_id, file_name, sheet_names, ... }
+     */
+    function uploadChunked(file, options) {
+        options = options || {};
+        return new Promise(function(resolve, reject) {
+            var tempZone = document.createElement('div');
+            tempZone.style.display = 'none';
+            document.body.appendChild(tempZone);
+
+            var uploader = create(tempZone, {
+                accept: options.accept,
+                maxSize: options.maxSize,
+                chunkSize: options.chunkSize || DEFAULT_CHUNK_SIZE,
+                concurrency: options.concurrency || DEFAULT_CONCURRENCY,
+                maxRetries: options.maxRetries || DEFAULT_MAX_RETRIES,
+                progressContainer: options.progressContainer || null,
+                onProgress: function(uploaded, total) {
+                    if (options.onProgress) options.onProgress(uploaded, total);
+                },
+                onComplete: function(fileId, filename, resultData) {
+                    if (tempZone.parentNode) tempZone.parentNode.removeChild(tempZone);
+                    resolve(resultData);
+                },
+                onError: function(msg) {
+                    if (tempZone.parentNode) tempZone.parentNode.removeChild(tempZone);
+                    reject(new Error(msg));
+                }
+            });
+
+            try {
+                uploader.handleFile(file);
+            } catch (e) {
+                if (tempZone.parentNode) tempZone.parentNode.removeChild(tempZone);
+                reject(e);
+            }
+        });
+    }
+
     return {
         create: create,
         directUpload: directUpload,
+        uploadChunked: uploadChunked,
         validateFile: validateFile,
         renderProgress: renderProgress,
         DEFAULT_CHUNK_SIZE: DEFAULT_CHUNK_SIZE
