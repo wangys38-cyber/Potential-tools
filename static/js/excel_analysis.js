@@ -1422,11 +1422,12 @@ function showToast(msg, type) {
             if (d.all_issues && d.all_issues.length > 0) {
                 trendData = d.all_issues.map(function(item) {
                     return {
-                        '日期': item.date || item.created || new Date().toISOString().split('T')[0],
+                        '创建日期': item.create_date || item.date || item.created || '',
+                        '解决日期': item.resolved_date || item.closed_date || '',
                         '模块': item.module || item.component || '未分类',
                         '严重性': item.severity || 'Unknown',
                         '状态': item.status || (item.resolved ? '已解决' : '未解决'),
-                        'Bug数': 1,
+                        '研发': item.developer || '',
                         '标题': item.title || item.summary || item.issue || ''
                     };
                 });
