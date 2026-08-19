@@ -1716,6 +1716,248 @@ const ToolboxCommandPalette = (function() {
     return { init: init, open: open, close: close, toggle: toggle };
 })();
 
+// ==================== 统一 Loading 组件 ====================
+/**
+ * 全站共享的 Loading 加载组件
+ * 支持全屏加载和容器内局部加载
+ *
+ * 使用方式：
+ *   ToolboxLoading.show('正在处理...')  // 全屏加载
+ *   ToolboxLoading.hide()               // 隐藏
+ *   var loader = ToolboxLoading.create(containerEl, '加载中')  // 局部加载
+ *   loader.destroy()
+ */
+const ToolboxLoading = (function() {
+    var _fullscreenEl = null;
+    var _fullscreenCount = 0;
+
+    function _buildSpinner(size) {
+        size = size || 32;
+        return '<div class="tb-spinner" style="width:' + size + 'px;height:' + size + 'px;"></div>';
+    }
+
+    function show(message, options) {
+        options = options || {};
+        _fullscreenCount++;
+        if (_fullscreenEl) {
+            if (message) _fullscreenEl.querySelector('.tb-loading-text').textContent = message;
+            _fullscreenEl.style.display = 'flex';
+            return;
+        }
+        _fullscreenEl = document.createElement('div');
+        _fullscreenEl.className = 'tb-loading-fullscreen';
+        _fullscreenEl.innerHTML =
+            '<div class="tb-loading-box">' +
+                _buildSpinner(40) +
+                '<div class="tb-loading-text">' + (message || '加载中...') + '</div>' +
+            '</div>';
+        document.body.appendChild(_fullscreenEl);
+    }
+
+    function hide() {
+        _fullscreenCount = Math.max(0, _fullscreenCount - 1);
+        if (_fullscreenCount === 0 && _fullscreenEl) {
+            _fullscreenEl.style.display = 'none';
+        }
+    }
+
+    function forceHide() {
+        _fullscreenCount = 0;
+        if (_fullscreenEl) _fullscreenEl.style.display = 'none';
+    }
+
+    /**
+     * 在指定容器内创建局部加载遮罩
+     * @param {HTMLElement} container - 容器元素
+     * @param {string} message - 提示文字
+     * @returns {{destroy: function}} 控制器
+     */
+    function create(container, message) {
+        if (!container) return { destroy: function() {} };
+        var overlay = document.createElement('div');
+        overlay.className = 'tb-loading-overlay';
+        overlay.innerHTML =
+            '<div class="tb-loading-inline">' +
+                _buildSpinner(28) +
+                (message ? '<div class="tb-loading-text">' + message + '</div>' : '') +
+            '</div>';
+        var prevPosition = container.style.position;
+        if (getComputedStyle(container).position === 'static') {
+            container.style.position = 'relative';
+        }
+        container.appendChild(overlay);
+        return {
+            destroy: function() {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                container.style.position = prevPosition;
+            }
+        };
+    }
+
+    return { show: show, hide: hide, forceHide: forceHide, create: create };
+})();
+
+// ==================== 统一历史记录组件 ====================
+/**
+ * 全站共享的操作历史记录组件
+ * 每个工具保留最近 N 条操作记录（默认5条），支持回溯查看
+ * 数据存储在 localStorage，按用户隔离
+ *
+ * 使用方式：
+ *   ToolboxHistory.add('excel-analysis', { title: 'bug分析.xlsx', timestamp: Date.now(), data: {...} })
+ *   var records = ToolboxHistory.get('excel-analysis')
+ *   ToolboxHistory.render(containerEl, 'excel-analysis', { onSelect: function(record) {...} })
+ *   ToolboxHistory.clear('excel-analysis')
+ */
+const ToolboxHistory = (function() {
+    var MAX_RECORDS = 5;
+
+    function _getPrefix() {
+        return (window._USER_PREFIX || '') + 'toolbox_history_';
+    }
+
+    function _storageKey(toolId) {
+        return _getPrefix() + toolId;
+    }
+
+    /**
+     * 添加一条操作记录
+     * @param {string} toolId - 工具标识（如 'excel-analysis', 'test-report'）
+     * @param {Object} record - 记录内容 { title, timestamp, data }
+     */
+    function add(toolId, record) {
+        if (!toolId || !record) return;
+        record.timestamp = record.timestamp || Date.now();
+        try {
+            var key = _storageKey(toolId);
+            var records = JSON.parse(localStorage.getItem(key) || '[]');
+            records.unshift(record);
+            if (records.length > MAX_RECORDS) {
+                records = records.slice(0, MAX_RECORDS);
+            }
+            localStorage.setItem(key, JSON.stringify(records));
+        } catch(e) {
+            console.warn('ToolboxHistory add failed:', e);
+        }
+    }
+
+    /**
+     * 获取某工具的历史记录
+     * @param {string} toolId - 工具标识
+     * @returns {Array} 历史记录数组（最新在前）
+     */
+    function get(toolId) {
+        try {
+            return JSON.parse(localStorage.getItem(_storageKey(toolId)) || '[]');
+        } catch(e) {
+            return [];
+        }
+    }
+
+    /**
+     * 清除某工具的历史记录
+     * @param {string} toolId - 工具标识
+     */
+    function clear(toolId) {
+        try {
+            localStorage.removeItem(_storageKey(toolId));
+        } catch(e) {}
+    }
+
+    /**
+     * 清除所有工具的历史记录
+     */
+    function clearAll() {
+        try {
+            var prefix = _getPrefix();
+            var keysToRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(prefix + 'toolbox_history_') === 0) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+        } catch(e) {}
+    }
+
+    function _formatTime(ts) {
+        var d = new Date(ts);
+        var now = new Date();
+        var diff = now - d;
+        if (diff < 60000) return '刚刚';
+        if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+        if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    /**
+     * 渲染历史记录UI
+     * @param {HTMLElement} container - 容器元素
+     * @param {string} toolId - 工具标识
+     * @param {Object} options - { onSelect, onClear, emptyText, maxItems }
+     */
+    function render(container, toolId, options) {
+        if (!container) return;
+        options = options || {};
+        var maxItems = options.maxItems || MAX_RECORDS;
+        var records = get(toolId).slice(0, maxItems);
+
+        if (records.length === 0) {
+            container.innerHTML = '<div class="tb-history-empty">' + (options.emptyText || '暂无历史记录') + '</div>';
+            return;
+        }
+
+        var html = '<div class="tb-history-list">';
+        records.forEach(function(record, idx) {
+            var title = escapeHtml(record.title || '未命名记录');
+            var time = _formatTime(record.timestamp || Date.now());
+            html += '<div class="tb-history-item" data-idx="' + idx + '" title="' + title + '">' +
+                '<div class="tb-history-item-icon">📄</div>' +
+                '<div class="tb-history-item-content">' +
+                    '<div class="tb-history-item-title">' + title + '</div>' +
+                    '<div class="tb-history-item-time">' + time + '</div>' +
+                '</div>' +
+                '<div class="tb-history-item-action">查看</div>' +
+            '</div>';
+        });
+        html += '</div>';
+        if (options.showClear !== false) {
+            html += '<div class="tb-history-footer"><button class="tb-history-clear-btn">清除历史</button></div>';
+        }
+        container.innerHTML = html;
+
+        // 绑定点击事件
+        var items = container.querySelectorAll('.tb-history-item');
+        items.forEach(function(item, idx) {
+            item.addEventListener('click', function() {
+                if (typeof options.onSelect === 'function') {
+                    options.onSelect(records[idx], idx);
+                }
+            });
+        });
+        var clearBtn = container.querySelector('.tb-history-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                clear(toolId);
+                render(container, toolId, options);
+                if (typeof options.onClear === 'function') options.onClear();
+            });
+        }
+    }
+
+    return {
+        add: add,
+        get: get,
+        clear: clear,
+        clearAll: clearAll,
+        render: render,
+        MAX_RECORDS: MAX_RECORDS
+    };
+})();
+
 // ==================== 自动初始化 ====================
 // 在 DOMContentLoaded 时初始化主题（最早执行，避免闪烁）
 (function() {
