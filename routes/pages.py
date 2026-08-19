@@ -54,6 +54,10 @@ def create_pages_blueprint(cached_render):
     def mttf_dashboard():
         return cached_render('mttf_dashboard.html')
 
+    @bp.route('/dashboard')
+    def dashboard():
+        return cached_render('dashboard.html')
+
     @bp.route('/daily-standup')
     def daily_standup():
         return cached_render('daily_standup.html')

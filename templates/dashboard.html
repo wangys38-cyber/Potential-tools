@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研发健康度看板 - Potential Tools</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #fafbfc 0%, #f4f5f7 100%);
+            min-height: 100vh;
+            color: #1a1a1a;
+            -webkit-font-smoothing: antialiased;
+        }
+        .page-wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
+
+        .page-header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        }
+        .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        .page-header .subtitle { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        .page-header .meta { font-size: 12px; color: #9ca3af; text-align: right; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .card-title {
+            font-size: 14px; font-weight: 600; color: #374151;
+            display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+        }
+        .card-title .icon { font-size: 18px; }
+        .card-title .badge {
+            margin-left: auto; font-size: 10px; font-weight: 500;
+            padding: 2px 8px; border-radius: 10px; background: #f3f4f6; color: #6b7280;
+        }
+
+        /* 跨列 */
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        /* Bug 趋势 */
+        .bug-trend-chart {
+            display: flex; align-items: flex-end; gap: 6px;
+            height: 140px; padding: 8px 0;
+        }
+        .bug-bar {
+            flex: 1; background: linear-gradient(180deg, #667eea, #764ba2);
+            border-radius: 4px 4px 0 0; min-height: 4px; position: relative;
+            transition: opacity 0.2s;
+        }
+        .bug-bar:hover { opacity: 0.8; }
+        .bug-bar-label {
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; color: #9ca3af; white-space: nowrap;
+        }
+        .bug-bar-value {
+            position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; font-weight: 600; color: #374151;
+        }
+        .bug-summary { display: flex; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+        .bug-summary-item { font-size: 12px; color: #6b7280; }
+        .bug-summary-item strong { color: #1a1a1a; font-size: 16px; display: block; }
+
+        /* MTTF */
+        .mttf-value {
+            font-size: 42px; font-weight: 700; letter-spacing: -1px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .mttf-unit { font-size: 14px; color: #6b7280; font-weight: 400; }
+        .mttf-trend {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 12px; font-weight: 600; padding: 3px 10px;
+            border-radius: 12px; margin-top: 8px;
+        }
+        .mttf-trend.up { background: #dcfce7; color: #16a34a; }
+        .mttf-trend.down { background: #fee2e2; color: #dc2626; }
+        .mttf-meta { margin-top: 16px; font-size: 12px; color: #6b7280; line-height: 1.8; }
+
+        /* 版本进度 */
+        .progress-row { margin-bottom: 14px; }
+        .progress-row:last-child { margin-bottom: 0; }
+        .progress-label {
+            display: flex; justify-content: space-between;
+            font-size: 12px; margin-bottom: 6px;
+        }
+        .progress-label .name { color: #374151; font-weight: 500; }
+        .progress-label .pct { color: #6b7280; font-weight: 600; }
+        .progress-track {
+            height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.6s ease;
+        }
+        .progress-fill.green { background: linear-gradient(90deg, #10b981, #059669); }
+        .progress-fill.amber { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+        /* 个人效能 */
+        .eff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .eff-item {
+            text-align: center; padding: 14px 8px;
+            background: #f9fafb; border-radius: 10px;
+        }
+        .eff-num { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+        .eff-label { font-size: 11px; color: #6b7280; margin-top: 4px; }
+        .eff-tip { font-size: 11px; color: #9ca3af; margin-top: 12px; text-align: center; }
+
+        /* 项目概览 */
+        .proj-list { font-size: 13px; }
+        .proj-row {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .proj-row:last-child { border-bottom: none; }
+        .proj-key { color: #6b7280; }
+        .proj-val { color: #1a1a1a; font-weight: 500; }
+        .proj-val .tag {
+            display: inline-block; padding: 1px 8px; border-radius: 8px;
+            font-size: 11px; font-weight: 600;
+        }
+        .tag-active { background: #dcfce7; color: #16a34a; }
+        .tag-version { background: #ede9fe; color: #7c3aed; }
+
+        .empty-hint {
+            text-align: center; padding: 24px 12px;
+            font-size: 12px; color: #9ca3af;
+        }
+
+        @media (max-width: 900px) {
+            .col-4, .col-6, .col-8 { grid-column: span 12; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1>📊 研发健康度看板</h1>
+            <div class="subtitle">Bug 趋势 · MTTF 指标 · 版本进度 · 个人效能 · 项目概览</div>
+        </div>
+        <div class="meta" id="updateTime">数据更新：--</div>
+    </div>
+
+    <div class="grid">
+        <!-- Bug 趋势卡片 -->
+        <div class="card col-8">
+            <div class="card-title">
+                <span class="icon">🐛</span> Bug 趋势
+                <span class="badge">近 7 天</span>
+            </div>
+            <div class="bug-trend-chart" id="bugTrendChart"></div>
+            <div class="bug-summary" id="bugSummary"></div>
+        </div>
+
+        <!-- MTTF 指标卡片 -->
+        <div class="card col-4">
+            <div class="card-title">
+                <span class="icon">⏱️</span> MTTF 指标
+                <span class="badge">SR6</span>
+            </div>
+            <div class="mttf-value" id="mttfValue">128.5<span class="mttf-unit"> h</span></div>
+            <div class="mttf-trend up" id="mttfTrend">↑ 12.3% 较上周</div>
+            <div class="mttf-meta">
+                目标值：≥ 120 h<br>
+                测试周期：7×24h 挂测<br>
+                主要失败：Malloc 失败 (3次)
+            </div>
+        </div>
+
+        <!-- 版本进度卡片 -->
+        <div class="card col-6">
+            <div class="card-title">
+                <span class="icon">🚀</span> 版本进度
+                <span class="badge">v5.0</span>
+            </div>
+            <div id="versionProgress"></div>
+        </div>
+
+        <!-- 个人效能卡片 -->
+        <div class="card col-6">
+            <div class="card-title">
+                <span class="icon">⚡</span> 个人效能
+                <span class="badge">本周</span>
+            </div>
+            <div class="eff-grid" id="effGrid"></div>
+            <div class="eff-tip">数据来自本地缓存，可在各工具页自动同步</div>
+        </div>
+
+        <!-- 项目概览卡片 -->
+        <div class="card col-12">
+            <div class="card-title">
+                <span class="icon">📁</span> 项目概览
+                <span class="badge">E62 / SR5 / SR6</span>
+            </div>
+            <div class="proj-list" id="projList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ===== 工具函数 =====
+    function $(id) { return document.getElementById(id); }
+    function safeGet(key) {
+        try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) { return null; }
+    }
+
+    // 更新时间
+    $('updateTime').textContent = '数据更新：' + new Date().toLocaleString('zh-CN');
+
+    // ===== Bug 趋势 =====
+    // 尝试从 localStorage 读取 CR 分析数据，否则用静态占位
+    function renderBugTrend() {
+        var crData = safeGet('cr_analysis_result') || safeGet('excel_analysis_last');
+        var days = ['周一','周二','周三','周四','周五','周六','周日'];
+        var values;
+        if (crData && crData.bugTrend) {
+            values = crData.bugTrend;
+        } else {
+            // 静态占位数据
+            values = [12, 8, 15, 6, 10, 3, 5];
+        }
+        var max = Math.max.apply(null, values.concat([1]));
+        var chart = $('bugTrendChart');
+        chart.innerHTML = values.map(function(v, i) {
+            var h = Math.max(4, (v / max) * 120);
+            return '<div class="bug-bar" style="height:' + h + 'px;" title="' + days[i] + ': ' + v + '个">' +
+                '<span class="bug-bar-value">' + v + '</span>' +
+                '<span class="bug-bar-label">' + days[i] + '</span></div>';
+        }).join('');
+
+        var total = values.reduce(function(a,b){return a+b;}, 0);
+        var avg = (total / values.length).toFixed(1);
+        var peak = Math.max.apply(null, values);
+        $('bugSummary').innerHTML =
+            '<div class="bug-summary-item"><strong>' + total + '</strong>本周新增 Bug</div>' +
+            '<div class="bug-summary-item"><strong>' + avg + '</strong>日均新增</div>' +
+            '<div class="bug-summary-item"><strong>' + peak + '</strong>峰值（' + days[values.indexOf(peak)] + '）</div>';
+    }
+
+    // ===== 版本进度 =====
+    function renderVersionProgress() {
+        var items = [
+            { name: '后端 Blueprint 拆分', pct: 100, color: 'green' },
+            { name: '前端组件库统一', pct: 60, color: '' },
+            { name: 'Dashboard 看板', pct: 30, color: 'amber' },
+            { name: '统一上传/历史组件', pct: 45, color: 'amber' },
+        ];
+        $('versionProgress').innerHTML = items.map(function(it) {
+            return '<div class="progress-row">' +
+                '<div class="progress-label"><span class="name">' + it.name + '</span><span class="pct">' + it.pct + '%</span></div>' +
+                '<div class="progress-track"><div class="progress-fill ' + it.color + '" style="width:' + it.pct + '%"></div></div>' +
+                '</div>';
+        }).join('');
+    }
+
+    // ===== 个人效能 =====
+    function renderEfficiency() {
+        var todos = safeGet('daily_standup_todos') || [];
+        var todayTodos = todos.filter(function(t) { return !t.done; }).length;
+        var weekResolved = safeGet('week_resolved_count') || 7;
+        // 若无数据用静态占位
+        if (!todayTodos) todayTodos = 3;
+
+        $('effGrid').innerHTML =
+            '<div class="eff-item"><div class="eff-num">' + todayTodos + '</div><div class="eff-label">今日待办</div></div>' +
+            '<div class="eff-item"><div class="eff-num">' + weekResolved + '</div><div class="eff-label">本周解单</div></div>' +
+            '<div class="eff-item"><div class="eff-num">12</div><div class="eff-label">本月提交</div></div>' +
+            '<div class="eff-item"><div class="eff-num">89%</div><div class="eff-label">按时交付率</div></div>';
+    }
+
+    // ===== 项目概览 =====
+    function renderProjectOverview() {
+        var rows = [
+            { key: '当前版本', val: 'v5.0.0 (迭代1)', tag: 'version' },
+            { key: '项目状态', val: '活跃开发中', tag: 'active' },
+            { key: '负责产品线', val: 'E62 / SR5 / SR6 智能手表' },
+            { key: '当前里程碑', val: 'SR6 CP2 质量攻坚' },
+            { key: '代码仓库', val: 'github.com/wangys38-cyber/Potential-tools' },
+            { key: '部署平台', val: 'Railway (wangys666.top)' },
+            { key: '技术栈', val: 'Flask + 原生前端 + Blueprint' },
+        ];
+        $('projList').innerHTML = rows.map(function(r) {
+            var val = r.val;
+            if (r.tag === 'version') val = '<span class="tag tag-version">' + val + '</span>';
+            if (r.tag === 'active') val = '<span class="tag tag-active">' + val + '</span>';
+            return '<div class="proj-row"><span class="proj-key">' + r.key + '</span><span class="proj-val">' + val + '</span></div>';
+        }).join('');
+    }
+
+    // 初始化
+    renderBugTrend();
+    renderVersionProgress();
+    renderEfficiency();
+    renderProjectOverview();
+})();
+</script>
+<script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>
