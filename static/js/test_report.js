@@ -47,21 +47,27 @@ let currentFileId = null;
                 return;
             }
 
-            showLoading(true, '正在上传文件');
-            const formData = new FormData();
-            formData.append('file', file);
+            // 使用统一上传组件 ToolboxUpload.directUpload（带进度条）
+            var progressContainer = document.createElement('div');
+            progressContainer.id = 'tbUploadProgress';
+            progressContainer.style.margin = '12px 0';
+            uploadCard.parentNode.insertBefore(progressContainer, uploadCard.nextSibling);
 
             try {
-                const response = await fetch('/api/test-report-analyze', {
-                    method: 'POST',
-                    body: formData
+                var data = await ToolboxUpload.directUpload(file, '/api/test-report-analyze', {
+                    fieldName: 'file',
+                    accept: '.xlsx,.xls',
+                    progressContainer: progressContainer,
+                    onProgress: function(loaded, total) {
+                        // 进度条由组件内部渲染，此处可扩展
+                    }
                 });
-                const data = await response.json();
 
                 if (data.status === 'success') {
                     currentFileId = data.data.file_id;
                     currentFileName = data.data.file_basename || data.data.file_name || 'test_report';
                     loadingIndicator.classList.remove('show');
+                    if (progressContainer.parentNode) progressContainer.parentNode.removeChild(progressContainer);
                     showSheetSelector(data.data);
                 } else {
                     showToast('上传失败: ' + (data.error || '未知错误'), 'error');

@@ -481,3 +481,48 @@
 }
 [data-theme="dark"] .tb-upload-area:hover { background: #3a3a3c; }
 [data-theme="dark"] .tb-upload-text { color: #fff; }
+
+/* ===== v5.0 统一上传进度条 ===== */
+.tb-upload-progress {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.tb-upload-progress-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+}
+.tb-upload-progress-filename {
+    font-size: 13px; font-weight: 600; color: #1a1a1a;
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tb-upload-progress-pct {
+    font-size: 12px; font-weight: 700; color: #667eea; min-width: 36px; text-align: right;
+}
+.tb-upload-progress-cancel {
+    background: none; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px;
+    padding: 2px 10px; font-size: 11px; color: #6b7280; cursor: pointer;
+    transition: all 0.15s;
+}
+.tb-upload-progress-cancel:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+.tb-upload-progress-track {
+    height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden;
+}
+.tb-upload-progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+}
+.tb-upload-progress-status {
+    font-size: 11px; color: #9ca3af; margin-top: 6px;
+}
+[data-theme="dark"] .tb-upload-progress {
+    background: #2c2c2e; border-color: rgba(255,255,255,0.1);
+}
+[data-theme="dark"] .tb-upload-progress-filename { color: #fff; }
+[data-theme="dark"] .tb-upload-progress-track { background: #3a3a3c; }
+[data-theme="dark"] .tb-upload-progress-status { color: #9b9ba5; }
+[data-theme="dark"] .tb-upload-progress-cancel { color: #9b9ba5; border-color: rgba(255,255,255,0.15); }

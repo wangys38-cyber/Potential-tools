@@ -505,79 +505,187 @@ const ToolboxToast = (function() {
     };
 })();
 
-// ==================== 分块文件上传组件 ====================
+// ==================== 统一文件上传组件 ====================
+// 支持：大文件分片上传、直接上传、拖拽、进度条、多格式、重试、取消
 const ToolboxUpload = (function() {
+    var DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
+    var DEFAULT_MAX_RETRIES = 3;
+    var DEFAULT_CONCURRENCY = 2;
+
     /**
-     * 创建分块上传器
+     * 文件校验
+     * @param {File} file
+     * @param {Object} options - { accept, maxSize }
+     * @returns {string|null} 错误信息，null 表示通过
+     */
+    function validateFile(file, options) {
+        options = options || {};
+        if (!file) return '未选择文件';
+        if (options.maxSize && file.size > options.maxSize) {
+            return '文件大小超过限制（最大 ' + (options.maxSize / 1024 / 1024).toFixed(0) + 'MB）';
+        }
+        if (options.accept) {
+            var accepts = options.accept.split(',').map(function(s) { return s.trim().toLowerCase(); });
+            var fileName = file.name.toLowerCase();
+            var fileType = file.type.toLowerCase();
+            var matched = accepts.some(function(a) {
+                if (a.startsWith('.')) return fileName.endsWith(a);
+                if (a.endsWith('/*')) return fileType.startsWith(a.replace('/*', '/'));
+                return fileType === a;
+            });
+            if (!matched) return '不支持的文件格式：' + file.name;
+        }
+        return null;
+    }
+
+    /**
+     * 渲染内置进度条 UI
+     * @param {HTMLElement} container
+     * @param {Object} options - { filename, showCancel }
+     * @returns {Object} { setProgress(pct), setStatus(text), destroy(), onCancel(cb) }
+     */
+    function renderProgress(container, options) {
+        options = options || {};
+        var wrap = document.createElement('div');
+        wrap.className = 'tb-upload-progress';
+        wrap.innerHTML =
+            '<div class="tb-upload-progress-header">' +
+                '<span class="tb-upload-progress-filename">' + escapeHtml(options.filename || '上传中...') + '</span>' +
+                '<span class="tb-upload-progress-pct">0%</span>' +
+            '</div>' +
+            '<div class="tb-upload-progress-track"><div class="tb-upload-progress-fill" style="width:0%"></div></div>' +
+            '<div class="tb-upload-progress-status">准备上传...</div>';
+        if (options.showCancel !== false) {
+            var cancelBtn = document.createElement('button');
+            cancelBtn.className = 'tb-upload-progress-cancel';
+            cancelBtn.textContent = '取消';
+            wrap.querySelector('.tb-upload-progress-header').appendChild(cancelBtn);
+        }
+        container.appendChild(wrap);
+
+        var fill = wrap.querySelector('.tb-upload-progress-fill');
+        var pctEl = wrap.querySelector('.tb-upload-progress-pct');
+        var statusEl = wrap.querySelector('.tb-upload-progress-status');
+        var cancelCb = null;
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                if (cancelCb) cancelCb();
+            });
+        }
+
+        return {
+            setProgress: function(pct) {
+                pct = Math.max(0, Math.min(100, pct));
+                fill.style.width = pct + '%';
+                pctEl.textContent = Math.round(pct) + '%';
+            },
+            setStatus: function(text) { statusEl.textContent = text; },
+            setError: function(text) {
+                statusEl.textContent = text;
+                statusEl.style.color = '#ef4444';
+                fill.style.background = '#ef4444';
+            },
+            onCancel: function(cb) { cancelCb = cb; },
+            destroy: function() { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }
+        };
+    }
+
+    /**
+     * 创建分片上传器（大文件）
      * @param {HTMLElement} dropZone - 拖拽区域元素
-     * @param {Object} options - 配置项
-     *   - accept: 文件类型
+     * @param {Object} options
+     *   - accept: 文件类型 (如 ".xlsx,.xls")
+     *   - maxSize: 最大文件大小 (字节)
      *   - maxRetries: 最大重试次数 (默认3)
      *   - concurrency: 并发数 (默认2)
-     *   - onProgress: 进度回调 (received, total)
-     *   - onComplete: 完成回调 (fileId, filename)
+     *   - chunkSize: 分块大小 (默认2MB)
+     *   - progressContainer: 进度条容器元素（可选，传入则自动渲染进度条）
+     *   - onProgress: 进度回调 (uploadedChunks, totalChunks)
+     *   - onComplete: 完成回调 (uploadId, filename, responseData)
      *   - onError: 错误回调 (message)
+     *   - onFileSelected: 文件选中回调 (file)，可用于校验
      */
     function create(dropZone, options) {
         options = options || {};
-        var maxRetries = options.maxRetries || 3;
-        var concurrency = options.concurrency || 2;
-        var chunkSize = 2 * 1024 * 1024; // 2MB
+        var maxRetries = options.maxRetries || DEFAULT_MAX_RETRIES;
+        var concurrency = options.concurrency || DEFAULT_CONCURRENCY;
+        var chunkSize = options.chunkSize || DEFAULT_CHUNK_SIZE;
 
         var state = {
             file: null,
             uploadId: null,
             totalChunks: 0,
             uploadedChunks: 0,
-            isUploading: false
+            isUploading: false,
+            cancelled: false,
+            progressUI: null
         };
 
-        // 绑定拖拽事件
-        dropZone.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            dropZone.classList.add('tb-drag-over');
-        });
-        dropZone.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            dropZone.classList.remove('tb-drag-over');
-        });
-        dropZone.addEventListener('drop', function(e) {
-            e.preventDefault();
-            dropZone.classList.remove('tb-drag-over');
-            var files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
-
-        // 点击选择文件
-        dropZone.addEventListener('click', function() {
-            var input = document.createElement('input');
-            input.type = 'file';
-            if (options.accept) input.accept = options.accept;
-            input.addEventListener('change', function() {
-                if (input.files.length > 0) {
-                    handleFile(input.files[0]);
-                }
+        function _bindDrag() {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('tb-drag-over');
             });
-            input.click();
-        });
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('tb-drag-over');
+            });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('tb-drag-over');
+                var files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+            dropZone.addEventListener('click', function() {
+                if (state.isUploading) return;
+                var input = document.createElement('input');
+                input.type = 'file';
+                if (options.accept) input.accept = options.accept;
+                input.addEventListener('change', function() {
+                    if (input.files.length > 0) handleFile(input.files[0]);
+                });
+                input.click();
+            });
+        }
 
         function handleFile(file) {
             if (state.isUploading) {
                 ToolboxToast.warning('正在上传中，请稍候');
                 return;
             }
+            var err = validateFile(file, { accept: options.accept, maxSize: options.maxSize });
+            if (err) {
+                ToolboxToast.error(err);
+                if (options.onError) options.onError(err);
+                return;
+            }
+            if (options.onFileSelected) options.onFileSelected(file);
             state.file = file;
             state.totalChunks = Math.ceil(file.size / chunkSize);
             state.uploadedChunks = 0;
+            state.cancelled = false;
+
+            if (options.progressContainer) {
+                state.progressUI = renderProgress(options.progressContainer, {
+                    filename: file.name,
+                    showCancel: true
+                });
+                state.progressUI.onCancel(function() {
+                    state.cancelled = true;
+                    state.isUploading = false;
+                    if (state.progressUI) { state.progressUI.setStatus('已取消'); state.progressUI.destroy(); }
+                    ToolboxToast.info('上传已取消');
+                });
+            }
+
             startUpload();
         }
 
         async function startUpload() {
             state.isUploading = true;
             try {
-                // 初始化上传会话
+                if (state.progressUI) state.progressUI.setStatus('初始化上传会话...');
                 var initResp = await fetch('/api/upload-init', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -590,34 +698,29 @@ const ToolboxUpload = (function() {
                 var initData = await initResp.json();
                 if (initData.error) throw new Error(initData.error);
                 state.uploadId = initData.upload_id;
-                state.totalChunks = initData.total_chunks;
+                state.totalChunks = initData.total_chunks || state.totalChunks;
 
-                // 分块上传
+                if (state.progressUI) state.progressUI.setStatus('正在上传分块...');
                 await uploadChunks();
 
-                // 完成上传
+                if (state.cancelled) return;
+
+                if (state.progressUI) state.progressUI.setStatus('正在完成上传...');
                 var completeResp = await fetch('/api/upload-complete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        upload_id: state.uploadId,
-                        filename: state.file.name
-                    })
+                    body: JSON.stringify({ upload_id: state.uploadId, filename: state.file.name })
                 });
                 var completeData = await completeResp.json();
 
-                // 检查缺失分块并重试
                 if (completeData.missing_chunks && completeData.missing_chunks.length > 0) {
                     ToolboxToast.warning('检测到 ' + completeData.missing_chunks.length + ' 个缺失分块，正在重试...');
+                    if (state.progressUI) state.progressUI.setStatus('补传缺失分块...');
                     await retryMissingChunks(completeData.missing_chunks);
-                    // 再次完成
                     completeResp = await fetch('/api/upload-complete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            upload_id: state.uploadId,
-                            filename: state.file.name
-                        })
+                        body: JSON.stringify({ upload_id: state.uploadId, filename: state.file.name })
                     });
                     completeData = await completeResp.json();
                 }
@@ -625,25 +728,20 @@ const ToolboxUpload = (function() {
                 if (completeData.error) throw new Error(completeData.error);
 
                 state.isUploading = false;
-                if (options.onComplete) {
-                    options.onComplete(state.uploadId, state.file.name, completeData);
-                }
+                if (state.progressUI) { state.progressUI.setProgress(100); state.progressUI.setStatus('上传完成'); }
+                if (options.onComplete) options.onComplete(state.uploadId, state.file.name, completeData);
             } catch (err) {
                 state.isUploading = false;
-                if (options.onError) {
-                    options.onError(err.message);
-                } else {
-                    ToolboxToast.error('上传失败: ' + err.message);
-                }
+                if (state.progressUI) state.progressUI.setError('上传失败: ' + err.message);
+                if (options.onError) options.onError(err.message);
+                else ToolboxToast.error('上传失败: ' + err.message);
             }
         }
 
         async function uploadChunks() {
-            var chunkIndices = [];
-            for (var i = 0; i < state.totalChunks; i++) {
-                chunkIndices.push(i);
-            }
-            await runConcurrent(chunkIndices, uploadSingleChunk);
+            var indices = [];
+            for (var i = 0; i < state.totalChunks; i++) indices.push(i);
+            await runConcurrent(indices, uploadSingleChunk);
         }
 
         async function retryMissingChunks(missingIndices) {
@@ -651,11 +749,13 @@ const ToolboxUpload = (function() {
         }
 
         async function uploadSingleChunk(index) {
+            if (state.cancelled) return;
             var start = index * chunkSize;
             var end = Math.min(start + chunkSize, state.file.size);
             var chunk = state.file.slice(start, end);
 
             for (var attempt = 0; attempt < maxRetries; attempt++) {
+                if (state.cancelled) return;
                 try {
                     var formData = new FormData();
                     formData.append('upload_id', state.uploadId);
@@ -665,17 +765,15 @@ const ToolboxUpload = (function() {
 
                     var resp = await fetch('/api/upload-chunk', { method: 'POST', body: formData });
                     var data = await resp.json();
-
                     if (data.error) throw new Error(data.error);
 
                     state.uploadedChunks++;
-                    if (options.onProgress) {
-                        options.onProgress(state.uploadedChunks, state.totalChunks);
-                    }
-                    return; // 成功
+                    var pct = state.uploadedChunks / state.totalChunks * 100;
+                    if (state.progressUI) state.progressUI.setProgress(pct);
+                    if (options.onProgress) options.onProgress(state.uploadedChunks, state.totalChunks);
+                    return;
                 } catch (err) {
                     if (attempt < maxRetries - 1) {
-                        // 指数退避
                         await new Promise(function(r) { setTimeout(r, Math.pow(2, attempt) * 1000); });
                     } else {
                         throw err;
@@ -698,13 +796,92 @@ const ToolboxUpload = (function() {
             await Promise.all(workers);
         }
 
+        _bindDrag();
+
         return {
             getState: function() { return state; },
-            cancel: function() { state.isUploading = false; }
+            cancel: function() { state.cancelled = true; state.isUploading = false; },
+            handleFile: handleFile
         };
     }
 
-    return { create: create };
+    /**
+     * 直接上传模式（小文件，直接 POST 到指定 URL）
+     * @param {File} file
+     * @param {string} url - 上传地址
+     * @param {Object} options - { fieldName, extraData, progressContainer, onProgress, onComplete, onError }
+     */
+    async function directUpload(file, url, options) {
+        options = options || {};
+        var err = validateFile(file, { accept: options.accept, maxSize: options.maxSize });
+        if (err) {
+            ToolboxToast.error(err);
+            if (options.onError) options.onError(err);
+            throw new Error(err);
+        }
+
+        var progressUI = null;
+        if (options.progressContainer) {
+            progressUI = renderProgress(options.progressContainer, { filename: file.name, showCancel: false });
+        }
+
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url, true);
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    var pct = e.loaded / e.total * 100;
+                    if (progressUI) progressUI.setProgress(pct);
+                    if (options.onProgress) options.onProgress(e.loaded, e.total);
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressUI) { progressUI.setProgress(100); progressUI.setStatus('上传完成'); }
+                        if (options.onComplete) options.onComplete(data);
+                        resolve(data);
+                    } else {
+                        var msg = (data && data.error) || '上传失败 (' + xhr.status + ')';
+                        if (progressUI) progressUI.setError(msg);
+                        if (options.onError) options.onError(msg);
+                        reject(new Error(msg));
+                    }
+                } catch (e) {
+                    if (progressUI) progressUI.setError('服务器响应解析失败');
+                    reject(e);
+                }
+            });
+
+            xhr.addEventListener('error', function() {
+                var msg = '网络错误，上传失败';
+                if (progressUI) progressUI.setError(msg);
+                if (options.onError) options.onError(msg);
+                reject(new Error(msg));
+            });
+
+            var formData = new FormData();
+            formData.append(options.fieldName || 'file', file);
+            if (options.extraData) {
+                Object.keys(options.extraData).forEach(function(k) {
+                    formData.append(k, options.extraData[k]);
+                });
+            }
+            if (progressUI) progressUI.setStatus('正在上传...');
+            xhr.send(formData);
+        });
+    }
+
+    return {
+        create: create,
+        directUpload: directUpload,
+        validateFile: validateFile,
+        renderProgress: renderProgress,
+        DEFAULT_CHUNK_SIZE: DEFAULT_CHUNK_SIZE
+    };
 })();
 
 // ==================== 通用工具函数 ====================
