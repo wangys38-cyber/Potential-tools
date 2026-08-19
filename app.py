@@ -5539,22 +5539,7 @@ def notenb_redirect():
 
 @app.route('/noteNB/')
 def notenb_index():
-    # 服务端注入用户 ID，实现同步数据隔离（避免异步 fetch 时序问题）
-    user = auth.get_current_user()
-    uid = user['id'] if user else ''
-    user_name = user.get('name', '') if user else ''
-    user_avatar = user.get('avatar', '') if user else ''
-    html_path = os.path.join(NOTENB_DIST, 'index.html')
-    with open(html_path, 'r', encoding='utf-8') as f:
-        html = f.read()
-    # 安全：使用 json.dumps 转义用户信息，防止 XSS
-    import json as _json
-    user_info_script = '<script>window._SERVER_USER_ID=' + _json.dumps(str(uid)) + ';window._SERVER_USER_NAME=' + _json.dumps(str(user_name)) + ';window._SERVER_USER_AVATAR=' + _json.dumps(str(user_avatar)) + ';</script>'
-    html = html.replace('</head>', user_info_script + '\n</head>')
-    resp = make_response(html)
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    return resp
+    return render_template('notes.html')
 
 @app.route('/noteNB/assets/<path:filename>')
 def notenb_assets(filename):

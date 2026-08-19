@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牛马笔记</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='2'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/><polyline points='10 9 9 9 8 9'/></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f5f7; color: #1a1a1a; min-height: 100vh; }
+        .app { display: flex; height: calc(100vh - 52px); }
+        .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5e5; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 16px; border-bottom: 1px solid #e5e5e5; display: flex; gap: 8px; }
+        .new-btn { flex: 1; padding: 10px 16px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+        .new-btn:hover { background: #333; }
+        .notes-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .note-item { padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; transition: background 0.15s; border: 1px solid transparent; }
+        .note-item:hover { background: #f5f5f7; }
+        .note-item.active { background: #f0f0f0; border-color: #e0e0e0; }
+        .note-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .note-preview { font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+        .note-time { font-size: 11px; color: #aaa; }
+        .note-item .delete-btn { display: none; float: right; background: none; border: none; color: #999; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+        .note-item:hover .delete-btn { display: inline-block; }
+        .note-item .delete-btn:hover { background: #fee; color: #d44; }
+        .empty-list { text-align: center; padding: 40px 20px; color: #999; font-size: 13px; }
+        .editor { flex: 1; display: flex; flex-direction: column; background: #fff; }
+        .editor-header { padding: 16px 24px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; gap: 12px; }
+        .title-input { flex: 1; font-size: 20px; font-weight: 700; border: none; outline: none; background: none; color: #1a1a1a; }
+        .title-input::placeholder { color: #ccc; }
+        .editor-body { flex: 1; padding: 24px; overflow-y: auto; }
+        .content-textarea { width: 100%; height: 100%; border: none; outline: none; font-size: 15px; line-height: 1.8; color: #1a1a1a; resize: none; font-family: inherit; background: none; }
+        .content-textarea::placeholder { color: #ccc; }
+        .empty-editor { flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; }
+        .save-status { font-size: 12px; color: #999; }
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; }
+            .editor-header { padding: 12px 16px; }
+            .editor-body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-btn" onclick="newNote()">+ 新建笔记</button>
+            </div>
+            <div class="notes-list" id="notesList"></div>
+        </div>
+        <div class="editor" id="editor">
+            <div class="empty-editor">选择或新建一篇笔记开始记录</div>
+        </div>
+    </div>
+
+    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+    <script>
+        const STORAGE_KEY = (window._USER_PREFIX || '') + 'niuma_notes';
+        let notes = [];
+        let currentNoteId = null;
+        let saveTimer = null;
+
+        function loadNotes() {
+            try {
+                notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            } catch(e) { notes = []; }
+            renderList();
+        }
+
+        function saveNotes() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+                window.dispatchEvent(new CustomEvent('v5-data-changed'));
+            } catch(e) {}
+        }
+
+        function renderList() {
+            const list = document.getElementById('notesList');
+            if (notes.length === 0) {
+                list.innerHTML = '<div class="empty-list">暂无笔记<br>点击上方新建</div>';
+                return;
+            }
+            const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+            list.innerHTML = sorted.map(n => `
+                <div class="note-item ${n.id === currentNoteId ? 'active' : ''}" onclick="openNote('${n.id}')">
+                    <button class="delete-btn" onclick="event.stopPropagation();deleteNote('${n.id}')">✕</button>
+                    <div class="note-title">${escapeHtml(n.title || '无标题')}</div>
+                    <div class="note-preview">${escapeHtml((n.content || '').slice(0, 50))}</div>
+                    <div class="note-time">${formatTime(n.updatedAt)}</div>
+                </div>
+            `).join('');
+        }
+
+        function newNote() {
+            const note = {
+                id: 'note_' + Date.now(),
+                title: '',
+                content: '',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            notes.unshift(note);
+            currentNoteId = note.id;
+            saveNotes();
+            renderList();
+            renderEditor();
+            setTimeout(() => document.querySelector('.title-input')?.focus(), 50);
+        }
+
+        function openNote(id) {
+            currentNoteId = id;
+            renderList();
+            renderEditor();
+        }
+
+        function deleteNote(id) {
+            if (!confirm('确定删除这篇笔记？')) return;
+            notes = notes.filter(n => n.id !== id);
+            if (currentNoteId === id) currentNoteId = null;
+            saveNotes();
+            renderList();
+            renderEditor();
+        }
+
+        function renderEditor() {
+            const editor = document.getElementById('editor');
+            if (!currentNoteId) {
+                editor.innerHTML = '<div class="empty-editor">选择或新建一篇笔记开始记录</div>';
+                return;
+            }
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) {
+                editor.innerHTML = '<div class="empty-editor">笔记不存在</div>';
+                return;
+            }
+            editor.innerHTML = `
+                <div class="editor-header">
+                    <input type="text" class="title-input" id="titleInput" placeholder="笔记标题..." value="${escapeHtml(note.title)}" oninput="updateTitle(this.value)">
+                    <span class="save-status" id="saveStatus">已保存</span>
+                </div>
+                <div class="editor-body">
+                    <textarea class="content-textarea" id="contentInput" placeholder="开始记录..." oninput="updateContent(this.value)">${escapeHtml(note.content)}</textarea>
+                </div>
+            `;
+        }
+
+        function updateTitle(val) {
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) return;
+            note.title = val;
+            note.updatedAt = Date.now();
+            debounceSave();
+            renderList();
+        }
+
+        function updateContent(val) {
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) return;
+            note.content = val;
+            note.updatedAt = Date.now();
+            debounceSave();
+            renderList();
+        }
+
+        function debounceSave() {
+            document.getElementById('saveStatus').textContent = '编辑中...';
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                saveNotes();
+                document.getElementById('saveStatus').textContent = '已保存';
+            }, 500);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        function formatTime(ts) {
+            const d = new Date(ts);
+            const now = new Date();
+            const diff = now - d;
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+            return d.toLocaleDateString('zh-CN');
+        }
+
+        // 云端同步后刷新
+        window.addEventListener('v5-synced', () => { loadNotes(); renderEditor(); });
+
+        loadNotes();
+    </script>
+</body>
+</html>

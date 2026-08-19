@@ -36,6 +36,10 @@
             keys: [_USER_PREFIX + 'saved_plans', 'saved_plans'],
             name: '项目计划', icon: '📋'
         },
+        notes: {
+            keys: [_USER_PREFIX + 'niuma_notes', 'niuma_notes'],
+            name: '牛马笔记', icon: '📝'
+        },
         theme: {
             keys: ['toolbox_theme'],
             name: '主题设置', icon: '🎨'
