@@ -125,6 +125,15 @@
                 </div>
                 <div id="suggestionsList"></div>
                 <div id="unverifiedSection"></div>
+                <!-- 历史相似 Bug 对比 -->
+                <div id="similarBugSection" style="margin-top:24px;padding:20px;background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(99,102,241,0.06));border-radius:16px;border:1px solid rgba(124,58,237,0.15);display:none;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                        <span style="font-size:20px;">🔮</span>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">历史相似 Bug 对比</h3>
+                        <button class="btn btn-secondary" onclick="analyzeSimilarBugs()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">分析相似 Bug</button>
+                    </div>
+                    <div id="similarBugResult" style="font-size:13px;line-height:1.7;color:var(--text-secondary);"></div>
+                </div>
             </div>
 
             <div class="tab-content" id="tab-modules">

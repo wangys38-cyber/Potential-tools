@@ -456,6 +456,8 @@ function showToast(msg, type) {
             if (pushBtn) pushBtn.style.display = 'inline-block';
             const exportBtn = document.getElementById('exportTrendBtn');
             if (exportBtn) exportBtn.style.display = 'inline-block';
+            const similarSection = document.getElementById('similarBugSection');
+            if (similarSection) similarSection.style.display = 'block';
             const fileNameEl = document.getElementById('reportFileName');
             if (fileNameEl) fileNameEl.textContent = d.file_name ? `— ${d.file_name}` : '';
 
@@ -1926,6 +1928,115 @@ function showToast(msg, type) {
             try {
                 return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
             } catch(e) { return []; }
+        }
+
+        // ===== v5.0 历史相似 Bug 对比分析 =====
+        function analyzeSimilarBugs() {
+            var resultEl = document.getElementById('similarBugResult');
+            if (!resultEl) return;
+            var history = loadHistory();
+            if (history.length === 0) {
+                resultEl.innerHTML = '<div style="padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;color:var(--text-3);">📭 暂无历史数据，分析后将自动积累</div>';
+                return;
+            }
+            if (!currentAnalysisData || !currentAnalysisData.all_issues) {
+                resultEl.innerHTML = '<div style="color:var(--text-3);">请先分析文件</div>';
+                return;
+            }
+            resultEl.innerHTML = '<div style="color:var(--text-3);">🔍 正在分析历史相似 Bug...</div>';
+
+            // 提取当前 Bug 的关键词和模块
+            var currentIssues = currentAnalysisData.all_issues || [];
+            var currentModules = {};
+            var currentKeywords = {};
+            currentIssues.forEach(function(issue) {
+                var mod = issue.module || issue.component || '未分类';
+                currentModules[mod] = (currentModules[mod] || 0) + 1;
+                var title = (issue.title || issue.summary || issue.issue || '').toLowerCase();
+                var words = title.split(/[\s,.;:!?()\[\]{}\/\\-]+/).filter(function(w) { return w.length > 2; });
+                words.forEach(function(w) { currentKeywords[w] = (currentKeywords[w] || 0) + 1; });
+            });
+
+            // 遍历历史记录找相似 Bug
+            var similarBugs = [];
+            var ownerStats = {};
+            var rootCauseStats = {};
+            history.forEach(function(rec) {
+                var issues = (rec.data && rec.data.all_issues) || [];
+                issues.forEach(function(issue) {
+                    var mod = issue.module || issue.component || '未分类';
+                    var title = (issue.title || issue.summary || issue.issue || '').toLowerCase();
+                    var score = 0;
+                    if (currentModules[mod]) score += 3;
+                    Object.keys(currentKeywords).forEach(function(kw) {
+                        if (title.indexOf(kw) >= 0) score += currentKeywords[kw];
+                    });
+                    if (score >= 2) {
+                        similarBugs.push({
+                            title: issue.title || issue.summary || issue.issue || '未知',
+                            module: mod,
+                            severity: issue.severity || 'Unknown',
+                            status: issue.status || (issue.resolved ? '已解决' : '未解决'),
+                            score: score,
+                            owner: issue.owner || issue.assignee || issue.handler || null,
+                            root_cause: issue.root_cause || issue.cause || issue.resolution || null
+                        });
+                        if (issue.owner || issue.assignee || issue.handler) {
+                            var o = issue.owner || issue.assignee || issue.handler;
+                            ownerStats[o] = (ownerStats[o] || 0) + 1;
+                        }
+                        if (issue.root_cause || issue.cause || issue.resolution) {
+                            var rc = issue.root_cause || issue.cause || issue.resolution;
+                            rootCauseStats[rc] = (rootCauseStats[rc] || 0) + 1;
+                        }
+                    }
+                });
+            });
+
+            // 排序并取 top
+            similarBugs.sort(function(a, b) { return b.score - a.score; });
+            var topSimilar = similarBugs.slice(0, 5);
+            var topOwners = Object.entries(ownerStats).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 3);
+            var topCauses = Object.entries(rootCauseStats).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 3);
+
+            // 渲染结果
+            var html = '';
+            if (topSimilar.length === 0) {
+                html += '<div style="padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;color:var(--text-3);margin-bottom:12px;">未找到高度相似的历史 Bug</div>';
+            } else {
+                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);">📋 相似历史 Bug（' + similarBugs.length + ' 条）</div>';
+                html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+                topSimilar.forEach(function(b) {
+                    var statusColor = b.status === '已解决' ? '#34c759' : '#ff9500';
+                    html += '<div style="padding:8px 12px;background:rgba(255,255,255,0.7);border-radius:8px;border:1px solid var(--border);font-size:12px;">';
+                    html += '<div style="font-weight:500;color:var(--text);">' + escapeHtml(b.title) + '</div>';
+                    html += '<div style="color:var(--text-3);margin-top:2px;">模块: ' + b.module + ' | 严重性: ' + b.severity + ' | <span style="color:' + statusColor + ';">' + b.status + '</span></div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+            if (topCauses.length > 0) {
+                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);">💡 根因建议（基于历史）</div>';
+                html += '<ul style="margin:0;padding-left:20px;">';
+                topCauses.forEach(function(c) {
+                    html += '<li style="margin-bottom:4px;">' + escapeHtml(c[0]) + ' <span style="color:var(--text-3);">(' + c[1] + '次)</span></li>';
+                });
+                html += '</ul></div>';
+            }
+            if (topOwners.length > 0) {
+                html += '<div><div style="font-weight:600;margin-bottom:8px;color:var(--text);">👤 责任人推荐</div>';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                topOwners.forEach(function(o, i) {
+                    var bg = i === 0 ? 'linear-gradient(135deg,#7c3aed,#6366f1)' : 'rgba(0,0,0,0.05)';
+                    var color = i === 0 ? '#fff' : 'var(--text)';
+                    html += '<span style="padding:4px 12px;border-radius:20px;background:' + bg + ';color:' + color + ';font-size:12px;font-weight:500;">' + escapeHtml(o[0]) + ' (' + o[1] + ')</span>';
+                });
+                html += '</div></div>';
+            }
+            if (topCauses.length === 0 && topOwners.length === 0 && topSimilar.length > 0) {
+                html += '<div style="font-size:12px;color:var(--text-3);margin-top:8px;">💡 历史记录中缺少根因和责任人字段，建议在 CR 数据中补充 owner/root_cause 列以获得更精准推荐</div>';
+            }
+            resultEl.innerHTML = html;
         }
 
         function renderHistoryList() {

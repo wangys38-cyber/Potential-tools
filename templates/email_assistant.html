@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -96,6 +96,7 @@
     <div class="toast" id="toast"></div>
     <script>
         const TEMPLATES = [
+            { id: 'ai-reply', icon: '🤖', name: 'AI 智能回复', fields: ['emailContent','tone'], desc: 'AI generate email reply' },
             { id: 'bug', icon: '🐛', name: 'Bug 报告', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
             { id: 'status', icon: '📊', name: '进度同步', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
             { id: 'request', icon: '🙏', name: '资源请求', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
@@ -143,6 +144,24 @@
 
         function renderFormFields() {
             document.getElementById('formTitle').textContent = currentTemplate.icon + ' ' + currentTemplate.name + ' - 填写信息';
+            if (currentTemplate.id === 'ai-reply') {
+                document.getElementById('formFields').innerHTML = `
+                    <div class="form-group">
+                        <label>📧 收到的邮件内容（英文）</label>
+                        <textarea id="field_emailContent" placeholder="Paste the email you received here..." style="min-height:160px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>🎯 回复语气</label>
+                        <div style="display:flex;gap:8px;" id="toneGroup">
+                            <button type="button" class="btn tone-btn active" data-tone="formal" onclick="selectTone('formal')" style="flex:1;justify-content:center;">🎩 正式</button>
+                            <button type="button" class="btn tone-btn" data-tone="concise" onclick="selectTone('concise')" style="flex:1;justify-content:center;">⚡ 简洁</button>
+                            <button type="button" class="btn tone-btn" data-tone="friendly" onclick="selectTone('friendly')" style="flex:1;justify-content:center;">😊 友好</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="field_tone" value="formal">
+                `;
+                return;
+            }
             document.getElementById('formFields').innerHTML = currentTemplate.fields.map((f, i) => {
                 const isTextarea = ['steps','expected','actual','progress','blockers','nextSteps','reason','impact','issue','previousAttempts','needAction','apology','solution','preventMeasure','highlights','changes','knownIssues','agenda','prep'].includes(f);
                 const label = FIELD_LABELS[f] || f;
@@ -153,9 +172,57 @@
             }).join('');
         }
 
+        function selectTone(tone) {
+            document.getElementById('field_tone').value = tone;
+            document.querySelectorAll('.tone-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.tone === tone);
+                if (b.dataset.tone === tone) {
+                    b.style.background = 'linear-gradient(135deg,#4f46e5,#7c3aed)';
+                    b.style.color = '#fff';
+                    b.style.border = 'none';
+                } else {
+                    b.style.background = '';
+                    b.style.color = '';
+                    b.style.border = '';
+                }
+            });
+        }
+
         function getVal(f) { return document.getElementById('field_'+f)?.value || ''; }
 
         function generateEmail() {
+            // AI 智能回复模板
+            if (currentTemplate.id === 'ai-reply') {
+                const emailContent = getVal('emailContent').trim();
+                const tone = getVal('tone') || 'formal';
+                if (!emailContent) { showToast('请先粘贴收到的邮件内容'); return; }
+                const btn = document.querySelector('.btn-primary');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ AI 生成中...';
+                btn.disabled = true;
+                fetch('/api/email-reply', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email_content: emailContent, tone: tone })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) { showToast('❌ ' + data.error); return; }
+                    generatedEN = data.reply || '';
+                    generatedZH = translateToZH(generatedEN);
+                    currentLang = 'en';
+                    renderPreview();
+                    document.getElementById('previewCard').style.display = 'block';
+                    showToast('✨ AI 回复已生成');
+                })
+                .catch(e => showToast('❌ 生成失败: ' + e.message))
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+                return;
+            }
+
             const recipient = getVal('recipient') || '[Recipient]';
             const subject = getVal('subject') || '[Subject]';
             let body = '';

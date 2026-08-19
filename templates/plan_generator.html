@@ -777,9 +777,19 @@
                 <div class="action-buttons">
                     <button class="action-btn save" onclick="savePlan()">💾 保存计划</button>
                     <button class="action-btn feishu" onclick="pushToFeishu()">📤 推送飞书</button>
+                    <button class="action-btn" onclick="aiAdjustPlan()" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;">🤖 AI建议调整</button>
                     <button class="action-btn copy" onclick="copyPlan()">📋 复制</button>
                     <button class="action-btn download" onclick="downloadPlan()">📥 CSV</button>
                     <button class="action-btn print" onclick="printPlan()">🖨️ 打印</button>
+                </div>
+                <!-- AI 调整建议面板 -->
+                <div id="aiSuggestionPanel" style="display:none;margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(99,102,241,0.06));border-radius:12px;border:1px solid rgba(124,58,237,0.15);">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span style="font-size:18px;">🤖</span>
+                        <span style="font-weight:600;font-size:14px;">AI 计划调整建议</span>
+                        <button onclick="document.getElementById('aiSuggestionPanel').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-secondary);">✕</button>
+                    </div>
+                    <div id="aiSuggestionList" style="display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
             </div>
 
@@ -1833,6 +1843,147 @@
                 showToast('📋 已从会议纪要导入 ' + todoList.length + ' 个待办为计划节点', 'success');
             } catch(e) { console.warn('Plan transfer error:', e); }
         })();
+
+        // ===== v5.0 AI 计划调整建议 =====
+        function aiAdjustPlan() {
+            var panel = document.getElementById('aiSuggestionPanel');
+            var listEl = document.getElementById('aiSuggestionList');
+            if (!panel || !listEl) return;
+            if (!currentPlan || currentPlan.length === 0) {
+                showToast('请先生成或导入计划', 'warning');
+                return;
+            }
+            var suggestions = [];
+            var today = new Date();
+            today.setHours(0,0,0,0);
+
+            // 1. 延期节点建议
+            currentPlan.forEach(function(node, idx) {
+                if (node.status === 'delayed') {
+                    suggestions.push({
+                        type: 'delay',
+                        icon: '⚠️',
+                        title: '延期节点：' + (node.name || '未命名'),
+                        desc: '该节点已延期，建议将排期后移至下周，并评估对后续节点的影响',
+                        action: function() {
+                            var d = new Date(node.date);
+                            d.setDate(d.getDate() + 7);
+                            node.date = d.toISOString().split('T')[0];
+                            node.status = 'in-progress';
+                            renderTable();
+                            if (typeof renderTimeline === 'function') renderTimeline();
+                            showToast('✅ 已将节点后移一周并标记为进行中', 'success');
+                        }
+                    });
+                }
+            });
+
+            // 2. 同一天多个节点（资源过载）
+            var dateGroups = {};
+            currentPlan.forEach(function(node, idx) {
+                var d = node.date;
+                if (!dateGroups[d]) dateGroups[d] = [];
+                dateGroups[d].push(idx);
+            });
+            Object.keys(dateGroups).forEach(function(d) {
+                if (dateGroups[d].length >= 2) {
+                    var names = dateGroups[d].map(function(i) { return currentPlan[i].name; }).join('、');
+                    suggestions.push({
+                        type: 'overload',
+                        icon: '🔀',
+                        title: '资源过载：' + d + ' 有 ' + dateGroups[d].length + ' 个节点',
+                        desc: '节点「' + names + '」排期在同一天，建议分流到不同日期或并行执行',
+                        action: function() {
+                            dateGroups[d].forEach(function(idx, i) {
+                                if (i > 0) {
+                                    var nd = new Date(d);
+                                    nd.setDate(nd.getDate() + i);
+                                    currentPlan[idx].date = nd.toISOString().split('T')[0];
+                                }
+                            });
+                            renderTable();
+                            if (typeof renderTimeline === 'function') renderTimeline();
+                            showToast('✅ 已将同日节点分流到不同日期', 'success');
+                        }
+                    });
+                }
+            });
+
+            // 3. 可并行节点（连续 pending 且无依赖标记）
+            var pendingIndices = currentPlan.map(function(n, i) { return n.status === 'pending' ? i : -1; }).filter(function(i) { return i >= 0; });
+            if (pendingIndices.length >= 2) {
+                var consecutive = [];
+                for (var i = 0; i < pendingIndices.length - 1; i++) {
+                    if (pendingIndices[i+1] === pendingIndices[i] + 1) {
+                        consecutive.push([pendingIndices[i], pendingIndices[i+1]]);
+                    }
+                }
+                if (consecutive.length > 0) {
+                    var pair = consecutive[0];
+                    suggestions.push({
+                        type: 'parallel',
+                        icon: '⚡',
+                        title: '可并行：' + (currentPlan[pair[0]].name || '节点') + ' 与 ' + (currentPlan[pair[1]].name || '节点'),
+                        desc: '两个连续待办节点无明确依赖关系，建议并行执行以缩短工期',
+                        action: function() {
+                            var d0 = new Date(currentPlan[pair[0]].date);
+                            currentPlan[pair[1]].date = d0.toISOString().split('T')[0];
+                            renderTable();
+                            if (typeof renderTimeline === 'function') renderTimeline();
+                            showToast('✅ 已将两个节点设置为并行执行', 'success');
+                        }
+                    });
+                }
+            }
+
+            // 4. 已过期但未完成的节点
+            currentPlan.forEach(function(node, idx) {
+                if (node.status !== 'done' && node.date) {
+                    var nodeDate = new Date(node.date);
+                    nodeDate.setHours(0,0,0,0);
+                    if (nodeDate < today && node.status !== 'delayed') {
+                        suggestions.push({
+                            type: 'overdue',
+                            icon: '⏰',
+                            title: '已过期未完成：' + (node.name || '未命名'),
+                            desc: '该节点计划日期已过但未完成，建议标记为延期或更新进度',
+                            action: function() {
+                                node.status = 'delayed';
+                                renderTable();
+                                showToast('✅ 已标记为延期', 'success');
+                            }
+                        });
+                    }
+                }
+            });
+
+            // 渲染建议
+            if (suggestions.length === 0) {
+                listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:13px;">✅ 当前计划状态良好，暂无调整建议</div>';
+            } else {
+                listEl.innerHTML = suggestions.map(function(s, i) {
+                    return '<div style="padding:12px;background:rgba(255,255,255,0.7);border-radius:10px;border:1px solid var(--border);">' +
+                        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                            '<span style="font-size:16px;">' + s.icon + '</span>' +
+                            '<span style="font-weight:600;font-size:13px;">' + escapeHtml(s.title) + '</span>' +
+                        '</div>' +
+                        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.6;">' + escapeHtml(s.desc) + '</div>' +
+                        '<div style="display:flex;gap:8px;">' +
+                            '<button onclick="window.__aiAdopt(' + i + ')" style="padding:5px 14px;border-radius:6px;border:none;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font-size:12px;cursor:pointer;font-weight:500;">采纳</button>' +
+                            '<button onclick="this.closest(\'div[style*=padding]\').remove()" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:12px;cursor:pointer;">忽略</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                window.__aiSuggestions = suggestions;
+                window.__aiAdopt = function(idx) {
+                    if (window.__aiSuggestions && window.__aiSuggestions[idx]) {
+                        window.__aiSuggestions[idx].action();
+                    }
+                };
+            }
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>

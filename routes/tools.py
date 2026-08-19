@@ -511,6 +511,48 @@ def create_tools_blueprint(sock=None):
             headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
         )
 
+    # ==================== AI 邮件回复 ====================
+
+    @bp.route('/api/email-reply', methods=['POST'])
+    def api_email_reply():
+        data = request.json or {}
+        email_content = (data.get('email_content') or '').strip()
+        tone = data.get('tone') or 'formal'
+        if not email_content:
+            return jsonify({'error': '邮件内容不能为空'}), 400
+        tone_map = {
+            'formal': '正式、专业、礼貌',
+            'concise': '简洁、直接、高效',
+            'friendly': '友好、亲切、自然'
+        }
+        tone_desc = tone_map.get(tone, tone_map['formal'])
+        prompt = f"""You are a professional email assistant. Please write a reply in English to the following email.
+
+Tone: {tone_desc}
+
+Requirements:
+- Write in English only
+- Include a subject line starting with "Re: "
+- Include a proper greeting and closing
+- Address the key points in the original email
+- Keep it concise and professional
+
+Original email:
+{email_content[:4000]}
+
+Please write the reply:"""
+        messages = [
+            {'role': 'system', 'content': 'You are a professional business email assistant. Write clear, professional English email replies.'},
+            {'role': 'user', 'content': prompt}
+        ]
+        try:
+            ai_config = get_ai_config()
+            reply = _call_ai(messages, model=ai_config.get('model'), max_tokens=1500, temperature=0.5, timeout=60)
+            return jsonify({'reply': reply or '', 'tone': tone})
+        except Exception as e:
+            logger.error(f'邮件回复生成失败: {e}')
+            return jsonify({'error': f'AI 生成失败: {str(e)}'}), 500
+
     # ==================== MD2PDF ====================
 
     @bp.route('/api/md2pdf', methods=['POST'])
