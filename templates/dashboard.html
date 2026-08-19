@@ -149,6 +149,19 @@
             font-size: 12px; color: #9ca3af;
         }
 
+        .action-btn {
+            padding: 6px 16px; border-radius: 8px; border: none;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.15s; font-family: inherit;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+        }
+        .action-btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.35);
+        }
+
         @media (max-width: 900px) {
             .col-4, .col-6, .col-8 { grid-column: span 12; }
         }
@@ -215,6 +228,7 @@
             <div class="card-title">
                 <span class="icon">📁</span> 项目概览
                 <span class="badge">E62 / SR5 / SR6</span>
+                <button class="action-btn primary" id="historyBtn" style="margin-left:auto;padding:5px 14px;font-size:12px;">📜 操作历史</button>
             </div>
             <div class="proj-list" id="projList"></div>
         </div>
@@ -321,5 +335,32 @@
 </script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+<script>
+// 历史记录组件接入（需在 components.js 加载后执行）
+(function() {
+    var btn = document.getElementById('historyBtn');
+    if (!btn || typeof ToolboxHistory === 'undefined') return;
+
+    // 若本地无任何历史记录，写入示例数据便于展示
+    var all = ToolboxHistory.getAll();
+    var hasRecords = Object.keys(all).some(function(k) { return all[k].length > 0; });
+    if (!hasRecords) {
+        var now = Date.now();
+        ToolboxHistory.add('excel-analysis', { title: 'SR6_Bug趋势分析.xlsx', timestamp: now - 3600000 });
+        ToolboxHistory.add('test-report', { title: 'E62_测试报告_v1.78.xlsx', timestamp: now - 7200000 });
+        ToolboxHistory.add('daily-standup', { title: '2026-08-19 站会纪要', timestamp: now - 86400000 });
+        ToolboxHistory.add('mttf-dashboard', { title: '挂测日志_72h.log', timestamp: now - 172800000 });
+    }
+
+    btn.addEventListener('click', function() {
+        ToolboxHistory.showModal(null, {
+            title: '全部操作历史',
+            onSelect: function(record, idx, toolId) {
+                if (window.ToolboxToast) ToolboxToast.show('已加载: ' + record.title, 'success');
+            }
+        });
+    });
+})();
+</script>
 </body>
 </html>

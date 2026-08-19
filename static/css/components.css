@@ -526,3 +526,82 @@
 [data-theme="dark"] .tb-upload-progress-track { background: #3a3a3c; }
 [data-theme="dark"] .tb-upload-progress-status { color: #9b9ba5; }
 [data-theme="dark"] .tb-upload-progress-cancel { color: #9b9ba5; border-color: rgba(255,255,255,0.15); }
+
+/* ===== v5.0 统一历史记录组件 ===== */
+.tb-history-list { display: flex; flex-direction: column; gap: 6px; }
+.tb-history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    background: #f9fafb; cursor: pointer;
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.tb-history-item:hover {
+    background: #fff; border-color: rgba(102,126,234,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.tb-history-item-icon { font-size: 18px; flex-shrink: 0; }
+.tb-history-item-content { flex: 1; min-width: 0; }
+.tb-history-item-title {
+    font-size: 13px; font-weight: 500; color: #1a1a1a;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tb-history-item-time { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+.tb-history-item-action {
+    font-size: 11px; color: #667eea; font-weight: 600; flex-shrink: 0;
+}
+.tb-history-footer { margin-top: 10px; text-align: center; }
+.tb-history-clear-btn {
+    background: none; border: 1px solid rgba(0,0,0,0.1);
+    padding: 4px 14px; border-radius: 6px; font-size: 11px;
+    color: #6b7280; cursor: pointer; transition: all 0.15s;
+}
+.tb-history-clear-btn:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+.tb-history-empty {
+    text-align: center; padding: 24px 12px;
+    font-size: 12px; color: #9ca3af;
+}
+
+/* 历史记录弹窗 */
+.tb-history-modal-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    animation: tb-fade-in 0.2s ease;
+}
+.tb-history-modal {
+    background: #fff; border-radius: 16px;
+    width: 90%; max-width: 480px; max-height: 80vh;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    overflow: hidden; display: flex; flex-direction: column;
+    animation: tb-slide-up 0.25s ease;
+}
+.tb-history-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #f3f4f6;
+}
+.tb-history-modal-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.tb-history-modal-close {
+    background: none; border: none; font-size: 24px; color: #9ca3af;
+    cursor: pointer; line-height: 1; padding: 0 4px; transition: color 0.15s;
+}
+.tb-history-modal-close:hover { color: #1a1a1a; }
+.tb-history-modal-body {
+    padding: 16px 20px; overflow-y: auto; flex: 1;
+}
+.tb-history-modal-section { margin-bottom: 18px; }
+.tb-history-modal-section:last-child { margin-bottom: 0; }
+.tb-history-modal-section-title {
+    font-size: 12px; font-weight: 600; color: #667eea;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+@keyframes tb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tb-slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+[data-theme="dark"] .tb-history-item { background: #2c2c2e; }
+[data-theme="dark"] .tb-history-item:hover { background: #3a3a3c; border-color: rgba(102,126,234,0.3); }
+[data-theme="dark"] .tb-history-item-title { color: #fff; }
+[data-theme="dark"] .tb-history-modal { background: #1c1c1e; }
+[data-theme="dark"] .tb-history-modal-header { border-color: rgba(255,255,255,0.1); }
+[data-theme="dark"] .tb-history-modal-title { color: #fff; }

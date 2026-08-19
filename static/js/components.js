@@ -1978,24 +1978,46 @@ const ToolboxLoading = (function() {
 /**
  * 全站共享的操作历史记录组件
  * 每个工具保留最近 N 条操作记录（默认5条），支持回溯查看
- * 数据存储在 localStorage，按用户隔离
+ * 数据存储在 localStorage，按用户隔离，key 格式: u{id}_history_{toolname}
  *
  * 使用方式：
  *   ToolboxHistory.add('excel-analysis', { title: 'bug分析.xlsx', timestamp: Date.now(), data: {...} })
  *   var records = ToolboxHistory.get('excel-analysis')
  *   ToolboxHistory.render(containerEl, 'excel-analysis', { onSelect: function(record) {...} })
+ *   ToolboxHistory.showModal('excel-analysis', { onSelect: ... })
  *   ToolboxHistory.clear('excel-analysis')
  */
 const ToolboxHistory = (function() {
     var MAX_RECORDS = 5;
 
     function _getPrefix() {
-        return (window._USER_PREFIX || '') + 'toolbox_history_';
+        // key 格式: u{id}_history_{toolname}
+        return (window._USER_PREFIX || '') + 'history_';
     }
 
     function _storageKey(toolId) {
         return _getPrefix() + toolId;
     }
+
+    // 旧 key 迁移（从 toolbox_history_ 迁移到 history_）
+    function _migrateOldKeys() {
+        try {
+            var oldPrefix = (window._USER_PREFIX || '') + 'toolbox_history_';
+            var newPrefix = _getPrefix();
+            for (var i = localStorage.length - 1; i >= 0; i--) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(oldPrefix) === 0) {
+                    var toolId = key.substring(oldPrefix.length);
+                    var newKey = newPrefix + toolId;
+                    if (localStorage.getItem(newKey) === null) {
+                        localStorage.setItem(newKey, localStorage.getItem(key));
+                    }
+                    localStorage.removeItem(key);
+                }
+            }
+        } catch(e) {}
+    }
+    _migrateOldKeys();
 
     /**
      * 添加一条操作记录
@@ -2032,6 +2054,25 @@ const ToolboxHistory = (function() {
     }
 
     /**
+     * 获取所有工具的历史记录汇总
+     * @returns {Object} { toolId: [records...] }
+     */
+    function getAll() {
+        var result = {};
+        try {
+            var prefix = _getPrefix();
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(prefix) === 0) {
+                    var toolId = key.substring(prefix.length);
+                    result[toolId] = JSON.parse(localStorage.getItem(key) || '[]');
+                }
+            }
+        } catch(e) {}
+        return result;
+    }
+
+    /**
      * 清除某工具的历史记录
      * @param {string} toolId - 工具标识
      */
@@ -2050,7 +2091,7 @@ const ToolboxHistory = (function() {
             var keysToRemove = [];
             for (var i = 0; i < localStorage.length; i++) {
                 var key = localStorage.key(i);
-                if (key && key.indexOf(prefix + 'toolbox_history_') === 0) {
+                if (key && key.indexOf(prefix) === 0) {
                     keysToRemove.push(key);
                 }
             }
@@ -2070,10 +2111,10 @@ const ToolboxHistory = (function() {
     }
 
     /**
-     * 渲染历史记录UI
+     * 渲染历史记录列表 UI
      * @param {HTMLElement} container - 容器元素
      * @param {string} toolId - 工具标识
-     * @param {Object} options - { onSelect, onClear, emptyText, maxItems }
+     * @param {Object} options - { onSelect, onClear, emptyText, maxItems, showClear }
      */
     function render(container, toolId, options) {
         if (!container) return;
@@ -2105,7 +2146,6 @@ const ToolboxHistory = (function() {
         }
         container.innerHTML = html;
 
-        // 绑定点击事件
         var items = container.querySelectorAll('.tb-history-item');
         items.forEach(function(item, idx) {
             item.addEventListener('click', function() {
@@ -2125,12 +2165,94 @@ const ToolboxHistory = (function() {
         }
     }
 
+    /**
+     * 展示历史记录弹窗（模态框）
+     * @param {string} toolId - 工具标识，传 null 则展示所有工具的历史
+     * @param {Object} options - { title, onSelect, onClear }
+     */
+    function showModal(toolId, options) {
+        options = options || {};
+        var title = options.title || (toolId ? '操作历史' : '全部历史记录');
+
+        // 遮罩层
+        var overlay = document.createElement('div');
+        overlay.className = 'tb-history-modal-overlay';
+        overlay.innerHTML =
+            '<div class="tb-history-modal">' +
+                '<div class="tb-history-modal-header">' +
+                    '<span class="tb-history-modal-title">' + escapeHtml(title) + '</span>' +
+                    '<button class="tb-history-modal-close">&times;</button>' +
+                '</div>' +
+                '<div class="tb-history-modal-body"></div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+
+        var body = overlay.querySelector('.tb-history-modal-body');
+        var closeBtn = overlay.querySelector('.tb-history-modal-close');
+
+        function close() {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) close();
+        });
+        closeBtn.addEventListener('click', close);
+
+        function renderContent() {
+            if (toolId) {
+                var wrap = document.createElement('div');
+                body.appendChild(wrap);
+                render(wrap, toolId, {
+                    onSelect: function(record, idx) {
+                        if (typeof options.onSelect === 'function') options.onSelect(record, idx, toolId);
+                        close();
+                    },
+                    onClear: function() { if (typeof options.onClear === 'function') options.onClear(toolId); }
+                });
+            } else {
+                // 展示所有工具的历史
+                var all = getAll();
+                var toolIds = Object.keys(all);
+                if (toolIds.length === 0) {
+                    body.innerHTML = '<div class="tb-history-empty">暂无任何历史记录</div>';
+                    return;
+                }
+                toolIds.forEach(function(tid) {
+                    if (all[tid].length === 0) return;
+                    var section = document.createElement('div');
+                    section.className = 'tb-history-modal-section';
+                    section.innerHTML = '<div class="tb-history-modal-section-title">' + escapeHtml(tid) + ' (' + all[tid].length + ')</div>';
+                    var listWrap = document.createElement('div');
+                    section.appendChild(listWrap);
+                    body.appendChild(section);
+                    render(listWrap, tid, {
+                        showClear: true,
+                        onSelect: function(record, idx) {
+                            if (typeof options.onSelect === 'function') options.onSelect(record, idx, tid);
+                            close();
+                        },
+                        onClear: function() {
+                            section.remove();
+                            if (typeof options.onClear === 'function') options.onClear(tid);
+                        }
+                    });
+                });
+            }
+        }
+
+        renderContent();
+        return { close: close };
+    }
+
     return {
         add: add,
         get: get,
+        getAll: getAll,
         clear: clear,
         clearAll: clearAll,
         render: render,
+        showModal: showModal,
         MAX_RECORDS: MAX_RECORDS
     };
 })();
