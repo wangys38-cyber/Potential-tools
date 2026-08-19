@@ -2372,6 +2372,31 @@ def health():
     return jsonify({'status': 'ok', 'version': _STATIC_VERSION, 'pid': os.getpid()})
 
 
+# === 访问计数 ===
+_VISIT_FILE = os.path.join(os.path.dirname(__file__), 'visit_count.json')
+
+def _read_visit_count():
+    try:
+        with open(_VISIT_FILE, 'r', encoding='utf-8') as f:
+            return int(json.load(f).get('count', 0))
+    except:
+        return 0
+
+def _write_visit_count(count):
+    try:
+        with open(_VISIT_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'count': count}, f)
+    except:
+        pass
+
+@app.route('/api/visit-count')
+def api_visit_count():
+    """访问计数：返回当前次数并递增"""
+    count = _read_visit_count() + 1
+    _write_visit_count(count)
+    return jsonify({'count': count})
+
+
 @app.route('/favicon.ico')
 def favicon():
     """浏览器默认请求的favicon — 返回工具箱emoji SVG"""

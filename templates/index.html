@@ -1004,5 +1004,58 @@
     </script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+
+<!-- 访问次数 -->
+<style>
+.visit-counter {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+    padding: 10px 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    display: flex; align-items: center; gap: 8px; font-size: 13px;
+    color: #1a1a1a; user-select: none;
+}
+.visit-counter .label { color: #888; }
+.visit-counter .num { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.visit-counter .digit { display: inline-block; overflow: hidden; height: 1.2em; vertical-align: bottom; }
+.visit-counter .digit-inner { display: flex; flex-direction: column; transition: transform 0.5s ease; }
+.visit-counter .digit-inner span { height: 1.2em; line-height: 1.2em; text-align: center; }
+@media (max-width: 768px) { .visit-counter { bottom: 12px; right: 12px; padding: 8px 12px; font-size: 12px; } }
+</style>
+<div class="visit-counter" id="visitCounter">
+    <span class="label">访问</span>
+    <span class="num" id="visitNum">0</span>
+</div>
+<script>
+(function() {
+    const counter = document.getElementById('visitCounter');
+    const numEl = document.getElementById('visitNum');
+    let current = 0;
+
+    function animateTo(target) {
+        const targetStr = String(target);
+        const curStr = String(current).padStart(targetStr.length, '0');
+        let html = '';
+        for (let i = 0; i < targetStr.length; i++) {
+            const from = parseInt(curStr[i] || '0');
+            const to = parseInt(targetStr[i]);
+            let digits = '';
+            for (let d = 0; d <= 9; d++) digits += `<span>${d}</span>`;
+            html += `<span class="digit"><span class="digit-inner" style="transform:translateY(-${from * 1.2}em)">${digits}</span></span>`;
+        }
+        numEl.innerHTML = html;
+        requestAnimationFrame(() => {
+            numEl.querySelectorAll('.digit-inner').forEach((el, i) => {
+                const to = parseInt(targetStr[i]);
+                el.style.transform = `translateY(-${to * 1.2}em)`;
+            });
+        });
+        current = target;
+    }
+
+    fetch('/api/visit-count').then(r => r.json()).then(d => {
+        if (d.count) animateTo(d.count);
+    }).catch(() => {});
+})();
+</script>
 </body>
 </html>
