@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -1760,38 +1760,77 @@
             }
         };
 
-        // ==================== v5.0 工具间流转：接收会议纪要待办 ====================
+        // ==================== v5.0 工具间流转：接收会议纪要待办并自动填充节点 ====================
         (function checkPlanTransfer() {
             try {
-                var raw = sessionStorage.getItem('v5_plan_transfer');
-                if (!raw) return;
-                var data = JSON.parse(raw);
-                if (data.source !== 'meeting-minutes') return;
-                sessionStorage.removeItem('v5_plan_transfer');
+                var prefix = window._USER_PREFIX || '';
+                var pattern = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 'pipeline_meeting-minutes_\\d+$');
+                var matchedKeys = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && pattern.test(k)) matchedKeys.push(k);
+                }
+                if (matchedKeys.length === 0) return;
+                // 取最新的（时间戳最大）
+                matchedKeys.sort();
+                var latestKey = matchedKeys[matchedKeys.length - 1];
+                var data = JSON.parse(localStorage.getItem(latestKey) || 'null');
+                // 清除所有匹配的中转数据
+                matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
+                if (!data || data.source !== 'meeting-minutes') return;
+
+                var todoList = data.todoList || [];
+                if (todoList.length === 0 && data.todos) {
+                    todoList = data.todos.split('\n').map(function(l) {
+                        return l.replace(/^\s*[-*•\d.)\s]+/, '').trim();
+                    }).filter(function(l) { return l.length > 1 && l.length < 100; });
+                }
+                if (todoList.length === 0) {
+                    showToast('会议纪要中未提取到有效待办事项', 'warning');
+                    return;
+                }
+
+                // 自动填充为计划节点
+                var startDate = new Date();
+                currentPlan = todoList.map(function(name, idx) {
+                    var d = new Date(startDate);
+                    d.setDate(d.getDate() + idx * 7);
+                    return {
+                        name: name,
+                        date: d.toISOString().split('T')[0],
+                        duration: 1,
+                        isMilestone: false,
+                        status: 'pending'
+                    };
+                });
+                // 设置项目名为会议标题
+                currentProjectName = data.title || '会议项目';
+                var nameDisplay = document.getElementById('projectNameDisplay');
+                if (nameDisplay) { nameDisplay.textContent = currentProjectName; nameDisplay.style.display = 'inline'; }
+                var editBtn = document.getElementById('editNameBtn');
+                if (editBtn) editBtn.style.display = 'inline-block';
+                var firstNodeInput = document.getElementById('firstNode');
+                if (firstNodeInput) firstNodeInput.value = currentPlan[0].date;
+
+                // 渲染
+                if (typeof renderTable === 'function') renderTable();
+                if (typeof renderTimeline === 'function') renderTimeline();
 
                 // 显示流转提示横幅
                 var banner = document.createElement('div');
                 banner.style.cssText = 'margin:0 0 16px;padding:14px 18px;border-radius:12px;' +
                     'background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(99,102,241,0.1));' +
                     'border:1px solid rgba(124,58,237,0.2);display:flex;align-items:flex-start;gap:12px;';
-                var todosHtml = (data.todos || '').substring(0, 500).replace(/\n/g, '<br>');
                 banner.innerHTML =
                     '<div style="font-size:24px;">📅</div>' +
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">来自会议纪要：' + (data.title || '未命名会议') + '</div>' +
-                        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">已提取待办事项，可作为计划参考</div>' +
-                        '<div style="font-size:12px;line-height:1.6;max-height:80px;overflow-y:auto;">' + todosHtml + '</div>' +
-                        '<div style="margin-top:8px;display:flex;gap:8px;">' +
-                            '<button onclick="this.closest(\'div[style]\').parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">关闭</button>' +
-                        '</div>' +
-                    '</div>';
-                var formSection = document.querySelector('.form-section, .input-group')?.closest('div[class*="section"]') || document.querySelector('.container > div:first-child');
-                if (formSection && formSection.parentNode) {
-                    formSection.parentNode.insertBefore(banner, formSection);
-                } else {
-                    document.querySelector('.container').insertBefore(banner, document.querySelector('.container').firstChild);
-                }
-                showToast('📋 已从会议纪要导入待办事项', 'info');
+                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">来自会议纪要：' + escapeHtml(data.title || '未命名会议') + '</div>' +
+                        '<div style="font-size:12px;color:var(--text-secondary);">已自动填充 ' + todoList.length + ' 个待办为计划节点，可编辑调整</div>' +
+                    '</div>' +
+                    '<button onclick="this.parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">关闭</button>';
+                var container = document.querySelector('.container');
+                if (container) container.insertBefore(banner, container.firstChild);
+                showToast('📋 已从会议纪要导入 ' + todoList.length + ' 个待办为计划节点', 'success');
             } catch(e) { console.warn('Plan transfer error:', e); }
         })();
     </script>

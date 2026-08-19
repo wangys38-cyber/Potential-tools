@@ -454,6 +454,8 @@ function showToast(msg, type) {
             // 显示推送按钮和文件名
             const pushBtn = document.getElementById('pushFeishuBtn');
             if (pushBtn) pushBtn.style.display = 'inline-block';
+            const exportBtn = document.getElementById('exportTrendBtn');
+            if (exportBtn) exportBtn.style.display = 'inline-block';
             const fileNameEl = document.getElementById('reportFileName');
             if (fileNameEl) fileNameEl.textContent = d.file_name ? `— ${d.file_name}` : '';
 
@@ -1407,6 +1409,59 @@ function showToast(msg, type) {
                     </div>
                 </div>
             `;
+        }
+
+        // ===== 导出到 Bug 趋势看板 =====
+        function exportToBugTrend() {
+            if (!currentAnalysisData) { showToast('请先分析文件', 'warning'); return; }
+            const d = currentAnalysisData;
+            // 构造趋势数据：优先用 all_issues，否则从 module_stats 构造
+            let trendData = [];
+            if (d.all_issues && d.all_issues.length > 0) {
+                trendData = d.all_issues.map(function(item) {
+                    return {
+                        '日期': item.date || item.created || new Date().toISOString().split('T')[0],
+                        '模块': item.module || item.component || '未分类',
+                        '严重性': item.severity || 'Unknown',
+                        '状态': item.status || (item.resolved ? '已解决' : '未解决'),
+                        'Bug数': 1,
+                        '标题': item.title || item.summary || item.issue || ''
+                    };
+                });
+            } else if (d.module_stats) {
+                Object.keys(d.module_stats).forEach(function(mod) {
+                    var stat = d.module_stats[mod];
+                    trendData.push({
+                        '日期': new Date().toISOString().split('T')[0],
+                        '模块': mod,
+                        '严重性': 'Mixed',
+                        '状态': '统计',
+                        'Bug数': stat.count || stat.total || 0,
+                        '标题': mod + ' 模块统计'
+                    });
+                });
+            }
+            if (trendData.length === 0) {
+                showToast('无可导出的趋势数据', 'warning');
+                return;
+            }
+            const ts = Date.now();
+            const transferData = {
+                source: 'cr-analysis',
+                file_name: d.file_name || 'CR分析',
+                summary: d.summary || {},
+                trend_data: trendData,
+                timestamp: new Date().toISOString()
+            };
+            try {
+                const prefix = window._USER_PREFIX || '';
+                const key = prefix + 'pipeline_cr-analysis_' + ts;
+                localStorage.setItem(key, JSON.stringify(transferData));
+                showToast('📈 正在跳转到 Bug 趋势看板...', 'info');
+                setTimeout(function() { window.location.href = '/bug-trend'; }, 500);
+            } catch(e) {
+                showToast('❌ 数据传递失败: ' + e.message, 'error');
+            }
         }
 
         // ===== 推送到飞书 =====

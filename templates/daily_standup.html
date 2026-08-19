@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -210,6 +210,9 @@
             <button class="action-btn success" style="padding:12px 24px;font-size:14px;margin-left:8px;" onclick="fullAuto()" id="autoBtn">
                 🚀 一键全自动
             </button>
+            <button class="action-btn ghost" style="padding:12px 20px;font-size:14px;margin-left:8px;" onclick="generateWeeklyReport()" id="weeklyBtn">
+                📋 生成周报
+            </button>
         </div>
 
         <!-- 输出 -->
@@ -418,6 +421,54 @@
         function getHistory() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
             catch(e) { return []; }
+        }
+
+        // ===== 生成周报：汇总最近一周站会记录 =====
+        function generateWeeklyReport() {
+            const history = getHistory();
+            const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            const recent = history.filter(function(h) {
+                return new Date(h.date).getTime() >= oneWeekAgo;
+            });
+            if (recent.length === 0) {
+                showToast('最近一周暂无站会记录，请先保存站会', 'warning');
+                return;
+            }
+            // 汇总各字段
+            var completed = [], inProgress = [], nextPlan = [], risks = [];
+            recent.forEach(function(h) {
+                var items = h.items || {};
+                (items.yesterday || []).forEach(function(t) {
+                    if (t && t.text) completed.push(t.text);
+                });
+                (items.today || []).forEach(function(t) {
+                    if (t && t.text) inProgress.push(t.text);
+                });
+                (items.blocker || []).forEach(function(t) {
+                    if (t && t.text) risks.push(t.text);
+                });
+            });
+            // 去重
+            function uniq(arr) { return Array.from(new Set(arr)); }
+            var transferData = {
+                source: 'daily-standup',
+                week_range: new Date(oneWeekAgo).toISOString().split('T')[0] + ' ~ ' + new Date().toISOString().split('T')[0],
+                completed: uniq(completed),
+                in_progress: uniq(inProgress),
+                next_plan: uniq(inProgress),
+                risks: uniq(risks),
+                standup_count: recent.length,
+                timestamp: new Date().toISOString()
+            };
+            try {
+                var prefix = window._USER_PREFIX || '';
+                var key = prefix + 'pipeline_daily-standup_' + Date.now();
+                localStorage.setItem(key, JSON.stringify(transferData));
+                showToast('📋 正在跳转到周报生成器...', 'info');
+                setTimeout(function() { window.location.href = '/weekly-report'; }, 500);
+            } catch(e) {
+                showToast('❌ 数据传递失败: ' + e.message, 'error');
+            }
         }
 
         function renderHistory() {

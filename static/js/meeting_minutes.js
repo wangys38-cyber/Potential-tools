@@ -1213,15 +1213,24 @@
                 todos = lines.join('\n');
             }
             const title = document.getElementById('meetingTitle').value.trim() || '会议项目';
+            const ts = Date.now();
+            // 解析待办行为结构化列表
+            const todoList = (todos || text.substring(0, 1000)).split('\n')
+                .map(l => l.replace(/^\s*[-*•\d.)\s]+/, '').trim())
+                .filter(l => l.length > 1 && l.length < 100);
             const transferData = {
                 source: 'meeting-minutes',
                 title: title,
                 todos: todos || text.substring(0, 1000),
+                todoList: todoList,
                 fullText: text.substring(0, 2000),
                 timestamp: new Date().toISOString()
             };
             try {
-                sessionStorage.setItem('v5_plan_transfer', JSON.stringify(transferData));
+                // v5.0 标准 key 格式：u{id}_pipeline_{source}_{timestamp}
+                const prefix = window._USER_PREFIX || '';
+                const key = prefix + 'pipeline_meeting-minutes_' + ts;
+                localStorage.setItem(key, JSON.stringify(transferData));
                 showToast('📅 正在跳转到项目计划生成器...', 'info');
                 setTimeout(() => { window.location.href = '/plan-generator'; }, 500);
             } catch(e) {

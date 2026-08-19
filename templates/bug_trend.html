@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -168,6 +168,38 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         let rawData = [], trendChart = null, cumulativeChart = null;
+
+        // ===== v5.0 接收 CR 分析中转数据 =====
+        (function importFromPipeline() {
+            try {
+                var prefix = window._USER_PREFIX || '';
+                var pattern = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 'pipeline_cr-analysis_\\d+$');
+                var matchedKeys = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && pattern.test(k)) matchedKeys.push(k);
+                }
+                if (matchedKeys.length === 0) return;
+                matchedKeys.sort();
+                var latestKey = matchedKeys[matchedKeys.length - 1];
+                var data = JSON.parse(localStorage.getItem(latestKey) || 'null');
+                matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
+                if (!data || data.source !== 'cr-analysis' || !data.trend_data) return;
+
+                rawData = data.trend_data;
+                document.getElementById('fileName').textContent = '📄 ' + (data.file_name || 'CR分析导入');
+                document.getElementById('fileInfo').style.display = 'flex';
+                processData();
+
+                // 显示导入提示
+                var banner = document.createElement('div');
+                banner.style.cssText = 'margin-bottom:16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
+                banner.textContent = '✅ 已从 CR 分析导入 ' + rawData.length + ' 条数据到趋势看板';
+                var dashboard = document.getElementById('dashboard');
+                if (dashboard) dashboard.parentNode.insertBefore(banner, dashboard);
+            } catch(e) { console.warn('Bug trend pipeline import error:', e); }
+        })();
+
         const uploadZone = document.getElementById('uploadZone');
         uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
         uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));

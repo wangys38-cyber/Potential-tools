@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -92,6 +92,48 @@
     </div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script>
+    // v5.0 接收站会助手中转数据，自动填充周报
+    (function importFromStandup() {
+        try {
+            var prefix = window._USER_PREFIX || '';
+            var pattern = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + 'pipeline_daily-standup_\\d+$');
+            var matchedKeys = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && pattern.test(k)) matchedKeys.push(k);
+            }
+            if (matchedKeys.length === 0) return;
+            matchedKeys.sort();
+            var latestKey = matchedKeys[matchedKeys.length - 1];
+            var data = JSON.parse(localStorage.getItem(latestKey) || 'null');
+            matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
+            if (!data || data.source !== 'daily-standup') return;
+
+            // 填充各字段
+            if (data.week_range) {
+                var wr = document.getElementById('weekRange');
+                if (wr) wr.value = data.week_range;
+            }
+            function fillTextarea(id, arr, prefix) {
+                var el = document.getElementById(id);
+                if (!el || !arr || arr.length === 0) return;
+                el.value = arr.map(function(t, i) { return (prefix || '') + (i + 1) + '. ' + t; }).join('\n');
+            }
+            fillTextarea('notes', data.completed, '');
+            fillTextarea('meetings', data.in_progress, '');
+            fillTextarea('crIssues', data.risks, '');
+            fillTextarea('extra', data.next_plan, '');
+
+            // 显示导入提示
+            var banner = document.createElement('div');
+            banner.style.cssText = 'margin:0 0 16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
+            banner.textContent = '✅ 已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生成';
+            var page = document.querySelector('.page');
+            if (page) page.insertBefore(banner, page.firstChild);
+        } catch(e) { console.warn('Weekly report import error:', e); }
+    })();
+    </script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/weekly_report.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
