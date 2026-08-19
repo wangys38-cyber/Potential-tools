@@ -76,6 +76,7 @@
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
+<script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <div class="container">
         <div class="source-tabs">
             <div class="source-tab active" data-source="excel" onclick="switchSource('excel')">📊 Excel 上传</div>

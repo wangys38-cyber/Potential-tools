@@ -1562,6 +1562,7 @@ function showToast(msg, type) {
                 // 先生成PDF报告
                 btn.innerHTML = '📄 生成PDF中...';
                 let pdfUrl = window.location.href;
+                let pdfGenerated = false;
                 try {
                     const pdfResp = await fetch('/api/excel-analyze-pdf', {
                         method: 'POST',
@@ -1573,10 +1574,15 @@ function showToast(msg, type) {
                     });
                     const pdfResult = await pdfResp.json();
                     if (pdfResult.status === 'success' && pdfResult.filename) {
-                        pdfUrl = window.location.origin + '/download/' + pdfResult.filename;
+                        pdfUrl = window.location.origin + '/download/' + encodeURIComponent(pdfResult.filename);
+                        pdfGenerated = true;
+                    } else {
+                        console.warn('PDF生成失败:', pdfResult.error);
+                        showToast('⚠️ PDF生成失败，将使用网页链接', 'warning');
                     }
                 } catch (pdfErr) {
                     console.warn('PDF生成失败，使用网页链接:', pdfErr);
+                    showToast('⚠️ PDF生成失败，将使用网页链接', 'warning');
                 }
 
                 btn.innerHTML = '⏳ 推送中...';
