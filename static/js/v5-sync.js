@@ -173,6 +173,15 @@
                     var localTs = (meta.categories[catKey] || {}).updated_at || 0;
                     // 云端更新则合并到本地
                     if (serverItem.updated_at > localTs) {
+                        // 保护：如果云端数据为空但本地有数据，不覆盖
+                        var localData = readCategory(catKey);
+                        var serverHasData = Object.keys(serverItem.data).some(function(k) {
+                            try { var v = JSON.parse(serverItem.data[k]); return Array.isArray(v) ? v.length > 0 : !!v; } catch(e) { return !!serverItem.data[k]; }
+                        });
+                        var localHasData = localData && Object.keys(localData).some(function(k) {
+                            try { var v = JSON.parse(localData[k]); return Array.isArray(v) ? v.length > 0 : !!v; } catch(e) { return !!localData[k]; }
+                        });
+                        if (localHasData && !serverHasData) return;
                         writeCategory(catKey, serverItem.data);
                         meta.categories[catKey] = { updated_at: serverItem.updated_at };
                         merged++;

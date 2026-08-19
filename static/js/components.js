@@ -967,6 +967,7 @@ const ToolboxRecent = (function() {
 
     return { record: record, getAll: getAll, clear: clear };
 })();
+window.ToolboxRecent = ToolboxRecent;
 
 // ==================== v3.0 AI 对话助手 ====================
 const ToolboxAIChat = (function() {
