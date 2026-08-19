@@ -182,14 +182,13 @@ h1, h2, h3, .page-title, .tool-title, .section-title,
 /* 导航栏内按钮样式 */
 .nav .nav-btn, .navbar .nav-btn, .tb-nav-bar .tb-nav-theme,
 .tb-nav-bar .tb-nav-right button, .tb-nav-bar .tb-nav-right a:not(.tb-nav-home):not(.tb-nav-logout) {
-    background: rgba(0, 0, 0, 0.05) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background: transparent !important;
+    border: none !important;
     color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .nav .nav-btn:hover, .navbar .nav-btn:hover, .tb-nav-bar .tb-nav-theme:hover {
-    background: rgba(0, 0, 0, 0.08) !important;
-    border-color: rgba(0, 0, 0, 0.12) !important;
+    background: rgba(0, 0, 0, 0.05) !important;
 }
 
 /* 导航栏中间分类标签 */
@@ -225,15 +224,15 @@ h1, h2, h3, .page-title, .tool-title, .section-title,
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: transparent;
+    border: none;
     color: rgba(0, 0, 0, 0.7);
     text-decoration: none;
     font-size: 14px;
     transition: all 0.15s ease;
 }
 .tb-nav-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.05);
     color: #000;
 }
 

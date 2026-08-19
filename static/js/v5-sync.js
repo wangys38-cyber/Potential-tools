@@ -252,7 +252,7 @@
         btn.className = 'v5-sync-btn';
         btn.title = '云端同步';
         btn.innerHTML = '<span id="v5-sync-icon" class="v5-sync-icon">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>' +
             '</span>' +
             (isMobile ? '' : '<span id="v5-sync-label" class="v5-sync-label">同步</span>');
         btn.onclick = function() { sync(true); };
@@ -298,31 +298,26 @@
         var btn = document.getElementById('v5-sync-btn');
         if (!icon || !label) return;
 
-        var syncSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
-        var checkSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-        var warnSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+        var cloudOutline = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+        var cloudFilled = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
 
         if (state.status === 'syncing') {
-            icon.innerHTML = syncSVG;
+            icon.innerHTML = cloudOutline;
             icon.style.animation = 'v5spin 1s linear infinite';
             label.textContent = '同步中';
         } else if (state.status === 'success') {
-            icon.innerHTML = checkSVG;
+            icon.innerHTML = cloudFilled;
             icon.style.animation = 'none';
             label.textContent = '已同步';
-            setTimeout(function() {
-                if (state.status === 'success') {
-                    icon.innerHTML = syncSVG;
-                    label.textContent = '同步';
-                }
-            }, 2000);
         } else if (state.status === 'error') {
-            icon.innerHTML = warnSVG;
+            icon.innerHTML = cloudOutline;
             icon.style.animation = 'none';
+            icon.style.color = '#d44';
             label.textContent = '同步失败';
         } else {
-            icon.innerHTML = syncSVG;
+            icon.innerHTML = cloudOutline;
             icon.style.animation = 'none';
+            icon.style.color = '';
             label.textContent = '同步';
         }
     }
@@ -332,18 +327,18 @@
     style.textContent =
         '@keyframes v5spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}' +
         '.v5-sync-btn{' +
-            'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;' +
-            'border-radius:999px;border:1px solid var(--tb-border,rgba(0,0,0,0.1));' +
-            'background:var(--tb-bg-hover,rgba(0,0,0,0.05));' +
-            'cursor:pointer;font-size:13px;font-weight:500;color:var(--tb-text-primary,#333);' +
+            'display:inline-flex;align-items:center;gap:6px;padding:6px 10px;' +
+            'border-radius:8px;border:none;' +
+            'background:transparent;' +
+            'cursor:pointer;font-size:13px;font-weight:500;color:rgba(0,0,0,0.7);' +
             'transition:all 0.2s;font-family:inherit;flex-shrink:0;white-space:nowrap;line-height:1;' +
         '}' +
-        '.v5-sync-btn:hover{background:var(--tb-bg-active,rgba(0,0,0,0.08));transform:translateY(-1px)}' +
+        '.v5-sync-btn:hover{background:rgba(0,0,0,0.05)}' +
         '.v5-sync-btn:active{transform:translateY(0)}' +
         '.v5-sync-btn-absolute{position:absolute;z-index:10}' +
-        '.v5-sync-btn-in-nav{margin-right:8px;padding:6px 12px;font-size:13px;background:var(--tb-bg-hover);border:1px solid var(--tb-border);color:var(--tb-text-primary);backdrop-filter:none}' +
-        '.v5-sync-btn-in-nav:hover{background:var(--tb-bg-active)}' +
-        '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px}' +
+        '.v5-sync-btn-in-nav{margin-right:4px;padding:6px 8px;font-size:13px;background:transparent;border:none;color:rgba(0,0,0,0.7)}' +
+        '.v5-sync-btn-in-nav:hover{background:rgba(0,0,0,0.05)}' +
+        '.v5-sync-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}' +
         '.v5-sync-icon svg{display:block}' +
         '.v5-sync-label{font-size:13px;font-weight:500}' +
         '[data-theme="dark"] .v5-sync-btn{' +
