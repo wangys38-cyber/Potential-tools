@@ -981,8 +981,8 @@ const ToolboxAIChat = (function() {
         var style = document.createElement('style');
         style.id = 'tb-aichat-styles';
         style.textContent = `
-            .tb-aichat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(99,102,241,0.4);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center}
-            .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(99,102,241,0.5)}
+            .tb-aichat-fab{position:fixed;bottom:90px;right:24px;width:56px;height:56px;border-radius:50%;background:#fff;color:#1a1a1a;border:1px solid #e5e5e5;cursor:pointer;font-size:24px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:99998;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;padding:0}
+            .tb-aichat-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(0,0,0,0.15)}
             .tb-aichat-panel{position:fixed;top:0;right:0;width:400px;height:100vh;transform:translateX(100%);background:var(--tb-bg,#fff);box-shadow:-4px 0 24px rgba(0,0,0,0.1);z-index:99999;display:flex;flex-direction:column;transition:right .3s ease}
             @media (max-width: 768px) {
                 .tb-aichat-panel {
@@ -996,7 +996,7 @@ const ToolboxAIChat = (function() {
                 }
                 .tb-aichat-fab {
                     width:44px !important;height:44px !important;font-size:18px !important;
-                    bottom: max(70px, env(safe-area-inset-bottom)) !important;
+                    bottom: max(120px, env(safe-area-inset-bottom)) !important;
                     right: 14px !important;
                 }
                 .tb-aichat-input-area {
@@ -1051,7 +1051,7 @@ const ToolboxAIChat = (function() {
         // FAB 按钮
         var fab = document.createElement('button');
         fab.className = 'tb-aichat-fab';
-        fab.innerHTML = '🤖';
+        fab.innerHTML = '<svg width="36" height="36" viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="52" rx="18" ry="8" fill="#e53935"/><circle cx="32" cy="28" r="20" fill="#ffcc80"/><path d="M14 22 Q20 8 32 10 Q44 8 50 22 Q48 16 40 14 Q32 12 24 14 Q16 16 14 22Z" fill="#1a1a1a"/><ellipse cx="24" cy="28" rx="3" ry="4" fill="#1a1a1a"/><ellipse cx="40" cy="28" rx="3" ry="4" fill="#1a1a1a"/><circle cx="25" cy="27" r="1" fill="#fff"/><circle cx="41" cy="27" r="1" fill="#fff"/><path d="M22 34 Q32 42 42 34" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M20 20 L26 22 M44 20 L38 22" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/></svg>';
         fab.title = 'AI 助手 (Ctrl+J)';
         fab.onclick = toggle;
 
@@ -1067,7 +1067,7 @@ const ToolboxAIChat = (function() {
         panel.id = 'tb-aichat-panel';
         panel.innerHTML = `
             <div class="tb-aichat-header">
-                <div class="tb-aichat-title">🤖 AI 助手</div>
+                <div class="tb-aichat-title"><svg width="20" height="20" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="28" r="20" fill="#ffcc80"/><path d="M14 22 Q20 8 32 10 Q44 8 50 22 Q48 16 40 14 Q32 12 24 14 Q16 16 14 22Z" fill="#1a1a1a"/><ellipse cx="24" cy="28" rx="3" ry="4" fill="#1a1a1a"/><ellipse cx="40" cy="28" rx="3" ry="4" fill="#1a1a1a"/><path d="M22 34 Q32 42 42 34" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round"/></svg> AI 助手</div>
                 <button class="tb-aichat-close" onclick="ToolboxAIChat.close()">&times;</button>
             </div>
             <div class="tb-aichat-models">

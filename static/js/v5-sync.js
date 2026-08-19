@@ -257,15 +257,17 @@
             (isMobile ? '' : '<span id="v5-sync-label" class="v5-sync-label">同步</span>');
         btn.onclick = function() { sync(true); };
 
-        // 优先插入到全局导航栏右侧，其次插入到页面 header
+        // 插入到全局导航栏最左边
         var navBar = document.getElementById('tb-nav-bar');
         if (navBar) {
-            // 全局导航栏：插入到右侧 user-bar 之前
-            var userBar = navBar.querySelector('.tb-user-bar, .user-bar');
-            if (userBar) {
-                userBar.parentNode.insertBefore(btn, userBar);
+            var leftContainer = navBar.querySelector('.tb-nav-left');
+            if (leftContainer) {
+                leftContainer.insertBefore(btn, leftContainer.firstChild);
             } else {
-                navBar.appendChild(btn);
+                leftContainer = document.createElement('div');
+                leftContainer.className = 'tb-nav-left';
+                leftContainer.appendChild(btn);
+                navBar.insertBefore(leftContainer, navBar.firstChild);
             }
             btn.classList.add('v5-sync-btn-in-nav');
         } else {
