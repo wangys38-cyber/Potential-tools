@@ -1747,11 +1747,37 @@
                 const data = await resp.json();
                 if (data.status === 'success') {
                     showToast('已推送到飞书', 'success');
+                    if (window.ToolboxPush) {
+                        window.ToolboxPush.record({
+                            tool: '项目计划',
+                            title: plan.projectName || '未命名项目',
+                            status: 'success',
+                            summary: plan.nodes.length + ' 个节点, ' + plan.nodes.filter(function(n){return n.isMilestone;}).length + ' 个里程碑'
+                        });
+                    }
                 } else {
                     showToast('推送失败：' + (data.error || '未知错误'), 'error');
+                    if (window.ToolboxPush) {
+                        window.ToolboxPush.record({
+                            tool: '项目计划',
+                            title: plan.projectName || '未命名项目',
+                            status: 'failed',
+                            summary: '推送失败',
+                            error: data.error || '未知错误'
+                        });
+                    }
                 }
             } catch(e) {
                 showToast('推送失败：' + e.message, 'error');
+                if (window.ToolboxPush) {
+                    window.ToolboxPush.record({
+                        tool: '项目计划',
+                        title: plan.projectName || '未命名项目',
+                        status: 'failed',
+                        summary: '推送失败',
+                        error: e.message
+                    });
+                }
             }
         }
 

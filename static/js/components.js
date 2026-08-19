@@ -2317,6 +2317,97 @@ const ToolboxHistory = (function() {
     };
 })();
 
+// ==================== ToolboxPush 推送历史记录 ====================
+const ToolboxPush = (function() {
+    var MAX_PUSH_RECORDS = 20;
+
+    function _storageKey() {
+        return (window._USER_PREFIX || '') + 'push_history';
+    }
+
+    function getHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(_storageKey()) || '[]');
+        } catch(e) { return []; }
+    }
+
+    function saveHistory(records) {
+        try {
+            if (records.length > MAX_PUSH_RECORDS) {
+                records = records.slice(0, MAX_PUSH_RECORDS);
+            }
+            localStorage.setItem(_storageKey(), JSON.stringify(records));
+        } catch(e) { console.warn('ToolboxPush save failed:', e); }
+    }
+
+    /**
+     * 记录一条推送结果
+     * @param {Object} record - { tool, title, status, summary, error, timestamp, webhook, payload }
+     */
+    function record(record) {
+        if (!record) return;
+        record.timestamp = record.timestamp || Date.now();
+        record.status = record.status || 'success';
+        var history = getHistory();
+        history.unshift(record);
+        saveHistory(history);
+    }
+
+    function clear() {
+        try { localStorage.removeItem(_storageKey()); } catch(e) {}
+    }
+
+    /**
+     * 渲染推送历史列表 UI
+     * @param {HTMLElement} container - 容器元素
+     * @param {Object} options - { onResend, onClear }
+     */
+    function render(container, options) {
+        if (!container) return;
+        options = options || {};
+        var records = getHistory();
+        if (records.length === 0) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary, #999);font-size:13px;">📭 暂无推送记录</div>';
+            return;
+        }
+        container.innerHTML = records.map(function(r, i) {
+            var isError = r.status === 'failed' || r.status === 'error';
+            var statusColor = isError ? '#ff3b30' : '#34c759';
+            var statusText = isError ? '❌ 失败' : '✅ 成功';
+            var timeStr = new Date(r.timestamp).toLocaleString('zh-CN');
+            var resendBtn = (r.status === 'failed' && options.onResend)
+                ? '<button onclick="window.__pushResend(' + i + ')" style="padding:3px 10px;border-radius:6px;border:1px solid #ff3b30;background:rgba(255,59,48,0.1);color:#ff3b30;font-size:11px;cursor:pointer;margin-left:8px;">重发</button>'
+                : '';
+            return '<div style="padding:10px 14px;border-radius:10px;border:1px solid ' + (isError ? 'rgba(255,59,48,0.2)' : 'var(--border, #e5e5e5)') + ';background:' + (isError ? 'rgba(255,59,48,0.03)' : 'var(--bg-card, #fff)') + ';margin-bottom:8px;">' +
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+                    '<span style="font-size:12px;font-weight:600;color:var(--text, #333);">' + (r.tool || '未知工具') + '</span>' +
+                    '<span style="font-size:11px;color:' + statusColor + ';font-weight:500;">' + statusText + '</span>' +
+                    resendBtn +
+                    '<span style="margin-left:auto;font-size:11px;color:var(--text-secondary, #999);">' + timeStr + '</span>' +
+                '</div>' +
+                '<div style="font-size:12px;color:var(--text, #333);margin-bottom:2px;">' + (r.title || '') + '</div>' +
+                (r.summary ? '<div style="font-size:11px;color:var(--text-secondary, #999);">' + r.summary.substring(0, 100) + '</div>' : '') +
+                (isError && r.error ? '<div style="font-size:11px;color:#ff3b30;margin-top:4px;">错误: ' + r.error + '</div>' : '') +
+            '</div>';
+        }).join('');
+        if (options.onResend) {
+            window.__pushResend = function(idx) {
+                var rec = getHistory()[idx];
+                if (rec) options.onResend(rec);
+            };
+        }
+    }
+
+    return {
+        record: record,
+        getHistory: getHistory,
+        clear: clear,
+        render: render,
+        MAX_PUSH_RECORDS: MAX_PUSH_RECORDS
+    };
+})();
+window.ToolboxPush = ToolboxPush;
+
 // ==================== 自动初始化 ====================
 // 在 DOMContentLoaded 时初始化主题（最早执行，避免闪烁）
 (function() {

@@ -1597,6 +1597,14 @@ function showToast(msg, type) {
 
                 if (result.status === 'success') {
                     btn.innerHTML = '✅ 推送成功';
+                    if (window.ToolboxPush) {
+                        window.ToolboxPush.record({
+                            tool: 'CR分析',
+                            title: 'CR分析报告 - ' + fileName,
+                            status: 'success',
+                            summary: '问题总数: ' + (s.total_issues || 0) + ', 未解决: ' + (s.total_unresolved || 0)
+                        });
+                    }
                     setTimeout(() => {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
@@ -1607,6 +1615,15 @@ function showToast(msg, type) {
 
             } catch (err) {
                 btn.innerHTML = '❌ 推送失败';
+                if (window.ToolboxPush) {
+                    window.ToolboxPush.record({
+                        tool: 'CR分析',
+                        title: 'CR分析报告 - ' + (currentAnalysisData?.file_name || '未知'),
+                        status: 'failed',
+                        summary: '推送失败',
+                        error: err.message
+                    });
+                }
                 alert(`推送失败：${err.message}`);
                 setTimeout(() => {
                     btn.innerHTML = originalText;

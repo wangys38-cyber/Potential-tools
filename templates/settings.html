@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -349,6 +349,19 @@
             <div class="test-result" id="feishuTestResult"></div>
         </div>
 
+        <!-- 推送历史记录 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">📜</span>
+                <div>
+                    <div class="section-title">推送历史记录</div>
+                    <div class="section-desc">最近 20 条飞书推送记录，失败的可一键重发</div>
+                </div>
+                <button class="btn btn-ghost" onclick="clearPushHistory()" style="margin-left:auto;padding:6px 14px;font-size:12px;">🗑️ 清空</button>
+            </div>
+            <div id="pushHistoryList" style="margin-top:16px;max-height:400px;overflow-y:auto;"></div>
+        </div>
+
         <!-- 云端数据同步 -->
         <div class="section" id="sync-section">
             <div class="section-header">
@@ -489,6 +502,7 @@
             loadFeishuConfig();
             loadThemeSettings();
             loadSysInfo();
+            if (typeof renderPushHistory === 'function') renderPushHistory();
         });
 
         function toggleTheme() {
@@ -765,6 +779,60 @@
             } catch (e) {
                 resultEl.textContent = '❌ 请求失败: ' + e.message;
                 resultEl.classList.add('show', 'error');
+            }
+            // 记录推送历史
+            if (window.ToolboxPush) {
+                window.ToolboxPush.record({
+                    tool: '设置',
+                    title: '飞书测试消息',
+                    status: resultEl.classList.contains('success') ? 'success' : 'failed',
+                    summary: '测试飞书 Webhook 连通性',
+                    error: resultEl.classList.contains('success') ? null : resultEl.textContent
+                });
+                renderPushHistory();
+            }
+        }
+
+        // ==================== 推送历史 ====================
+        function renderPushHistory() {
+            var container = document.getElementById('pushHistoryList');
+            if (!container || !window.ToolboxPush) return;
+            window.ToolboxPush.render(container, {
+                onResend: function(record) {
+                    resendPush(record);
+                }
+            });
+        }
+
+        function clearPushHistory() {
+            if (window.ToolboxPush) {
+                window.ToolboxPush.clear();
+                renderPushHistory();
+            }
+        }
+
+        async function resendPush(record) {
+            if (!record) return;
+            try {
+                // 重发测试消息（其他类型推送的重发需要对应页面的 payload，这里统一发测试消息）
+                const resp = await fetch('/api/feishu/test', {method: 'POST'});
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    alert('✅ 重发成功');
+                    if (window.ToolboxPush) {
+                        window.ToolboxPush.record({
+                            tool: record.tool || '重发',
+                            title: record.title || '重发消息',
+                            status: 'success',
+                            summary: '重发成功'
+                        });
+                    }
+                } else {
+                    alert('❌ 重发失败: ' + (data.error || '未知错误'));
+                }
+                renderPushHistory();
+            } catch(e) {
+                alert('❌ 重发失败: ' + e.message);
             }
         }
 

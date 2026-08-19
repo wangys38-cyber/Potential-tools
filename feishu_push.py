@@ -65,8 +65,8 @@ def _gen_sign(secret):
     return timestamp, sign
 
 
-def _post(webhook_url, payload, timeout=10, secret=None):
-    """发送 POST 请求到飞书 Webhook"""
+def _post(webhook_url, payload, timeout=10, secret=None, max_retries=1):
+    """发送 POST 请求到飞书 Webhook，失败自动重试 max_retries 次"""
     valid, err = _validate_webhook(webhook_url)
     if not valid:
         return {'ok': False, 'error': err}
@@ -77,25 +77,35 @@ def _post(webhook_url, payload, timeout=10, secret=None):
         payload['timestamp'] = timestamp
         payload['sign'] = sign
 
-    try:
-        resp = requests.post(
-            webhook_url,
-            json=payload,
-            headers={'Content-Type': 'application/json'},
-            timeout=timeout
-        )
-        data = resp.json()
-        # 飞书返回 code=0 表示成功
-        if data.get('code', -1) == 0 or data.get('StatusCode', -1) == 0:
-            return {'ok': True, 'data': data}
-        else:
-            return {'ok': False, 'error': data.get('msg', data.get('StatusMessage', '未知错误')), 'raw': data}
-    except requests.exceptions.Timeout:
-        return {'ok': False, 'error': '请求超时'}
-    except requests.exceptions.RequestException as e:
-        return {'ok': False, 'error': f'网络错误: {e}'}
-    except Exception as e:
-        return {'ok': False, 'error': f'未知错误: {e}'}
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            resp = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=timeout
+            )
+            data = resp.json()
+            # 飞书返回 code=0 表示成功
+            if data.get('code', -1) == 0 or data.get('StatusCode', -1) == 0:
+                return {'ok': True, 'data': data}
+            else:
+                last_error = data.get('msg', data.get('StatusMessage', '未知错误'))
+                logger.warning(f'飞书推送失败 (尝试 {attempt+1}/{max_retries+1}): {last_error}')
+        except requests.exceptions.Timeout:
+            last_error = '请求超时'
+            logger.warning(f'飞书推送超时 (尝试 {attempt+1}/{max_retries+1})')
+        except requests.exceptions.RequestException as e:
+            last_error = f'网络错误: {e}'
+            logger.warning(f'飞书推送网络错误 (尝试 {attempt+1}/{max_retries+1}): {e}')
+        except Exception as e:
+            last_error = f'未知错误: {e}'
+            logger.warning(f'飞书推送未知错误 (尝试 {attempt+1}/{max_retries+1}): {e}')
+        # 重试前短暂等待
+        if attempt < max_retries:
+            time.sleep(1)
+    return {'ok': False, 'error': last_error or '推送失败', 'retried': max_retries}
 
 
 def send_feishu_text(webhook_url, text, secret=None):
@@ -221,5 +231,75 @@ def send_meeting_minutes(webhook_url, title, summary, decisions, todos, source_u
         header_color='blue',
         link_url=source_url,
         link_text='查看完整纪要',
+        secret=secret
+    )
+
+
+def send_cr_analysis(webhook_url, title, summary, issues, module_stats, source_url=None, secret=None):
+    """
+    专用：推送 CR 分析报告到飞书（统一卡片模板）
+    """
+    md_parts = []
+    if summary:
+        md_parts.append(f'**📊 分析概要**\n{summary}')
+    if issues:
+        md_parts.append(f'**🐛 问题列表**\n{issues}')
+    if module_stats:
+        md_parts.append(f'**📦 模块分布**\n{module_stats}')
+    markdown_content = '\n\n'.join(md_parts) if md_parts else 'CR 分析内容为空'
+
+    return send_feishu_card(
+        webhook_url,
+        title=title,
+        markdown_content=markdown_content,
+        header_color='orange',
+        link_url=source_url,
+        link_text='查看完整分析',
+        secret=secret
+    )
+
+
+def send_daily_standup(webhook_url, title, yesterday, today, blockers, source_url=None, secret=None):
+    """
+    专用：推送每日站会到飞书（统一卡片模板）
+    """
+    md_parts = []
+    if yesterday:
+        md_parts.append(f'**✅ 昨日完成**\n{yesterday}')
+    if today:
+        md_parts.append(f'**🎯 今日计划**\n{today}')
+    if blockers:
+        md_parts.append(f'**🚧 阻塞项**\n{blockers}')
+    markdown_content = '\n\n'.join(md_parts) if md_parts else '站会内容为空'
+
+    return send_feishu_card(
+        webhook_url,
+        title=title,
+        markdown_content=markdown_content,
+        header_color='green',
+        link_url=source_url,
+        link_text='查看站会详情',
+        secret=secret
+    )
+
+
+def send_plan_change(webhook_url, title, change_summary, affected_nodes, source_url=None, secret=None):
+    """
+    专用：推送计划变更通知到飞书（统一卡片模板）
+    """
+    md_parts = []
+    if change_summary:
+        md_parts.append(f'**📝 变更说明**\n{change_summary}')
+    if affected_nodes:
+        md_parts.append(f'**📋 受影响节点**\n{affected_nodes}')
+    markdown_content = '\n\n'.join(md_parts) if md_parts else '计划变更内容为空'
+
+    return send_feishu_card(
+        webhook_url,
+        title=title,
+        markdown_content=markdown_content,
+        header_color='red',
+        link_url=source_url,
+        link_text='查看完整计划',
         secret=secret
     )
