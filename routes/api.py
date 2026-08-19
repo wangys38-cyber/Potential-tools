@@ -522,4 +522,81 @@ def create_api_blueprint(base_dir, static_version):
         assets_dir = os.path.join(base_dir, 'assets')
         return send_from_directory(assets_dir, filename)
 
+    # ==================== Dashboard 研发健康度数据 ====================
+
+    @bp.route('/api/dashboard/stats', methods=['GET'])
+    @login_required_or_guest
+    def api_dashboard_stats():
+        """Dashboard 研发健康度看板数据接口
+        返回 bug_trend、mttf、version_progress、personal_efficiency、project_overview
+        数据优先从数据库/缓存聚合，无真实数据源的字段返回合理默认值
+        """
+        # 访问计数（真实数据）
+        visit_count = _read_visit_count()
+
+        # Bug 趋势（近7天，占位数据 — 后续可对接 CR 分析结果表）
+        bug_trend = {
+            'days': ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+            'values': [12, 8, 15, 6, 10, 3, 5],
+            'total': 59,
+            'avg': 8.4,
+            'peak': 15
+        }
+
+        # MTTF 指标（占位数据 — 后续可对接挂测结果表）
+        mttf = {
+            'value': 128.5,
+            'unit': 'h',
+            'target': 120,
+            'trend': 'up',
+            'trend_pct': 12.3,
+            'test_cycle': '7×24h 挂测',
+            'major_failure': 'Malloc 失败 (3次)',
+            'product': 'SR6'
+        }
+
+        # 版本进度（占位数据 — 后续可对接项目管理）
+        version_progress = {
+            'version': 'v5.0.0',
+            'milestone': '迭代1',
+            'items': [
+                {'name': '后端 Blueprint 拆分', 'pct': 100, 'status': 'done'},
+                {'name': '前端组件库统一', 'pct': 80, 'status': 'doing'},
+                {'name': 'Dashboard 看板', 'pct': 60, 'status': 'doing'},
+                {'name': '统一上传/历史组件', 'pct': 100, 'status': 'done'}
+            ]
+        }
+
+        # 个人效能（占位数据 — 后续可对接 Jira/站会数据）
+        personal_efficiency = {
+            'today_todos': 3,
+            'week_resolved': 7,
+            'month_commits': 12,
+            'on_time_rate': 89
+        }
+
+        # 项目概览
+        project_overview = {
+            'current_version': 'v5.0.0 (迭代1)',
+            'status': '活跃开发中',
+            'product_lines': 'E62 / SR5 / SR6 智能手表',
+            'milestone': 'SR6 CP2 质量攻坚',
+            'repo': 'github.com/wangys38-cyber/Potential-tools',
+            'deploy_platform': 'Railway (wangys666.top)',
+            'tech_stack': 'Flask + 原生前端 + Blueprint',
+            'visit_count': visit_count
+        }
+
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'bug_trend': bug_trend,
+                'mttf': mttf,
+                'version_progress': version_progress,
+                'personal_efficiency': personal_efficiency,
+                'project_overview': project_overview,
+                'generated_at': int(time.time())
+            }
+        })
+
     return bp

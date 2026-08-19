@@ -247,15 +247,17 @@
     $('updateTime').textContent = '数据更新：' + new Date().toLocaleString('zh-CN');
 
     // ===== Bug 趋势 =====
-    // 尝试从 localStorage 读取 CR 分析数据，否则用静态占位
-    function renderBugTrend() {
+    function renderBugTrend(apiData) {
         var crData = safeGet('cr_analysis_result') || safeGet('excel_analysis_last');
-        var days = ['周一','周二','周三','周四','周五','周六','周日'];
-        var values;
-        if (crData && crData.bugTrend) {
+        var days, values;
+        if (apiData && apiData.days && apiData.values) {
+            days = apiData.days;
+            values = apiData.values;
+        } else if (crData && crData.bugTrend) {
+            days = ['周一','周二','周三','周四','周五','周六','周日'];
             values = crData.bugTrend;
         } else {
-            // 静态占位数据
+            days = ['周一','周二','周三','周四','周五','周六','周日'];
             values = [12, 8, 15, 6, 10, 3, 5];
         }
         var max = Math.max.apply(null, values.concat([1]));
@@ -277,13 +279,21 @@
     }
 
     // ===== 版本进度 =====
-    function renderVersionProgress() {
-        var items = [
-            { name: '后端 Blueprint 拆分', pct: 100, color: 'green' },
-            { name: '前端组件库统一', pct: 60, color: '' },
-            { name: 'Dashboard 看板', pct: 30, color: 'amber' },
-            { name: '统一上传/历史组件', pct: 45, color: 'amber' },
-        ];
+    function renderVersionProgress(apiData) {
+        var items;
+        if (apiData && apiData.items && apiData.items.length) {
+            items = apiData.items.map(function(it) {
+                var color = it.status === 'done' ? 'green' : (it.pct < 50 ? 'amber' : '');
+                return { name: it.name, pct: it.pct, color: color };
+            });
+        } else {
+            items = [
+                { name: '后端 Blueprint 拆分', pct: 100, color: 'green' },
+                { name: '前端组件库统一', pct: 60, color: '' },
+                { name: 'Dashboard 看板', pct: 30, color: 'amber' },
+                { name: '统一上传/历史组件', pct: 45, color: 'amber' },
+            ];
+        }
         $('versionProgress').innerHTML = items.map(function(it) {
             return '<div class="progress-row">' +
                 '<div class="progress-label"><span class="name">' + it.name + '</span><span class="pct">' + it.pct + '%</span></div>' +
@@ -293,31 +303,72 @@
     }
 
     // ===== 个人效能 =====
-    function renderEfficiency() {
-        var todos = safeGet('daily_standup_todos') || [];
-        var todayTodos = todos.filter(function(t) { return !t.done; }).length;
-        var weekResolved = safeGet('week_resolved_count') || 7;
-        // 若无数据用静态占位
-        if (!todayTodos) todayTodos = 3;
+    function renderEfficiency(apiData) {
+        var todayTodos, weekResolved, monthCommits, onTimeRate;
+        if (apiData) {
+            todayTodos = apiData.today_todos != null ? apiData.today_todos : null;
+            weekResolved = apiData.week_resolved != null ? apiData.week_resolved : null;
+            monthCommits = apiData.month_commits != null ? apiData.month_commits : 12;
+            onTimeRate = apiData.on_time_rate != null ? apiData.on_time_rate : 89;
+        }
+        if (todayTodos == null) {
+            var todos = safeGet('daily_standup_todos') || [];
+            todayTodos = todos.filter(function(t) { return !t.done; }).length || 3;
+        }
+        if (weekResolved == null) {
+            weekResolved = safeGet('week_resolved_count') || 7;
+        }
 
         $('effGrid').innerHTML =
             '<div class="eff-item"><div class="eff-num">' + todayTodos + '</div><div class="eff-label">今日待办</div></div>' +
             '<div class="eff-item"><div class="eff-num">' + weekResolved + '</div><div class="eff-label">本周解单</div></div>' +
-            '<div class="eff-item"><div class="eff-num">12</div><div class="eff-label">本月提交</div></div>' +
-            '<div class="eff-item"><div class="eff-num">89%</div><div class="eff-label">按时交付率</div></div>';
+            '<div class="eff-item"><div class="eff-num">' + monthCommits + '</div><div class="eff-label">本月提交</div></div>' +
+            '<div class="eff-item"><div class="eff-num">' + onTimeRate + '%</div><div class="eff-label">按时交付率</div></div>';
+    }
+
+    // ===== MTTF 指标 =====
+    function renderMTTF(apiData) {
+        if (!apiData) return;
+        var valEl = $('mttfValue');
+        var trendEl = $('mttfTrend');
+        if (valEl && apiData.value != null) {
+            valEl.innerHTML = apiData.value + '<span class="mttf-unit"> ' + (apiData.unit || 'h') + '</span>';
+        }
+        if (trendEl && apiData.trend) {
+            var arrow = apiData.trend === 'up' ? '↑' : '↓';
+            var cls = apiData.trend === 'up' ? 'up' : 'down';
+            trendEl.className = 'mttf-trend ' + cls;
+            trendEl.textContent = arrow + ' ' + (apiData.trend_pct || 0) + '% 较上周';
+        }
     }
 
     // ===== 项目概览 =====
-    function renderProjectOverview() {
-        var rows = [
-            { key: '当前版本', val: 'v5.0.0 (迭代1)', tag: 'version' },
-            { key: '项目状态', val: '活跃开发中', tag: 'active' },
-            { key: '负责产品线', val: 'E62 / SR5 / SR6 智能手表' },
-            { key: '当前里程碑', val: 'SR6 CP2 质量攻坚' },
-            { key: '代码仓库', val: 'github.com/wangys38-cyber/Potential-tools' },
-            { key: '部署平台', val: 'Railway (wangys666.top)' },
-            { key: '技术栈', val: 'Flask + 原生前端 + Blueprint' },
-        ];
+    function renderProjectOverview(apiData) {
+        var rows;
+        if (apiData) {
+            rows = [
+                { key: '当前版本', val: apiData.current_version || 'v5.0.0 (迭代1)', tag: 'version' },
+                { key: '项目状态', val: apiData.status || '活跃开发中', tag: 'active' },
+                { key: '负责产品线', val: apiData.product_lines || 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程碑', val: apiData.milestone || 'SR6 CP2 质量攻坚' },
+                { key: '代码仓库', val: apiData.repo || 'github.com/wangys38-cyber/Potential-tools' },
+                { key: '部署平台', val: apiData.deploy_platform || 'Railway (wangys666.top)' },
+                { key: '技术栈', val: apiData.tech_stack || 'Flask + 原生前端 + Blueprint' },
+            ];
+            if (apiData.visit_count != null) {
+                rows.push({ key: '累计访问', val: apiData.visit_count + ' 次' });
+            }
+        } else {
+            rows = [
+                { key: '当前版本', val: 'v5.0.0 (迭代1)', tag: 'version' },
+                { key: '项目状态', val: '活跃开发中', tag: 'active' },
+                { key: '负责产品线', val: 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程碑', val: 'SR6 CP2 质量攻坚' },
+                { key: '代码仓库', val: 'github.com/wangys38-cyber/Potential-tools' },
+                { key: '部署平台', val: 'Railway (wangys666.top)' },
+                { key: '技术栈', val: 'Flask + 原生前端 + Blueprint' },
+            ];
+        }
         $('projList').innerHTML = rows.map(function(r) {
             var val = r.val;
             if (r.tag === 'version') val = '<span class="tag tag-version">' + val + '</span>';
@@ -326,11 +377,36 @@
         }).join('');
     }
 
-    // 初始化
+    // ===== 从后端 API 获取数据 =====
+    async function fetchDashboardStats() {
+        try {
+            var resp = await fetch('/api/dashboard/stats', { credentials: 'same-origin' });
+            if (!resp.ok) return null;
+            var result = await resp.json();
+            if (result.status === 'success' && result.data) {
+                return result.data;
+            }
+        } catch (e) {
+            console.warn('Dashboard stats fetch failed:', e);
+        }
+        return null;
+    }
+
+    // 初始化：先渲染静态/localStorage 数据，再异步拉取 API 更新
     renderBugTrend();
     renderVersionProgress();
     renderEfficiency();
     renderProjectOverview();
+
+    fetchDashboardStats().then(function(data) {
+        if (!data) return;
+        renderBugTrend(data.bug_trend);
+        renderMTTF(data.mttf);
+        renderVersionProgress(data.version_progress);
+        renderEfficiency(data.personal_efficiency);
+        renderProjectOverview(data.project_overview);
+        $('updateTime').textContent = '数据更新：' + new Date().toLocaleString('zh-CN') + ' (API)';
+    });
 })();
 </script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
