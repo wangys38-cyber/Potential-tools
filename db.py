@@ -700,7 +700,7 @@ def save_note_state(user_id, state_data):
 # ==================== v5.2 多设备数据同步 ====================
 
 # 同步数据类型白名单
-SYNC_TYPES = {'favorites', 'merit', 'projects', 'plans', 'theme', 'form_drafts', 'settings'}
+SYNC_TYPES = {'favorites', 'recent', 'merit', 'projects', 'plans', 'theme', 'form_drafts', 'settings'}
 
 
 def get_sync_state(user_id, data_type):

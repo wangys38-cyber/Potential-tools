@@ -16,8 +16,12 @@
     // 同步类别定义：sync_type → { keys: [localStorage keys], name, icon, prefix: bool }
     var CATEGORIES = {
         favorites: {
-            keys: ['toolbox_favorites_v2', 'toolbox_favorites'],
+            keys: [_USER_PREFIX + 'toolbox_favorites', 'toolbox_favorites_v2', 'toolbox_favorites'],
             name: '收藏工具', icon: '⭐'
+        },
+        recent: {
+            keys: [_USER_PREFIX + 'toolbox_recent_tools', 'toolbox_recent_tools'],
+            name: '最近使用', icon: '🕐'
         },
         merit: {
             keys: ['merit_total', 'merit_history', 'merit_achievements',
