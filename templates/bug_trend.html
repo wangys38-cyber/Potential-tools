@@ -137,26 +137,10 @@
         </div>
         <div id="dashboard" style="display:none">
             <div class="stats-grid" id="statsGrid"></div>
-            <div class="controls">
-                <div class="control-group">
-                    <label>X 轴：</label>
-                    <select id="xAxisSelect" onchange="renderCharts()"></select>
-                </div>
-                <div class="control-group">
-                    <label>对比维度：</label>
-                    <select id="compareSelect" onchange="renderCharts()">
-                        <option value="version">按固件版本</option>
-                        <option value="total">累计趋势</option>
-                    </select>
-                </div>
-            </div>
-            <div class="version-pills" id="versionPills"></div>
             <div class="chart-container">
-                <div class="chart-title">Bug 数量趋势</div>
                 <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">累计 Bug vs 已解决</div>
                 <div class="chart-wrapper"><canvas id="cumulativeChart"></canvas></div>
             </div>
         </div>
@@ -222,109 +206,177 @@
 
         function processData() {
             if (!rawData.length) return;
-            const keys = Object.keys(rawData[0]);
-            const xSelect = document.getElementById('xAxisSelect');
-            xSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
-            // 自动选择日期列
-            const dateKey = keys.find(k => /日期|date|time/i.test(k)) || keys[0];
-            xSelect.value = dateKey;
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             renderStats();
-            renderVersionPills();
             renderCharts();
         }
 
-        function renderStats() {
+        // 获取ISO周标识，如 2026-W33
+        function getWeekKey(dateStr) {
+            if (!dateStr) return null;
+            let d = new Date(dateStr);
+            if (isNaN(d.getTime())) {
+                // 尝试解析常见格式
+                const parts = String(dateStr).split(/[-\/]/);
+                if (parts.length >= 3) {
+                    d = new Date(parts[0], parts[1]-1, parts[2]);
+                }
+            }
+            if (isNaN(d.getTime())) return null;
+            // ISO周：周一为一周开始
+            const day = d.getDay() || 7;
+            d.setDate(d.getDate() + 4 - day);
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            const weekNum = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+            return d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
+        }
+
+        function getWeekLabel(weekKey) {
+            // "2026-W33" -> "8月第2周" 简化显示
+            const [y, w] = weekKey.split('-W');
+            return y + '年第' + parseInt(w) + '周';
+        }
+
+        // 识别列
+        function detectColumns() {
             const keys = Object.keys(rawData[0]);
-            const bugKey = keys.find(k => /bug|缺陷|问题|count|总数/i.test(k)) || keys[1];
-            const resolveKey = keys.find(k => /解决|关闭|resolved|fixed|done/i.test(k));
-            const totalBugs = rawData.reduce((s,r) => s + (parseFloat(r[bugKey])||0), 0);
-            const resolved = resolveKey ? rawData.reduce((s,r) => s + (parseFloat(r[resolveKey])||0), 0) : 0;
-            const versions = new Set(rawData.map(r => r[keys.find(k=>/版本|version|firmware/i.test(k))||keys[0]])).size;
+            const createdKey = keys.find(k => /创建|created|提交|发现|日期|date|time/i.test(k)) || keys[0];
+            const resolvedKey = keys.find(k => /解决日期|关闭日期|resolved.*date|closed.*date|fix.*date/i.test(k));
+            const statusKey = keys.find(k => /状态|status|state/i.test(k));
+            const severityKey = keys.find(k => /严重|severity|priority|级别/i.test(k));
+            const moduleKey = keys.find(k => /模块|module|component|组件/i.test(k));
+            return { createdKey, resolvedKey, statusKey, severityKey, moduleKey };
+        }
+
+        function isResolved(row, statusKey) {
+            if (!statusKey) return false;
+            const s = String(row[statusKey] || '').toLowerCase();
+            return /已解决|已关闭|关闭|resolved|closed|done|fixed|完成/i.test(s);
+        }
+
+        // 按周聚合新增和解决
+        function aggregateByWeek(data) {
+            const cols = detectColumns();
+            const weekMap = {};
+            data.forEach(row => {
+                // 新增
+                const cWeek = getWeekKey(row[cols.createdKey]);
+                if (cWeek) {
+                    if (!weekMap[cWeek]) weekMap[cWeek] = { created: 0, resolved: 0 };
+                    weekMap[cWeek].created++;
+                }
+                // 解决
+                if (cols.resolvedKey && row[cols.resolvedKey]) {
+                    const rWeek = getWeekKey(row[cols.resolvedKey]);
+                    if (rWeek) {
+                        if (!weekMap[rWeek]) weekMap[rWeek] = { created: 0, resolved: 0 };
+                        weekMap[rWeek].resolved++;
+                    }
+                } else if (isResolved(row, cols.statusKey) && cWeek) {
+                    // 无解决日期时，已解决的算在创建当周
+                    weekMap[cWeek].resolved++;
+                }
+            });
+            // 排序并补全周
+            const weeks = Object.keys(weekMap).sort();
+            if (weeks.length === 0) return { labels: [], created: [], resolved: [], open: [] };
+            // 补全缺失的周
+            const allWeeks = [];
+            const [startY, startW] = weeks[0].split('-W').map(Number);
+            const [endY, endW] = weeks[weeks.length-1].split('-W').map(Number);
+            for (let y = startY; y <= endY; y++) {
+                const maxW = y === endY ? endW : 53;
+                const minW = y === startY ? startW : 1;
+                for (let w = minW; w <= maxW; w++) {
+                    allWeeks.push(y + '-W' + String(w).padStart(2, '0'));
+                }
+            }
+            let cumCreated = 0, cumResolved = 0;
+            return {
+                labels: allWeeks.map(getWeekLabel),
+                created: allWeeks.map(w => { cumCreated += (weekMap[w]?.created || 0); return weekMap[w]?.created || 0; }),
+                resolved: allWeeks.map(w => { cumResolved += (weekMap[w]?.resolved || 0); return weekMap[w]?.resolved || 0; }),
+                open: allWeeks.map((w, i) => {
+                    const c = allWeeks.slice(0, i+1).reduce((s, x) => s + (weekMap[x]?.created || 0), 0);
+                    const r = allWeeks.slice(0, i+1).reduce((s, x) => s + (weekMap[x]?.resolved || 0), 0);
+                    return c - r;
+                })
+            };
+        }
+
+        function renderStats() {
+            const cols = detectColumns();
+            const total = rawData.length;
+            const resolved = rawData.filter(r => isResolved(r, cols.statusKey)).length;
+            const unresolved = total - resolved;
+            const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
             document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card"><div class="stat-label">记录总数</div><div class="stat-value">${rawData.length}</div></div>
-                <div class="stat-card"><div class="stat-label">Bug 总数</div><div class="stat-value">${totalBugs}</div></div>
-                <div class="stat-card"><div class="stat-label">已解决</div><div class="stat-value">${resolved}</div></div>
-                <div class="stat-card"><div class="stat-label">固件版本数</div><div class="stat-value">${versions}</div></div>
+                <div class="stat-card"><div class="stat-label">Bug 总数</div><div class="stat-value">${total}</div></div>
+                <div class="stat-card"><div class="stat-label">已解决</div><div class="stat-value" style="color:#10b981">${resolved}</div></div>
+                <div class="stat-card"><div class="stat-label">未解决</div><div class="stat-value" style="color:#ef4444">${unresolved}</div></div>
+                <div class="stat-card"><div class="stat-label">解决率</div><div class="stat-value">${rate}%</div></div>
             `;
         }
 
-        function renderVersionPills() {
-            const keys = Object.keys(rawData[0]);
-            const verKey = keys.find(k => /版本|version|firmware/i.test(k)) || keys[0];
-            const versions = [...new Set(rawData.map(r => String(r[verKey])))].filter(Boolean);
-            const pills = document.getElementById('versionPills');
-            pills.innerHTML = '<span class="version-pill active" data-ver="all">全部版本</span>' +
-                versions.map(v => `<span class="version-pill" data-ver="${v}">${v}</span>`).join('');
-            pills.querySelectorAll('.version-pill').forEach(p => {
-                p.onclick = () => { pills.querySelectorAll('.version-pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); renderCharts(); };
-            });
-        }
-
-        function getFilteredData() {
-            const active = document.querySelector('.version-pill.active');
-            if (!active || active.dataset.ver === 'all') return rawData;
-            const keys = Object.keys(rawData[0]);
-            const verKey = keys.find(k => /版本|version|firmware/i.test(k)) || keys[0];
-            return rawData.filter(r => String(r[verKey]) === active.dataset.ver);
-        }
-
         function renderCharts() {
-            const data = getFilteredData();
-            if (!data.length) return;
-            const xKey = document.getElementById('xAxisSelect').value;
-            const keys = Object.keys(rawData[0]);
-            const bugKey = keys.find(k => /bug|缺陷|问题|count|总数/i.test(k)) || keys[1];
-            const resolveKey = keys.find(k => /解决|关闭|resolved|fixed|done/i.test(k));
-            const labels = data.map(r => String(r[xKey]));
-            const bugData = data.map(r => parseFloat(r[bugKey])||0);
-            const resolveData = resolveKey ? data.map(r => parseFloat(r[resolveKey])||0) : [];
+            if (!rawData.length) return;
+            const agg = aggregateByWeek(rawData);
+            if (agg.labels.length === 0) return;
 
+            // 图1：每周新增 vs 解决
             if (trendChart) trendChart.destroy();
             const ctx1 = document.getElementById('trendChart').getContext('2d');
             trendChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels,
-                    datasets: [{
-                        label: 'Bug 数量', data: bugData,
-                        borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.1)',
-                        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#7c3aed'
-                    }].concat(resolveKey ? [{
-                        label: '已解决', data: resolveData,
-                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
-                        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#10b981'
-                    }] : [])
+                    labels: agg.labels,
+                    datasets: [
+                        {
+                            label: '每周新增 Bug', data: agg.created,
+                            borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
+                            fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#ef4444', borderWidth: 2
+                        },
+                        {
+                            label: '每周解决 Bug', data: agg.resolved,
+                            borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+                            fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#10b981', borderWidth: 2
+                        }
+                    ]
                 },
-                options: { responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true } } }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Bug 增长 vs 解决曲线（按周）', font: { size: 14, weight: '600' } }
+                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Bug 数量' } } },
+                    interaction: { intersect: false, mode: 'index' }
+                }
             });
 
-            // 累计图
-            let cumBug = 0, cumRes = 0;
-            const cumBugData = bugData.map(v => cumBug += v);
-            const cumResData = resolveData.map(v => cumRes += v);
+            // 图2：累计未解决
             if (cumulativeChart) cumulativeChart.destroy();
             const ctx2 = document.getElementById('cumulativeChart').getContext('2d');
             cumulativeChart = new Chart(ctx2, {
                 type: 'line',
                 data: {
-                    labels,
+                    labels: agg.labels,
                     datasets: [{
-                        label: '累计 Bug', data: cumBugData,
-                        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
-                        fill: true, tension: 0.3
-                    }].concat(resolveKey ? [{
-                        label: '累计解决', data: cumResData,
-                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
-                        fill: true, tension: 0.3
-                    }] : [])
+                        label: '累计未解决 Bug', data: agg.open,
+                        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
+                        fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#f59e0b', borderWidth: 2
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true } } }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: '累计未解决 Bug 趋势（按周）', font: { size: 14, weight: '600' } }
+                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '未解决数量' } } },
+                    interaction: { intersect: false, mode: 'index' }
+                }
             });
         }
 
