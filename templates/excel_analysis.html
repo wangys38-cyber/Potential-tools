@@ -1,41 +1,39 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CR闂鍒嗘瀽宸ュ叿</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>馃搳</text></svg>">
+    <title>CR问题分析工具</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='20' x2='18' y2='10'/><line x1='12' y1='20' x2='12' y2='4'/><line x1='6' y1='20' x2='6' y2='14'/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
-    <!-- DNS棰勮В鏋?+ 璧勬簮棰勮繛鎺ワ細鍑忓皯Chart.js CDN杩炴帴寤惰繜 -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <!-- defer: 涓嶉樆濉濰TML瑙ｆ瀽锛岄〉闈㈠厛娓叉煋鍐嶅姞杞紺hart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
     <link rel="stylesheet" href="/static/css/excel_analysis.css?v={{ STATIC_VERSION }}">
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
     <script>
         window.__APP_CONFIG__ = {
             isCloudEnv: {{ 'true' if is_cloud_env else 'false' }},
             maxUploadMb: {{ max_upload_mb }}
         };
     </script>
-<link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
-
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
-    <div id="cloudEnvBanner" style="display:none;background: #fff;border-left:4px solid #faad14;padding:10px 18px;font-size:13px;color:#613400;">
-        <strong>鈽侊笍 浜戠妯″紡</strong>锛氬綋鍓嶉儴缃插湪鍏变韩浜戠幆澧冦€傚ぇ鏂囦欢锛?gt;20MB 鐨?HTML 鏍煎紡 xls锛夊彲鑳藉洜鍐呭瓨涓嶈冻瑙ｆ瀽澶辫触锛屽缓璁?<a href="https://github.com/wangys38-cyber/CR-tools" target="_blank" style="color:#1677ff;text-decoration:underline;">鏈湴閮ㄧ讲</a> 鑾峰緱鏈€浣充綋楠屻€?
+    <div id="cloudEnvBanner" style="display:none;background: var(--ds-bg-elevated);border-left:4px solid var(--ds-warning);padding:10px 18px;font-size:13px;color:var(--ds-text-secondary);">
+        <strong style="color:var(--ds-text);">云端模式</strong>：当前部署在共享云环境。大文件（>20MB 的 HTML 格式 xls）可能因内存不足解析失败，建议<a href="https://github.com/wangys38-cyber/CR-tools" target="_blank" style="color:var(--ds-link);text-decoration:underline;">本地部署</a>获得最佳体验。
     </div>
 
-    <!-- 鍘嗗彶璁板綍闈㈡澘 -->
-    <div id="historyPanel" style="display:none;position:fixed;top:60px;right:20px;width:380px;max-height:70vh;background:var(--tb-bg,#fff);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:10000;overflow:hidden;border:1px solid var(--tb-border,rgba(0,0,0,0.1));">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:15px;font-weight:600;">馃摐 鏈€杩戝垎鏋愯褰?/h3>
-            <button onclick="toggleHistoryPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--tb-text-secondary,#999);padding:0 4px;">鉁?/button>
+    <!-- 历史记录面板 -->
+    <div id="historyPanel" style="display:none;position:fixed;top:60px;right:20px;width:380px;max-height:70vh;background:var(--ds-bg-elevated);border-radius:var(--ds-radius-xl);box-shadow:var(--ds-shadow-lg);z-index:10000;overflow:hidden;border:1px solid var(--ds-border-light);">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--ds-border-light);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--ds-text);">最近分析记录</h3>
+            <button onclick="toggleHistoryPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--ds-text-secondary);padding:0 4px;">×</button>
         </div>
         <div id="historyList" style="max-height:calc(70vh - 50px);overflow-y:auto;padding:8px;"></div>
     </div>
@@ -44,64 +42,66 @@
         <!-- Step 1: Upload -->
         <div class="card" id="uploadCard">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 style="margin:0;">馃搳 CR闂鍒嗘瀽</h3>
-                <button class="btn btn-secondary btn-sm" onclick="toggleHistoryPanel()">馃摐 鍘嗗彶璁板綍</button>
+                <h3 style="margin:0;color:var(--ds-text);">CR问题分析</h3>
+                <button class="btn btn-secondary btn-sm" onclick="toggleHistoryPanel()">历史记录</button>
             </div>
             <div class="upload-area" id="uploadArea">
-                <div class="icon">馃搧</div>
-                <h3>涓婁紶Excel/CSV鏂囦欢</h3>
-                <p>鏀寔 .xlsx / .xls / .csv 鏍煎紡锛屽寘鍚ā鍧椼€佺爺鍙戙€佺姸鎬併€佹棩鏈熺瓑瀛楁鐨勯棶棰樺垪琛?/p>
+                <div class="icon" style="background:var(--ds-bg);border:none;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ds-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <h3>上传Excel/CSV文件</h3>
+                <p>支持 .xlsx / .xls / .csv 格式，包含模块、研发、状态、日期等字段的问题列表</p>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
             </div>
 
             <div class="file-info" id="fileInfo">
-                <span class="icon">馃搳</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <span class="name" id="fileName"></span>
-                <button class="remove" onclick="removeFile()">鉁?/button>
+                <button class="remove" onclick="removeFile()">×</button>
             </div>
 
             <div class="error-msg" id="errorMsg"></div>
 
             <div class="analyzing" id="analyzing">
                 <div class="spinner"></div>
-                <p>姝ｅ湪瑙ｆ瀽Excel鏁版嵁...</p>
-                <div class="progress-bar" id="analysisProgressBar" style="display:none;width:200px;height:6px;background:rgba(124,58,237,0.15);border-radius:3px;margin-top:12px;overflow:hidden;">
-                    <div id="analysisProgressFill" style="height:100%;width:0%;background: #fff;border-radius:3px;transition:width 0.3s ease;"></div>
+                <p>正在解析Excel数据...</p>
+                <div class="progress-bar" id="analysisProgressBar" style="display:none;width:200px;height:6px;background:var(--ds-bg-secondary);border-radius:3px;margin-top:12px;overflow:hidden;">
+                    <div id="analysisProgressFill" style="height:100%;width:0%;background:var(--ds-accent);border-radius:3px;transition:width 0.3s ease;"></div>
                 </div>
             </div>
         </div>
 
         <!-- Step 2: Sheet & Column Config -->
         <div class="card columns-config" id="columnConfigCard">
-            <h3>馃攳 瀛楁鏄犲皠纭</h3>
-            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
-                绯荤粺宸茶嚜鍔ㄨ瘑鍒叧閿瓧娈碉紝璇风‘璁ゆ垨鎵嬪姩璋冩暣鏄犲皠鍏崇郴銆傛偓鍋滃彲鏌ョ湅绯荤粺妫€娴嬬殑鍒楋細
+            <h3 style="color:var(--ds-text);">字段映射确认</h3>
+            <p style="color: var(--ds-text-secondary); font-size: 13px; margin-bottom: 12px;">
+                系统已自动识别关键字段，请确认或手动调整映射关系。悬停可查看系统检测的列：
             </p>
-            <div id="sheetSelector" style="display:none; margin-bottom: 16px; padding: 14px 18px; background: #fff; border: 1px solid #bae0ff; border-radius: 12px;">
-                <label style="font-size: 13px; color: var(--text); margin-right: 12px; font-weight: 600;">馃搼 閫夋嫨宸ヤ綔琛細</label>
-                <select id="sheetSelect" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 13px; background: white; min-width: 220px; cursor: pointer;"></select>
+            <div id="sheetSelector" style="display:none; margin-bottom: 16px; padding: 14px 18px; background: var(--ds-bg-elevated); border: 1px solid var(--ds-border-light); border-radius: var(--ds-radius-lg);">
+                <label style="font-size: 13px; color: var(--ds-text); margin-right: 12px; font-weight: 600;">选择工作表：</label>
+                <select id="sheetSelect" style="padding: 8px 12px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); font-size: 13px; background: var(--ds-bg); color:var(--ds-text); min-width: 220px; cursor: pointer;"></select>
             </div>
             <div class="detected-info" id="detectedInfo"></div>
             <div class="column-grid" id="columnGrid"></div>
             <div class="btn-group">
-                <button class="btn btn-secondary" onclick="resetAll()">馃攧 閲嶆柊閫夋嫨鏂囦欢</button>
-                <button class="btn btn-primary" onclick="confirmColumns()">馃殌 寮€濮嬪垎鏋?/button>
+                <button class="btn btn-secondary" onclick="resetAll()">重新选择文件</button>
+                <button class="btn btn-primary" onclick="confirmColumns()">开始分析</button>
             </div>
         </div>
 
         <!-- Step 3: Results -->
         <div class="card result-section" id="resultCard">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-                <h2 style="font-size:20px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;">
-                    馃搳 CR 鍒嗘瀽鎶ュ憡
-                    <span id="reportFileName" style="font-size:13px;font-weight:400;color:var(--text-secondary);"></span>
+                <h2 style="font-size:20px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px;color:var(--ds-text);">
+                    CR 分析报告
+                    <span id="reportFileName" style="font-size:13px;font-weight:400;color:var(--ds-text-secondary);"></span>
                 </h2>
                 <div style="display:flex;gap:8px;">
-                    <button class="btn btn-secondary" id="exportTrendBtn" onclick="exportToBugTrend()" style="display:none;padding:8px 16px;font-size:13px;background:#fff;color:#4f46e5;border:1px solid #4f46e5;border-radius:10px;cursor:pointer;font-weight:600;">
-                        馃搱 瀵煎叆瓒嬪娍鐪嬫澘
+                    <button class="btn btn-secondary" id="exportTrendBtn" onclick="exportToBugTrend()" style="display:none;padding:8px 16px;font-size:13px;">
+                        导入趋势看板
                     </button>
-                    <button class="btn btn-secondary" id="pushFeishuBtn" onclick="pushToFeishu()" style="display:none;padding:8px 16px;font-size:13px;background: #fff;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 2px 8px rgba(102,126,234,0.3);">
-                        馃殌 鎺ㄩ€佸埌椋炰功
+                    <button class="btn btn-primary" id="pushFeishuBtn" onclick="pushToFeishu()" style="display:none;padding:8px 16px;font-size:13px;">
+                        推送到飞书
                     </button>
                 </div>
             </div>
@@ -109,34 +109,34 @@
             <div class="summary-grid" id="summaryGrid"></div>
 
             <div class="tabs">
-                <button class="tab active" data-tab="suggestions" onclick="switchTab('suggestions')">馃挕 鏅鸿兘鍒嗘瀽</button>
-                <button class="tab" data-tab="modules" onclick="switchTab('modules')">馃摝 妯″潡缁熻</button>
-                <button class="tab" data-tab="stability" onclick="switchTab('stability')">馃洝锔?绋冲畾鎬у垎鏋?/button>
-                <button class="tab" data-tab="developers" onclick="switchTab('developers')">馃懆鈥嶐煉?鐮斿彂缁熻</button>
-                <button class="tab" data-tab="daily" onclick="switchTab('daily')">馃搱 姣忔棩瓒嬪娍</button>
+                <button class="tab active" data-tab="suggestions" onclick="switchTab('suggestions')">智能分析</button>
+                <button class="tab" data-tab="modules" onclick="switchTab('modules')">模块统计</button>
+                <button class="tab" data-tab="stability" onclick="switchTab('stability')">稳定性分析</button>
+                <button class="tab" data-tab="developers" onclick="switchTab('developers')">研发统计</button>
+                <button class="tab" data-tab="daily" onclick="switchTab('daily')">每日趋势</button>
             </div>
 
             <div class="tab-content active" id="tab-suggestions">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
-                    <div class="chart-card" style="background: #fff;border-radius:16px;padding:24px;box-shadow:var(--shadow-md);border:1px solid var(--border);">
-                        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:6px;">馃搳 妯″潡闂鍒嗗竷</h3>
+                    <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);">
+                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">模块问题分布</h3>
                         <canvas id="modulePieChart" style="max-height:280px;"></canvas>
                     </div>
-                    <div class="chart-card" style="background: #fff;border-radius:16px;padding:24px;box-shadow:var(--shadow-md);border:1px solid var(--border);">
-                        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:6px;">馃搱 姣忔棩鏂板瓒嬪娍</h3>
+                    <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);">
+                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">每日新增趋势</h3>
                         <canvas id="dailyLineChart" style="max-height:280px;"></canvas>
                     </div>
                 </div>
                 <div id="suggestionsList"></div>
                 <div id="unverifiedSection"></div>
-                <!-- 鍘嗗彶鐩镐技 Bug 瀵规瘮 -->
-                <div id="similarBugSection" style="margin-top:24px;padding:20px;background: #fff,rgba(99,102,241,0.06));border-radius:16px;border:1px solid rgba(124,58,237,0.15);display:none;">
+                <!-- 历史相似 Bug 对比 -->
+                <div id="similarBugSection" style="margin-top:24px;padding:20px;background:var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);border:1px solid var(--ds-border-light);display:none;">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                        <span style="font-size:20px;">馃敭</span>
-                        <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">鍘嗗彶鐩镐技 Bug 瀵规瘮</h3>
-                        <button class="btn btn-secondary" onclick="analyzeSimilarBugs()" style="margin-left:auto;padding:6px 14px;font-size:12px;background: #fff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">鍒嗘瀽鐩镐技 Bug</button>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ds-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <h3 style="margin:0;font-size:16px;font-weight:600;color:var(--ds-text);">历史相似 Bug 对比</h3>
+                        <button class="btn btn-secondary" onclick="analyzeSimilarBugs()" style="margin-left:auto;padding:6px 14px;font-size:12px;">分析相似 Bug</button>
                     </div>
-                    <div id="similarBugResult" style="font-size:13px;line-height:1.7;color:var(--text-secondary);"></div>
+                    <div id="similarBugResult" style="font-size:13px;line-height:1.7;color:var(--ds-text-secondary);"></div>
                 </div>
             </div>
 
@@ -145,16 +145,16 @@
             </div>
 
             <div class="tab-content" id="tab-stability">
-                <div style="background: #fff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #bae0ff;">
+                <div style="background:var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:16px;margin-bottom:16px;border:1px solid var(--ds-border-light);">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="font-weight:600;color:var(--text);">馃攳 绋冲畾鎬фā鍧楃瓫閫夊叧閿瓧锛?/span>
-                        <input type="text" id="stabilityKeywords" placeholder="MTTF" 
-                               style="flex:1;padding:8px 12px;border:1px solid #d2d2d7;border-radius:8px;font-size:13px;"
+                        <span style="font-weight:600;color:var(--ds-text);">稳定性模块筛选关键字：</span>
+                        <input type="text" id="stabilityKeywords" placeholder="MTTF"
+                               style="flex:1;padding:8px 12px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);font-size:13px;background:var(--ds-bg);color:var(--ds-text);"
                                oninput="filterStabilityModules()">
-                        <button class="btn btn-primary" style="padding:8px 16px;font-size:12px;" onclick="filterStabilityModules()">绛涢€?/button>
+                        <button class="btn btn-primary" style="padding:8px 16px;font-size:12px;" onclick="filterStabilityModules()">筛选</button>
                     </div>
-                    <div style="font-size:12px;color:var(--text-secondary);">
-                        榛樿浣跨敤 MTTF 鍏抽敭瀛椾粠 Component/s 绛涢€夌ǔ瀹氭€фā鍧楋紝鍙緭鍏ュ叾浠栧叧閿瓧鑷畾涔夌瓫閫?
+                    <div style="font-size:12px;color:var(--ds-text-secondary);">
+                        默认使用 MTTF 关键字从 Component/s 筛选稳定性模块，可输入其他关键字自定义筛选
                     </div>
                 </div>
                 <div id="stabilitySection"></div>
@@ -162,24 +162,24 @@
             </div>
 
             <div class="tab-content" id="tab-developers">
-                <!-- 鐮斿彂涓汉瑙ｅ崟瓒嬪娍 -->
-                <div id="developerTrendSection" style="margin-bottom:24px;padding:20px;background: #fff,rgba(118,75,162,0.08));border-radius:16px;border:1px solid rgba(102,126,234,0.15);">
+                <!-- 研发个人解决趋势 -->
+                <div id="developerTrendSection" style="margin-bottom:24px;padding:20px;background:var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);border:1px solid var(--ds-border-light);">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                        <span style="font-size:20px;">馃搱</span>
-                        <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text);">鐮斿彂涓汉瑙ｅ崟瓒嬪娍</h3>
-                        <span style="font-size:12px;color:var(--text-3);">杈撳叆鐮斿彂鍚嶅瓧锛屾煡鐪嬭В鍗曡秼鍔挎洸绾?/span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ds-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        <h3 style="margin:0;font-size:16px;font-weight:600;color:var(--ds-text);">研发个人解决趋势</h3>
+                        <span style="font-size:12px;color:var(--ds-text-tertiary);">输入研发名字，查看解决趋势曲线</span>
                     </div>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
-                        <input type="text" id="developerTrendInput" list="developerList" placeholder="杈撳叆鎴栭€夋嫨鐮斿彂鍚嶅瓧..." style="flex:1;min-width:200px;padding:10px 16px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg);color:var(--text);">
+                        <input type="text" id="developerTrendInput" list="developerList" placeholder="输入或选择研发名字..." style="flex:1;min-width:200px;padding:10px 16px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);font-size:14px;background:var(--ds-bg);color:var(--ds-text);">
                         <datalist id="developerList"></datalist>
-                        <button class="btn btn-primary" onclick="renderDeveloperTrend()" style="padding:10px 20px;">鏌ヨ</button>
+                        <button class="btn btn-primary" onclick="renderDeveloperTrend()" style="padding:10px 20px;">查询</button>
                     </div>
                     <div id="developerTrendStats" style="display:none;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;"></div>
-                    <div id="developerTrendChart" style="display:none;background:var(--bg);border-radius:12px;padding:16px;">
+                    <div id="developerTrendChart" style="display:none;background:var(--ds-bg);border-radius:var(--ds-radius-md);padding:16px;">
                         <canvas id="devTrendCanvas" width="800" height="300" style="width:100%;height:auto;"></canvas>
                     </div>
-                    <div id="developerTrendEmpty" style="text-align:center;padding:30px;color:var(--text-3);font-size:14px;">
-                        馃憜 杈撳叆鐮斿彂鍚嶅瓧鍚庣偣鍑绘煡璇紝鏌ョ湅杩?0澶╄В鍗曡秼鍔?
+                    <div id="developerTrendEmpty" style="text-align:center;padding:30px;color:var(--ds-text-tertiary);font-size:14px;">
+                        输入研发名字后点击查询，查看近30天解决趋势
                     </div>
                 </div>
                 <div id="developersTable"></div>
@@ -191,35 +191,35 @@
 
             <div class="watermark-config" id="watermarkConfig">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                    <label style="white-space:nowrap;">馃摑 鎶ュ憡鏍囬锛?/label>
-                    <input type="text" id="reportTitleInput" placeholder="鑷畾涔夋姤鍛婃爣棰橈紙鍚屾椂浣滀负鏂囦欢鍚嶏級" style="flex:1;">
+                    <label style="white-space:nowrap;color:var(--ds-text);">报告标题：</label>
+                    <input type="text" id="reportTitleInput" placeholder="自定义报告标题（同时作为文件名）" style="flex:1;">
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <label style="white-space:nowrap;">姘村嵃鏂囧瓧锛?/label>
-                    <input type="text" id="watermarkInput" placeholder="杈撳叆姘村嵃鏂囧瓧" style="flex:1;">
-                    <button class="btn btn-secondary" style="padding:8px 16px;font-size:12px;" onclick="resetWatermark()">鎭㈠榛樿</button>
+                    <label style="white-space:nowrap;color:var(--ds-text);">水印文字：</label>
+                    <input type="text" id="watermarkInput" placeholder="输入水印文字" style="flex:1;">
+                    <button class="btn btn-secondary" style="padding:8px 16px;font-size:12px;" onclick="resetWatermark()">恢复默认</button>
                 </div>
             </div>
 
             <div class="btn-group">
-                <button class="btn btn-secondary" onclick="resetAll()">閲嶆柊鍒嗘瀽</button>
-                <button class="btn btn-primary" onclick="generatePDF(this)">馃搫 鐢熸垚PDF鎶ュ憡</button>
+                <button class="btn btn-secondary" onclick="resetAll()">重新分析</button>
+                <button class="btn btn-primary" onclick="generatePDF(this)">生成PDF报告</button>
             </div>
 
-            <!-- v3.0 AI 鏍瑰洜鍒嗘瀽 -->
-            <div style="margin-top: 20px; padding: 24px; background: var(--bg-card); border-radius: var(--radius-md); border: 2px solid var(--accent); box-shadow: var(--shadow-sm);" id="aiCard">
-                <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <span>馃</span>
-                    AI 鏍瑰洜鍒嗘瀽
-                    <span style="font-size: 12px; color: var(--text-tertiary); font-weight: normal;">v3.0 鏂板姛鑳?/span>
+            <!-- v3.0 AI 根因分析 -->
+            <div style="margin-top: 20px; padding: 24px; background: var(--ds-bg-elevated); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-light); box-shadow: var(--ds-shadow-sm);" id="aiCard">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;color:var(--ds-text);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ds-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M8 22h8"/></svg>
+                    AI 根因分析
+                    <span style="font-size: 12px; color: var(--ds-text-tertiary); font-weight: normal;">v3.0 新功能</span>
                 </div>
                 <div id="aiContent" style="min-height: 60px;">
                     <div style="text-align: center; padding: 20px;">
-                        <button class="btn btn-primary" id="aiBtn" onclick="generateAIAnalysis()" style="background: var(--accent);">
-                            馃 鐢熸垚 AI 鏍瑰洜鍒嗘瀽
+                        <button class="btn btn-primary" id="aiBtn" onclick="generateAIAnalysis()">
+                            生成 AI 根因分析
                         </button>
-                        <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">
-                            AI 灏嗗熀浜庨棶棰樻暟鎹敓鎴愭牴鍥犲垎鏋愩€侀珮椋庨櫓棰嗗煙鍜屾敼杩涘缓璁?
+                        <div style="font-size: 12px; color: var(--ds-text-tertiary); margin-top: 8px;">
+                            AI 将基于问题数据生成根因分析、高风险领域和改进建议
                         </div>
                     </div>
                 </div>
@@ -230,8 +230,8 @@
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
