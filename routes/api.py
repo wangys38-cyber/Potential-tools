@@ -269,6 +269,79 @@ def create_api_blueprint(base_dir, static_version):
         else:
             return jsonify({'status': 'error', 'error': result.get('error', '发送失败')}), 502
 
+    # ==================== 用户信息 ====================
+
+    @bp.route('/api/user/profile', methods=['GET'])
+    def api_get_user_profile():
+        """获取当前用户信息"""
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        return jsonify({
+            'status': 'success',
+            'id': user['id'],
+            'name': user.get('name', ''),
+            'email': user.get('email', ''),
+            'avatar': user.get('avatar', ''),
+            'provider': user.get('provider', ''),
+            'created_at': user.get('created_at', 0)
+        })
+
+    @bp.route('/api/user/profile', methods=['POST'])
+    def api_update_user_profile():
+        """更新用户信息（姓名、头像）"""
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        data = request.get_json(silent=True) or {}
+        name = (data.get('name') or '').strip()
+        avatar = (data.get('avatar') or '').strip()
+
+        # 验证姓名
+        if name and len(name) > 50:
+            return jsonify({'status': 'error', 'error': '姓名不能超过50个字符'}), 400
+
+        # 验证头像（支持URL或base64）
+        if avatar:
+            if avatar.startswith('data:image/'):
+                # base64头像，限制大小（约500KB）
+                if len(avatar) > 700000:
+                    return jsonify({'status': 'error', 'error': '头像图片过大，请压缩后再上传'}), 400
+            elif not avatar.startswith('http://') and not avatar.startswith('https://'):
+                return jsonify({'status': 'error', 'error': '头像URL格式不正确'}), 400
+
+        # 更新数据库
+        try:
+            with db.engine.begin() as conn:
+                updates = []
+                params = {}
+                if name:
+                    updates.append('name = :name')
+                    params['name'] = name
+                if avatar:
+                    updates.append('avatar = :avatar')
+                    params['avatar'] = avatar
+                if updates:
+                    params['id'] = user['id']
+                    conn.execute(db.text(f"UPDATE users SET {', '.join(updates)} WHERE id = :id"), params)
+        except Exception as e:
+            logger.error(f"更新用户信息失败: {e}")
+            return jsonify({'status': 'error', 'error': '更新失败，请重试'}), 500
+
+        # 更新session中的用户信息
+        try:
+            from flask import session
+            if 'user' in session:
+                if name:
+                    session['user']['name'] = name
+                if avatar:
+                    session['user']['avatar'] = avatar
+                session.modified = True
+        except Exception:
+            pass
+
+        return jsonify({'status': 'success', 'message': '更新成功', 'name': name or user.get('name'), 'avatar': avatar or user.get('avatar')})
+
     @bp.route('/api/feishu/push', methods=['POST'])
     def api_feishu_push():
         """通用飞书推送接口"""
