@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- settings v2 -->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -541,10 +541,20 @@
 
                 if (config.data) {
                     const d = config.data;
-                    document.getElementById('keyHint').innerHTML = d.has_key
-                        ? `<span class="status-badge ok"><span class="status-dot"></span>已配置 ${d.key_masked}</span>`
+                    const hasKey = d.has_key;
+                    document.getElementById('keyHint').innerHTML = hasKey
+                        ? `<span class="status-badge ok"><span class="status-dot"></span>已配置 ${d.key_masked}（随账号同步，换设备自动恢复）</span>`
                         : `<span class="status-badge warn"><span class="status-dot"></span>未配置</span>`;
                     document.getElementById('aiBaseUrl').value = d.base_url || '';
+                    // AI Key 出于安全不返回明文，已配置时提示留空不修改
+                    const keyInput = document.getElementById('aiKey');
+                    if (hasKey) {
+                        keyInput.placeholder = '✅ 已保存，留空则不修改，输入新Key则替换';
+                        keyInput.style.borderColor = '#10b981';
+                    } else {
+                        keyInput.placeholder = 'sk-xxxxxxxxxxxxxxxx';
+                        keyInput.style.borderColor = '';
+                    }
 
                     // 显示当前配置状态卡片
                     if (d.has_user_config) {
@@ -553,11 +563,11 @@
                         if (d.key_masked) html += `<div>🔑 API Key: <strong>${d.key_masked}</strong></div>`;
                         if (d.base_url) html += `<div>🌐 端点: ${d.base_url}</div>`;
                         if (d.model) html += `<div>🤖 模型: ${d.model}</div>`;
+                        html += `<div style="color:#10b981;margin-top:4px;">✅ 已随账号保存，换设备登录自动恢复</div>`;
                         detail.innerHTML = html;
                         document.getElementById('currentConfigDisplay').style.display = 'block';
                         // 始终显示表单，方便编辑
                         document.getElementById('aiConfigForm').style.display = 'block';
-                        document.getElementById('aiKey').placeholder = '留空则不修改，输入新Key则替换';
                     } else {
                         document.getElementById('currentConfigDisplay').style.display = 'none';
                         document.getElementById('aiConfigForm').style.display = 'block';
@@ -714,22 +724,32 @@
         async function loadFeishuConfig() {
             try {
                 const resp = await fetch('/api/settings/feishu');
+                if (resp.status === 401) {
+                    const statusEl = document.getElementById('feishuConfigStatus');
+                    if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">⚠️ 请先登录</span>';
+                    return;
+                }
                 const data = await resp.json();
                 if (data.status === 'success') {
                     document.getElementById('feishuWebhook').value = data.webhook || '';
                     document.getElementById('feishuSecret').value = data.secret || '';
                     // 显示配置状态
                     const statusEl = document.getElementById('feishuConfigStatus');
+                    const webhookInput = document.getElementById('feishuWebhook');
                     if (statusEl) {
                         if (data.webhook) {
-                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置</span>';
+                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置（随账号同步）</span>';
+                            webhookInput.style.borderColor = '#10b981';
                         } else {
                             statusEl.innerHTML = '<span style="color:#f59e0b;">○ 未配置</span>';
+                            webhookInput.style.borderColor = '';
                         }
                     }
                 }
             } catch (e) {
                 console.error('加载飞书配置失败:', e);
+                const statusEl = document.getElementById('feishuConfigStatus');
+                if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">❌ 加载失败</span>';
             }
         }
 
@@ -1002,3 +1022,4 @@
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
+
