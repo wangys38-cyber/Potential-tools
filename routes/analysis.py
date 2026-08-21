@@ -820,48 +820,64 @@ def create_analysis_blueprint():
         if not analysis:
             return jsonify({'error': '缺少分析数据'}), 400
         summary = analysis.get('summary', {})
-        modules = analysis.get('modules', [])
-        developers = analysis.get('developers', [])
-        modules_text = ''
-        for m in (modules[:10] if isinstance(modules, list) else []):
-            if isinstance(m, dict):
-                modules_text += f"- {m.get('name', 'N/A')}: {m.get('count', 0)}个问题"
-                if m.get('unresolved'):
-                    modules_text += f" (未解决: {m['unresolved']})"
-                modules_text += "\n"
-        devs_text = ''
-        for d in (developers[:10] if isinstance(developers, list) else []):
-            if isinstance(d, dict):
-                devs_text += f"- {d.get('name', 'N/A')}: {d.get('count', 0)}个问题"
-                if d.get('unresolved'):
-                    devs_text += f" (未解决: {d['unresolved']})"
-                devs_text += "\n"
-        prompt = f"""你是一位资深质量管理专家，请基于以下CR问题分析数据生成专业的AI分析报告。
+        module_stats = analysis.get('module_stats', {})
+        dev_stats = analysis.get('dev_stats', {})
+        daily_stats = analysis.get('daily_stats', [])
 
-## 问题统计
+        # 模块统计
+        modules_list = []
+        if isinstance(module_stats, dict):
+            for mod, stats in module_stats.items():
+                if isinstance(stats, dict):
+                    total = stats.get('total', 0)
+                    resolved = stats.get('resolved', 0)
+                    unresolved = stats.get('unresolved', 0)
+                    rate = f"{(resolved/total*100):.1f}%" if total > 0 else "N/A"
+                    modules_list.append({'name': mod, 'total': total, 'resolved': resolved, 'unresolved': unresolved, 'rate': rate})
+        modules_list.sort(key=lambda x: x['total'], reverse=True)
+        modules_text = ''
+        for m in modules_list[:10]:
+            modules_text += f"- {m['name']}: {m['total']}个问题 (已解决{m['resolved']}, 未解决{m['unresolved']}, 解决率{m['rate']})\n"
+
+        # 研发统计
+        devs_list = []
+        if isinstance(dev_stats, dict):
+            for dev, stats in dev_stats.items():
+                if isinstance(stats, dict):
+                    total = stats.get('total', 0)
+                    resolved = stats.get('resolved', 0)
+                    unresolved = stats.get('unresolved', 0)
+                    rate = (resolved/total*100) if total > 0 else 0
+                    devs_list.append({'name': dev, 'total': total, 'resolved': resolved, 'unresolved': unresolved, 'rate': rate})
+        devs_list.sort(key=lambda x: x['total'], reverse=True)
+        devs_text = ''
+        for d in devs_list[:10]:
+            efficiency = "高效" if d['rate'] >= 80 else ("中等" if d['rate'] >= 50 else "待提升")
+            devs_text += f"- {d['name']}: {d['total']}个问题 (已解决{d['resolved']}, 未解决{d['unresolved']}, 解决率{d['rate']:.1f}%, 效率:{efficiency})\n"
+
+        devs_by_rate = sorted(devs_list, key=lambda x: x['rate'], reverse=True)
+        high_eff = [d['name'] for d in devs_by_rate[:3] if d['total'] >= 3]
+        low_eff = [d['name'] for d in devs_by_rate[-3:] if d['total'] >= 3]
+
+        prompt = f"""你是一位资深智能硬件质量管理专家，请基于以下CR问题分析数据生成专业分析报告。
+
+## 整体概览
 - 总问题数: {summary.get('total_issues', 0)}
 - 已解决: {summary.get('resolved', 0)}
 - 未解决: {summary.get('unresolved', 0)}
 - 解决率: {summary.get('resolution_rate', 'N/A')}
 - 阻塞问题: {summary.get('blocker', 0)}
 - 严重问题: {summary.get('critical', 0)}
-- 主要问题: {summary.get('major', 0)}
-- 次要问题: {summary.get('minor', 0)}
-- 建议问题: {summary.get('trivial', 0)}
 
-## 模块统计 (Top 10)
-{modules_text or 'N/A'}
+## 模块问题分布 (Top 10)
+{modules_text or '无数据'}
 
-## 研发人员统计 (Top 10)
-{devs_text or 'N/A'}
+## 研发人员效率 (Top 10)
+{devs_text or '无数据'}
+高效研发: {', '.join(high_eff) if high_eff else '无'}
+待提升研发: {', '.join(low_eff) if low_eff else '无'}
 
-请按以下格式输出分析：
-### 📊 总体评估
-### 🔍 根因分析
-### ⚠️ 高风险领域
-### 📈 趋势预测
-### 💡 改进建议
-请使用简洁专业的中文，避免空话套话。"""
+请输出：整体质量评估、模块问题深度分析、研发效率分析、高风险影响评估、具体改进建议。必须基于真实数据，禁止说数据不足。"""
         try:
             messages = [{'role': 'user', 'content': prompt}]
             reply = _call_ai(messages, max_tokens=1500, temperature=0.3, timeout=60)
@@ -882,51 +898,116 @@ def create_analysis_blueprint():
         if not analysis:
             return jsonify({'error': '缺少分析数据'}), 400
         summary = analysis.get('summary', {})
-        modules = analysis.get('modules', [])
-        developers = analysis.get('developers', [])
-        modules_text = ''
-        for m in (modules[:10] if isinstance(modules, list) else []):
-            if isinstance(m, dict):
-                modules_text += f"- {m.get('name', 'N/A')}: {m.get('count', 0)}个问题"
-                if m.get('unresolved'):
-                    modules_text += f" (未解决: {m['unresolved']})"
-                modules_text += "\n"
-        devs_text = ''
-        for d in (developers[:10] if isinstance(developers, list) else []):
-            if isinstance(d, dict):
-                devs_text += f"- {d.get('name', 'N/A')}: {d.get('count', 0)}个问题"
-                if d.get('unresolved'):
-                    devs_text += f" (未解决: {d['unresolved']})"
-                devs_text += "\n"
-        prompt = f"""你是一位资深质量管理专家，请基于以下CR问题分析数据生成专业的AI分析报告。
+        module_stats = analysis.get('module_stats', {})
+        dev_stats = analysis.get('dev_stats', {})
+        daily_stats = analysis.get('daily_stats', [])
 
-## 问题统计
+        # 模块统计：转列表按问题数排序取Top10
+        modules_list = []
+        if isinstance(module_stats, dict):
+            for mod, stats in module_stats.items():
+                if isinstance(stats, dict):
+                    total = stats.get('total', 0)
+                    resolved = stats.get('resolved', 0)
+                    unresolved = stats.get('unresolved', 0)
+                    rate = f"{(resolved/total*100):.1f}%" if total > 0 else "N/A"
+                    modules_list.append({'name': mod, 'total': total, 'resolved': resolved, 'unresolved': unresolved, 'rate': rate})
+        modules_list.sort(key=lambda x: x['total'], reverse=True)
+        modules_text = ''
+        for m in modules_list[:10]:
+            modules_text += f"- {m['name']}: {m['total']}个问题 (已解决{m['resolved']}, 未解决{m['unresolved']}, 解决率{m['rate']})\n"
+
+        # 研发统计：转列表按问题数排序取Top10，计算效率
+        devs_list = []
+        if isinstance(dev_stats, dict):
+            for dev, stats in dev_stats.items():
+                if isinstance(stats, dict):
+                    total = stats.get('total', 0)
+                    resolved = stats.get('resolved', 0)
+                    unresolved = stats.get('unresolved', 0)
+                    rate = (resolved/total*100) if total > 0 else 0
+                    devs_list.append({'name': dev, 'total': total, 'resolved': resolved, 'unresolved': unresolved, 'rate': rate})
+        devs_list.sort(key=lambda x: x['total'], reverse=True)
+        devs_text = ''
+        for d in devs_list[:10]:
+            efficiency = "高效" if d['rate'] >= 80 else ("中等" if d['rate'] >= 50 else "待提升")
+            devs_text += f"- {d['name']}: {d['total']}个问题 (已解决{d['resolved']}, 未解决{d['unresolved']}, 解决率{d['rate']:.1f}%, 效率:{efficiency})\n"
+
+        # 研发效率排名
+        devs_by_rate = sorted(devs_list, key=lambda x: x['rate'], reverse=True)
+        high_eff = [d['name'] for d in devs_by_rate[:3] if d['total'] >= 3]
+        low_eff = [d['name'] for d in devs_by_rate[-3:] if d['total'] >= 3]
+
+        # 每日趋势（最近14天）
+        daily_text = ''
+        if isinstance(daily_stats, list) and len(daily_stats) > 0:
+            recent = daily_stats[-14:]
+            daily_text = f"最近{len(recent)}天趋势:\n"
+            for d in recent:
+                daily_text += f"- {d.get('date','')}: 新增{d.get('new_count',0)}, 解决{d.get('resolved_count',0)}\n"
+
+        prompt = f"""你是一位资深智能硬件质量管理专家，请基于以下CR问题分析数据生成专业、有深度的分析报告。
+
+## 一、整体概览
 - 总问题数: {summary.get('total_issues', 0)}
 - 已解决: {summary.get('resolved', 0)}
 - 未解决: {summary.get('unresolved', 0)}
 - 解决率: {summary.get('resolution_rate', 'N/A')}
-- 阻塞问题: {summary.get('blocker', 0)}
-- 严重问题: {summary.get('critical', 0)}
-- 主要问题: {summary.get('major', 0)}
-- 次要问题: {summary.get('minor', 0)}
-- 建议问题: {summary.get('trivial', 0)}
+- 阻塞问题(Blocker): {summary.get('blocker', 0)}
+- 严重问题(Critical): {summary.get('critical', 0)}
+- 主要问题(Major): {summary.get('major', 0)}
+- 次要问题(Minor): {summary.get('minor', 0)}
 
-## 模块统计 (Top 10)
-{modules_text or 'N/A'}
+## 二、模块问题分布 (Top 10，按问题数排序)
+{modules_text or '无数据'}
 
-## 研发人员统计 (Top 10)
-{devs_text or 'N/A'}
+## 三、研发人员效率分析 (Top 10，按问题数排序)
+{devs_text or '无数据'}
 
-请按以下格式输出分析：
-### 📊 总体评估
-### 🔍 根因分析
-### ⚠️ 高风险领域
-### 📈 趋势预测
-### 💡 改进建议
-请使用简洁专业的中文，避免空话套话。"""
+**研发效率排名:**
+- 高效研发(解决率≥80%且问题数≥3): {', '.join(high_eff) if high_eff else '无'}
+- 待提升研发(解决率低且问题数≥3): {', '.join(low_eff) if low_eff else '无'}
+
+## 四、每日趋势
+{daily_text or '无数据'}
+
+---
+
+请按以下结构输出深度分析，**必须基于上述真实数据，禁止编造数据或说数据缺失**：
+
+### 📊 一、整体质量评估
+基于总问题数、解决率、严重程度分布，评估当前项目整体质量状态。不要说"数据不足"，数据已经在上面给出。
+
+### 🔍 二、模块问题深度分析
+- 哪些模块问题最集中？可能的根因是什么？
+- 哪些模块未解决率高？风险是什么？
+- 模块之间是否存在关联性问题？
+
+### 👥 三、研发效率分析
+- 哪些研发效率高（解决率高）？值得总结的经验是什么？
+- 哪些研发效率待提升（解决率低或未解决多）？可能的原因和改进建议？
+- 问题分配是否均衡？是否存在某些研发负担过重？
+
+### ⚠️ 四、高风险与影响评估
+- 阻塞和严重问题的影响是什么？对版本发布、用户体验、稳定性的影响？
+- 哪些模块的未解决问题风险最高？
+- 如果不及时解决，可能导致什么后果？
+
+### 💡 五、具体改进建议
+给出可执行的改进措施，包括：
+- 模块层面：哪些模块需要重点投入资源？
+- 研发层面：如何提升低效研发的解决效率？
+- 流程层面：是否需要优化问题分配、跟踪、验证流程？
+- 优先级：接下来一周应该优先解决哪些问题？
+
+要求：
+1. 所有分析必须基于上面提供的真实数据，引用具体数字
+2. 禁止使用"数据不足"、"无法判断"等推脱性表述
+3. 语言专业、简洁，避免空话套话
+4. 重点突出模块问题和研发效率，这是用户最关心的"""
         messages = [{'role': 'user', 'content': prompt}]
         return Response(
-            stream_with_context(_call_ai_stream(messages, max_tokens=1500, temperature=0.3)),
+            stream_with_context(_call_ai_stream(messages, max_tokens=2500, temperature=0.3)),
             content_type='text/event-stream',
             headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'}
         )
