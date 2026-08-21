@@ -1,5 +1,6 @@
 """报告构建器模块 — 从 app.py 提取"""
 import re
+import json
 from datetime import datetime
 from excel_analyzers import _match_severity_level
 
