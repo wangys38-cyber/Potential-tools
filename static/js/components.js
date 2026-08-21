@@ -2456,10 +2456,10 @@ window.ToolboxPush = ToolboxPush;
         ToolboxTheme.init();
         var isHome = window.location.pathname === '/' || window.location.pathname === '/index';
         var isLogin = window.location.pathname === '/login';
-        // 自动注入导航栏（首页和登录页除外）
-        if (!isHome && !isLogin && !document.getElementById('tb-nav-bar')) {
-            ToolboxNav.init();
-        }
+        // 自动注入导航栏已禁用 - 所有页面使用 _navbar.html 的 pt-nav-bar 统一导航栏
+        // if (!isHome && !isLogin && !document.getElementById('tb-nav-bar')) {
+        //     ToolboxNav.init();
+        // }
         // v3.0: 初始化 AI 对话助手（全部页面）
         if (typeof ToolboxAIChat !== 'undefined' && !document.querySelector('.tb-aichat-fab')) {
             ToolboxAIChat.init();

@@ -100,6 +100,10 @@
         </div>
         <div id="analysis" style="display:none">
             <div class="stats-grid" id="statsGrid"></div>
+            <div class="conclusion-panel" id="conclusionPanel" style="display:none;background:linear-gradient(135deg,#f8f9ff,#fff);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">
+                <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">📋 分析结论</h3>
+                <div id="conclusionContent" style="font-size:14px;line-height:1.8;color:var(--text-primary);"></div>
+            </div>
             <div class="timeline">
                 <div class="timeline-title">异常类型分布</div>
                 <div class="timeline-bar" id="timelineBar"></div>
@@ -240,6 +244,7 @@
                     renderStats();
                     renderTimeline();
                     renderLogs();
+                    generateConclusion();
                 }
             }
             processBatch();
@@ -299,6 +304,122 @@
             return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
+        function generateConclusion() {
+            const panel = document.getElementById('conclusionPanel');
+            const content = document.getElementById('conclusionContent');
+            if (!panel || !content || allLogs.length === 0) {
+                if (panel) panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+
+            // 统计各类型数量
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+            const total = allLogs.length;
+
+            // 提取关键错误关键词
+            const keywordPatterns = {
+                'watchdog超时': /watchdog/i,
+                '内核panic': /kernel\s*panic|panic/i,
+                '硬件错误(HardFault)': /hardfault|busfault|memfault/i,
+                '内存溢出(OOM)': /out\s*of\s*memory|oom/i,
+                '内存泄漏': /memory\s*leak|leak/i,
+                'Malloc失败': /malloc\s*fail|alloc\s*fail/i,
+                '栈溢出': /stack\s*overflow/i,
+                '堆溢出': /heap\s*overflow/i,
+                '异常重启': /reboot|restart|reset/i,
+                '功耗异常': /power\s*consumption|battery\s*drain|sleep\s*current/i,
+                '断言失败': /assert/i,
+                '空指针': /null\s*pointer|nullptr/i,
+                '死锁': /deadlock/i,
+                '信号量超时': /semaphore|timeout/i,
+            };
+            const foundKeywords = [];
+            for (const [kw, regex] of Object.entries(keywordPatterns)) {
+                const count = allLogs.filter(l => regex.test(l.text)).length;
+                if (count > 0) foundKeywords.push({name: kw, count: count});
+            }
+            foundKeywords.sort((a, b) => b.count - a.count);
+
+            // 风险等级评估
+            let riskLevel = '低';
+            let riskColor = '#34c759';
+            if (counts.crash > 0 || counts.memory > 5) {
+                riskLevel = '高';
+                riskColor = '#ff3b30';
+            } else if (counts.reboot > 3 || counts.error > 20 || counts.power > 5) {
+                riskLevel = '中';
+                riskColor = '#ff9500';
+            }
+
+            // 生成问题点列表
+            let issuesHtml = '';
+            const issueList = [];
+            if (counts.crash > 0) {
+                const crashKeywords = foundKeywords.filter(k => /watchdog|panic|hardfault|busfault|memfault|assert|null|deadlock/i.test(k.name));
+                const crashDetail = crashKeywords.length > 0 ? '（主要表现：' + crashKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
+                issueList.push(`<li><strong style="color:#ff3b30;">💥 死机/崩溃问题：${counts.crash}条</strong>${crashDetail} — 属于严重问题，可能导致设备无法正常使用，需优先排查根因。</li>`);
+            }
+            if (counts.reboot > 0) {
+                issueList.push(`<li><strong style="color:#ff9500;">🔄 异常重启：${counts.reboot}次</strong> — 需确认是正常重启还是异常复位，检查重启前的日志是否有死机或电源异常。</li>`);
+            }
+            if (counts.memory > 0) {
+                const memKeywords = foundKeywords.filter(k => /内存|malloc|oom|leak|stack|heap/i.test(k.name));
+                const memDetail = memKeywords.length > 0 ? '（主要表现：' + memKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
+                issueList.push(`<li><strong style="color:#af52de;">💾 内存问题：${counts.memory}条</strong>${memDetail} — 可能存在内存泄漏或内存不足，需检查内存使用趋势和释放逻辑。</li>`);
+            }
+            if (counts.power > 0) {
+                issueList.push(`<li><strong style="color:#5ac8fa;">🔋 功耗异常：${counts.power}条</strong> — 需检查休眠电流、唤醒源和电源管理配置，可能影响电池续航。</li>`);
+            }
+            if (counts.error > 0) {
+                issueList.push(`<li><strong style="color:#ff9500;">❌ 通用错误：${counts.error}条</strong> — 占比${(counts.error/total*100).toFixed(1)}%，需查看具体错误类型和发生频率。</li>`);
+            }
+            if (counts.warning > 0) {
+                issueList.push(`<li><strong style="color:#ffcc00;">⚠️ 警告信息：${counts.warning}条</strong> — 占比${(counts.warning/total*100).toFixed(1)}%，部分警告可能是潜在问题的早期信号，建议关注。</li>`);
+            }
+
+            // 关键错误关键词
+            let keywordsHtml = '';
+            if (foundKeywords.length > 0) {
+                keywordsHtml = '<div style="margin-top:12px;"><strong>🔑 关键错误关键词：</strong><br>' +
+                    foundKeywords.slice(0, 8).map(k => `<span style="display:inline-block;background:#f0f0f5;padding:3px 10px;border-radius:12px;font-size:12px;margin:3px;">${k.name} ×${k.count}</span>`).join('') +
+                    '</div>';
+            }
+
+            // 改进建议
+            let suggestions = [];
+            if (counts.crash > 0) suggestions.push('优先排查死机/崩溃问题，抓取crash dump和复位原因寄存器，定位具体出错位置');
+            if (counts.memory > 0) suggestions.push('开启内存检测工具（如内存越界检测、内存泄漏追踪），检查malloc/free配对和缓冲区大小');
+            if (counts.reboot > 3) suggestions.push('记录重启前的最后日志，增加复位原因寄存器打印，区分正常复位和异常复位');
+            if (counts.power > 0) suggestions.push('使用功耗仪测量休眠电流，检查唤醒源配置和外设电源域管理');
+            if (total > 100) suggestions.push('日志量较大，建议增加日志分级输出，减少非关键信息打印，提升系统性能');
+            if (suggestions.length === 0) suggestions.push('当前日志异常较少，建议持续观察，定期检查日志趋势');
+
+            // 组装结论
+            content.innerHTML = `
+                <div style="margin-bottom:12px;">
+                    <strong>📊 总体评估：</strong>共检测到 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 条异常日志，风险等级：<strong style="color:${riskColor};">${riskLevel}</strong>
+                    ${counts.crash > 0 ? '，存在<strong style="color:#ff3b30;">死机/崩溃</strong>严重问题' : ''}
+                    ${counts.memory > 0 ? '，存在<strong style="color:#af52de;">内存异常</strong>' : ''}
+                </div>
+                <div style="margin-bottom:12px;">
+                    <strong>📋 问题点列表：</strong>
+                    <ul style="margin:8px 0;padding-left:20px;line-height:2;">
+                        ${issueList.join('')}
+                    </ul>
+                </div>
+                ${keywordsHtml}
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                    <strong>💡 改进建议：</strong>
+                    <ol style="margin:8px 0;padding-left:20px;line-height:1.8;">
+                        ${suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ol>
+                </div>
+            `;
+        }
+
         function analyzePastedLog() {
             const text = document.getElementById('pasteArea').value;
             if (!text.trim()) { showToast('请先粘贴日志内容', 'warning'); return; }
@@ -315,13 +436,33 @@
             if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
             if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
             const lines = filtered.map(l => `[${l.label}] L${l.line}: ${l.text}`);
-            const header = `日志分析报告\n生成时间: ${new Date().toLocaleString()}\n异常总数: ${allLogs.length}\n导出条数: ${filtered.length}\n${'='.repeat(60)}\n\n`;
+
+            // 统计摘要
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+
+            const conclusionText = `
+=== 分析结论 ===
+异常总数: ${allLogs.length}
+各类型统计:
+  - 死机/崩溃: ${counts.crash}条
+  - 异常重启: ${counts.reboot}次
+  - 内存问题: ${counts.memory}条
+  - 功耗异常: ${counts.power}条
+  - 通用错误: ${counts.error}条
+  - 警告信息: ${counts.warning}条
+
+风险等级: ${counts.crash > 0 || counts.memory > 5 ? '高' : (counts.reboot > 3 || counts.error > 20 ? '中' : '低')}
+
+`;
+            const header = `日志分析报告\n生成时间: ${new Date().toLocaleString()}\n${'='.repeat(60)}\n${conclusionText}=== 异常日志详情 (共${filtered.length}条) ===\n\n`;
             const blob = new Blob([header + lines.join('\n')], {type: 'text/plain;charset=utf-8'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = `log_analysis_${Date.now()}.txt`;
             a.click(); URL.revokeObjectURL(url);
-            showToast('已导出 ' + filtered.length + ' 条日志', 'success');
+            showToast('已导出 ' + filtered.length + ' 条日志（含分析结论）', 'success');
         }
 
         function resetUpload() {
