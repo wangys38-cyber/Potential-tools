@@ -190,20 +190,59 @@
         function analyzeLog(text) {
             const lines = text.split(/\r?\n/);
             allLogs = [];
-            lines.forEach((line, idx) => {
-                if (!line.trim()) return;
-                for (const [type, pat] of Object.entries(PATTERNS)) {
-                    if (pat.regex.test(line)) {
-                        allLogs.push({line: idx+1, text: line.trim(), type: type, label: pat.label, icon: pat.icon});
-                        break;
-                    }
+            const totalLines = lines.length;
+            // 大文件提示
+            if (totalLines > 50000) {
+                if (!confirm(`日志文件较大（${totalLines}行），分析可能需要较长时间。是否继续？`)) {
+                    resetUpload();
+                    return;
                 }
-            });
+            }
+            // 显示进度
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('analysis').style.display = 'block';
-            renderStats();
-            renderTimeline();
-            renderLogs();
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'analyzeProgress';
+            progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--text-secondary);';
+            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">⏳ 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.2s;"></div></div>`;
+            document.getElementById('logContent').innerHTML = '';
+            document.getElementById('logContent').appendChild(progressDiv);
+
+            // 分批处理，每批2000行，避免阻塞UI
+            const BATCH_SIZE = 2000;
+            let idx = 0;
+            const patternList = Object.entries(PATTERNS);
+
+            function processBatch() {
+                const end = Math.min(idx + BATCH_SIZE, totalLines);
+                for (; idx < end; idx++) {
+                    const line = lines[idx];
+                    if (!line || !line.trim()) continue;
+                    for (const [type, pat] of patternList) {
+                        if (pat.regex.test(line)) {
+                            allLogs.push({line: idx+1, text: line.trim(), type: type, label: pat.label, icon: pat.icon});
+                            break;
+                        }
+                    }
+                }
+                // 更新进度
+                const bar = document.getElementById('progressBar');
+                if (bar) bar.style.width = (idx / totalLines * 100) + '%';
+                const progressText = progressDiv.querySelector('div:nth-child(2)');
+                if (progressText) progressText.textContent = `已处理 ${idx} / ${totalLines} 行（发现 ${allLogs.length} 条异常）`;
+
+                if (idx < totalLines) {
+                    // 让出主线程，避免卡顿
+                    setTimeout(processBatch, 0);
+                } else {
+                    // 分析完成
+                    progressDiv.remove();
+                    renderStats();
+                    renderTimeline();
+                    renderLogs();
+                }
+            }
+            processBatch();
         }
 
         function renderStats() {
@@ -240,13 +279,25 @@
             let filtered = allLogs;
             if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
             if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
-            document.getElementById('logCount').textContent = `显示 ${filtered.length} / ${allLogs.length} 条`;
-            document.getElementById('logContent').innerHTML = filtered.length ? filtered.map(l =>
-                `<div class="log-line ${l.type}"><span class="log-tag ${l.type}">${l.icon} ${l.label}</span><span style="color:var(--text-secondary);margin-right:8px">L${l.line}</span>${escapeHtml(l.text)}</div>`
-            ).join('') : '<div style="text-align:center;padding:40px;color:var(--text-secondary)">无匹配日志</div>';
+            const MAX_RENDER = 500;
+            const displayCount = Math.min(filtered.length, MAX_RENDER);
+            document.getElementById('logCount').textContent = `显示 ${displayCount} / ${filtered.length} 条${filtered.length > MAX_RENDER ? '（仅显示前500条，请使用筛选缩小范围）' : ''}`;
+            if (filtered.length === 0) {
+                document.getElementById('logContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">无匹配日志</div>';
+                return;
+            }
+            // 只渲染前MAX_RENDER条，避免DOM过大卡顿
+            let html = '';
+            for (let i = 0; i < displayCount; i++) {
+                const l = filtered[i];
+                html += `<div class="log-line ${l.type}"><span class="log-tag ${l.type}">${l.icon} ${l.label}</span><span style="color:var(--text-secondary);margin-right:8px">L${l.line}</span>${escapeHtml(l.text)}</div>`;
+            }
+            document.getElementById('logContent').innerHTML = html;
         }
 
-        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
 
         function analyzePastedLog() {
             const text = document.getElementById('pasteArea').value;
@@ -255,7 +306,6 @@
             document.getElementById('fileSize').textContent = (text.length / 1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
             analyzeLog(text);
-            showToast('分析完成，共 ' + allLogs.length + ' 条异常', 'success');
         }
 
         function exportLogs() {

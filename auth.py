@@ -52,6 +52,31 @@ if not SESSION_SECRET or SESSION_SECRET == 'default_secret_change_me':
     )
 ALLOW_GUEST = os.environ.get('ALLOW_GUEST', 'true').lower() in ('1', 'true', 'yes') or _config.get('allow_guest', True)
 
+# 访客白名单：仅允许访问这些路径（CR分析功能 + 登录/静态资源/健康检查）
+GUEST_ALLOWED_PATHS = [
+    '/',                    # 首页
+    '/login',               # 登录页
+    '/excel-analysis',      # CR分析页面
+    '/auth/',               # 认证回调（飞书/Google）
+    '/static/',             # 静态资源
+    '/health',              # 健康检查
+    '/api/excel-analyze',   # CR分析API（前缀匹配）
+    '/api/task-status',     # 分析任务状态
+    '/api/upload-init',     # 分片上传-初始化
+    '/api/upload-chunk',    # 分片上传-上传块
+    '/api/upload-complete', # 分片上传-完成
+]
+
+
+def is_guest_allowed(path):
+    """检查访客是否允许访问该路径"""
+    if not ALLOW_GUEST:
+        return False
+    for allowed in GUEST_ALLOWED_PATHS:
+        if path == allowed or path.startswith(allowed + '/') or path.startswith(allowed + '?'):
+            return True
+    return False
+
 FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
 FEISHU_APP_SECRET = os.environ.get('FEISHU_APP_SECRET', _config.get('feishu', {}).get('app_secret', ''))
 FEISHU_REDIRECT_URI = os.environ.get('FEISHU_REDIRECT_URI', _config.get('feishu', {}).get('redirect_uri', ''))
