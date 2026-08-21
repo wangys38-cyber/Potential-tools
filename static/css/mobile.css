@@ -194,12 +194,80 @@
     border-color: rgba(255, 255, 255, 0.1);
     color: #f0f0f2;
 }
-[data-theme="dark"] .pt-nav-icon-btn:hover { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .pt-nav-icon-btn:hover { background: rgba(255, 255, 255, 0.12); }
 [data-theme="dark"] .pt-nav-user-name { color: #f0f0f2; }
 [data-theme="dark"] .pt-nav-logout {
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(255, 255, 255, 0.1);
     color: #9b9ba3;
+}
+[data-theme="dark"] .pt-nav-logout:hover {
+    background: rgba(255, 69, 58, 0.15);
+    color: #ff453a;
+    border-color: rgba(255, 69, 58, 0.3);
+}
+[data-theme="dark"] .pt-nav-home {
+    background: #f0f0f2;
+    color: #1a1a1a;
+}
+[data-theme="dark"] .pt-nav-home:hover {
+    background: #fff;
+}
+[data-theme="dark"] .pt-nav-avatar {
+    background: #f0f0f2;
+}
+[data-theme="dark"] .pt-nav-avatar-letter {
+    color: #1a1a1a;
+}
+[data-theme="dark"] .pt-nav-login {
+    background: #f0f0f2;
+    color: #1a1a1a !important;
+}
+[data-theme="dark"] .pt-nav-login:hover {
+    background: #fff;
+}
+
+/* 暗色主题用户信息编辑弹窗 */
+[data-theme="dark"] #ptUserModal > div {
+    background: #2c2c30 !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] #ptUserModal h3 {
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] #ptUserModal input[type="text"],
+[data-theme="dark"] #ptUserModal input[type="email"] {
+    background: #1a1a1e !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] #ptUserModal input[readonly] {
+    background: #242428 !important;
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] #ptUserModal label {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] #ptUserModal button[onclick="PTNav.closeUserModal()"] {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] #ptUserModal button[onclick="PTNav.closeUserModal()"]:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] #ptUserModal label[for="ptAvatarInput"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] #ptUserModal label[for="ptAvatarInput"]:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+[data-theme="dark"] #ptUserModal button:first-of-type {
+    background: transparent !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] #ptUserModal button:first-of-type:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* ==================== 全局移动端适配 ==================== */
@@ -559,6 +627,237 @@
         padding-bottom: env(safe-area-inset-bottom);
     }
 }
+
+/* ==================== 全局暗黑模式基础样式 ==================== */
+[data-theme="dark"] body {
+    background: #1a1a1e !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .container,
+[data-theme="dark"] .page-wrap,
+[data-theme="dark"] .main-content {
+    background: #1a1a1e !important;
+}
+[data-theme="dark"] .card,
+[data-theme="dark"] .tool-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .box {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] div {
+    color: inherit;
+}
+[data-theme="dark"] a {
+    color: #a78bfa !important;
+}
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background: #242428 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: #6b6b73 !important;
+}
+[data-theme="dark"] button {
+    color: inherit;
+}
+[data-theme="dark"] .btn,
+[data-theme="dark"] .button {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .button-primary {
+    background: #a78bfa !important;
+    color: #1a1a1e !important;
+    border-color: #a78bfa !important;
+}
+[data-theme="dark"] table {
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] th {
+    background: #242428 !important;
+    color: #9b9ba3 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] td {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] tr:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .muted,
+[data-theme="dark"] .secondary {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] .border,
+[data-theme="dark"] hr {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .badge,
+[data-theme="dark"] .tag,
+[data-theme="dark"] .label {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .dialog {
+    background: #2c2c30 !important;
+    color: #f0f0f2 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .close {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .menu {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .menu-item:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme="dark"] .progress {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .progress-bar {
+    background: #a78bfa !important;
+}
+[data-theme="dark"] .alert,
+[data-theme="dark"] .toast {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .code,
+[data-theme="dark"] pre,
+[data-theme="dark"] code {
+    background: #1a1a1e !important;
+    color: #e0e0e0 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .form-control {
+    background: #242428 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .form-control:focus {
+    border-color: #a78bfa !important;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15) !important;
+}
+[data-theme="dark"] .form-label,
+[data-theme="dark"] label {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] .list-group-item {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .list-group-item:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+[data-theme="dark"] .nav-tabs .nav-link {
+    color: #9b9ba3 !important;
+    border-color: transparent !important;
+}
+[data-theme="dark"] .nav-tabs .nav-link.active {
+    background: #2c2c30 !important;
+    color: #f0f0f2 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .pagination .page-link {
+    background: #2c2c30 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .pagination .page-item.active .page-link {
+    background: #a78bfa !important;
+    border-color: #a78bfa !important;
+    color: #1a1a1e !important;
+}
+[data-theme="dark"] .breadcrumb {
+    background: transparent !important;
+}
+[data-theme="dark"] .breadcrumb-item + .breadcrumb-item::before {
+    color: #6b6b73 !important;
+}
+[data-theme="dark"] .breadcrumb-item a {
+    color: #a78bfa !important;
+}
+[data-theme="dark"] .breadcrumb-item.active {
+    color: #9b9ba3 !important;
+}
+[data-theme="dark"] .carousel-caption {
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .jumbotron {
+    background: #2c2c30 !important;
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer {
+    background: #242428 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .table {
+    color: #f0f0f2 !important;
+}
+[data-theme="dark"] .table thead th {
+    background: #242428 !important;
+    color: #9b9ba3 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .table tbody td {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+[data-theme="dark"] .table-hover tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+[data-theme="dark"] .text-primary { color: #a78bfa !important; }
+[data-theme="dark"] .text-success { color: #30d158 !important; }
+[data-theme="dark"] .text-warning { color: #ffd60a !important; }
+[data-theme="dark"] .text-danger { color: #ff453a !important; }
+[data-theme="dark"] .text-info { color: #64d2ff !important; }
+[data-theme="dark"] .bg-primary { background-color: #a78bfa !important; }
+[data-theme="dark"] .bg-success { background-color: #30d158 !important; }
+[data-theme="dark"] .bg-warning { background-color: #ffd60a !important; }
+[data-theme="dark"] .bg-danger { background-color: #ff453a !important; }
+[data-theme="dark"] .bg-info { background-color: #64d2ff !important; }
+[data-theme="dark"] .bg-light { background-color: #242428 !important; }
+[data-theme="dark"] .bg-dark { background-color: #1a1a1e !important; }
+[data-theme="dark"] .border-primary { border-color: #a78bfa !important; }
+[data-theme="dark"] .border-success { border-color: #30d158 !important; }
+[data-theme="dark"] .border-warning { border-color: #ffd60a !important; }
+[data-theme="dark"] .border-danger { border-color: #ff453a !important; }
+[data-theme="dark"] .border-info { border-color: #64d2ff !important; }
 
 /* ==================== 协作组件样式 ==================== */
 .pt-collab-btn {
