@@ -9,20 +9,20 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
         .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
         .container { max-width: 900px; margin: 24px auto; padding: 0 20px; }
         .progress-bar { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid var(--border); }
         .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .progress-text { font-size: 14px; font-weight: 600; }
-        .progress-percent { font-size: 24px; font-weight: 700; background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .progress-percent { font-size: 24px; font-weight: 700; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg,#4f46e5,#7c3aed); border-radius: 4px; transition: width 0.5s ease; }
+        .progress-fill { height: 100%; background: #fff; border-radius: 4px; transition: width 0.5s ease; }
         .stage-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
         .stage-tab { padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-        .stage-tab.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .stage-tab.active { background: #1d1d1f; color: #fff; border-color: transparent; }
         .stage-tab .stage-count { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); }
         .stage-tab.active .stage-count { background: rgba(255,255,255,0.2); }
         .checklist { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
@@ -39,7 +39,7 @@
         .check-item.checked .check-item-title { text-decoration: line-through; color: var(--text-secondary); }
         .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; }
-        .btn-primary { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border: none; }
+        .btn-primary { background: #1d1d1f; color: #fff; border: none; }
         .btn:hover { transform: translateY(-1px); }
         .version-input { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
         .version-input label { font-size: 14px; color: var(--text-secondary); }
@@ -54,6 +54,7 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

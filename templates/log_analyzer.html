@@ -1,17 +1,17 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日志分析器</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <title>鏃ュ織鍒嗘瀽鍣?/title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>馃攳</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
         .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
         .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
@@ -35,7 +35,7 @@
         .stat-card.error .stat-value { color: #f97316; }
         .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
         .filter-btn { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 13px; transition: all 0.2s; }
-        .filter-btn.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .filter-btn.active { background: #1d1d1f; color: #fff; border-color: transparent; }
         .search-box { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
         .log-panel { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
         .log-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
@@ -73,74 +73,88 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
     <div class="container">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-zone-icon">📄</div>
-            <div class="upload-zone-text">点击或拖拽上传日志文件</div>
-            <div class="upload-zone-hint">支持 .log / .txt / .zip（自动解压zip中的日志文件），自动识别死机、重启、内存、功耗、错误等异常</div>
+            <div class="upload-zone-icon">馃搫</div>
+            <div class="upload-zone-text">鐐瑰嚮鎴栨嫋鎷戒笂浼犳棩蹇楁枃浠?/div>
+            <div class="upload-zone-hint">鏀寔 .log / .txt / .zip锛堣嚜鍔ㄨВ鍘媧ip涓殑鏃ュ織鏂囦欢锛夛紝鑷姩璇嗗埆姝绘満銆侀噸鍚€佸唴瀛樸€佸姛鑰椼€侀敊璇瓑寮傚父</div>
             <input type="file" id="fileInput" accept=".log,.txt,.zip" style="display:none" onchange="handleFile(this.files[0])">
         </div>
-        <div style="text-align:center;margin:12px 0;color:var(--text-secondary);font-size:13px;">或</div>
+        <div style="text-align:center;margin:12px 0;color:var(--text-secondary);font-size:13px;">鎴?/div>
         <div class="paste-section" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">
-            <div style="font-size:14px;font-weight:600;margin-bottom:10px;">📋 粘贴日志内容</div>
-            <textarea id="pasteArea" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);color:var(--text-primary);font-family:monospace;font-size:12px;resize:vertical;" placeholder="在此粘贴设备日志内容，支持多行..."></textarea>
+            <div style="font-size:14px;font-weight:600;margin-bottom:10px;">馃搵 绮樿创鏃ュ織鍐呭</div>
+            <textarea id="pasteArea" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-secondary);color:var(--text-primary);font-family:monospace;font-size:12px;resize:vertical;" placeholder="鍦ㄦ绮樿创璁惧鏃ュ織鍐呭锛屾敮鎸佸琛?.."></textarea>
             <div style="margin-top:10px;display:flex;gap:8px;">
-                <button class="action-btn" onclick="analyzePastedLog()" style="flex:1;">🔍 分析粘贴内容</button>
-                <button class="action-btn" onclick="document.getElementById('pasteArea').value=''" style="flex:0 0 auto;">清空</button>
+                <button class="action-btn" onclick="analyzePastedLog()" style="flex:1;">馃攳 鍒嗘瀽绮樿创鍐呭</button>
+                <button class="action-btn" onclick="document.getElementById('pasteArea').value=''" style="flex:0 0 auto;">娓呯┖</button>
             </div>
         </div>
         <div id="fileInfo" style="display:none" class="file-info">
             <span id="fileName" class="file-info-name"></span>
             <span id="fileSize" style="font-size:12px;color:var(--text-secondary)"></span>
-            <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
+            <button class="file-info-btn" onclick="resetUpload()">閲嶆柊涓婁紶</button>
         </div>
         <div id="analysis" style="display:none">
             <div class="stats-grid" id="statsGrid"></div>
-            <div class="conclusion-panel" id="conclusionPanel" style="display:none;background:linear-gradient(135deg,#f8f9ff,#fff);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">
-                <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;">📋 分析结论</h3>
+            <div class="conclusion-panel" id="conclusionPanel" style="display:none;background: #fff;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                    <h3 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">馃搵 鍒嗘瀽缁撹</h3>
+                    <button id="aiAnalyzeBtn" class="action-btn" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;background:#000;color:#fff;border:none;border-radius:8px;cursor:pointer;">馃 AI 鏅鸿兘鍒嗘瀽</button>
+                </div>
                 <div id="conclusionContent" style="font-size:14px;line-height:1.8;color:var(--text-primary);"></div>
+                <div id="aiResultSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                        <h4 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;">馃 AI 娣卞害鍒嗘瀽</h4>
+                        <div style="display:flex;gap:6px;">
+                            <button class="action-btn" onclick="copyAiResult()" style="padding:4px 10px;font-size:12px;background:#000;color:#fff;border:none;border-radius:6px;cursor:pointer;">馃搵 澶嶅埗</button>
+                            <button class="action-btn" onclick="runAiAnalyze()" style="padding:4px 10px;font-size:12px;background:#000;color:#fff;border:none;border-radius:6px;cursor:pointer;">馃攧 閲嶆柊鐢熸垚</button>
+                        </div>
+                    </div>
+                    <div id="aiResultContent" style="font-size:13px;line-height:1.8;color:var(--text-primary);background:var(--bg-card);padding:14px;border-radius:10px;border:1px solid var(--border);white-space:pre-wrap;word-break:break-word;"></div>
+                </div>
             </div>
             <div class="timeline">
-                <div class="timeline-title">异常类型分布</div>
+                <div class="timeline-title">寮傚父绫诲瀷鍒嗗竷</div>
                 <div class="timeline-bar" id="timelineBar"></div>
             </div>
             <div class="filters">
-                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">全部</button>
-                <button class="filter-btn" data-filter="crash" onclick="setFilter('crash')">💥 死机</button>
-                <button class="filter-btn" data-filter="reboot" onclick="setFilter('reboot')">🔄 重启</button>
-                <button class="filter-btn" data-filter="memory" onclick="setFilter('memory')">💾 内存</button>
-                <button class="filter-btn" data-filter="power" onclick="setFilter('power')">🔋 功耗</button>
-                <button class="filter-btn" data-filter="error" onclick="setFilter('error')">❌ 错误</button>
-                <button class="filter-btn" data-filter="warning" onclick="setFilter('warning')">⚠️ 警告</button>
-                <input type="text" class="search-box" id="searchBox" placeholder="搜索日志内容..." oninput="renderLogs()">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">鍏ㄩ儴</button>
+                <button class="filter-btn" data-filter="crash" onclick="setFilter('crash')">馃挜 姝绘満</button>
+                <button class="filter-btn" data-filter="reboot" onclick="setFilter('reboot')">馃攧 閲嶅惎</button>
+                <button class="filter-btn" data-filter="memory" onclick="setFilter('memory')">馃捑 鍐呭瓨</button>
+                <button class="filter-btn" data-filter="power" onclick="setFilter('power')">馃攱 鍔熻€?/button>
+                <button class="filter-btn" data-filter="error" onclick="setFilter('error')">鉂?閿欒</button>
+                <button class="filter-btn" data-filter="warning" onclick="setFilter('warning')">鈿狅笍 璀﹀憡</button>
+                <input type="text" class="search-box" id="searchBox" placeholder="鎼滅储鏃ュ織鍐呭..." oninput="renderLogs()">
             </div>
             <div class="log-panel">
                 <div class="log-header">
-                    <span class="log-title">异常日志</span>
+                    <span class="log-title">寮傚父鏃ュ織</span>
                     <span class="log-count" id="logCount"></span>
-                    <button class="action-btn" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="exportLogs()">📥 导出</button>
+                    <button class="action-btn" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="exportLogs()">馃摜 瀵煎嚭</button>
                 </div>
                 <div class="log-content" id="logContent"></div>
             </div>
         </div>
         <div id="emptyState" class="empty-state">
-            <div class="empty-state-icon">🔍</div>
-            <p>上传设备日志后自动分析异常</p>
+            <div class="empty-state-icon">馃攳</div>
+            <p>涓婁紶璁惧鏃ュ織鍚庤嚜鍔ㄥ垎鏋愬紓甯?/p>
         </div>
     </div>
     <script>
         let allLogs = [], currentFilter = 'all';
         const PATTERNS = {
-            crash: {regex: /(panic|fatal|kernel\s*panic|watchdog|hardfault|busfault|memfault|死机|crash|abort)/i, label: '死机', icon: '💥'},
-            reboot: {regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启)/i, label: '重启', icon: '🔄'},
-            memory: {regex: /(memory\s*leak|out\s*of\s*memory|oom|heap\s*overflow|stack\s*overflow|malloc\s*fail|内存|泄漏)/i, label: '内存', icon: '💾'},
-            power: {regex: /(power\s*consumption|battery\s*drain|low\s*battery|sleep\s*current|battery\s*level|battery\s*percentage|battery\s*capacity|battery\s*voltage|battery\s*current|charging|discharging|charge\s*level|power\s*management|pmic|功耗|掉电|漏电|电流异常|电量|耗电|电池|充电|放电|电流|电压|续航|掉电快|耗电快|电量低|电池电量)/i, label: '功耗', icon: '🔋'},
-            error: {regex: /(\berror\b|exception|assert|fail|failed|fault|错误|异常)/i, label: '错误', icon: '❌'},
-            warning: {regex: /(\bwarn\b|warning|deprecated|注意|警告)/i, label: '警告', icon: '⚠️'},
+            crash: {regex: /(panic|fatal|kernel\s*panic|watchdog|hardfault|busfault|memfault|姝绘満|crash|abort)/i, label: '姝绘満', icon: '馃挜'},
+            reboot: {regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|閲嶅惎)/i, label: '閲嶅惎', icon: '馃攧'},
+            memory: {regex: /(memory\s*leak|out\s*of\s*memory|oom|heap\s*overflow|stack\s*overflow|malloc\s*fail|鍐呭瓨|娉勬紡)/i, label: '鍐呭瓨', icon: '馃捑'},
+            power: {regex: /(power\s*consumption|battery\s*drain|low\s*battery|sleep\s*current|battery\s*level|battery\s*percentage|battery\s*capacity|battery\s*voltage|battery\s*current|charging|discharging|charge\s*level|power\s*management|pmic|鍔熻€梶鎺夌數|婕忕數|鐢垫祦寮傚父|鐢甸噺|鑰楃數|鐢垫睜|鍏呯數|鏀剧數|鐢垫祦|鐢靛帇|缁埅|鎺夌數蹇珅鑰楃數蹇珅鐢甸噺浣巪鐢垫睜鐢甸噺)/i, label: '鍔熻€?, icon: '馃攱'},
+            error: {regex: /(\berror\b|exception|assert|fail|failed|fault|閿欒|寮傚父)/i, label: '閿欒', icon: '鉂?},
+            warning: {regex: /(\bwarn\b|warning|deprecated|娉ㄦ剰|璀﹀憡)/i, label: '璀﹀憡', icon: '鈿狅笍'},
         };
 
         const uploadZone = document.getElementById('uploadZone');
@@ -150,7 +164,7 @@
 
         async function handleFile(file) {
             if (!file) return;
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileName').textContent = '馃搫 ' + file.name;
             document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
 
@@ -158,11 +172,11 @@
 
             if (isZip) {
                 if (typeof JSZip === 'undefined') {
-                    alert('JSZip库未加载，请刷新页面重试');
+                    alert('JSZip搴撴湭鍔犺浇锛岃鍒锋柊椤甸潰閲嶈瘯');
                     return;
                 }
                 try {
-                    document.getElementById('fileName').textContent = '📦 ' + file.name + ' (解压中...)';
+                    document.getElementById('fileName').textContent = '馃摝 ' + file.name + ' (瑙ｅ帇涓?..)';
                     const zip = await JSZip.loadAsync(file);
                     const logFiles = [];
                     zip.forEach((relativePath, zipEntry) => {
@@ -171,7 +185,7 @@
                         }
                     });
                     if (logFiles.length === 0) {
-                        alert('ZIP文件中未找到 .log 或 .txt 文件');
+                        alert('ZIP鏂囦欢涓湭鎵惧埌 .log 鎴?.txt 鏂囦欢');
                         return;
                     }
                     let allContent = '';
@@ -179,10 +193,10 @@
                         const content = await lf.entry.async('string');
                         allContent += `\n===== ${lf.path} =====\n` + content + '\n';
                     }
-                    document.getElementById('fileName').textContent = '📦 ' + file.name + ` (${logFiles.length}个日志文件)`;
+                    document.getElementById('fileName').textContent = '馃摝 ' + file.name + ` (${logFiles.length}涓棩蹇楁枃浠?`;
                     analyzeLog(allContent);
                 } catch (e) {
-                    alert('ZIP解压失败: ' + e.message);
+                    alert('ZIP瑙ｅ帇澶辫触: ' + e.message);
                 }
             } else {
                 const reader = new FileReader();
@@ -195,24 +209,24 @@
             const lines = text.split(/\r?\n/);
             allLogs = [];
             const totalLines = lines.length;
-            // 大文件提示
+            // 澶ф枃浠舵彁绀?
             if (totalLines > 50000) {
-                if (!confirm(`日志文件较大（${totalLines}行），分析可能需要较长时间。是否继续？`)) {
+                if (!confirm(`鏃ュ織鏂囦欢杈冨ぇ锛?{totalLines}琛岋級锛屽垎鏋愬彲鑳介渶瑕佽緝闀挎椂闂淬€傛槸鍚︾户缁紵`)) {
                     resetUpload();
                     return;
                 }
             }
-            // 显示进度
+            // 鏄剧ず杩涘害
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('analysis').style.display = 'block';
             const progressDiv = document.createElement('div');
             progressDiv.id = 'analyzeProgress';
             progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--text-secondary);';
-            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">⏳ 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.2s;"></div></div>`;
+            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">鈴?姝ｅ湪鍒嗘瀽鏃ュ織...</div><div style="font-size:13px;">宸插鐞?0 / ${totalLines} 琛?/div><div style="width:60%;margin:16px auto;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background: #fff;transition:width 0.2s;"></div></div>`;
             document.getElementById('logContent').innerHTML = '';
             document.getElementById('logContent').appendChild(progressDiv);
 
-            // 分批处理，每批2000行，避免阻塞UI
+            // 鍒嗘壒澶勭悊锛屾瘡鎵?000琛岋紝閬垮厤闃诲UI
             const BATCH_SIZE = 2000;
             let idx = 0;
             const patternList = Object.entries(PATTERNS);
@@ -229,17 +243,17 @@
                         }
                     }
                 }
-                // 更新进度
+                // 鏇存柊杩涘害
                 const bar = document.getElementById('progressBar');
                 if (bar) bar.style.width = (idx / totalLines * 100) + '%';
                 const progressText = progressDiv.querySelector('div:nth-child(2)');
-                if (progressText) progressText.textContent = `已处理 ${idx} / ${totalLines} 行（发现 ${allLogs.length} 条异常）`;
+                if (progressText) progressText.textContent = `宸插鐞?${idx} / ${totalLines} 琛岋紙鍙戠幇 ${allLogs.length} 鏉″紓甯革級`;
 
                 if (idx < totalLines) {
-                    // 让出主线程，避免卡顿
+                    // 璁╁嚭涓荤嚎绋嬶紝閬垮厤鍗￠】
                     setTimeout(processBatch, 0);
                 } else {
-                    // 分析完成
+                    // 鍒嗘瀽瀹屾垚
                     progressDiv.remove();
                     renderStats();
                     renderTimeline();
@@ -256,7 +270,7 @@
             allLogs.forEach(l => counts[l.type]++);
             const total = allLogs.length;
             document.getElementById('statsGrid').innerHTML =
-                `<div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${total}</div><div class="stat-label">异常总数</div></div>` +
+                `<div class="stat-card"><div class="stat-icon">馃搳</div><div class="stat-value">${total}</div><div class="stat-label">寮傚父鎬绘暟</div></div>` +
                 Object.entries(PATTERNS).map(([t,p]) =>
                     `<div class="stat-card ${t}"><div class="stat-icon">${p.icon}</div><div class="stat-value">${counts[t]}</div><div class="stat-label">${p.label}</div></div>`
                 ).join('');
@@ -286,12 +300,12 @@
             if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
             const MAX_RENDER = 500;
             const displayCount = Math.min(filtered.length, MAX_RENDER);
-            document.getElementById('logCount').textContent = `显示 ${displayCount} / ${filtered.length} 条${filtered.length > MAX_RENDER ? '（仅显示前500条，请使用筛选缩小范围）' : ''}`;
+            document.getElementById('logCount').textContent = `鏄剧ず ${displayCount} / ${filtered.length} 鏉?{filtered.length > MAX_RENDER ? '锛堜粎鏄剧ず鍓?00鏉★紝璇蜂娇鐢ㄧ瓫閫夌缉灏忚寖鍥达級' : ''}`;
             if (filtered.length === 0) {
-                document.getElementById('logContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">无匹配日志</div>';
+                document.getElementById('logContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">鏃犲尮閰嶆棩蹇?/div>';
                 return;
             }
-            // 只渲染前MAX_RENDER条，避免DOM过大卡顿
+            // 鍙覆鏌撳墠MAX_RENDER鏉★紝閬垮厤DOM杩囧ぇ鍗￠】
             let html = '';
             for (let i = 0; i < displayCount; i++) {
                 const l = filtered[i];
@@ -313,105 +327,105 @@
             }
             panel.style.display = 'block';
 
-            // 统计各类型数量
+            // 缁熻鍚勭被鍨嬫暟閲?
             const counts = {};
             Object.keys(PATTERNS).forEach(t => counts[t] = 0);
             allLogs.forEach(l => counts[l.type]++);
             const total = allLogs.length;
 
-            // 提取具体问题并聚合
+            // 鎻愬彇鍏蜂綋闂骞惰仛鍚?
             const issueExtractors = [
                 {
-                    name: '死机/崩溃',
+                    name: '姝绘満/宕╂簝',
                     type: 'crash',
                     color: '#ff3b30',
-                    icon: '💥',
+                    icon: '馃挜',
                     patterns: [
-                        {regex: /watchdog.*?timeout|watchdog.*?reset/i, label: '看门狗超时复位'},
-                        {regex: /kernel\s*panic|panic/i, label: '内核Panic'},
-                        {regex: /hardfault|hard\s*fault/i, label: '硬件错误(HardFault)'},
-                        {regex: /busfault|bus\s*fault/i, label: '总线错误(BusFault)'},
-                        {regex: /memfault|mem\s*fault/i, label: '内存管理错误(MemFault)'},
-                        {regex: /assert.*?fail|assertion.*?fail/i, label: '断言失败'},
-                        {regex: /null\s*pointer|nullptr/i, label: '空指针异常'},
-                        {regex: /deadlock/i, label: '死锁'},
-                        {regex: /abort/i, label: '程序中止(Abort)'},
-                        {regex: /死机|崩溃/i, label: '死机/崩溃'},
+                        {regex: /watchdog.*?timeout|watchdog.*?reset/i, label: '鐪嬮棬鐙楄秴鏃跺浣?},
+                        {regex: /kernel\s*panic|panic/i, label: '鍐呮牳Panic'},
+                        {regex: /hardfault|hard\s*fault/i, label: '纭欢閿欒(HardFault)'},
+                        {regex: /busfault|bus\s*fault/i, label: '鎬荤嚎閿欒(BusFault)'},
+                        {regex: /memfault|mem\s*fault/i, label: '鍐呭瓨绠＄悊閿欒(MemFault)'},
+                        {regex: /assert.*?fail|assertion.*?fail/i, label: '鏂█澶辫触'},
+                        {regex: /null\s*pointer|nullptr/i, label: '绌烘寚閽堝紓甯?},
+                        {regex: /deadlock/i, label: '姝婚攣'},
+                        {regex: /abort/i, label: '绋嬪簭涓(Abort)'},
+                        {regex: /姝绘満|宕╂簝/i, label: '姝绘満/宕╂簝'},
                     ]
                 },
                 {
-                    name: '异常重启',
+                    name: '寮傚父閲嶅惎',
                     type: 'reboot',
                     color: '#ff9500',
-                    icon: '🔄',
+                    icon: '馃攧',
                     patterns: [
-                        {regex: /reboot|restart/i, label: '系统重启'},
-                        {regex: /reset|warm\s*boot|cold\s*boot/i, label: '系统复位'},
-                        {regex: /shutdown|power\s*on/i, label: '关机/上电'},
-                        {regex: /重启|复位/i, label: '重启/复位'},
+                        {regex: /reboot|restart/i, label: '绯荤粺閲嶅惎'},
+                        {regex: /reset|warm\s*boot|cold\s*boot/i, label: '绯荤粺澶嶄綅'},
+                        {regex: /shutdown|power\s*on/i, label: '鍏虫満/涓婄數'},
+                        {regex: /閲嶅惎|澶嶄綅/i, label: '閲嶅惎/澶嶄綅'},
                     ]
                 },
                 {
-                    name: '内存问题',
+                    name: '鍐呭瓨闂',
                     type: 'memory',
                     color: '#af52de',
-                    icon: '💾',
+                    icon: '馃捑',
                     patterns: [
-                        {regex: /out\s*of\s*memory|oom/i, label: '内存溢出(OOM)'},
-                        {regex: /memory\s*leak|leak/i, label: '内存泄漏'},
-                        {regex: /malloc\s*fail|alloc\s*fail/i, label: '内存分配失败(Malloc Fail)'},
-                        {regex: /heap\s*overflow/i, label: '堆溢出'},
-                        {regex: /stack\s*overflow/i, label: '栈溢出'},
-                        {regex: /内存|泄漏/i, label: '内存/泄漏'},
+                        {regex: /out\s*of\s*memory|oom/i, label: '鍐呭瓨婧㈠嚭(OOM)'},
+                        {regex: /memory\s*leak|leak/i, label: '鍐呭瓨娉勬紡'},
+                        {regex: /malloc\s*fail|alloc\s*fail/i, label: '鍐呭瓨鍒嗛厤澶辫触(Malloc Fail)'},
+                        {regex: /heap\s*overflow/i, label: '鍫嗘孩鍑?},
+                        {regex: /stack\s*overflow/i, label: '鏍堟孩鍑?},
+                        {regex: /鍐呭瓨|娉勬紡/i, label: '鍐呭瓨/娉勬紡'},
                     ]
                 },
                 {
-                    name: '功耗/电量',
+                    name: '鍔熻€?鐢甸噺',
                     type: 'power',
                     color: '#5ac8fa',
-                    icon: '🔋',
+                    icon: '馃攱',
                     patterns: [
-                        {regex: /battery\s*drain|耗电快|掉电快/i, label: '电量消耗过快'},
-                        {regex: /low\s*battery|电量低|电池电量低/i, label: '低电量警告'},
-                        {regex: /sleep\s*current|休眠电流/i, label: '休眠电流异常'},
-                        {regex: /battery\s*level|battery\s*percentage|电量/i, label: '电量状态'},
-                        {regex: /battery\s*voltage|电压/i, label: '电池电压'},
-                        {regex: /battery\s*current|电流/i, label: '电池电流'},
-                        {regex: /charging|充电/i, label: '充电状态'},
-                        {regex: /discharging|放电/i, label: '放电状态'},
-                        {regex: /power\s*consumption|功耗/i, label: '功耗异常'},
-                        {regex: /pmic|power\s*management/i, label: '电源管理'},
-                        {regex: /掉电|漏电|续航/i, label: '掉电/漏电/续航'},
+                        {regex: /battery\s*drain|鑰楃數蹇珅鎺夌數蹇?i, label: '鐢甸噺娑堣€楄繃蹇?},
+                        {regex: /low\s*battery|鐢甸噺浣巪鐢垫睜鐢甸噺浣?i, label: '浣庣數閲忚鍛?},
+                        {regex: /sleep\s*current|浼戠湢鐢垫祦/i, label: '浼戠湢鐢垫祦寮傚父'},
+                        {regex: /battery\s*level|battery\s*percentage|鐢甸噺/i, label: '鐢甸噺鐘舵€?},
+                        {regex: /battery\s*voltage|鐢靛帇/i, label: '鐢垫睜鐢靛帇'},
+                        {regex: /battery\s*current|鐢垫祦/i, label: '鐢垫睜鐢垫祦'},
+                        {regex: /charging|鍏呯數/i, label: '鍏呯數鐘舵€?},
+                        {regex: /discharging|鏀剧數/i, label: '鏀剧數鐘舵€?},
+                        {regex: /power\s*consumption|鍔熻€?i, label: '鍔熻€楀紓甯?},
+                        {regex: /pmic|power\s*management/i, label: '鐢垫簮绠＄悊'},
+                        {regex: /鎺夌數|婕忕數|缁埅/i, label: '鎺夌數/婕忕數/缁埅'},
                     ]
                 },
                 {
-                    name: '通用错误',
+                    name: '閫氱敤閿欒',
                     type: 'error',
                     color: '#ff9500',
-                    icon: '❌',
+                    icon: '鉂?,
                     patterns: [
-                        {regex: /error|错误/i, label: '通用错误'},
-                        {regex: /exception|异常/i, label: '异常'},
-                        {regex: /fail|failed|失败/i, label: '操作失败'},
-                        {regex: /fault|故障/i, label: '故障'},
-                        {regex: /timeout|超时/i, label: '超时'},
-                        {regex: /semaphore|信号量/i, label: '信号量问题'},
+                        {regex: /error|閿欒/i, label: '閫氱敤閿欒'},
+                        {regex: /exception|寮傚父/i, label: '寮傚父'},
+                        {regex: /fail|failed|澶辫触/i, label: '鎿嶄綔澶辫触'},
+                        {regex: /fault|鏁呴殰/i, label: '鏁呴殰'},
+                        {regex: /timeout|瓒呮椂/i, label: '瓒呮椂'},
+                        {regex: /semaphore|淇″彿閲?i, label: '淇″彿閲忛棶棰?},
                     ]
                 },
                 {
-                    name: '警告信息',
+                    name: '璀﹀憡淇℃伅',
                     type: 'warning',
                     color: '#ffcc00',
-                    icon: '⚠️',
+                    icon: '鈿狅笍',
                     patterns: [
-                        {regex: /warn|warning|警告/i, label: '警告'},
-                        {regex: /deprecated|废弃/i, label: '废弃接口'},
-                        {regex: /注意/i, label: '注意'},
+                        {regex: /warn|warning|璀﹀憡/i, label: '璀﹀憡'},
+                        {regex: /deprecated|搴熷純/i, label: '搴熷純鎺ュ彛'},
+                        {regex: /娉ㄦ剰/i, label: '娉ㄦ剰'},
                     ]
                 }
             ];
 
-            // 提取具体问题
+            // 鎻愬彇鍏蜂綋闂
             const detailedIssues = [];
             for (const category of issueExtractors) {
                 if (counts[category.type] === 0) continue;
@@ -420,15 +434,15 @@
                 for (const pat of category.patterns) {
                     const matched = typeLogs.filter(l => pat.regex.test(l.text));
                     if (matched.length > 0) {
-                        // 提取具体错误信息（取前3个不同的日志示例）
+                        // 鎻愬彇鍏蜂綋閿欒淇℃伅锛堝彇鍓?涓笉鍚岀殑鏃ュ織绀轰緥锛?
                         const examples = [];
                         const seen = new Set();
                         for (const log of matched) {
-                            // 简化日志内容，提取关键部分
+                            // 绠€鍖栨棩蹇楀唴瀹癸紝鎻愬彇鍏抽敭閮ㄥ垎
                             let simplified = log.text;
-                            // 移除时间戳前缀
+                            // 绉婚櫎鏃堕棿鎴冲墠缂€
                             simplified = simplified.replace(/^\s*[\d\-:\s\.\/]+\s*/, '');
-                            // 移除过长内容
+                            // 绉婚櫎杩囬暱鍐呭
                             if (simplified.length > 120) simplified = simplified.substring(0, 120) + '...';
                             if (!seen.has(simplified)) {
                                 seen.add(simplified);
@@ -443,7 +457,7 @@
                         });
                     }
                 }
-                // 如果没有匹配到具体子类型，归为"其他"
+                // 濡傛灉娌℃湁鍖归厤鍒板叿浣撳瓙绫诲瀷锛屽綊涓?鍏朵粬"
                 if (subIssues.length === 0) {
                     const examples = [];
                     const seen = new Set();
@@ -457,7 +471,7 @@
                         if (examples.length >= 3) break;
                     }
                     subIssues.push({
-                        label: '其他' + category.name,
+                        label: '鍏朵粬' + category.name,
                         count: typeLogs.length,
                         examples: examples
                     });
@@ -470,24 +484,24 @@
                 });
             }
 
-            // 风险等级评估
-            let riskLevel = '低';
+            // 椋庨櫓绛夌骇璇勪及
+            let riskLevel = '浣?;
             let riskColor = '#34c759';
             if (counts.crash > 0 || counts.memory > 5) {
-                riskLevel = '高';
+                riskLevel = '楂?;
                 riskColor = '#ff3b30';
             } else if (counts.reboot > 3 || counts.error > 20 || counts.power > 5) {
-                riskLevel = '中';
+                riskLevel = '涓?;
                 riskColor = '#ff9500';
             }
 
-            // 生成具体问题详情HTML
+            // 鐢熸垚鍏蜂綋闂璇︽儏HTML
             let detailedIssuesHtml = '';
             for (const issue of detailedIssues) {
                 detailedIssuesHtml += `
                     <div style="margin-bottom:16px;padding:12px;background:var(--bg-card);border-radius:8px;border-left:4px solid ${issue.color};">
                         <div style="font-weight:bold;font-size:15px;margin-bottom:8px;color:${issue.color};">
-                            ${issue.icon} ${issue.name}：${issue.total}条
+                            ${issue.icon} ${issue.name}锛?{issue.total}鏉?
                         </div>
                         <div style="margin-left:8px;">
                 `;
@@ -495,13 +509,13 @@
                     detailedIssuesHtml += `
                         <div style="margin-bottom:10px;">
                             <div style="font-weight:500;margin-bottom:4px;">
-                                • ${sub.label}：<span style="color:${issue.color};">${sub.count}条</span>
+                                鈥?${sub.label}锛?span style="color:${issue.color};">${sub.count}鏉?/span>
                             </div>
                     `;
                     if (sub.examples.length > 0) {
                         detailedIssuesHtml += `
                             <div style="margin-left:16px;font-size:12px;color:var(--text-secondary);">
-                                <div style="margin-bottom:2px;">日志示例：</div>
+                                <div style="margin-bottom:2px;">鏃ュ織绀轰緥锛?/div>
                         `;
                         for (const ex of sub.examples) {
                             detailedIssuesHtml += `
@@ -517,44 +531,44 @@
                 detailedIssuesHtml += `</div></div>`;
             }
 
-            // 根因分析
+            // 鏍瑰洜鍒嗘瀽
             let rootCauseHtml = '';
             const rootCauses = [];
             if (counts.crash > 0) {
                 const crashIssue = detailedIssues.find(i => i.type === 'crash');
                 if (crashIssue) {
                     const topCrash = crashIssue.subIssues[0];
-                    rootCauses.push(`<strong>死机/崩溃根因</strong>：最主要问题是「${topCrash.label}」(${topCrash.count}条)，可能由硬件异常、驱动Bug或资源竞争导致，建议优先排查该问题的触发条件和上下文。`);
+                    rootCauses.push(`<strong>姝绘満/宕╂簝鏍瑰洜</strong>锛氭渶涓昏闂鏄€?{topCrash.label}銆?${topCrash.count}鏉?锛屽彲鑳界敱纭欢寮傚父銆侀┍鍔˙ug鎴栬祫婧愮珵浜夊鑷达紝寤鸿浼樺厛鎺掓煡璇ラ棶棰樼殑瑙﹀彂鏉′欢鍜屼笂涓嬫枃銆俙);
                 }
             }
             if (counts.reboot > 3) {
                 const rebootIssue = detailedIssues.find(i => i.type === 'reboot');
                 if (rebootIssue) {
                     const topReboot = rebootIssue.subIssues[0];
-                    rootCauses.push(`<strong>异常重启根因</strong>：最主要是「${topReboot.label}」(${topReboot.count}次)，需确认是正常重启还是异常复位，检查重启前是否有死机、电源异常或看门狗超时。`);
+                    rootCauses.push(`<strong>寮傚父閲嶅惎鏍瑰洜</strong>锛氭渶涓昏鏄€?{topReboot.label}銆?${topReboot.count}娆?锛岄渶纭鏄甯搁噸鍚繕鏄紓甯稿浣嶏紝妫€鏌ラ噸鍚墠鏄惁鏈夋鏈恒€佺數婧愬紓甯告垨鐪嬮棬鐙楄秴鏃躲€俙);
                 }
             }
             if (counts.memory > 0) {
                 const memIssue = detailedIssues.find(i => i.type === 'memory');
                 if (memIssue) {
                     const topMem = memIssue.subIssues[0];
-                    rootCauses.push(`<strong>内存问题根因</strong>：最主要是「${topMem.label}」(${topMem.count}条)，可能存在内存泄漏、缓冲区溢出或内存不足，需检查malloc/free配对和内存使用趋势。`);
+                    rootCauses.push(`<strong>鍐呭瓨闂鏍瑰洜</strong>锛氭渶涓昏鏄€?{topMem.label}銆?${topMem.count}鏉?锛屽彲鑳藉瓨鍦ㄥ唴瀛樻硠婕忋€佺紦鍐插尯婧㈠嚭鎴栧唴瀛樹笉瓒筹紝闇€妫€鏌alloc/free閰嶅鍜屽唴瀛樹娇鐢ㄨ秼鍔裤€俙);
                 }
             }
             if (counts.power > 0) {
                 const powerIssue = detailedIssues.find(i => i.type === 'power');
                 if (powerIssue) {
                     const topPower = powerIssue.subIssues[0];
-                    rootCauses.push(`<strong>功耗/电量根因</strong>：最主要是「${topPower.label}」(${topPower.count}条)，可能存在休眠电流偏高、异常唤醒、外设未关闭或电源管理配置问题，建议测量实际电流并对比规格书。`);
+                    rootCauses.push(`<strong>鍔熻€?鐢甸噺鏍瑰洜</strong>锛氭渶涓昏鏄€?{topPower.label}銆?${topPower.count}鏉?锛屽彲鑳藉瓨鍦ㄤ紤鐪犵數娴佸亸楂樸€佸紓甯稿敜閱掋€佸璁炬湭鍏抽棴鎴栫數婧愮鐞嗛厤缃棶棰橈紝寤鸿娴嬮噺瀹為檯鐢垫祦骞跺姣旇鏍间功銆俙);
                 }
             }
             if (counts.error > 20) {
-                rootCauses.push(`<strong>通用错误根因</strong>：错误数量较多(${counts.error}条)，需查看具体错误类型，可能是接口调用失败、超时或参数错误导致。`);
+                rootCauses.push(`<strong>閫氱敤閿欒鏍瑰洜</strong>锛氶敊璇暟閲忚緝澶?${counts.error}鏉?锛岄渶鏌ョ湅鍏蜂綋閿欒绫诲瀷锛屽彲鑳芥槸鎺ュ彛璋冪敤澶辫触銆佽秴鏃舵垨鍙傛暟閿欒瀵艰嚧銆俙);
             }
             if (rootCauses.length > 0) {
                 rootCauseHtml = `
                     <div style="margin-bottom:16px;">
-                        <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">🔍 根因分析：</div>
+                        <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">馃攳 鏍瑰洜鍒嗘瀽锛?/div>
                         <ul style="margin:0;padding-left:20px;line-height:1.8;">
                             ${rootCauses.map(r => `<li>${r}</li>`).join('')}
                         </ul>
@@ -562,41 +576,41 @@
                 `;
             }
 
-            // 改进建议
+            // 鏀硅繘寤鸿
             let suggestions = [];
             if (counts.crash > 0) {
                 const crashIssue = detailedIssues.find(i => i.type === 'crash');
                 if (crashIssue && crashIssue.subIssues.length > 0) {
-                    suggestions.push(`优先排查「${crashIssue.subIssues[0].label}」问题，抓取crash dump和复位原因寄存器，定位具体出错位置和触发条件`);
+                    suggestions.push(`浼樺厛鎺掓煡銆?{crashIssue.subIssues[0].label}銆嶉棶棰橈紝鎶撳彇crash dump鍜屽浣嶅師鍥犲瘎瀛樺櫒锛屽畾浣嶅叿浣撳嚭閿欎綅缃拰瑙﹀彂鏉′欢`);
                 } else {
-                    suggestions.push('优先排查死机/崩溃问题，抓取crash dump和复位原因寄存器，定位具体出错位置');
+                    suggestions.push('浼樺厛鎺掓煡姝绘満/宕╂簝闂锛屾姄鍙朿rash dump鍜屽浣嶅師鍥犲瘎瀛樺櫒锛屽畾浣嶅叿浣撳嚭閿欎綅缃?);
                 }
             }
-            if (counts.memory > 0) suggestions.push('开启内存检测工具（如内存越界检测、内存泄漏追踪），检查malloc/free配对和缓冲区大小');
-            if (counts.reboot > 3) suggestions.push('记录重启前的最后日志，增加复位原因寄存器打印，区分正常复位和异常复位');
+            if (counts.memory > 0) suggestions.push('寮€鍚唴瀛樻娴嬪伐鍏凤紙濡傚唴瀛樿秺鐣屾娴嬨€佸唴瀛樻硠婕忚拷韪級锛屾鏌alloc/free閰嶅鍜岀紦鍐插尯澶у皬');
+            if (counts.reboot > 3) suggestions.push('璁板綍閲嶅惎鍓嶇殑鏈€鍚庢棩蹇楋紝澧炲姞澶嶄綅鍘熷洜瀵勫瓨鍣ㄦ墦鍗帮紝鍖哄垎姝ｅ父澶嶄綅鍜屽紓甯稿浣?);
             if (counts.power > 0) {
-                suggestions.push('使用功耗仪测量休眠电流和工作电流，对比规格书确认是否超标');
-                suggestions.push('检查唤醒源配置（GPIO/RTC/Timer），确认是否有异常唤醒导致无法进入低功耗模式');
-                suggestions.push('检查外设电源域管理（GPS/蓝牙/屏幕/传感器），确认未使用时是否正确关闭');
+                suggestions.push('浣跨敤鍔熻€椾华娴嬮噺浼戠湢鐢垫祦鍜屽伐浣滅數娴侊紝瀵规瘮瑙勬牸涔︾‘璁ゆ槸鍚﹁秴鏍?);
+                suggestions.push('妫€鏌ュ敜閱掓簮閰嶇疆锛圙PIO/RTC/Timer锛夛紝纭鏄惁鏈夊紓甯稿敜閱掑鑷存棤娉曡繘鍏ヤ綆鍔熻€楁ā寮?);
+                suggestions.push('妫€鏌ュ璁剧數婧愬煙绠＄悊锛圙PS/钃濈墮/灞忓箷/浼犳劅鍣級锛岀‘璁ゆ湭浣跨敤鏃舵槸鍚︽纭叧闂?);
             }
-            if (total > 100) suggestions.push('日志量较大，建议增加日志分级输出，减少非关键信息打印，提升系统性能');
-            if (suggestions.length === 0) suggestions.push('当前日志异常较少，建议持续观察，定期检查日志趋势');
+            if (total > 100) suggestions.push('鏃ュ織閲忚緝澶э紝寤鸿澧炲姞鏃ュ織鍒嗙骇杈撳嚭锛屽噺灏戦潪鍏抽敭淇℃伅鎵撳嵃锛屾彁鍗囩郴缁熸€ц兘');
+            if (suggestions.length === 0) suggestions.push('褰撳墠鏃ュ織寮傚父杈冨皯锛屽缓璁寔缁瀵燂紝瀹氭湡妫€鏌ユ棩蹇楄秼鍔?);
 
-            // 组装结论
+            // 缁勮缁撹
             content.innerHTML = `
                 <div style="margin-bottom:16px;">
-                    <strong>📊 总体评估：</strong>共检测到 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 条异常日志，风险等级：<strong style="color:${riskColor};">${riskLevel}</strong>
-                    ${counts.crash > 0 ? '，存在<strong style="color:#ff3b30;">死机/崩溃</strong>严重问题' : ''}
-                    ${counts.memory > 0 ? '，存在<strong style="color:#af52de;">内存异常</strong>' : ''}
-                    ${counts.power > 0 ? '，存在<strong style="color:#5ac8fa;">功耗/电量异常</strong>' : ''}
+                    <strong>馃搳 鎬讳綋璇勪及锛?/strong>鍏辨娴嬪埌 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 鏉″紓甯告棩蹇楋紝椋庨櫓绛夌骇锛?strong style="color:${riskColor};">${riskLevel}</strong>
+                    ${counts.crash > 0 ? '锛屽瓨鍦?strong style="color:#ff3b30;">姝绘満/宕╂簝</strong>涓ラ噸闂' : ''}
+                    ${counts.memory > 0 ? '锛屽瓨鍦?strong style="color:#af52de;">鍐呭瓨寮傚父</strong>' : ''}
+                    ${counts.power > 0 ? '锛屽瓨鍦?strong style="color:#5ac8fa;">鍔熻€?鐢甸噺寮傚父</strong>' : ''}
                 </div>
                 ${rootCauseHtml}
                 <div style="margin-bottom:16px;">
-                    <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">📋 具体问题详情：</div>
+                    <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">馃搵 鍏蜂綋闂璇︽儏锛?/div>
                     ${detailedIssuesHtml}
                 </div>
                 <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-                    <strong>💡 改进建议：</strong>
+                    <strong>馃挕 鏀硅繘寤鸿锛?/strong>
                     <ol style="margin:8px 0;padding-left:20px;line-height:1.8;">
                         ${suggestions.map(s => `<li>${s}</li>`).join('')}
                     </ol>
@@ -606,47 +620,47 @@
 
         function analyzePastedLog() {
             const text = document.getElementById('pasteArea').value;
-            if (!text.trim()) { showToast('请先粘贴日志内容', 'warning'); return; }
-            document.getElementById('fileName').textContent = '📋 粘贴内容';
+            if (!text.trim()) { showToast('璇峰厛绮樿创鏃ュ織鍐呭', 'warning'); return; }
+            document.getElementById('fileName').textContent = '馃搵 绮樿创鍐呭';
             document.getElementById('fileSize').textContent = (text.length / 1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
             analyzeLog(text);
         }
 
         function exportLogs() {
-            if (allLogs.length === 0) { showToast('暂无日志可导出', 'warning'); return; }
+            if (allLogs.length === 0) { showToast('鏆傛棤鏃ュ織鍙鍑?, 'warning'); return; }
             const search = document.getElementById('searchBox').value.toLowerCase();
             let filtered = allLogs;
             if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
             if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
             const lines = filtered.map(l => `[${l.label}] L${l.line}: ${l.text}`);
 
-            // 统计摘要
+            // 缁熻鎽樿
             const counts = {};
             Object.keys(PATTERNS).forEach(t => counts[t] = 0);
             allLogs.forEach(l => counts[l.type]++);
 
             const conclusionText = `
-=== 分析结论 ===
-异常总数: ${allLogs.length}
-各类型统计:
-  - 死机/崩溃: ${counts.crash}条
-  - 异常重启: ${counts.reboot}次
-  - 内存问题: ${counts.memory}条
-  - 功耗异常: ${counts.power}条
-  - 通用错误: ${counts.error}条
-  - 警告信息: ${counts.warning}条
+=== 鍒嗘瀽缁撹 ===
+寮傚父鎬绘暟: ${allLogs.length}
+鍚勭被鍨嬬粺璁?
+  - 姝绘満/宕╂簝: ${counts.crash}鏉?
+  - 寮傚父閲嶅惎: ${counts.reboot}娆?
+  - 鍐呭瓨闂: ${counts.memory}鏉?
+  - 鍔熻€楀紓甯? ${counts.power}鏉?
+  - 閫氱敤閿欒: ${counts.error}鏉?
+  - 璀﹀憡淇℃伅: ${counts.warning}鏉?
 
-风险等级: ${counts.crash > 0 || counts.memory > 5 ? '高' : (counts.reboot > 3 || counts.error > 20 ? '中' : '低')}
+椋庨櫓绛夌骇: ${counts.crash > 0 || counts.memory > 5 ? '楂? : (counts.reboot > 3 || counts.error > 20 ? '涓? : '浣?)}
 
 `;
-            const header = `日志分析报告\n生成时间: ${new Date().toLocaleString()}\n${'='.repeat(60)}\n${conclusionText}=== 异常日志详情 (共${filtered.length}条) ===\n\n`;
+            const header = `鏃ュ織鍒嗘瀽鎶ュ憡\n鐢熸垚鏃堕棿: ${new Date().toLocaleString()}\n${'='.repeat(60)}\n${conclusionText}=== 寮傚父鏃ュ織璇︽儏 (鍏?{filtered.length}鏉? ===\n\n`;
             const blob = new Blob([header + lines.join('\n')], {type: 'text/plain;charset=utf-8'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = `log_analysis_${Date.now()}.txt`;
             a.click(); URL.revokeObjectURL(url);
-            showToast('已导出 ' + filtered.length + ' 条日志（含分析结论）', 'success');
+            showToast('宸插鍑?' + filtered.length + ' 鏉℃棩蹇楋紙鍚垎鏋愮粨璁猴級', 'success');
         }
 
         function resetUpload() {
@@ -655,6 +669,97 @@
             document.getElementById('analysis').style.display = 'none';
             document.getElementById('emptyState').style.display = 'block';
             document.getElementById('fileInput').value = '';
+            document.getElementById('aiResultSection').style.display = 'none';
+        }
+
+        // ==================== AI 鏅鸿兘鍒嗘瀽 ====================
+
+        function buildLogAiPayload() {
+            // 缁熻鎽樿
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+            const total = allLogs.length;
+            const statsSummary = [
+                `寮傚父鎬绘暟: ${total} 鏉,
+                `姝绘満/宕╂簝: ${counts.crash} 鏉,
+                `寮傚父閲嶅惎: ${counts.reboot} 娆,
+                `鍐呭瓨闂: ${counts.memory} 鏉,
+                `鍔熻€楀紓甯? ${counts.power} 鏉,
+                `閫氱敤閿欒: ${counts.error} 鏉,
+                `璀﹀憡淇℃伅: ${counts.warning} 鏉,
+            ].join('\n');
+
+            // 鍓?0鏉″叧閿紓甯革紙鎸変弗閲嶇▼搴︽帓搴忥細crash > memory > reboot > power > error > warning锛?
+            const severityOrder = ['crash', 'memory', 'reboot', 'power', 'error', 'warning'];
+            const sortedLogs = [...allLogs].sort((a, b) => {
+                const sa = severityOrder.indexOf(a.type);
+                const sb = severityOrder.indexOf(b.type);
+                if (sa !== sb) return sa - sb;
+                return a.line - b.line;
+            });
+            const topAnomalies = sortedLogs.slice(0, 50).map(l =>
+                `[${l.label}] L${l.line}: ${l.text.substring(0, 200)}`
+            ).join('\n');
+
+            return { stats_summary: statsSummary, key_anomalies: topAnomalies };
+        }
+
+        async function runAiAnalyze() {
+            if (allLogs.length === 0) {
+                showToast('璇峰厛鍒嗘瀽鏃ュ織', 'warning');
+                return;
+            }
+            const btn = document.getElementById('aiAnalyzeBtn');
+            const resultSection = document.getElementById('aiResultSection');
+            const resultContent = document.getElementById('aiResultContent');
+
+            btn.disabled = true;
+            btn.textContent = '鈴?AI 姝ｅ湪鍒嗘瀽...';
+            btn.style.opacity = '0.7';
+            resultSection.style.display = 'block';
+            resultContent.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">鈴?AI 姝ｅ湪鍒嗘瀽锛岃绋嶅€?..</div>';
+
+            const payload = buildLogAiPayload();
+            try {
+                const resp = await fetch('/api/log-ai-analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    resultContent.innerHTML = `<div style="color:#ef4444;padding:12px;">鉂?${escapeHtml(data.error)}</div>`;
+                } else {
+                    resultContent.textContent = data.result || '锛堟棤鍒嗘瀽缁撴灉锛?;
+                }
+            } catch (e) {
+                resultContent.innerHTML = `<div style="color:#ef4444;padding:12px;">鉂?璇锋眰澶辫触: ${escapeHtml(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '馃 AI 鏅鸿兘鍒嗘瀽';
+                btn.style.opacity = '1';
+            }
+        }
+
+        function copyAiResult() {
+            const content = document.getElementById('aiResultContent').textContent;
+            if (!content || content.includes('AI 姝ｅ湪鍒嗘瀽')) {
+                showToast('鏆傛棤鍒嗘瀽缁撴灉鍙鍒?, 'warning');
+                return;
+            }
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('宸插鍒跺埌鍓创鏉?, 'success');
+            }).catch(() => {
+                // 闄嶇骇鏂规
+                const ta = document.createElement('textarea');
+                ta.value = content;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('宸插鍒跺埌鍓创鏉?, 'success');
+            });
         }
     </script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>

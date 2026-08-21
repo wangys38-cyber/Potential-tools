@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日站会助手 - Potential Tools</title>
+    <title>姣忔棩绔欎細鍔╂墜 - Potential Tools</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
@@ -11,14 +11,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #fff;
             min-height: 100vh;
             color: var(--text-primary);
         }
         .header {
             padding: 24px 32px;
             background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px);
+            
             border-bottom: 1px solid rgba(255,255,255,0.15);
             display: flex; align-items: center; gap: 16px;
         }
@@ -70,7 +70,7 @@
             font-size: 13px; font-weight: 600; cursor: pointer;
             transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
         }
-        .action-btn.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .action-btn.primary { background: #fff; color: #fff; }
         .action-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
         .action-btn.ghost { background: var(--bg-secondary); color: var(--text-primary); }
         .action-btn.ghost:hover { background: var(--bg-hover); }
@@ -117,123 +117,124 @@
     </style>
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
 
     <div class="container">
-        <!-- 昨日完成 -->
+        <!-- 鏄ㄦ棩瀹屾垚 -->
         <div class="panel">
             <div class="panel-title">
-                ✅ 昨日完成
-                <span class="badge" id="yesterdayCount">0 项</span>
-                <button class="action-btn ghost" style="margin-left:auto;padding:4px 10px;font-size:11px;" onclick="toggleJiraImport()">🔗 从Jira导入</button>
-                <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="importMeetingTodos()">📋 从会议纪要导入</button>
+                鉁?鏄ㄦ棩瀹屾垚
+                <span class="badge" id="yesterdayCount">0 椤?/span>
+                <button class="action-btn ghost" style="margin-left:auto;padding:4px 10px;font-size:11px;" onclick="toggleJiraImport()">馃敆 浠嶫ira瀵煎叆</button>
+                <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="importMeetingTodos()">馃搵 浠庝細璁邯瑕佸鍏?/button>
             </div>
             <div class="jira-panel" id="jiraPanel">
-                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">输入Jira筛选器URL或JQL，导入昨日已解决的问题</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">杈撳叆Jira绛涢€夊櫒URL鎴朖QL锛屽鍏ユ槰鏃ュ凡瑙ｅ喅鐨勯棶棰?/div>
                 <div class="input-row">
-                    <input type="text" id="jiraUrl" placeholder="Jira筛选器URL 或 JQL（如：project=XXX AND status changed to Done after -1d）">
-                    <button class="action-btn primary" style="flex:0 0 auto;" onclick="importFromJira()">导入</button>
+                    <input type="text" id="jiraUrl" placeholder="Jira绛涢€夊櫒URL 鎴?JQL锛堝锛歱roject=XXX AND status changed to Done after -1d锛?>
+                    <button class="action-btn primary" style="flex:0 0 auto;" onclick="importFromJira()">瀵煎叆</button>
                 </div>
             </div>
             <div class="input-row">
-                <input type="text" id="yesterdayInput" placeholder="输入一项完成的工作，回车添加..." onkeydown="if(event.key==='Enter'){addItem('yesterday');}">
-                <button class="action-btn primary" onclick="addItem('yesterday')">添加</button>
+                <input type="text" id="yesterdayInput" placeholder="杈撳叆涓€椤瑰畬鎴愮殑宸ヤ綔锛屽洖杞︽坊鍔?.." onkeydown="if(event.key==='Enter'){addItem('yesterday');}">
+                <button class="action-btn primary" onclick="addItem('yesterday')">娣诲姞</button>
             </div>
             <div class="tag-list" id="yesterdayTags"></div>
         </div>
 
-        <!-- 今日计划 -->
+        <!-- 浠婃棩璁″垝 -->
         <div class="panel">
             <div class="panel-title">
-                📌 今日计划
-                <span class="badge" id="todayCount">0 项</span>
+                馃搶 浠婃棩璁″垝
+                <span class="badge" id="todayCount">0 椤?/span>
             </div>
             <div class="input-row">
-                <input type="text" id="todayInput" placeholder="输入今日计划项，回车添加..." onkeydown="if(event.key==='Enter'){addItem('today');}">
-                <button class="action-btn primary" onclick="addItem('today')">添加</button>
+                <input type="text" id="todayInput" placeholder="杈撳叆浠婃棩璁″垝椤癸紝鍥炶溅娣诲姞..." onkeydown="if(event.key==='Enter'){addItem('today');}">
+                <button class="action-btn primary" onclick="addItem('today')">娣诲姞</button>
             </div>
             <div class="tag-list" id="todayTags"></div>
         </div>
 
-        <!-- 阻塞项 -->
+        <!-- 闃诲椤?-->
         <div class="panel">
             <div class="panel-title">
-                ⚠️ 阻塞项
-                <span class="badge" id="blockerCount">0 项</span>
+                鈿狅笍 闃诲椤?
+                <span class="badge" id="blockerCount">0 椤?/span>
             </div>
             <div class="input-row">
-                <input type="text" id="blockerInput" placeholder="输入阻塞项，回车添加..." onkeydown="if(event.key==='Enter'){addItem('blocker');}">
-                <button class="action-btn primary" onclick="addItem('blocker')">添加</button>
+                <input type="text" id="blockerInput" placeholder="杈撳叆闃诲椤癸紝鍥炶溅娣诲姞..." onkeydown="if(event.key==='Enter'){addItem('blocker');}">
+                <button class="action-btn primary" onclick="addItem('blocker')">娣诲姞</button>
             </div>
             <div class="tag-list" id="blockerTags"></div>
         </div>
 
-        <!-- 自动化设置 -->
+        <!-- 鑷姩鍖栬缃?-->
         <div class="panel">
             <div class="panel-title" style="cursor:pointer;" onclick="toggleSettings()">
-                ⚙️ 自动化设置
-                <span class="badge" id="autoStatus">未配置</span>
-                <span style="margin-left:auto;font-size:12px;" id="settingsToggle">▼</span>
+                鈿欙笍 鑷姩鍖栬缃?
+                <span class="badge" id="autoStatus">鏈厤缃?/span>
+                <span style="margin-left:auto;font-size:12px;" id="settingsToggle">鈻?/span>
             </div>
             <div id="settingsPanel" style="display:none;margin-top:12px;">
-                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">保存后，页面加载时自动拉取Jira数据并生成站会</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">淇濆瓨鍚庯紝椤甸潰鍔犺浇鏃惰嚜鍔ㄦ媺鍙朖ira鏁版嵁骞剁敓鎴愮珯浼?/div>
                 <div class="input-row">
-                    <input type="text" id="cfgJiraUrl" placeholder="Jira筛选器URL 或 JQL（每日自动拉取昨日已解决）">
+                    <input type="text" id="cfgJiraUrl" placeholder="Jira绛涢€夊櫒URL 鎴?JQL锛堟瘡鏃ヨ嚜鍔ㄦ媺鍙栨槰鏃ュ凡瑙ｅ喅锛?>
                 </div>
                 <div class="input-row">
-                    <input type="text" id="cfgFeishuWebhook" placeholder="飞书Webhook URL（可选，自动推送用）">
+                    <input type="text" id="cfgFeishuWebhook" placeholder="椋炰功Webhook URL锛堝彲閫夛紝鑷姩鎺ㄩ€佺敤锛?>
                 </div>
                 <div style="display:flex;gap:12px;align-items:center;margin:8px 0;font-size:13px;">
-                    <label><input type="checkbox" id="cfgAutoFetch"> 页面加载时自动拉取Jira</label>
-                    <label><input type="checkbox" id="cfgAutoGenerate"> 拉取后自动生成站会文本</label>
-                    <label><input type="checkbox" id="cfgAutoPush"> 生成后自动推送到飞书</label>
+                    <label><input type="checkbox" id="cfgAutoFetch"> 椤甸潰鍔犺浇鏃惰嚜鍔ㄦ媺鍙朖ira</label>
+                    <label><input type="checkbox" id="cfgAutoGenerate"> 鎷夊彇鍚庤嚜鍔ㄧ敓鎴愮珯浼氭枃鏈?/label>
+                    <label><input type="checkbox" id="cfgAutoPush"> 鐢熸垚鍚庤嚜鍔ㄦ帹閫佸埌椋炰功</label>
                 </div>
                 <div class="input-row">
                     <input type="time" id="cfgReminderTime" value="09:30" style="flex:0 0 120px;">
-                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cfgReminder"> 每日提醒写站会</label>
+                    <label style="font-size:13px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cfgReminder"> 姣忔棩鎻愰啋鍐欑珯浼?/label>
                 </div>
                 <div class="btn-group">
-                    <button class="action-btn primary" onclick="saveSettings()">💾 保存设置</button>
-                    <button class="action-btn ghost" onclick="clearSettings()">🗑️ 清除</button>
+                    <button class="action-btn primary" onclick="saveSettings()">馃捑 淇濆瓨璁剧疆</button>
+                    <button class="action-btn ghost" onclick="clearSettings()">馃棏锔?娓呴櫎</button>
                 </div>
             </div>
         </div>
 
-        <!-- 生成按钮 -->
+        <!-- 鐢熸垚鎸夐挳 -->
         <div class="panel" style="text-align:center;">
             <button class="action-btn primary" style="padding:12px 32px;font-size:15px;" onclick="generateStandup()" id="generateBtn">
-                ✨ 生成站会文本
+                鉁?鐢熸垚绔欎細鏂囨湰
             </button>
             <button class="action-btn ghost" style="padding:12px 20px;font-size:14px;margin-left:8px;" onclick="aiGenerateStandup()" id="aiBtn">
-                🤖 AI润色
+                馃 AI娑﹁壊
             </button>
             <button class="action-btn success" style="padding:12px 24px;font-size:14px;margin-left:8px;" onclick="fullAuto()" id="autoBtn">
-                🚀 一键全自动
+                馃殌 涓€閿叏鑷姩
             </button>
             <button class="action-btn ghost" style="padding:12px 20px;font-size:14px;margin-left:8px;" onclick="generateWeeklyReport()" id="weeklyBtn">
-                📋 生成周报
+                馃搵 鐢熸垚鍛ㄦ姤
             </button>
         </div>
 
-        <!-- 输出 -->
+        <!-- 杈撳嚭 -->
         <div class="panel">
             <div class="panel-title">
-                📋 站会文本
+                馃搵 绔欎細鏂囨湰
                 <div style="margin-left:auto;display:flex;gap:6px;">
-                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="copyStandup()">📋 复制</button>
-                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="pushToFeishu()">📨 推飞书</button>
-                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="saveStandup()">💾 保存</button>
+                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="copyStandup()">馃搵 澶嶅埗</button>
+                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="pushToFeishu()">馃摠 鎺ㄩ涔?/button>
+                    <button class="action-btn ghost" style="padding:4px 10px;font-size:11px;" onclick="saveStandup()">馃捑 淇濆瓨</button>
                 </div>
             </div>
-            <div class="output-area empty" id="outputArea">填写上方内容后点击「生成站会文本」</div>
+            <div class="output-area empty" id="outputArea">濉啓涓婃柟鍐呭鍚庣偣鍑汇€岀敓鎴愮珯浼氭枃鏈€?/div>
         </div>
 
-        <!-- 历史记录 -->
+        <!-- 鍘嗗彶璁板綍 -->
         <div class="panel">
-            <div class="panel-title">📚 历史记录 <span class="badge" id="historyCount">0 条</span></div>
+            <div class="panel-title">馃摎 鍘嗗彶璁板綍 <span class="badge" id="historyCount">0 鏉?/span></div>
             <div id="historyList"></div>
         </div>
     </div>
@@ -260,9 +261,9 @@
         function renderTags(type) {
             const container = document.getElementById(type + 'Tags');
             const count = document.getElementById(type + 'Count');
-            count.textContent = items[type].length + ' 项';
+            count.textContent = items[type].length + ' 椤?;
             container.innerHTML = items[type].map((item, i) =>
-                `<span class="tag">${escapeHtml(item)} <span class="remove" onclick="removeItem('${type}',${i})">✕</span></span>`
+                `<span class="tag">${escapeHtml(item)} <span class="remove" onclick="removeItem('${type}',${i})">鉁?/span></span>`
             ).join('');
         }
 
@@ -272,8 +273,8 @@
 
         async function importFromJira() {
             const url = document.getElementById('jiraUrl').value.trim();
-            if (!url) { showToast('请输入Jira URL或JQL', 'warning'); return; }
-            showToast('正在从Jira导入...', 'info');
+            if (!url) { showToast('璇疯緭鍏ira URL鎴朖QL', 'warning'); return; }
+            showToast('姝ｅ湪浠嶫ira瀵煎叆...', 'info');
             try {
                 const resp = await fetch('/api/jira-search', {
                     method: 'POST',
@@ -288,9 +289,9 @@
                     items.yesterday.push(`[${issue.key}] ${summary}`);
                 });
                 renderTags('yesterday');
-                showToast(`已导入 ${issues.length} 条Jira记录`, 'success');
+                showToast(`宸插鍏?${issues.length} 鏉ira璁板綍`, 'success');
             } catch(e) {
-                showToast('Jira导入失败: ' + e.message, 'error');
+                showToast('Jira瀵煎叆澶辫触: ' + e.message, 'error');
             }
         }
 
@@ -301,114 +302,114 @@
                     const data = JSON.parse(raw);
                     if (data.todos) {
                         const lines = data.todos.split('\n').filter(l => l.trim());
-                        lines.forEach(l => items.yesterday.push(l.replace(/^[-*•\d.)\s]+/, '').trim()));
+                        lines.forEach(l => items.yesterday.push(l.replace(/^[-*鈥d.)\s]+/, '').trim()));
                         renderTags('yesterday');
-                        showToast(`已从会议纪要导入 ${lines.length} 条待办`, 'success');
+                        showToast(`宸蹭粠浼氳绾瀵煎叆 ${lines.length} 鏉″緟鍔瀈, 'success');
                         return;
                     }
                 }
-                showToast('暂无可导入的会议待办', 'info');
+                showToast('鏆傛棤鍙鍏ョ殑浼氳寰呭姙', 'info');
             } catch(e) {
-                showToast('导入失败: ' + e.message, 'error');
+                showToast('瀵煎叆澶辫触: ' + e.message, 'error');
             }
         }
 
         function generateStandup() {
             const today = new Date().toLocaleDateString('zh-CN');
-            let text = `【每日站会】${today}\n\n`;
+            let text = `銆愭瘡鏃ョ珯浼氥€?{today}\n\n`;
 
-            text += `✅ 昨日完成：\n`;
+            text += `鉁?鏄ㄦ棩瀹屾垚锛歕n`;
             if (items.yesterday.length > 0) {
                 items.yesterday.forEach((item, i) => text += `${i+1}. ${item}\n`);
             } else {
-                text += `（无）\n`;
+                text += `锛堟棤锛塡n`;
             }
 
-            text += `\n📌 今日计划：\n`;
+            text += `\n馃搶 浠婃棩璁″垝锛歕n`;
             if (items.today.length > 0) {
                 items.today.forEach((item, i) => text += `${i+1}. ${item}\n`);
             } else {
-                text += `（无）\n`;
+                text += `锛堟棤锛塡n`;
             }
 
-            text += `\n⚠️ 阻塞项：\n`;
+            text += `\n鈿狅笍 闃诲椤癸細\n`;
             if (items.blocker.length > 0) {
                 items.blocker.forEach((item, i) => text += `${i+1}. ${item}\n`);
             } else {
-                text += `（无）\n`;
+                text += `锛堟棤锛塡n`;
             }
 
             currentStandup = text;
             const output = document.getElementById('outputArea');
             output.textContent = text;
             output.classList.remove('empty');
-            showToast('站会文本已生成', 'success');
+            showToast('绔欎細鏂囨湰宸茬敓鎴?, 'success');
         }
 
         async function aiGenerateStandup() {
             if (items.yesterday.length === 0 && items.today.length === 0) {
-                showToast('请先填写内容', 'warning'); return;
+                showToast('璇峰厛濉啓鍐呭', 'warning'); return;
             }
             generateStandup();
             const btn = document.getElementById('aiBtn');
-            btn.disabled = true; btn.textContent = '🤖 AI润色中...';
+            btn.disabled = true; btn.textContent = '馃 AI娑﹁壊涓?..';
             try {
                 const resp = await fetch('/api/generate-minutes', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         transcript: currentStandup,
-                        title: '每日站会',
+                        title: '姣忔棩绔欎細',
                         attendees: '',
-                        prompt: '请将以下站会内容润色为简洁专业的站会汇报文本，保持三点结构（昨日完成/今日计划/阻塞项），语言精炼，适合在团队群发送。'
+                        prompt: '璇峰皢浠ヤ笅绔欎細鍐呭娑﹁壊涓虹畝娲佷笓涓氱殑绔欎細姹囨姤鏂囨湰锛屼繚鎸佷笁鐐圭粨鏋勶紙鏄ㄦ棩瀹屾垚/浠婃棩璁″垝/闃诲椤癸級锛岃瑷€绮剧偧锛岄€傚悎鍦ㄥ洟闃熺兢鍙戦€併€?
                     })
                 });
                 const data = await resp.json();
                 if (data.result || data.data) {
                     currentStandup = data.result || data.data;
                     document.getElementById('outputArea').textContent = currentStandup;
-                    showToast('AI润色完成', 'success');
+                    showToast('AI娑﹁壊瀹屾垚', 'success');
                 } else {
-                    showToast('AI返回为空，使用原始文本', 'info');
+                    showToast('AI杩斿洖涓虹┖锛屼娇鐢ㄥ師濮嬫枃鏈?, 'info');
                 }
             } catch(e) {
-                showToast('AI润色失败: ' + e.message, 'error');
+                showToast('AI娑﹁壊澶辫触: ' + e.message, 'error');
             } finally {
-                btn.disabled = false; btn.textContent = '🤖 AI润色';
+                btn.disabled = false; btn.textContent = '馃 AI娑﹁壊';
             }
         }
 
         function copyStandup() {
-            if (!currentStandup) { showToast('请先生成站会文本', 'warning'); return; }
+            if (!currentStandup) { showToast('璇峰厛鐢熸垚绔欎細鏂囨湰', 'warning'); return; }
             navigator.clipboard.writeText(currentStandup).then(() =>
-                showToast('已复制到剪贴板', 'success')
-            ).catch(() => showToast('复制失败', 'error'));
+                showToast('宸插鍒跺埌鍓创鏉?, 'success')
+            ).catch(() => showToast('澶嶅埗澶辫触', 'error'));
         }
 
         async function pushToFeishu() {
-            if (!currentStandup) { showToast('请先生成站会文本', 'warning'); return; }
+            if (!currentStandup) { showToast('璇峰厛鐢熸垚绔欎細鏂囨湰', 'warning'); return; }
             try {
-                showToast('正在推送到飞书...', 'info');
+                showToast('姝ｅ湪鎺ㄩ€佸埌椋炰功...', 'info');
                 const resp = await fetch('/api/feishu/push', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         type: 'standup',
-                        title: '🗓️ 每日站会 ' + new Date().toLocaleDateString('zh-CN'),
+                        title: '馃棑锔?姣忔棩绔欎細 ' + new Date().toLocaleDateString('zh-CN'),
                         content: currentStandup,
                         summary: currentStandup.substring(0, 200)
                     })
                 });
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                showToast('已推送到飞书', 'success');
+                showToast('宸叉帹閫佸埌椋炰功', 'success');
             } catch(e) {
-                showToast('推送失败: ' + e.message, 'error');
+                showToast('鎺ㄩ€佸け璐? ' + e.message, 'error');
             }
         }
 
         function saveStandup() {
-            if (!currentStandup) { showToast('请先生成站会文本', 'warning'); return; }
+            if (!currentStandup) { showToast('璇峰厛鐢熸垚绔欎細鏂囨湰', 'warning'); return; }
             const history = getHistory();
             history.unshift({
                 date: new Date().toISOString(),
@@ -418,7 +419,7 @@
             if (history.length > 30) history.pop();
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
             renderHistory();
-            showToast('已保存到历史记录', 'success');
+            showToast('宸蹭繚瀛樺埌鍘嗗彶璁板綍', 'success');
         }
 
         function getHistory() {
@@ -426,7 +427,7 @@
             catch(e) { return []; }
         }
 
-        // ===== 生成周报：汇总最近一周站会记录 =====
+        // ===== 鐢熸垚鍛ㄦ姤锛氭眹鎬绘渶杩戜竴鍛ㄧ珯浼氳褰?=====
         function generateWeeklyReport() {
             const history = getHistory();
             const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -434,10 +435,10 @@
                 return new Date(h.date).getTime() >= oneWeekAgo;
             });
             if (recent.length === 0) {
-                showToast('最近一周暂无站会记录，请先保存站会', 'warning');
+                showToast('鏈€杩戜竴鍛ㄦ殏鏃犵珯浼氳褰曪紝璇峰厛淇濆瓨绔欎細', 'warning');
                 return;
             }
-            // 汇总各字段
+            // 姹囨€诲悇瀛楁
             var completed = [], inProgress = [], nextPlan = [], risks = [];
             recent.forEach(function(h) {
                 var items = h.items || {};
@@ -451,7 +452,7 @@
                     if (t && t.text) risks.push(t.text);
                 });
             });
-            // 去重
+            // 鍘婚噸
             function uniq(arr) { return Array.from(new Set(arr)); }
             var transferData = {
                 source: 'daily-standup',
@@ -467,19 +468,19 @@
                 var prefix = window._USER_PREFIX || '';
                 var key = prefix + 'pipeline_daily-standup_' + Date.now();
                 localStorage.setItem(key, JSON.stringify(transferData));
-                showToast('📋 正在跳转到周报生成器...', 'info');
+                showToast('馃搵 姝ｅ湪璺宠浆鍒板懆鎶ョ敓鎴愬櫒...', 'info');
                 setTimeout(function() { window.location.href = '/weekly-report'; }, 500);
             } catch(e) {
-                showToast('❌ 数据传递失败: ' + e.message, 'error');
+                showToast('鉂?鏁版嵁浼犻€掑け璐? ' + e.message, 'error');
             }
         }
 
         function renderHistory() {
             const history = getHistory();
-            document.getElementById('historyCount').textContent = history.length + ' 条';
+            document.getElementById('historyCount').textContent = history.length + ' 鏉?;
             const list = document.getElementById('historyList');
             if (history.length === 0) {
-                list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:13px;">暂无历史记录</div>';
+                list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:13px;">鏆傛棤鍘嗗彶璁板綍</div>';
                 return;
             }
             list.innerHTML = history.map((h, i) => {
@@ -489,7 +490,7 @@
                 return `<div class="history-item" onclick="loadHistory(${i})">
                     <span class="history-date">${dateStr}</span>
                     <span class="history-preview">${escapeHtml(preview)}</span>
-                    <span style="color:#ef4444;cursor:pointer;font-size:12px;" onclick="event.stopPropagation();deleteHistory(${i})">🗑️</span>
+                    <span style="color:#ef4444;cursor:pointer;font-size:12px;" onclick="event.stopPropagation();deleteHistory(${i})">馃棏锔?/span>
                 </div>`;
             }).join('');
         }
@@ -504,7 +505,7 @@
             const output = document.getElementById('outputArea');
             output.textContent = h.text;
             output.classList.remove('empty');
-            showToast('已加载历史记录', 'info');
+            showToast('宸插姞杞藉巻鍙茶褰?, 'info');
         }
 
         function deleteHistory(idx) {
@@ -512,7 +513,7 @@
             history.splice(idx, 1);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
             renderHistory();
-            showToast('已删除', 'success');
+            showToast('宸插垹闄?, 'success');
         }
 
         function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -521,7 +522,7 @@
             console.log(msg);
         }
 
-        // ==================== 自动化设置 ====================
+        // ==================== 鑷姩鍖栬缃?====================
         const CFG_KEY = 'standup_auto_config';
         let autoConfig = {};
 
@@ -530,10 +531,10 @@
             const toggle = document.getElementById('settingsToggle');
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
-                toggle.textContent = '▲';
+                toggle.textContent = '鈻?;
             } else {
                 panel.style.display = 'none';
-                toggle.textContent = '▼';
+                toggle.textContent = '鈻?;
             }
         }
 
@@ -550,7 +551,7 @@
             localStorage.setItem(CFG_KEY, JSON.stringify(autoConfig));
             updateAutoStatus();
             if (autoConfig.reminder) setupReminder();
-            showToast('自动化设置已保存', 'success');
+            showToast('鑷姩鍖栬缃凡淇濆瓨', 'success');
         }
 
         function loadSettings() {
@@ -577,30 +578,30 @@
             document.getElementById('cfgAutoPush').checked = false;
             document.getElementById('cfgReminder').checked = false;
             updateAutoStatus();
-            showToast('设置已清除', 'success');
+            showToast('璁剧疆宸叉竻闄?, 'success');
         }
 
         function updateAutoStatus() {
             const status = document.getElementById('autoStatus');
             const features = [];
-            if (autoConfig.autoFetch) features.push('自动拉取');
-            if (autoConfig.autoGenerate) features.push('自动生成');
-            if (autoConfig.autoPush) features.push('自动推送');
-            if (autoConfig.reminder) features.push('提醒');
-            status.textContent = features.length > 0 ? features.join('+') : '未配置';
+            if (autoConfig.autoFetch) features.push('鑷姩鎷夊彇');
+            if (autoConfig.autoGenerate) features.push('鑷姩鐢熸垚');
+            if (autoConfig.autoPush) features.push('鑷姩鎺ㄩ€?);
+            if (autoConfig.reminder) features.push('鎻愰啋');
+            status.textContent = features.length > 0 ? features.join('+') : '鏈厤缃?;
             status.style.background = features.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(102,126,234,0.1)';
             status.style.color = features.length > 0 ? '#10b981' : '#667eea';
         }
 
-        // 一键全自动：拉取Jira → 生成 → 推送飞书
+        // 涓€閿叏鑷姩锛氭媺鍙朖ira 鈫?鐢熸垚 鈫?鎺ㄩ€侀涔?
         async function fullAuto() {
             const btn = document.getElementById('autoBtn');
             btn.disabled = true;
             const originalText = btn.textContent;
             try {
-                // 1. 拉取Jira
+                // 1. 鎷夊彇Jira
                 if (autoConfig.jiraUrl || document.getElementById('jiraUrl').value) {
-                    btn.textContent = '🔗 拉取Jira中...';
+                    btn.textContent = '馃敆 鎷夊彇Jira涓?..';
                     const url = document.getElementById('jiraUrl').value.trim() || autoConfig.jiraUrl;
                     if (url) {
                         document.getElementById('jiraUrl').value = url;
@@ -608,29 +609,29 @@
                     }
                 }
 
-                // 2. 生成站会文本
-                btn.textContent = '✨ 生成中...';
+                // 2. 鐢熸垚绔欎細鏂囨湰
+                btn.textContent = '鉁?鐢熸垚涓?..';
                 generateStandup();
                 await new Promise(r => setTimeout(r, 500));
 
-                // 3. 自动推送飞书
+                // 3. 鑷姩鎺ㄩ€侀涔?
                 if (autoConfig.autoPush || autoConfig.feishuWebhook) {
-                    btn.textContent = '📨 推送飞书中...';
+                    btn.textContent = '馃摠 鎺ㄩ€侀涔︿腑...';
                     await pushToFeishu();
                 }
 
-                // 4. 保存历史
+                // 4. 淇濆瓨鍘嗗彶
                 saveStandup();
-                showToast('🎉 全自动完成！站会已生成并推送', 'success');
+                showToast('馃帀 鍏ㄨ嚜鍔ㄥ畬鎴愶紒绔欎細宸茬敓鎴愬苟鎺ㄩ€?, 'success');
             } catch(e) {
-                showToast('全自动执行失败: ' + e.message, 'error');
+                showToast('鍏ㄨ嚜鍔ㄦ墽琛屽け璐? ' + e.message, 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = originalText;
             }
         }
 
-        // 每日提醒
+        // 姣忔棩鎻愰啋
         let reminderTimer = null;
         function setupReminder() {
             if (!autoConfig.reminder || !autoConfig.reminderTime) return;
@@ -643,21 +644,21 @@
                 const [h, m] = autoConfig.reminderTime.split(':').map(Number);
                 if (now.getHours() === h && now.getMinutes() === m && now.getSeconds() < 5) {
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification('🗓️ 每日站会提醒', {
-                            body: '该写今天的站会了！点击打开站会助手',
+                        new Notification('馃棑锔?姣忔棩绔欎細鎻愰啋', {
+                            body: '璇ュ啓浠婂ぉ鐨勭珯浼氫簡锛佺偣鍑绘墦寮€绔欎細鍔╂墜',
                             icon: '/static/favicon.ico'
                         });
                     }
-                    showToast('🗓️ 站会提醒：该写今天的站会了！', 'info');
+                    showToast('馃棑锔?绔欎細鎻愰啋锛氳鍐欎粖澶╃殑绔欎細浜嗭紒', 'info');
                 }
             }, 30000);
         }
 
-        // 页面加载时自动执行
+        // 椤甸潰鍔犺浇鏃惰嚜鍔ㄦ墽琛?
         async function autoRunOnLoad() {
             loadSettings();
             if (autoConfig.autoFetch && autoConfig.jiraUrl) {
-                showToast('🔗 正在自动拉取Jira数据...', 'info');
+                showToast('馃敆 姝ｅ湪鑷姩鎷夊彇Jira鏁版嵁...', 'info');
                 document.getElementById('jiraUrl').value = autoConfig.jiraUrl;
                 try {
                     await importFromJira();
@@ -668,13 +669,13 @@
                         }
                     }
                 } catch(e) {
-                    showToast('自动拉取失败: ' + e.message, 'warning');
+                    showToast('鑷姩鎷夊彇澶辫触: ' + e.message, 'warning');
                 }
             }
             if (autoConfig.reminder) setupReminder();
         }
 
-        // 初始化
+        // 鍒濆鍖?
         renderTags('yesterday');
         renderTags('today');
         renderTags('blocker');

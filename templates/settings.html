@@ -1,14 +1,14 @@
-<!DOCTYPE html><!-- settings v2 -->
+﻿<!DOCTYPE html><!-- settings v2 -->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>设置 - 工具集</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+    <title>璁剧疆 - 宸ュ叿闆?/title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>鈿欙笍</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            /* 以下变量为页面定制；其余主题变量由 theme.css 统一提供 */
+            /* 浠ヤ笅鍙橀噺涓洪〉闈㈠畾鍒讹紱鍏朵綑涓婚鍙橀噺鐢?theme.css 缁熶竴鎻愪緵 */
             --bg-muted: #f0f0f5;
             --border: rgba(0, 0, 0, 0.08);
             --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
@@ -30,8 +30,8 @@
         /* Header */
         .header {
             background: rgba(255, 255, 255, 0.72);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+             saturate(180%);
+            -webkit- saturate(180%);
             padding: 16px 40px;
             display: flex;
             align-items: center;
@@ -170,7 +170,7 @@
         .color-swatch:hover { transform: scale(1.1); }
         .color-swatch.active { border-color: var(--text-primary); }
         .color-swatch.active::after {
-            content: '✓'; position: absolute; top: 50%; left: 50%;
+            content: '鉁?; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%); color: #fff;
             font-size: 16px; font-weight: bold;
         }
@@ -258,159 +258,160 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
     <div class="container">
-        <!-- 页面标题 -->
+        <!-- 椤甸潰鏍囬 -->
         <div style="padding:20px 0 10px;">
-            <h1 style="font-size:24px;font-weight:800;color:var(--text-primary);">⚙️ 设置</h1>
-            <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">配置 AI、飞书推送等服务（随账号保存，换设备自动同步）</p>
+            <h1 style="font-size:24px;font-weight:800;color:var(--text-primary);">鈿欙笍 璁剧疆</h1>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">閰嶇疆 AI銆侀涔︽帹閫佺瓑鏈嶅姟锛堥殢璐﹀彿淇濆瓨锛屾崲璁惧鑷姩鍚屾锛?/p>
         </div>
-        <!-- AI 配置 -->
+        <!-- AI 閰嶇疆 -->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">🤖</span>
+                <span class="section-icon">馃</span>
                 <div>
-                    <div class="section-title">AI 配置</div>
-                    <div class="section-desc">配置 AI 服务的 API Key 和模型（随账号保存）</div>
+                    <div class="section-title">AI 閰嶇疆</div>
+                    <div class="section-desc">閰嶇疆 AI 鏈嶅姟鐨?API Key 鍜屾ā鍨嬶紙闅忚处鍙蜂繚瀛橈級</div>
                 </div>
             </div>
 
-            <!-- 当前配置状态 -->
+            <!-- 褰撳墠閰嶇疆鐘舵€?-->
             <div id="currentConfigDisplay" style="background: var(--bg-secondary, #f5f5f7); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: none;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                     <div>
-                        <div style="font-size:13px; font-weight:600; color:var(--text-primary);">当前配置</div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-primary);">褰撳墠閰嶇疆</div>
                         <div id="currentConfigDetail" style="font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.6;"></div>
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn btn-secondary btn-sm" onclick="editAIConfig()" id="editBtn">✏️ 替换/编辑</button>
-                        <button class="btn btn-ghost btn-sm" onclick="deleteAIConfig()" id="deleteBtn" style="color:var(--danger);">🗑️ 删除</button>
+                        <button class="btn btn-secondary btn-sm" onclick="editAIConfig()" id="editBtn">鉁忥笍 鏇挎崲/缂栬緫</button>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteAIConfig()" id="deleteBtn" style="color:var(--danger);">馃棏锔?鍒犻櫎</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 配置编辑表单 -->
+            <!-- 閰嶇疆缂栬緫琛ㄥ崟 -->
             <div id="aiConfigForm" style="display:block;">
                 <div class="form-group">
                     <label class="form-label">API Key</label>
                     <div style="position:relative;">
                         <input type="password" class="form-input" id="aiKey" placeholder="sk-xxxxxxxxxxxxxxxx" style="padding-right:40px;">
-                        <button type="button" onclick="toggleKeyVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-secondary);" id="keyToggleBtn">👁️</button>
+                        <button type="button" onclick="toggleKeyVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-secondary);" id="keyToggleBtn">馃憗锔?/button>
                     </div>
-                    <div class="form-hint" id="keyHint">当前状态: 检测中...</div>
+                    <div class="form-hint" id="keyHint">褰撳墠鐘舵€? 妫€娴嬩腑...</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">API Base URL</label>
                     <input type="text" class="form-input" id="aiBaseUrl" placeholder="https://dashscope.aliyuncs.com/api/v1">
-                    <div class="form-hint">DashScope (阿里云) 或 OpenAI 兼容端点</div>
+                    <div class="form-hint">DashScope (闃块噷浜? 鎴?OpenAI 鍏煎绔偣</div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">默认模型</label>
+                    <label class="form-label">榛樿妯″瀷</label>
                     <select class="form-select" id="aiModel"></select>
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
-                    <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">💾 保存配置</button>
-                    <button class="btn btn-secondary" id="testBtn" onclick="testAI()">🔌 测试连接</button>
-                    <button class="btn btn-ghost" id="cancelBtn" onclick="cancelEdit()" style="display:none;">取消</button>
+                    <button class="btn btn-primary" id="saveBtn" onclick="saveAIConfig()">馃捑 淇濆瓨閰嶇疆</button>
+                    <button class="btn btn-secondary" id="testBtn" onclick="testAI()">馃攲 娴嬭瘯杩炴帴</button>
+                    <button class="btn btn-ghost" id="cancelBtn" onclick="cancelEdit()" style="display:none;">鍙栨秷</button>
                 </div>
             </div>
             <div class="test-result" id="testResult"></div>
         </div>
 
-        <!-- 飞书推送设置 -->
+        <!-- 椋炰功鎺ㄩ€佽缃?-->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">📨</span>
+                <span class="section-icon">馃摠</span>
                 <div>
-                    <div class="section-title">飞书推送 <span id="feishuConfigStatus" style="font-size:12px;font-weight:400;margin-left:8px;"></span></div>
-                    <div class="section-desc">配置飞书群机器人 Webhook，一键推送周报、会议纪要、CR分析等到飞书群（随账号保存，换设备自动同步）</div>
+                    <div class="section-title">椋炰功鎺ㄩ€?<span id="feishuConfigStatus" style="font-size:12px;font-weight:400;margin-left:8px;"></span></div>
+                    <div class="section-desc">閰嶇疆椋炰功缇ゆ満鍣ㄤ汉 Webhook锛屼竴閿帹閫佸懆鎶ャ€佷細璁邯瑕併€丆R鍒嗘瀽绛夊埌椋炰功缇わ紙闅忚处鍙蜂繚瀛橈紝鎹㈣澶囪嚜鍔ㄥ悓姝ワ級</div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">飞书机器人 Webhook URL</label>
+                <label class="form-label">椋炰功鏈哄櫒浜?Webhook URL</label>
                 <input type="text" class="form-input" id="feishuWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx">
-                <div class="form-hint">在飞书群设置 → 群机器人 → 添加自定义机器人，复制 Webhook 地址粘贴到此处</div>
+                <div class="form-hint">鍦ㄩ涔︾兢璁剧疆 鈫?缇ゆ満鍣ㄤ汉 鈫?娣诲姞鑷畾涔夋満鍣ㄤ汉锛屽鍒?Webhook 鍦板潃绮樿创鍒版澶?/div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">签名密钥（可选）</label>
-                <input type="password" class="form-input" id="feishuSecret" placeholder="机器人开启了签名校验时填写">
-                <div class="form-hint">如果机器人开启了「签名校验」，请填写密钥。未开启则留空。</div>
+                <label class="form-label">绛惧悕瀵嗛挜锛堝彲閫夛級</label>
+                <input type="password" class="form-input" id="feishuSecret" placeholder="鏈哄櫒浜哄紑鍚簡绛惧悕鏍￠獙鏃跺～鍐?>
+                <div class="form-hint">濡傛灉鏈哄櫒浜哄紑鍚簡銆岀鍚嶆牎楠屻€嶏紝璇峰～鍐欏瘑閽ャ€傛湭寮€鍚垯鐣欑┖銆?/div>
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
-                <button class="btn btn-primary" onclick="saveFeishuConfig()">💾 保存配置</button>
-                <button class="btn btn-secondary" onclick="testFeishu()">🔌 发送测试消息</button>
+                <button class="btn btn-primary" onclick="saveFeishuConfig()">馃捑 淇濆瓨閰嶇疆</button>
+                <button class="btn btn-secondary" onclick="testFeishu()">馃攲 鍙戦€佹祴璇曟秷鎭?/button>
             </div>
             <div class="test-result" id="feishuTestResult"></div>
         </div>
 
-        <!-- 推送历史记录 -->
+        <!-- 鎺ㄩ€佸巻鍙茶褰?-->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">📜</span>
+                <span class="section-icon">馃摐</span>
                 <div>
-                    <div class="section-title">推送历史记录</div>
-                    <div class="section-desc">最近 20 条飞书推送记录，失败的可一键重发</div>
+                    <div class="section-title">鎺ㄩ€佸巻鍙茶褰?/div>
+                    <div class="section-desc">鏈€杩?20 鏉￠涔︽帹閫佽褰曪紝澶辫触鐨勫彲涓€閿噸鍙?/div>
                 </div>
-                <button class="btn btn-ghost" onclick="clearPushHistory()" style="margin-left:auto;padding:6px 14px;font-size:12px;">🗑️ 清空</button>
+                <button class="btn btn-ghost" onclick="clearPushHistory()" style="margin-left:auto;padding:6px 14px;font-size:12px;">馃棏锔?娓呯┖</button>
             </div>
             <div id="pushHistoryList" style="margin-top:16px;max-height:400px;overflow-y:auto;"></div>
         </div>
 
-        <!-- 云端数据同步 -->
+        <!-- 浜戠鏁版嵁鍚屾 -->
         <div class="section" id="sync-section">
             <div class="section-header">
                 <div>
-                    <h2 class="section-title">☁️ 云端数据同步</h2>
-                    <div class="section-desc">多设备间自动同步收藏、功德、项目信息、主题等数据，登录后即可使用</div>
+                    <h2 class="section-title">鈽侊笍 浜戠鏁版嵁鍚屾</h2>
+                    <div class="section-desc">澶氳澶囬棿鑷姩鍚屾鏀惰棌銆佸姛寰枫€侀」鐩俊鎭€佷富棰樼瓑鏁版嵁锛岀櫥褰曞悗鍗冲彲浣跨敤</div>
                 </div>
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
-                <button class="btn btn-primary" onclick="manualSync()">🔄 立即同步</button>
-                <button class="btn btn-ghost" onclick="viewSyncStatus()">📊 查看状态</button>
+                <button class="btn btn-primary" onclick="manualSync()">馃攧 绔嬪嵆鍚屾</button>
+                <button class="btn btn-ghost" onclick="viewSyncStatus()">馃搳 鏌ョ湅鐘舵€?/button>
             </div>
             <div class="test-result" id="syncResult" style="display:none;"></div>
             <div id="syncStatusDetail" style="display:none; margin-top: 16px; padding: 14px; border-radius: 10px; background: var(--bg-primary); font-size: 13px;"></div>
         </div>
 
-        <!-- 外观设置 -->
+        <!-- 澶栬璁剧疆 -->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">🎨</span>
+                <span class="section-icon">馃帹</span>
                 <div>
-                    <div class="section-title">外观设置</div>
-                    <div class="section-desc">自定义主题模式和强调色</div>
+                    <div class="section-title">澶栬璁剧疆</div>
+                    <div class="section-desc">鑷畾涔変富棰樻ā寮忓拰寮鸿皟鑹?/div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">主题模式</label>
+                <label class="form-label">涓婚妯″紡</label>
                 <div class="mode-selector">
                     <div class="mode-btn" data-mode="light" onclick="setThemeMode('light')">
-                        <span class="mode-icon">☀️</span>
-                        <span class="mode-text">亮色</span>
+                        <span class="mode-icon">鈽€锔?/span>
+                        <span class="mode-text">浜壊</span>
                     </div>
                     <div class="mode-btn" data-mode="dark" onclick="setThemeMode('dark')">
-                        <span class="mode-icon">🌙</span>
-                        <span class="mode-text">暗色</span>
+                        <span class="mode-icon">馃寵</span>
+                        <span class="mode-text">鏆楄壊</span>
                     </div>
                     <div class="mode-btn" data-mode="auto" onclick="setThemeMode('auto')">
-                        <span class="mode-icon">🔄</span>
-                        <span class="mode-text">跟随系统</span>
+                        <span class="mode-icon">馃攧</span>
+                        <span class="mode-text">璺熼殢绯荤粺</span>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">强调色</label>
+                <label class="form-label">寮鸿皟鑹?/label>
                 <div class="color-row" id="colorRow">
                     <div class="color-swatch" style="background:#0071e3" data-color="#0071e3" onclick="setAccentColor(this)"></div>
                     <div class="color-swatch" style="background:#5856d6" data-color="#5856d6" onclick="setAccentColor(this)"></div>
@@ -424,19 +425,19 @@
             </div>
         </div>
 
-        <!-- 系统信息 -->
+        <!-- 绯荤粺淇℃伅 -->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">📊</span>
+                <span class="section-icon">馃搳</span>
                 <div>
-                    <div class="section-title">系统信息</div>
-                    <div class="section-desc">运行状态和诊断数据</div>
+                    <div class="section-title">绯荤粺淇℃伅</div>
+                    <div class="section-desc">杩愯鐘舵€佸拰璇婃柇鏁版嵁</div>
                 </div>
             </div>
 
             <div class="info-grid" id="sysInfo">
                 <div class="info-item">
-                    <div class="info-label">版本</div>
+                    <div class="info-label">鐗堟湰</div>
                     <div class="info-value" id="sysVersion">-</div>
                 </div>
                 <div class="info-item">
@@ -444,49 +445,49 @@
                     <div class="info-value" id="sysPython">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">内存使用</div>
+                    <div class="info-label">鍐呭瓨浣跨敤</div>
                     <div class="info-value" id="sysMemory">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">CPU 使用</div>
+                    <div class="info-label">CPU 浣跨敤</div>
                     <div class="info-value" id="sysCpu">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">数据库</div>
+                    <div class="info-label">鏁版嵁搴?/div>
                     <div class="info-value" id="sysDb">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">AI 状态</div>
+                    <div class="info-label">AI 鐘舵€?/div>
                     <div class="info-value" id="sysAi">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">上传文件</div>
+                    <div class="info-label">涓婁紶鏂囦欢</div>
                     <div class="info-value" id="sysUploads">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">运行时间</div>
+                    <div class="info-label">杩愯鏃堕棿</div>
                     <div class="info-value" id="sysUptime">-</div>
                 </div>
             </div>
 
-            <button class="btn btn-secondary" style="margin-top: 16px;" onclick="loadSysInfo()">🔄 刷新</button>
+            <button class="btn btn-secondary" style="margin-top: 16px;" onclick="loadSysInfo()">馃攧 鍒锋柊</button>
         </div>
 
-        <!-- 关于 -->
+        <!-- 鍏充簬 -->
         <div class="section">
             <div class="section-header">
-                <span class="section-icon">ℹ️</span>
+                <span class="section-icon">鈩癸笍</span>
                 <div>
-                    <div class="section-title">关于</div>
+                    <div class="section-title">鍏充簬</div>
                 </div>
             </div>
             <div style="font-size: 14px; line-height: 1.8; color: var(--text-secondary);">
-                <div><strong style="color: var(--text-primary)">工具集 v3.0</strong> — 安全加固 + 数据库迁移 + AI 增强</div>
-                <div style="margin-top: 8px;">功能：AI对话 · OCR识别 · 会议纪要 · 智能周报 · PDF转换 · 数据分析</div>
+                <div><strong style="color: var(--text-primary)">宸ュ叿闆?v3.0</strong> 鈥?瀹夊叏鍔犲浐 + 鏁版嵁搴撹縼绉?+ AI 澧炲己</div>
+                <div style="margin-top: 8px;">鍔熻兘锛欰I瀵硅瘽 路 OCR璇嗗埆 路 浼氳绾 路 鏅鸿兘鍛ㄦ姤 路 PDF杞崲 路 鏁版嵁鍒嗘瀽</div>
                 <div style="margin-top: 8px;">
-                    <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" style="color: var(--accent); text-decoration: none;">GitHub 仓库 →</a>
+                    <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" style="color: var(--accent); text-decoration: none;">GitHub 浠撳簱 鈫?/a>
                 </div>
-                <div style="margin-top: 12px; font-size: 12px; opacity: 0.6;">Powered by Yongshuo · 2026</div>
+                <div style="margin-top: 12px; font-size: 12px; opacity: 0.6;">Powered by Yongshuo 路 2026</div>
             </div>
         </div>
     </div>
@@ -494,13 +495,13 @@
     <div class="toast" id="toast"></div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <!-- 全局导航栏已在页面顶部注入 -->
+    <!-- 鍏ㄥ眬瀵艰埅鏍忓凡鍦ㄩ〉闈㈤《閮ㄦ敞鍏?-->
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script>
-        // ===== 初始化 =====
+        // ===== 鍒濆鍖?=====
         document.addEventListener('DOMContentLoaded', function() {
             ToolboxTheme.init();
-            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '鈽€锔? : '馃寵';
             loadAIConfig();
             loadFeishuConfig();
             loadThemeSettings();
@@ -511,7 +512,7 @@
         function toggleTheme() {
             const next = ToolboxTheme.isDark() ? 'light' : 'dark';
             ToolboxTheme.setTheme(next);
-            document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+            document.getElementById('themeBtn').textContent = next === 'dark' ? '鈽€锔? : '馃寵';
         }
 
         function showToast(msg) {
@@ -521,8 +522,8 @@
             setTimeout(() => t.classList.remove('show'), 2500);
         }
 
-        // ===== AI 配置 =====
-        let _isEditing = false;  // 是否处于编辑模式
+        // ===== AI 閰嶇疆 =====
+        let _isEditing = false;  // 鏄惁澶勪簬缂栬緫妯″紡
 
         async function loadAIConfig() {
             try {
@@ -531,14 +532,14 @@
                     fetch('/api/ai-models')
                 ]);
 
-                // 处理需要登录的情况
+                // 澶勭悊闇€瑕佺櫥褰曠殑鎯呭喌
                 if (configResp.status === 401) {
-                    document.getElementById('keyHint').innerHTML = '<span class="status-badge warn"><span class="status-dot"></span>请先登录</span>';
+                    document.getElementById('keyHint').innerHTML = '<span class="status-badge warn"><span class="status-dot"></span>璇峰厛鐧诲綍</span>';
                     document.getElementById('aiConfigForm').style.display = 'block';
                     return;
                 }
-                if (!configResp.ok) throw new Error('配置查询失败 HTTP ' + configResp.status);
-                if (!modelsResp.ok) throw new Error('模型查询失败 HTTP ' + modelsResp.status);
+                if (!configResp.ok) throw new Error('閰嶇疆鏌ヨ澶辫触 HTTP ' + configResp.status);
+                if (!modelsResp.ok) throw new Error('妯″瀷鏌ヨ澶辫触 HTTP ' + modelsResp.status);
                 const config = await configResp.json();
                 const models = await modelsResp.json();
 
@@ -546,30 +547,30 @@
                     const d = config.data;
                     const hasKey = d.has_key;
                     document.getElementById('keyHint').innerHTML = hasKey
-                        ? `<span class="status-badge ok"><span class="status-dot"></span>已配置 ${d.key_masked}（随账号同步，换设备自动恢复）</span>`
-                        : `<span class="status-badge warn"><span class="status-dot"></span>未配置</span>`;
+                        ? `<span class="status-badge ok"><span class="status-dot"></span>宸查厤缃?${d.key_masked}锛堥殢璐﹀彿鍚屾锛屾崲璁惧鑷姩鎭㈠锛?/span>`
+                        : `<span class="status-badge warn"><span class="status-dot"></span>鏈厤缃?/span>`;
                     document.getElementById('aiBaseUrl').value = d.base_url || '';
-                    // AI Key 出于安全不返回明文，已配置时提示留空不修改
+                    // AI Key 鍑轰簬瀹夊叏涓嶈繑鍥炴槑鏂囷紝宸查厤缃椂鎻愮ず鐣欑┖涓嶄慨鏀?
                     const keyInput = document.getElementById('aiKey');
                     if (hasKey) {
-                        keyInput.placeholder = '✅ 已保存，留空则不修改，输入新Key则替换';
+                        keyInput.placeholder = '鉁?宸蹭繚瀛橈紝鐣欑┖鍒欎笉淇敼锛岃緭鍏ユ柊Key鍒欐浛鎹?;
                         keyInput.style.borderColor = '#10b981';
                     } else {
                         keyInput.placeholder = 'sk-xxxxxxxxxxxxxxxx';
                         keyInput.style.borderColor = '';
                     }
 
-                    // 显示当前配置状态卡片
+                    // 鏄剧ず褰撳墠閰嶇疆鐘舵€佸崱鐗?
                     if (d.has_user_config) {
                         const detail = document.getElementById('currentConfigDetail');
                         let html = '';
-                        if (d.key_masked) html += `<div>🔑 API Key: <strong>${d.key_masked}</strong></div>`;
-                        if (d.base_url) html += `<div>🌐 端点: ${d.base_url}</div>`;
-                        if (d.model) html += `<div>🤖 模型: ${d.model}</div>`;
-                        html += `<div style="color:#10b981;margin-top:4px;">✅ 已随账号保存，换设备登录自动恢复</div>`;
+                        if (d.key_masked) html += `<div>馃攽 API Key: <strong>${d.key_masked}</strong></div>`;
+                        if (d.base_url) html += `<div>馃寪 绔偣: ${d.base_url}</div>`;
+                        if (d.model) html += `<div>馃 妯″瀷: ${d.model}</div>`;
+                        html += `<div style="color:#10b981;margin-top:4px;">鉁?宸查殢璐﹀彿淇濆瓨锛屾崲璁惧鐧诲綍鑷姩鎭㈠</div>`;
                         detail.innerHTML = html;
                         document.getElementById('currentConfigDisplay').style.display = 'block';
-                        // 始终显示表单，方便编辑
+                        // 濮嬬粓鏄剧ず琛ㄥ崟锛屾柟渚跨紪杈?
                         document.getElementById('aiConfigForm').style.display = 'block';
                     } else {
                         document.getElementById('currentConfigDisplay').style.display = 'none';
@@ -581,20 +582,20 @@
                 sel.innerHTML = '';
                 if (models.error) throw new Error(models.error);
                 if (!models.models || models.models.length === 0) {
-                    sel.innerHTML = '<option value="">无可用模型</option>';
+                    sel.innerHTML = '<option value="">鏃犲彲鐢ㄦā鍨?/option>';
                 } else {
                     (models.models || []).forEach(m => {
                         const opt = document.createElement('option');
                         opt.value = m.id;
-                        opt.textContent = `${m.name} — ${m.desc}`;
+                        opt.textContent = `${m.name} 鈥?${m.desc}`;
                         if (m.id === models.current) opt.selected = true;
                         sel.appendChild(opt);
                     });
                 }
             } catch (e) {
-                console.error('加载AI配置失败:', e);
+                console.error('鍔犺浇AI閰嶇疆澶辫触:', e);
                 const sel = document.getElementById('aiModel');
-                if (sel) sel.innerHTML = '<option value="">加载失败: ' + e.message + '</option>';
+                if (sel) sel.innerHTML = '<option value="">鍔犺浇澶辫触: ' + e.message + '</option>';
                 document.getElementById('aiConfigForm').style.display = 'block';
             }
         }
@@ -604,9 +605,9 @@
             document.getElementById('aiConfigForm').style.display = 'block';
             document.getElementById('cancelBtn').style.display = 'inline-block';
             document.getElementById('aiKey').value = '';
-            document.getElementById('aiKey').placeholder = '输入新的 API Key 替换现有配置（留空则不修改）';
-            document.getElementById('keyHint').innerHTML = '<span class="status-badge info"><span class="status-dot"></span>编辑模式 — 修改后点击保存</span>';
-            // 滚动到表单
+            document.getElementById('aiKey').placeholder = '杈撳叆鏂扮殑 API Key 鏇挎崲鐜版湁閰嶇疆锛堢暀绌哄垯涓嶄慨鏀癸級';
+            document.getElementById('keyHint').innerHTML = '<span class="status-badge info"><span class="status-dot"></span>缂栬緫妯″紡 鈥?淇敼鍚庣偣鍑讳繚瀛?/span>';
+            // 婊氬姩鍒拌〃鍗?
             document.getElementById('aiKey').focus();
         }
 
@@ -623,15 +624,15 @@
             const btn = document.getElementById('keyToggleBtn');
             if (input.type === 'password') {
                 input.type = 'text';
-                btn.textContent = '🙈';
+                btn.textContent = '馃檲';
             } else {
                 input.type = 'password';
-                btn.textContent = '👁️';
+                btn.textContent = '馃憗锔?;
             }
         }
 
         async function deleteAIConfig() {
-            if (!confirm('确认删除当前账号的 AI 配置？删除后需要重新配置 API Key 才能使用 AI 功能。')) {
+            if (!confirm('纭鍒犻櫎褰撳墠璐﹀彿鐨?AI 閰嶇疆锛熷垹闄ゅ悗闇€瑕侀噸鏂伴厤缃?API Key 鎵嶈兘浣跨敤 AI 鍔熻兘銆?)) {
                 return;
             }
             try {
@@ -642,14 +643,14 @@
                 });
                 const result = await resp.json();
                 if (result.status === 'success') {
-                    showToast('✅ 已删除配置');
+                    showToast('鉁?宸插垹闄ら厤缃?);
                     _isEditing = false;
                     loadAIConfig();
                 } else {
-                    showToast('❌ ' + (result.error || '删除失败'));
+                    showToast('鉂?' + (result.error || '鍒犻櫎澶辫触'));
                 }
             } catch (e) {
-                showToast('❌ 网络错误');
+                showToast('鉂?缃戠粶閿欒');
             }
         }
 
@@ -664,13 +665,13 @@
             if (model) payload.model = model;
 
             if (Object.keys(payload).length === 0) {
-                showToast('没有变更');
+                showToast('娌℃湁鍙樻洿');
                 return;
             }
 
             const btn = document.getElementById('saveBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> 保存中...';
+            btn.innerHTML = '<span class="spinner"></span> 淇濆瓨涓?..';
 
             try {
                 const resp = await fetch('/api/ai-config', {
@@ -680,19 +681,19 @@
                 });
                 const result = await resp.json();
                 if (result.status === 'success') {
-                    showToast('✅ 保存成功');
+                    showToast('鉁?淇濆瓨鎴愬姛');
                     document.getElementById('aiKey').value = '';
                     _isEditing = false;
                     document.getElementById('cancelBtn').style.display = 'none';
                     loadAIConfig();
                 } else {
-                    showToast('❌ ' + (result.error || '保存失败'));
+                    showToast('鉂?' + (result.error || '淇濆瓨澶辫触'));
                 }
             } catch (e) {
-                showToast('❌ 网络错误');
+                showToast('鉂?缃戠粶閿欒');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '💾 保存配置';
+                btn.innerHTML = '馃捑 淇濆瓨閰嶇疆';
             }
         }
 
@@ -700,7 +701,7 @@
             const btn = document.getElementById('testBtn');
             const result = document.getElementById('testResult');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> 测试中...';
+            btn.innerHTML = '<span class="spinner"></span> 娴嬭瘯涓?..';
             result.classList.remove('show', 'success', 'error');
 
             try {
@@ -709,50 +710,50 @@
                 result.classList.add('show');
                 if (data.status === 'success') {
                     result.classList.add('success');
-                    result.innerHTML = `✅ 连接成功！模型: ${data.model} | 回复: "${data.reply}"`;
+                    result.innerHTML = `鉁?杩炴帴鎴愬姛锛佹ā鍨? ${data.model} | 鍥炲: "${data.reply}"`;
                 } else {
                     result.classList.add('error');
-                    result.textContent = '❌ ' + (data.error || '连接失败');
+                    result.textContent = '鉂?' + (data.error || '杩炴帴澶辫触');
                 }
             } catch (e) {
                 result.classList.add('show', 'error');
-                result.textContent = '❌ 请求失败: ' + e.message;
+                result.textContent = '鉂?璇锋眰澶辫触: ' + e.message;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '🔌 测试连接';
+                btn.innerHTML = '馃攲 娴嬭瘯杩炴帴';
             }
         }
 
-        // ===== 飞书推送设置 =====
+        // ===== 椋炰功鎺ㄩ€佽缃?=====
         async function loadFeishuConfig() {
             try {
                 const resp = await fetch('/api/settings/feishu');
                 if (resp.status === 401) {
                     const statusEl = document.getElementById('feishuConfigStatus');
-                    if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">⚠️ 请先登录</span>';
+                    if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">鈿狅笍 璇峰厛鐧诲綍</span>';
                     return;
                 }
                 const data = await resp.json();
                 if (data.status === 'success') {
                     document.getElementById('feishuWebhook').value = data.webhook || '';
                     document.getElementById('feishuSecret').value = data.secret || '';
-                    // 显示配置状态
+                    // 鏄剧ず閰嶇疆鐘舵€?
                     const statusEl = document.getElementById('feishuConfigStatus');
                     const webhookInput = document.getElementById('feishuWebhook');
                     if (statusEl) {
                         if (data.webhook) {
-                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置（随账号同步）</span>';
+                            statusEl.innerHTML = '<span style="color:#10b981;">鈼?宸查厤缃紙闅忚处鍙峰悓姝ワ級</span>';
                             webhookInput.style.borderColor = '#10b981';
                         } else {
-                            statusEl.innerHTML = '<span style="color:#f59e0b;">○ 未配置</span>';
+                            statusEl.innerHTML = '<span style="color:#f59e0b;">鈼?鏈厤缃?/span>';
                             webhookInput.style.borderColor = '';
                         }
                     }
                 }
             } catch (e) {
-                console.error('加载飞书配置失败:', e);
+                console.error('鍔犺浇椋炰功閰嶇疆澶辫触:', e);
                 const statusEl = document.getElementById('feishuConfigStatus');
-                if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">❌ 加载失败</span>';
+                if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444;">鉂?鍔犺浇澶辫触</span>';
             }
         }
 
@@ -767,21 +768,21 @@
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    showToast('飞书配置已保存（随账号同步）');
-                    // 更新配置状态
+                    showToast('椋炰功閰嶇疆宸蹭繚瀛橈紙闅忚处鍙峰悓姝ワ級');
+                    // 鏇存柊閰嶇疆鐘舵€?
                     const statusEl = document.getElementById('feishuConfigStatus');
                     if (statusEl) {
                         if (webhook) {
-                            statusEl.innerHTML = '<span style="color:#10b981;">● 已配置</span>';
+                            statusEl.innerHTML = '<span style="color:#10b981;">鈼?宸查厤缃?/span>';
                         } else {
-                            statusEl.innerHTML = '<span style="color:#f59e0b;">○ 未配置</span>';
+                            statusEl.innerHTML = '<span style="color:#f59e0b;">鈼?鏈厤缃?/span>';
                         }
                     }
                 } else {
-                    showToast(data.error || '保存失败');
+                    showToast(data.error || '淇濆瓨澶辫触');
                 }
             } catch (e) {
-                showToast('保存失败: ' + e.message);
+                showToast('淇濆瓨澶辫触: ' + e.message);
             }
         }
 
@@ -793,30 +794,30 @@
                 const resp = await fetch('/api/feishu/test', {method: 'POST'});
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    resultEl.textContent = '✅ ' + (data.message || '测试消息已发送到飞书群');
+                    resultEl.textContent = '鉁?' + (data.message || '娴嬭瘯娑堟伅宸插彂閫佸埌椋炰功缇?);
                     resultEl.classList.add('show', 'success');
                 } else {
-                    resultEl.textContent = '❌ ' + (data.error || '发送失败');
+                    resultEl.textContent = '鉂?' + (data.error || '鍙戦€佸け璐?);
                     resultEl.classList.add('show', 'error');
                 }
             } catch (e) {
-                resultEl.textContent = '❌ 请求失败: ' + e.message;
+                resultEl.textContent = '鉂?璇锋眰澶辫触: ' + e.message;
                 resultEl.classList.add('show', 'error');
             }
-            // 记录推送历史
+            // 璁板綍鎺ㄩ€佸巻鍙?
             if (window.ToolboxPush) {
                 window.ToolboxPush.record({
-                    tool: '设置',
-                    title: '飞书测试消息',
+                    tool: '璁剧疆',
+                    title: '椋炰功娴嬭瘯娑堟伅',
                     status: resultEl.classList.contains('success') ? 'success' : 'failed',
-                    summary: '测试飞书 Webhook 连通性',
+                    summary: '娴嬭瘯椋炰功 Webhook 杩為€氭€?,
                     error: resultEl.classList.contains('success') ? null : resultEl.textContent
                 });
                 renderPushHistory();
             }
         }
 
-        // ==================== 推送历史 ====================
+        // ==================== 鎺ㄩ€佸巻鍙?====================
         function renderPushHistory() {
             var container = document.getElementById('pushHistoryList');
             if (!container || !window.ToolboxPush) return;
@@ -837,59 +838,59 @@
         async function resendPush(record) {
             if (!record) return;
             try {
-                // 重发测试消息（其他类型推送的重发需要对应页面的 payload，这里统一发测试消息）
+                // 閲嶅彂娴嬭瘯娑堟伅锛堝叾浠栫被鍨嬫帹閫佺殑閲嶅彂闇€瑕佸搴旈〉闈㈢殑 payload锛岃繖閲岀粺涓€鍙戞祴璇曟秷鎭級
                 const resp = await fetch('/api/feishu/test', {method: 'POST'});
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    alert('✅ 重发成功');
+                    alert('鉁?閲嶅彂鎴愬姛');
                     if (window.ToolboxPush) {
                         window.ToolboxPush.record({
-                            tool: record.tool || '重发',
-                            title: record.title || '重发消息',
+                            tool: record.tool || '閲嶅彂',
+                            title: record.title || '閲嶅彂娑堟伅',
                             status: 'success',
-                            summary: '重发成功'
+                            summary: '閲嶅彂鎴愬姛'
                         });
                     }
                 } else {
-                    alert('❌ 重发失败: ' + (data.error || '未知错误'));
+                    alert('鉂?閲嶅彂澶辫触: ' + (data.error || '鏈煡閿欒'));
                 }
                 renderPushHistory();
             } catch(e) {
-                alert('❌ 重发失败: ' + e.message);
+                alert('鉂?閲嶅彂澶辫触: ' + e.message);
             }
         }
 
-        // ==================== 云端同步 ====================
+        // ==================== 浜戠鍚屾 ====================
         async function manualSync() {
             const resultEl = document.getElementById('syncResult');
             resultEl.style.display = 'block';
             resultEl.className = 'test-result';
-            resultEl.textContent = '🔄 正在同步...';
+            resultEl.textContent = '馃攧 姝ｅ湪鍚屾...';
             try {
                 if (window.V5Sync) {
                     await window.V5Sync.sync(false);
                     const state = window.V5Sync.getState();
                     if (state.status === 'success') {
-                        resultEl.textContent = '✅ 同步完成';
+                        resultEl.textContent = '鉁?鍚屾瀹屾垚';
                         resultEl.classList.add('show', 'success');
                     } else {
-                        resultEl.textContent = '❌ ' + (state.error || '同步失败');
+                        resultEl.textContent = '鉂?' + (state.error || '鍚屾澶辫触');
                         resultEl.classList.add('show', 'error');
                     }
                 } else {
-                    // fallback: 直接调用 API
+                    // fallback: 鐩存帴璋冪敤 API
                     const pullResp = await fetch('/api/sync/pull');
                     const pullData = await pullResp.json();
                     if (pullData.status === 'success') {
-                        resultEl.textContent = '✅ 已连接云端同步服务';
+                        resultEl.textContent = '鉁?宸茶繛鎺ヤ簯绔悓姝ユ湇鍔?;
                         resultEl.classList.add('show', 'success');
                     } else {
-                        resultEl.textContent = '❌ ' + (pullData.error || '同步失败');
+                        resultEl.textContent = '鉂?' + (pullData.error || '鍚屾澶辫触');
                         resultEl.classList.add('show', 'error');
                     }
                 }
             } catch (e) {
-                resultEl.textContent = '❌ 同步异常: ' + e.message;
+                resultEl.textContent = '鉂?鍚屾寮傚父: ' + e.message;
                 resultEl.classList.add('show', 'error');
             }
             setTimeout(() => { resultEl.style.display = 'none'; }, 3000);
@@ -898,13 +899,13 @@
         async function viewSyncStatus() {
             const detailEl = document.getElementById('syncStatusDetail');
             detailEl.style.display = 'block';
-            detailEl.textContent = '📊 正在获取同步状态...';
+            detailEl.textContent = '馃搳 姝ｅ湪鑾峰彇鍚屾鐘舵€?..';
             try {
                 const resp = await fetch('/api/sync/status');
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    const names = {favorites:'收藏工具', merit:'功德数据', projects:'项目信息', theme:'主题设置', form_drafts:'表单草稿', settings:'用户设置'};
-                    let html = '<div style="font-weight:600;margin-bottom:8px;">☁️ 云端同步状态</div>';
+                    const names = {favorites:'鏀惰棌宸ュ叿', merit:'鍔熷痉鏁版嵁', projects:'椤圭洰淇℃伅', theme:'涓婚璁剧疆', form_drafts:'琛ㄥ崟鑽夌', settings:'鐢ㄦ埛璁剧疆'};
+                    let html = '<div style="font-weight:600;margin-bottom:8px;">鈽侊笍 浜戠鍚屾鐘舵€?/div>';
                     let hasData = false;
                     Object.keys(data.sync_status).forEach(function(k) {
                         const ts = data.sync_status[k];
@@ -916,18 +917,18 @@
                                 '<span style="color:var(--text-secondary);">' + d.toLocaleString('zh-CN') + '</span></div>';
                         }
                     });
-                    if (!hasData) html += '<div style="color:var(--text-secondary);">暂无同步数据，点击「立即同步」开始</div>';
-                    html += '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">服务器时间: ' + new Date(data.server_time * 1000).toLocaleString('zh-CN') + '</div>';
+                    if (!hasData) html += '<div style="color:var(--text-secondary);">鏆傛棤鍚屾鏁版嵁锛岀偣鍑汇€岀珛鍗冲悓姝ャ€嶅紑濮?/div>';
+                    html += '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">鏈嶅姟鍣ㄦ椂闂? ' + new Date(data.server_time * 1000).toLocaleString('zh-CN') + '</div>';
                     detailEl.innerHTML = html;
                 } else {
-                    detailEl.textContent = '❌ ' + (data.error || '获取状态失败');
+                    detailEl.textContent = '鉂?' + (data.error || '鑾峰彇鐘舵€佸け璐?);
                 }
             } catch (e) {
-                detailEl.textContent = '❌ 请求失败: ' + e.message;
+                detailEl.textContent = '鉂?璇锋眰澶辫触: ' + e.message;
             }
         }
 
-        // ===== 主题设置 =====
+        // ===== 涓婚璁剧疆 =====
         let currentAccent = '#0071e3';
 
         async function loadThemeSettings() {
@@ -935,18 +936,18 @@
                 const resp = await fetch('/api/settings/theme');
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    // 主题模式
+                    // 涓婚妯″紡
                     document.querySelectorAll('.mode-btn').forEach(btn => {
                         btn.classList.toggle('active', btn.dataset.mode === data.theme_mode);
                     });
-                    // 强调色
+                    // 寮鸿皟鑹?
                     currentAccent = data.accent_color || '#0071e3';
                     document.querySelectorAll('.color-swatch').forEach(sw => {
                         sw.classList.toggle('active', sw.dataset.color === currentAccent);
                     });
                 }
             } catch (e) {
-                // 非登录用户可能无偏好数据，忽略
+                // 闈炵櫥褰曠敤鎴峰彲鑳芥棤鍋忓ソ鏁版嵁锛屽拷鐣?
             }
         }
 
@@ -955,7 +956,7 @@
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
             ToolboxTheme.setTheme(mode);
-            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+            document.getElementById('themeBtn').textContent = ToolboxTheme.isDark() ? '鈽€锔? : '馃寵';
 
             try {
                 await fetch('/api/settings/theme', {
@@ -964,7 +965,7 @@
                     body: JSON.stringify({ theme_mode: mode })
                 });
             } catch (e) {}
-            showToast('主题已切换');
+            showToast('涓婚宸插垏鎹?);
         }
 
         function setAccentColor(el) {
@@ -973,7 +974,7 @@
             document.querySelectorAll('.color-swatch').forEach(sw => {
                 sw.classList.toggle('active', sw === el);
             });
-            // 应用到页面
+            // 搴旂敤鍒伴〉闈?
             document.documentElement.style.setProperty('--accent', color);
             document.documentElement.style.setProperty('--bg-primary', 'var(--bg-primary)');
 
@@ -984,10 +985,10 @@
                     body: JSON.stringify({ accent_color: color })
                 });
             } catch (e) {}
-            showToast('强调色已更新');
+            showToast('寮鸿皟鑹插凡鏇存柊');
         }
 
-        // ===== 系统信息 =====
+        // ===== 绯荤粺淇℃伅 =====
         async function loadSysInfo() {
             try {
                 const resp = await fetch('/api/system-info');
@@ -1001,22 +1002,22 @@
 
                     const dbStatus = data.db.status === 'ok'
                         ? `<span class="status-badge ok"><span class="status-dot"></span>${data.db.type}</span>`
-                        : `<span class="status-badge error"><span class="status-dot"></span>异常</span>`;
+                        : `<span class="status-badge error"><span class="status-dot"></span>寮傚父</span>`;
                     document.getElementById('sysDb').innerHTML = dbStatus;
 
                     const aiStatus = data.ai.enabled
                         ? `<span class="status-badge ok"><span class="status-dot"></span>${data.ai.model}</span>`
-                        : `<span class="status-badge warn"><span class="status-dot"></span>未启用</span>`;
+                        : `<span class="status-badge warn"><span class="status-dot"></span>鏈惎鐢?/span>`;
                     document.getElementById('sysAi').innerHTML = aiStatus;
 
-                    document.getElementById('sysUploads').textContent = `${data.uploads.count} 个 / ${data.uploads.size_mb} MB`;
+                    document.getElementById('sysUploads').textContent = `${data.uploads.count} 涓?/ ${data.uploads.size_mb} MB`;
 
                     const hours = Math.floor(data.uptime / 3600);
                     const mins = Math.floor((data.uptime % 3600) / 60);
                     document.getElementById('sysUptime').textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
                 }
             } catch (e) {
-                console.error('加载系统信息失败:', e);
+                console.error('鍔犺浇绯荤粺淇℃伅澶辫触:', e);
             }
         }
     </script>

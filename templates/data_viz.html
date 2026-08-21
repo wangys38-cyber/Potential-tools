@@ -9,8 +9,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
         .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
         .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
@@ -27,14 +27,14 @@
         .control-group select, .control-group input { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; }
         .chart-types { display: flex; gap: 8px; }
         .chart-type-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; transition: all 0.2s; text-align: center; }
-        .chart-type-btn.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .chart-type-btn.active { background: #1d1d1f; color: #fff; border-color: transparent; }
         .chart-type-btn:hover { border-color: #7c3aed; }
         .chart-container { background: var(--bg-card); border-radius: 16px; padding: 24px; border: 1px solid var(--border); margin-bottom: 16px; }
         .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
         .chart-title-input { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; }
         .chart-actions { display: flex; gap: 8px; }
         .btn { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border: none; }
+        .btn-primary { background: #1d1d1f; color: #fff; border: none; }
         .btn:hover { transform: translateY(-1px); }
         .chart-wrapper { position: relative; height: 420px; }
         .data-preview { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); margin-bottom: 16px; }
@@ -60,6 +60,7 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

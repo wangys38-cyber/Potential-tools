@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>邮件助手</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>">
+    <title>閭欢鍔╂墜</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>鉁夛笍</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
         .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
         .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
@@ -19,7 +19,7 @@
         .template-list { display: flex; flex-direction: column; gap: 6px; }
         .template-item { padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
         .template-item:hover { background: var(--bg-primary); }
-        .template-item.active { background: linear-gradient(135deg,rgba(79,70,229,0.1),rgba(124,58,237,0.1)); border-left: 3px solid #7c3aed; font-weight: 500; }
+        .template-item.active { background: #fff,rgba(124,58,237,0.1)); border-left: 3px solid #7c3aed; font-weight: 500; }
         .template-icon { font-size: 18px; flex-shrink: 0; }
         .main-panel { display: flex; flex-direction: column; gap: 16px; }
         .form-card { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
@@ -36,7 +36,7 @@
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border: none; }
+        .btn-primary { background: #1d1d1f; color: #fff; border: none; }
         .btn:hover { transform: translateY(-1px); }
         .preview-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
         .preview-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
@@ -63,33 +63,34 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
     <div class="container">
         <div class="sidebar">
-            <div class="sidebar-title">邮件模板</div>
+            <div class="sidebar-title">閭欢妯℃澘</div>
             <div class="template-list" id="templateList"></div>
         </div>
         <div class="main-panel">
             <div class="form-card">
-                <div class="form-title" id="formTitle">填写邮件信息</div>
+                <div class="form-title" id="formTitle">濉啓閭欢淇℃伅</div>
                 <div id="formFields"></div>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="generateEmail()">✨ 生成邮件</button>
-                    <button class="btn" onclick="clearForm()">🗑️ 清空</button>
+                    <button class="btn btn-primary" onclick="generateEmail()">鉁?鐢熸垚閭欢</button>
+                    <button class="btn" onclick="clearForm()">馃棏锔?娓呯┖</button>
                 </div>
             </div>
             <div class="preview-card" id="previewCard" style="display:none">
                 <div class="preview-header">
-                    <span class="preview-title">邮件预览</span>
+                    <span class="preview-title">閭欢棰勮</span>
                     <div style="display:flex;gap:10px;align-items:center">
                         <div class="lang-toggle">
                             <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
-                            <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">中文</button>
+                            <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">涓枃</button>
                         </div>
-                        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="copyEmail()">📋 复制</button>
+                        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="copyEmail()">馃搵 澶嶅埗</button>
                     </div>
                 </div>
                 <div class="preview-body" id="previewBody"></div>
@@ -99,31 +100,31 @@
     <div class="toast" id="toast"></div>
     <script>
         const TEMPLATES = [
-            { id: 'ai-reply', icon: '🤖', name: 'AI 智能回复', fields: ['emailContent','tone'], desc: 'AI generate email reply' },
-            { id: 'bug', icon: '🐛', name: 'Bug 报告', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
-            { id: 'status', icon: '📊', name: '进度同步', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
-            { id: 'request', icon: '🙏', name: '资源请求', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
-            { id: 'escalation', icon: '🚨', name: '问题升级', fields: ['recipient','subject','issue','impact','previousAttempts','needAction'], desc: 'Escalate a critical issue' },
-            { id: 'followup', icon: '📌', name: '跟进提醒', fields: ['recipient','subject','topic','previousDate','actionNeeded','deadline'], desc: 'Follow up on pending items' },
-            { id: 'apology', icon: '🙇', name: '问题致歉', fields: ['recipient','subject','issue','apology','solution','preventMeasure'], desc: 'Apologize for an issue' },
-            { id: 'release', icon: '🚀', name: '版本发布', fields: ['recipient','subject','version','highlights','changes','knownIssues','download'], desc: 'Announce a new release' },
-            { id: 'meeting', icon: '📅', name: '会议邀请', fields: ['recipient','subject','meetingTitle','time','location','agenda','prep'], desc: 'Schedule a meeting' },
+            { id: 'ai-reply', icon: '馃', name: 'AI 鏅鸿兘鍥炲', fields: ['emailContent','tone'], desc: 'AI generate email reply' },
+            { id: 'bug', icon: '馃悰', name: 'Bug 鎶ュ憡', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
+            { id: 'status', icon: '馃搳', name: '杩涘害鍚屾', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
+            { id: 'request', icon: '馃檹', name: '璧勬簮璇锋眰', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
+            { id: 'escalation', icon: '馃毃', name: '闂鍗囩骇', fields: ['recipient','subject','issue','impact','previousAttempts','needAction'], desc: 'Escalate a critical issue' },
+            { id: 'followup', icon: '馃搶', name: '璺熻繘鎻愰啋', fields: ['recipient','subject','topic','previousDate','actionNeeded','deadline'], desc: 'Follow up on pending items' },
+            { id: 'apology', icon: '馃檱', name: '闂鑷存瓑', fields: ['recipient','subject','issue','apology','solution','preventMeasure'], desc: 'Apologize for an issue' },
+            { id: 'release', icon: '馃殌', name: '鐗堟湰鍙戝竷', fields: ['recipient','subject','version','highlights','changes','knownIssues','download'], desc: 'Announce a new release' },
+            { id: 'meeting', icon: '馃搮', name: '浼氳閭€璇?, fields: ['recipient','subject','meetingTitle','time','location','agenda','prep'], desc: 'Schedule a meeting' },
         ];
 
         const FIELD_LABELS = {
-            recipient: '收件人 (Recipient)', subject: '主题 (Subject)', bugTitle: 'Bug 标题',
-            severity: '严重程度 (Critical/Major/Minor)', steps: '复现步骤 (Steps to reproduce)',
-            expected: '预期结果 (Expected)', actual: '实际结果 (Actual)', version: '固件版本 (Version)',
-            project: '项目名称 (Project)', progress: '当前进度 (Progress %)', blockers: '阻塞项 (Blockers)',
-            nextSteps: '下一步计划 (Next steps)', requestItem: '请求内容 (Request)', reason: '请求原因 (Reason)',
-            deadline: '截止日期 (Deadline)', impact: '影响范围 (Impact)', issue: '问题描述 (Issue)',
-            previousAttempts: '已尝试方案 (Previous attempts)', needAction: '需要的支持 (Action needed)',
-            topic: '跟进主题 (Topic)', previousDate: '上次沟通日期', actionNeeded: '需要的行动',
-            apology: '致歉内容 (Apology)', solution: '解决方案 (Solution)', preventMeasure: '预防措施 (Prevention)',
-            version: '版本号 (Version)', highlights: '重点更新 (Highlights)', changes: '变更内容 (Changes)',
-            knownIssues: '已知问题 (Known issues)', download: '下载链接 (Download link)',
-            meetingTitle: '会议主题 (Title)', time: '会议时间 (Time)', location: '会议地点 (Location/Link)',
-            agenda: '议程 (Agenda)', prep: '会前准备 (Preparation)',
+            recipient: '鏀朵欢浜?(Recipient)', subject: '涓婚 (Subject)', bugTitle: 'Bug 鏍囬',
+            severity: '涓ラ噸绋嬪害 (Critical/Major/Minor)', steps: '澶嶇幇姝ラ (Steps to reproduce)',
+            expected: '棰勬湡缁撴灉 (Expected)', actual: '瀹為檯缁撴灉 (Actual)', version: '鍥轰欢鐗堟湰 (Version)',
+            project: '椤圭洰鍚嶇О (Project)', progress: '褰撳墠杩涘害 (Progress %)', blockers: '闃诲椤?(Blockers)',
+            nextSteps: '涓嬩竴姝ヨ鍒?(Next steps)', requestItem: '璇锋眰鍐呭 (Request)', reason: '璇锋眰鍘熷洜 (Reason)',
+            deadline: '鎴鏃ユ湡 (Deadline)', impact: '褰卞搷鑼冨洿 (Impact)', issue: '闂鎻忚堪 (Issue)',
+            previousAttempts: '宸插皾璇曟柟妗?(Previous attempts)', needAction: '闇€瑕佺殑鏀寔 (Action needed)',
+            topic: '璺熻繘涓婚 (Topic)', previousDate: '涓婃娌熼€氭棩鏈?, actionNeeded: '闇€瑕佺殑琛屽姩',
+            apology: '鑷存瓑鍐呭 (Apology)', solution: '瑙ｅ喅鏂规 (Solution)', preventMeasure: '棰勯槻鎺柦 (Prevention)',
+            version: '鐗堟湰鍙?(Version)', highlights: '閲嶇偣鏇存柊 (Highlights)', changes: '鍙樻洿鍐呭 (Changes)',
+            knownIssues: '宸茬煡闂 (Known issues)', download: '涓嬭浇閾炬帴 (Download link)',
+            meetingTitle: '浼氳涓婚 (Title)', time: '浼氳鏃堕棿 (Time)', location: '浼氳鍦扮偣 (Location/Link)',
+            agenda: '璁▼ (Agenda)', prep: '浼氬墠鍑嗗 (Preparation)',
         };
 
         let currentTemplate = TEMPLATES[0];
@@ -146,19 +147,19 @@
         }
 
         function renderFormFields() {
-            document.getElementById('formTitle').textContent = currentTemplate.icon + ' ' + currentTemplate.name + ' - 填写信息';
+            document.getElementById('formTitle').textContent = currentTemplate.icon + ' ' + currentTemplate.name + ' - 濉啓淇℃伅';
             if (currentTemplate.id === 'ai-reply') {
                 document.getElementById('formFields').innerHTML = `
                     <div class="form-group">
-                        <label>📧 收到的邮件内容（英文）</label>
+                        <label>馃摟 鏀跺埌鐨勯偖浠跺唴瀹癸紙鑻辨枃锛?/label>
                         <textarea id="field_emailContent" placeholder="Paste the email you received here..." style="min-height:160px;"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>🎯 回复语气</label>
+                        <label>馃幆 鍥炲璇皵</label>
                         <div style="display:flex;gap:8px;" id="toneGroup">
-                            <button type="button" class="btn tone-btn active" data-tone="formal" onclick="selectTone('formal')" style="flex:1;justify-content:center;">🎩 正式</button>
-                            <button type="button" class="btn tone-btn" data-tone="concise" onclick="selectTone('concise')" style="flex:1;justify-content:center;">⚡ 简洁</button>
-                            <button type="button" class="btn tone-btn" data-tone="friendly" onclick="selectTone('friendly')" style="flex:1;justify-content:center;">😊 友好</button>
+                            <button type="button" class="btn tone-btn active" data-tone="formal" onclick="selectTone('formal')" style="flex:1;justify-content:center;">馃帺 姝ｅ紡</button>
+                            <button type="button" class="btn tone-btn" data-tone="concise" onclick="selectTone('concise')" style="flex:1;justify-content:center;">鈿?绠€娲?/button>
+                            <button type="button" class="btn tone-btn" data-tone="friendly" onclick="selectTone('friendly')" style="flex:1;justify-content:center;">馃槉 鍙嬪ソ</button>
                         </div>
                     </div>
                     <input type="hidden" id="field_tone" value="formal">
@@ -180,7 +181,7 @@
             document.querySelectorAll('.tone-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.tone === tone);
                 if (b.dataset.tone === tone) {
-                    b.style.background = 'linear-gradient(135deg,#4f46e5,#7c3aed)';
+                    b.style.background = '#1d1d1f';
                     b.style.color = '#fff';
                     b.style.border = 'none';
                 } else {
@@ -194,14 +195,14 @@
         function getVal(f) { return document.getElementById('field_'+f)?.value || ''; }
 
         function generateEmail() {
-            // AI 智能回复模板
+            // AI 鏅鸿兘鍥炲妯℃澘
             if (currentTemplate.id === 'ai-reply') {
                 const emailContent = getVal('emailContent').trim();
                 const tone = getVal('tone') || 'formal';
-                if (!emailContent) { showToast('请先粘贴收到的邮件内容'); return; }
+                if (!emailContent) { showToast('璇峰厛绮樿创鏀跺埌鐨勯偖浠跺唴瀹?); return; }
                 const btn = document.querySelector('.btn-primary');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '⏳ AI 生成中...';
+                btn.innerHTML = '鈴?AI 鐢熸垚涓?..';
                 btn.disabled = true;
                 fetch('/api/email-reply', {
                     method: 'POST',
@@ -210,15 +211,15 @@
                 })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.error) { showToast('❌ ' + data.error); return; }
+                    if (data.error) { showToast('鉂?' + data.error); return; }
                     generatedEN = data.reply || '';
                     generatedZH = translateToZH(generatedEN);
                     currentLang = 'en';
                     renderPreview();
                     document.getElementById('previewCard').style.display = 'block';
-                    showToast('✨ AI 回复已生成');
+                    showToast('鉁?AI 鍥炲宸茬敓鎴?);
                 })
-                .catch(e => showToast('❌ 生成失败: ' + e.message))
+                .catch(e => showToast('鉂?鐢熸垚澶辫触: ' + e.message))
                 .finally(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -382,37 +383,37 @@ Best regards`;
             currentLang = 'en';
             renderPreview();
             document.getElementById('previewCard').style.display = 'block';
-            showToast('✨ 邮件已生成');
+            showToast('鉁?閭欢宸茬敓鎴?);
         }
 
         function translateToZH(text) {
-            // 简单的关键词翻译（完整翻译需调用 AI API）
+            // 绠€鍗曠殑鍏抽敭璇嶇炕璇戯紙瀹屾暣缈昏瘧闇€璋冪敤 AI API锛?
             const dict = {
-                'Hi ': '你好，', 'Best regards': '此致敬礼',
-                'I would like to report': '我想报告', 'I am writing to request': '我写信请求',
-                'I am escalating': '我在此升级', 'Following up on': '跟进',
-                'I sincerely apologize': '我诚挚道歉', 'We are pleased to announce': '我们很高兴地宣布',
-                'I would like to schedule': '我想安排',
-                'Bug Title:': 'Bug 标题：', 'Severity:': '严重程度：',
-                'Steps to Reproduce:': '复现步骤：', 'Expected Result:': '预期结果：',
-                'Actual Result:': '实际结果：', 'Progress:': '进度：',
-                'Blockers:': '阻塞项：', 'Next Steps:': '下一步：',
-                'Request:': '请求：', 'Reason:': '原因：', 'Impact:': '影响：',
-                'Deadline:': '截止日期：', 'Issue:': '问题：',
-                'Previous Attempts:': '已尝试方案：', 'Action Needed:': '需要的支持：',
-                'Solution:': '解决方案：', 'Prevention:': '预防措施：',
-                'Highlights:': '重点更新：', 'Changes:': '变更内容：',
-                'Known Issues:': '已知问题：', 'Download:': '下载：',
-                'Title:': '主题：', 'Time:': '时间：', 'Location:': '地点：',
-                'Agenda:': '议程：', 'Preparation:': '会前准备：',
-                'Please let me know': '请告知', 'Thank you': '感谢',
-                'Subject:': '主题：', 'None': '无',
+                'Hi ': '浣犲ソ锛?, 'Best regards': '姝よ嚧鏁ぜ',
+                'I would like to report': '鎴戞兂鎶ュ憡', 'I am writing to request': '鎴戝啓淇¤姹?,
+                'I am escalating': '鎴戝湪姝ゅ崌绾?, 'Following up on': '璺熻繘',
+                'I sincerely apologize': '鎴戣瘹鎸氶亾姝?, 'We are pleased to announce': '鎴戜滑寰堥珮鍏村湴瀹ｅ竷',
+                'I would like to schedule': '鎴戞兂瀹夋帓',
+                'Bug Title:': 'Bug 鏍囬锛?, 'Severity:': '涓ラ噸绋嬪害锛?,
+                'Steps to Reproduce:': '澶嶇幇姝ラ锛?, 'Expected Result:': '棰勬湡缁撴灉锛?,
+                'Actual Result:': '瀹為檯缁撴灉锛?, 'Progress:': '杩涘害锛?,
+                'Blockers:': '闃诲椤癸細', 'Next Steps:': '涓嬩竴姝ワ細',
+                'Request:': '璇锋眰锛?, 'Reason:': '鍘熷洜锛?, 'Impact:': '褰卞搷锛?,
+                'Deadline:': '鎴鏃ユ湡锛?, 'Issue:': '闂锛?,
+                'Previous Attempts:': '宸插皾璇曟柟妗堬細', 'Action Needed:': '闇€瑕佺殑鏀寔锛?,
+                'Solution:': '瑙ｅ喅鏂规锛?, 'Prevention:': '棰勯槻鎺柦锛?,
+                'Highlights:': '閲嶇偣鏇存柊锛?, 'Changes:': '鍙樻洿鍐呭锛?,
+                'Known Issues:': '宸茬煡闂锛?, 'Download:': '涓嬭浇锛?,
+                'Title:': '涓婚锛?, 'Time:': '鏃堕棿锛?, 'Location:': '鍦扮偣锛?,
+                'Agenda:': '璁▼锛?, 'Preparation:': '浼氬墠鍑嗗锛?,
+                'Please let me know': '璇峰憡鐭?, 'Thank you': '鎰熻阿',
+                'Subject:': '涓婚锛?, 'None': '鏃?,
             };
             let result = text;
             Object.entries(dict).forEach(([en, zh]) => {
                 result = result.split(en).join(zh);
             });
-            return result + '\n\n---\n（注：完整翻译建议复制后使用 AI 翻译工具润色）';
+            return result + '\n\n---\n锛堟敞锛氬畬鏁寸炕璇戝缓璁鍒跺悗浣跨敤 AI 缈昏瘧宸ュ叿娑﹁壊锛?;
         }
 
         function switchLang(lang) {
@@ -432,13 +433,13 @@ Best regards`;
 
         function copyEmail() {
             const text = currentLang === 'en' ? generatedEN : generatedZH;
-            navigator.clipboard.writeText(text).then(() => showToast('📋 已复制到剪贴板'));
+            navigator.clipboard.writeText(text).then(() => showToast('馃搵 宸插鍒跺埌鍓创鏉?));
         }
 
         function clearForm() {
             currentTemplate.fields.forEach(f => { const el = document.getElementById('field_'+f); if(el) el.value = ''; });
             document.getElementById('previewCard').style.display = 'none';
-            showToast('🗑️ 已清空');
+            showToast('馃棏锔?宸叉竻绌?);
         }
 
         function showToast(msg) {

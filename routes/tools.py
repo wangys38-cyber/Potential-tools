@@ -553,6 +553,58 @@ Please write the reply:"""
             logger.error(f'邮件回复生成失败: {e}')
             return jsonify({'error': f'AI 生成失败: {str(e)}'}), 500
 
+    # ==================== 日志 AI 智能分析 ====================
+
+    @bp.route('/api/log-ai-analyze', methods=['POST'])
+    def api_log_ai_analyze():
+        """日志 AI 智能分析 — 基于统计摘要和关键异常，输出根因、修复建议、风险等级、待检查项"""
+        data = request.json or {}
+        stats_summary = data.get('stats_summary') or ''
+        key_anomalies = data.get('key_anomalies') or ''
+        if not stats_summary and not key_anomalies:
+            return jsonify({'error': '分析数据不能为空'}), 400
+        prompt = f"""你是一位资深嵌入式设备日志分析专家。请根据以下日志统计摘要和关键异常记录，进行深度智能分析。
+
+【统计摘要】
+{stats_summary}
+
+【关键异常记录（前50条）】
+{key_anomalies}
+
+请按以下结构输出分析结果（使用 Markdown 格式）：
+
+## 一、根因分析
+- 识别最可能的根本原因，按优先级排序
+- 结合异常类型和出现频次推断因果关系
+
+## 二、修复建议
+- 针对每个根因给出具体、可执行的修复步骤
+- 标注优先级（高/中/低）
+
+## 三、风险等级评估
+- 综合评估当前系统风险等级：🔴 高风险 / 🟡 中风险 / 🟢 低风险
+- 说明判断依据
+
+## 四、需进一步检查的项目
+- 列出需要补充采集或验证的信息
+- 建议使用的调试工具或测试方法
+
+要求：
+- 分析专业、精准，避免泛泛而谈
+- 结合具体异常日志给出有针对性的结论
+- 语言简洁专业，不要AI味"""
+        messages = [
+            {'role': 'system', 'content': '你是一位资深嵌入式设备日志分析专家，擅长从设备日志中定位根因并给出修复方案。'},
+            {'role': 'user', 'content': prompt}
+        ]
+        try:
+            ai_config = get_ai_config()
+            result = _call_ai(messages, model=ai_config.get('model'), max_tokens=3000, temperature=0.4, timeout=90)
+            return jsonify({'result': result or ''})
+        except Exception as e:
+            logger.error(f'日志AI分析失败: {e}')
+            return jsonify({'error': f'AI 分析失败: {str(e)}'}), 500
+
     # ==================== MD2PDF ====================
 
     @bp.route('/api/md2pdf', methods=['POST'])

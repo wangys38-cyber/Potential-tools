@@ -19,7 +19,7 @@
 
         body {
             font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Serif SC', serif;
-            background: linear-gradient(170deg, #1a1033 0%, #2d1b4e 25%, #4a2c6a 50%, #6b3a5c 75%, #8b4a3a 100%);
+            background: #fff;
             min-height: 100vh; overflow: hidden; color: #fff;
             user-select: none; -webkit-user-select: none;
             position: relative;
@@ -57,8 +57,8 @@
         /* 顶部按钮 */
         .reset-btn, .back-btn {
             position: fixed; top: 20px; z-index: 100;
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background: rgba(255,255,255,0.06);  saturate(180%);
+            -webkit- saturate(180%);
             border: 1px solid var(--glass-border); border-radius: 14px;
             padding: 10px 18px; color: rgba(255,255,255,0.6); font-size: 13px;
             cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
@@ -72,8 +72,8 @@
         /* 总功德卡片 */
         .total-merit {
             position: fixed; top: 20px; right: 20px; z-index: 100;
-            background: linear-gradient(135deg, rgba(245,200,66,0.12), rgba(212,160,23,0.06));
-            backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: #fff, rgba(212,160,23,0.06));
+             saturate(180%); -webkit- saturate(180%);
             border: 1px solid rgba(245,200,66,0.2); border-radius: 20px;
             padding: 16px 26px; text-align: center;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -85,7 +85,7 @@
         }
         .total-merit .value {
             font-size: 38px; font-weight: 800; line-height: 1;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+            background: #fff, var(--gold), var(--gold-dark));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
             font-variant-numeric: tabular-nums;
             filter: drop-shadow(0 0 12px rgba(245,200,66,0.3));
@@ -145,7 +145,7 @@
         /* 功德+1 弹出 */
         .merit-popup {
             position: absolute; font-size: 26px; font-weight: 800;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            background: #fff, var(--gold));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
             filter: drop-shadow(0 0 10px rgba(245,200,66,0.5));
             pointer-events: none; white-space: nowrap; z-index: 50;
@@ -181,8 +181,8 @@
         /* 今日功德卡片 */
         .today-merit {
             position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); z-index: 100;
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(255,255,255,0.06);  saturate(180%);
+            -webkit- saturate(180%);
             border: 1px solid var(--glass-border); border-radius: 18px;
             padding: 14px 36px; text-align: center;
             box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
@@ -195,8 +195,8 @@
         /* 成就弹窗 */
         .achievement {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
-            background: linear-gradient(135deg, rgba(245,200,66,0.12), rgba(212,160,23,0.06));
-            backdrop-filter: blur(24px) saturate(200%); -webkit-backdrop-filter: blur(24px) saturate(200%);
+            background: #fff, rgba(212,160,23,0.06));
+             saturate(200%); -webkit- saturate(200%);
             border: 1px solid rgba(245,200,66,0.25); border-radius: 24px;
             padding: 32px 56px; text-align: center; z-index: 200;
             box-shadow: 0 0 80px rgba(245,200,66,0.15), 0 16px 48px rgba(0,0,0,0.4);
@@ -241,6 +241,7 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

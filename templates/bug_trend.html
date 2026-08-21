@@ -1,16 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bug 趋势看板</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+    <title>Bug 瓒嬪娍鐪嬫澘</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>馃搱</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-        .header { background: rgba(255,255,255,0.72); backdrop-filter: blur(20px); padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: linear-gradient(135deg,#4f46e5,#7c3aed,#c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
+        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
         .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
         .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
@@ -32,21 +32,21 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
         .stat-card { background: var(--bg-card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); }
         .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
-        .stat-value { font-size: 28px; font-weight: 700; background: linear-gradient(135deg,#4f46e5,#7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-value { font-size: 28px; font-weight: 700; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .empty-state-icon { font-size: 56px; margin-bottom: 16px; }
         .version-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
         .version-pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); transition: all 0.2s; }
-        .version-pill.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; border-color: transparent; }
+        .version-pill.active { background: #1d1d1f; color: #fff; border-color: transparent; }
         .source-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-card); padding: 4px; border-radius: 12px; border: 1px solid var(--border); width: fit-content; }
         .source-tab { padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; color: var(--text-secondary); }
-        .source-tab.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; }
+        .source-tab.active { background: #1d1d1f; color: #fff; }
         .jira-panel { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         .jira-config { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
         .jira-config input { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; width: 100%; }
         .jira-input-row { display: flex; gap: 10px; }
         .jira-input-row input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; }
-        .jira-import-btn { padding: 10px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; }
+        .jira-import-btn { padding: 10px 24px; border-radius: 10px; border: none; background: #1d1d1f; color: #fff; cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; }
         .jira-import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .jira-hint { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
         .jira-hint code { background: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
@@ -59,7 +59,7 @@
         .csv-drop-zone { border: 2px dashed var(--border-strong); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; margin-top: 12px; transition: all 0.3s; display: none; }
         .csv-drop-zone:hover, .csv-drop-zone.dragover { border-color: #10b981; background: rgba(16,185,129,0.05); }
         .csv-drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
-        .csv-export-link { display: inline-block; padding: 8px 16px; border-radius: 8px; background: linear-gradient(135deg,#10b981,#059669); color: #fff; text-decoration: none; font-size: 13px; font-weight: 500; margin-top: 8px; }
+        .csv-export-link { display: inline-block; padding: 8px 16px; border-radius: 8px; background: #fff; color: #fff; text-decoration: none; font-size: 13px; font-weight: 500; margin-top: 8px; }
         .divider { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 16px 0; position: relative; }
         .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
         .divider::before { left: 0; } .divider::after { right: 0; }
@@ -75,6 +75,7 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -82,52 +83,52 @@
 <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <div class="container">
         <div class="source-tabs">
-            <div class="source-tab active" data-source="excel" onclick="switchSource('excel')">📊 Excel 上传</div>
-            <div class="source-tab" data-source="jira" onclick="switchSource('jira')">🔗 Jira 导入</div>
+            <div class="source-tab active" data-source="excel" onclick="switchSource('excel')">馃搳 Excel 涓婁紶</div>
+            <div class="source-tab" data-source="jira" onclick="switchSource('jira')">馃敆 Jira 瀵煎叆</div>
         </div>
         <div id="excelPanel">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-zone-icon">📊</div>
-            <div class="upload-zone-text">点击或拖拽上传 CR Excel 文件</div>
-            <div class="upload-zone-hint">支持 .xlsx / .xls，需包含日期、固件版本、Bug 数量等列</div>
+            <div class="upload-zone-icon">馃搳</div>
+            <div class="upload-zone-text">鐐瑰嚮鎴栨嫋鎷戒笂浼?CR Excel 鏂囦欢</div>
+            <div class="upload-zone-hint">鏀寔 .xlsx / .xls锛岄渶鍖呭惈鏃ユ湡銆佸浐浠剁増鏈€丅ug 鏁伴噺绛夊垪</div>
             <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
         </div>
         </div>
         <div id="jiraPanel" style="display:none">
             <div class="jira-panel">
                 <div class="jira-config">
-                    <input type="text" id="jiraDomain" placeholder="Jira 域名 (如 https://xxx.atlassian.net)">
-                    <input type="text" id="jiraEmail" placeholder="用户名 / 邮箱 (Jira Server 用短账号如 wangys38)">
-                    <input type="password" id="jiraToken" placeholder="API Token / PAT / 密码">
+                    <input type="text" id="jiraDomain" placeholder="Jira 鍩熷悕 (濡?https://xxx.atlassian.net)">
+                    <input type="text" id="jiraEmail" placeholder="鐢ㄦ埛鍚?/ 閭 (Jira Server 鐢ㄧ煭璐﹀彿濡?wangys38)">
+                    <input type="password" id="jiraToken" placeholder="API Token / PAT / 瀵嗙爜">
                 </div>
                 <div class="jira-input-row">
-                    <input type="text" id="jiraInput" placeholder="粘贴 Jira 搜索链接 或 输入 JQL，如：project = PROJ AND type = Bug">
-                    <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()">🔗 导入 CR</button>
+                    <input type="text" id="jiraInput" placeholder="绮樿创 Jira 鎼滅储閾炬帴 鎴?杈撳叆 JQL锛屽锛歱roject = PROJ AND type = Bug">
+                    <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()">馃敆 瀵煎叆 CR</button>
                 </div>
                 <div class="jira-hint">
-                    支持：Jira 搜索页 URL（<code>?jql=</code> / <code>?filter=86482</code>）或直接输入 JQL。Jira Cloud 填邮箱+API Token；Jira Server 填用户名+密码或 Personal Access Token。配置仅存本地。
+                    鏀寔锛欽ira 鎼滅储椤?URL锛?code>?jql=</code> / <code>?filter=86482</code>锛夋垨鐩存帴杈撳叆 JQL銆侸ira Cloud 濉偖绠?API Token锛汮ira Server 濉敤鎴峰悕+瀵嗙爜鎴?Personal Access Token銆傞厤缃粎瀛樻湰鍦般€?
                 </div>
                 <div class="error-msg" id="jiraError"></div>
             </div>
-            <div class="divider">或</div>
+            <div class="divider">鎴?/div>
             <div class="browser-panel">
-                <div class="browser-panel-title">🌐 浏览器免登录导入 <span class="badge">推荐</span></div>
+                <div class="browser-panel-title">馃寪 娴忚鍣ㄥ厤鐧诲綍瀵煎叆 <span class="badge">鎺ㄨ崘</span></div>
                 <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">
-                    你已在浏览器登录 Jira，可直接用当前会话导入，无需 Token。若被 CORS 拦截，可一键导出 CSV 后拖入。
+                    浣犲凡鍦ㄦ祻瑙堝櫒鐧诲綍 Jira锛屽彲鐩存帴鐢ㄥ綋鍓嶄細璇濆鍏ワ紝鏃犻渶 Token銆傝嫢琚?CORS 鎷︽埅锛屽彲涓€閿鍑?CSV 鍚庢嫋鍏ャ€?
                 </div>
                 <div class="jira-input-row">
-                    <input type="text" id="browserJiraUrl" placeholder="粘贴 Jira filter 链接，如：https://edart.motorola.com/issues/?filter=86482">
-                    <button class="jira-import-btn" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="importFromBrowser()">🌐 浏览器导入</button>
+                    <input type="text" id="browserJiraUrl" placeholder="绮樿创 Jira filter 閾炬帴锛屽锛歨ttps://edart.motorola.com/issues/?filter=86482">
+                    <button class="jira-import-btn" style="background: #fff" onclick="importFromBrowser()">馃寪 娴忚鍣ㄥ鍏?/button>
                 </div>
                 <div id="csvFallback" style="display:none;margin-top:14px">
                     <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
-                        ⚠️ 浏览器直接请求被 CORS 拦截。请点击下方按钮在 Jira 导出 CSV，然后拖到下方区域：
+                        鈿狅笍 娴忚鍣ㄧ洿鎺ヨ姹傝 CORS 鎷︽埅銆傝鐐瑰嚮涓嬫柟鎸夐挳鍦?Jira 瀵煎嚭 CSV锛岀劧鍚庢嫋鍒颁笅鏂瑰尯鍩燂細
                     </div>
-                    <a id="csvExportLink" class="csv-export-link" target="_blank" rel="noopener">📥 一键导出 Jira CSV（全字段）</a>
+                    <a id="csvExportLink" class="csv-export-link" target="_blank" rel="noopener">馃摜 涓€閿鍑?Jira CSV锛堝叏瀛楁锛?/a>
                     <div class="csv-drop-zone" id="csvDropZone" onclick="document.getElementById('csvFileInput').click()">
-                        <div class="csv-drop-zone-icon">📂</div>
-                        <div style="font-size:14px">拖拽 CSV 到这里 或 点击选择</div>
-                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">支持 Jira 导出的 .csv 文件</div>
+                        <div class="csv-drop-zone-icon">馃搨</div>
+                        <div style="font-size:14px">鎷栨嫿 CSV 鍒拌繖閲?鎴?鐐瑰嚮閫夋嫨</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">鏀寔 Jira 瀵煎嚭鐨?.csv 鏂囦欢</div>
                         <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFile(this.files[0])">
                     </div>
                 </div>
@@ -136,7 +137,7 @@
         </div>
         <div id="fileInfo" style="display:none" class="file-info">
             <span id="fileName" class="file-info-name"></span>
-            <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
+            <button class="file-info-btn" onclick="resetUpload()">閲嶆柊涓婁紶</button>
         </div>
         <div id="dashboard" style="display:none">
             <div class="stats-grid" id="statsGrid"></div>
@@ -148,8 +149,8 @@
             </div>
         </div>
         <div id="emptyState" class="empty-state">
-            <div class="empty-state-icon">📈</div>
-            <p>上传 CR Excel 后自动生成趋势看板</p>
+            <div class="empty-state-icon">馃搱</div>
+            <p>涓婁紶 CR Excel 鍚庤嚜鍔ㄧ敓鎴愯秼鍔跨湅鏉?/p>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -157,7 +158,7 @@
     <script>
         let rawData = [], trendChart = null, cumulativeChart = null;
 
-        // ===== v5.0 接收 CR 分析中转数据 =====
+        // ===== v5.0 鎺ユ敹 CR 鍒嗘瀽涓浆鏁版嵁 =====
         (function importFromPipeline() {
             try {
                 var prefix = window._USER_PREFIX || '';
@@ -175,14 +176,14 @@
                 if (!data || data.source !== 'cr-analysis' || !data.trend_data) return;
 
                 rawData = data.trend_data;
-                document.getElementById('fileName').textContent = '📄 ' + (data.file_name || 'CR分析导入');
+                document.getElementById('fileName').textContent = '馃搫 ' + (data.file_name || 'CR鍒嗘瀽瀵煎叆');
                 document.getElementById('fileInfo').style.display = 'flex';
                 processData();
 
-                // 显示导入提示
+                // 鏄剧ず瀵煎叆鎻愮ず
                 var banner = document.createElement('div');
                 banner.style.cssText = 'margin-bottom:16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
-                banner.textContent = '✅ 已从 CR 分析导入 ' + rawData.length + ' 条数据到趋势看板';
+                banner.textContent = '鉁?宸蹭粠 CR 鍒嗘瀽瀵煎叆 ' + rawData.length + ' 鏉℃暟鎹埌瓒嬪娍鐪嬫澘';
                 var dashboard = document.getElementById('dashboard');
                 if (dashboard) dashboard.parentNode.insertBefore(banner, dashboard);
             } catch(e) { console.warn('Bug trend pipeline import error:', e); }
@@ -195,7 +196,7 @@
 
         function handleFile(file) {
             if (!file) return;
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileName').textContent = '馃搫 ' + file.name;
             document.getElementById('fileInfo').style.display = 'flex';
             const reader = new FileReader();
             reader.onload = e => {
@@ -215,19 +216,19 @@
             renderCharts();
         }
 
-        // 获取ISO周标识，如 2026-W33
+        // 鑾峰彇ISO鍛ㄦ爣璇嗭紝濡?2026-W33
         function getWeekKey(dateStr) {
             if (!dateStr) return null;
             let d = new Date(dateStr);
             if (isNaN(d.getTime())) {
-                // 尝试解析常见格式
+                // 灏濊瘯瑙ｆ瀽甯歌鏍煎紡
                 const parts = String(dateStr).split(/[-\/]/);
                 if (parts.length >= 3) {
                     d = new Date(parts[0], parts[1]-1, parts[2]);
                 }
             }
             if (isNaN(d.getTime())) return null;
-            // ISO周：周一为一周开始
+            // ISO鍛細鍛ㄤ竴涓轰竴鍛ㄥ紑濮?
             const day = d.getDay() || 7;
             d.setDate(d.getDate() + 4 - day);
             const yearStart = new Date(d.getFullYear(), 0, 1);
@@ -236,40 +237,40 @@
         }
 
         function getWeekLabel(weekKey) {
-            // "2026-W33" -> "8月第2周" 简化显示
+            // "2026-W33" -> "8鏈堢2鍛? 绠€鍖栨樉绀?
             const [y, w] = weekKey.split('-W');
-            return y + '年第' + parseInt(w) + '周';
+            return y + '骞寸' + parseInt(w) + '鍛?;
         }
 
-        // 识别列
+        // 璇嗗埆鍒?
         function detectColumns() {
             const keys = Object.keys(rawData[0]);
-            const createdKey = keys.find(k => /创建|created|提交|发现|日期|date|time/i.test(k)) || keys[0];
-            const resolvedKey = keys.find(k => /解决日期|关闭日期|resolved.*date|closed.*date|fix.*date/i.test(k));
-            const statusKey = keys.find(k => /状态|status|state/i.test(k));
-            const severityKey = keys.find(k => /严重|severity|priority|级别/i.test(k));
-            const moduleKey = keys.find(k => /模块|module|component|组件/i.test(k));
+            const createdKey = keys.find(k => /鍒涘缓|created|鎻愪氦|鍙戠幇|鏃ユ湡|date|time/i.test(k)) || keys[0];
+            const resolvedKey = keys.find(k => /瑙ｅ喅鏃ユ湡|鍏抽棴鏃ユ湡|resolved.*date|closed.*date|fix.*date/i.test(k));
+            const statusKey = keys.find(k => /鐘舵€亅status|state/i.test(k));
+            const severityKey = keys.find(k => /涓ラ噸|severity|priority|绾у埆/i.test(k));
+            const moduleKey = keys.find(k => /妯″潡|module|component|缁勪欢/i.test(k));
             return { createdKey, resolvedKey, statusKey, severityKey, moduleKey };
         }
 
         function isResolved(row, statusKey) {
             if (!statusKey) return false;
             const s = String(row[statusKey] || '').toLowerCase();
-            return /已解决|已关闭|关闭|resolved|closed|done|fixed|完成/i.test(s);
+            return /宸茶В鍐硘宸插叧闂瓅鍏抽棴|resolved|closed|done|fixed|瀹屾垚/i.test(s);
         }
 
-        // 按周聚合新增和解决
+        // 鎸夊懆鑱氬悎鏂板鍜岃В鍐?
         function aggregateByWeek(data) {
             const cols = detectColumns();
             const weekMap = {};
             data.forEach(row => {
-                // 新增
+                // 鏂板
                 const cWeek = getWeekKey(row[cols.createdKey]);
                 if (cWeek) {
                     if (!weekMap[cWeek]) weekMap[cWeek] = { created: 0, resolved: 0 };
                     weekMap[cWeek].created++;
                 }
-                // 解决
+                // 瑙ｅ喅
                 if (cols.resolvedKey && row[cols.resolvedKey]) {
                     const rWeek = getWeekKey(row[cols.resolvedKey]);
                     if (rWeek) {
@@ -277,14 +278,14 @@
                         weekMap[rWeek].resolved++;
                     }
                 } else if (isResolved(row, cols.statusKey) && cWeek) {
-                    // 无解决日期时，已解决的算在创建当周
+                    // 鏃犺В鍐虫棩鏈熸椂锛屽凡瑙ｅ喅鐨勭畻鍦ㄥ垱寤哄綋鍛?
                     weekMap[cWeek].resolved++;
                 }
             });
-            // 排序并补全周
+            // 鎺掑簭骞惰ˉ鍏ㄥ懆
             const weeks = Object.keys(weekMap).sort();
             if (weeks.length === 0) return { labels: [], created: [], resolved: [], open: [] };
-            // 补全缺失的周
+            // 琛ュ叏缂哄け鐨勫懆
             const allWeeks = [];
             const [startY, startW] = weeks[0].split('-W').map(Number);
             const [endY, endW] = weeks[weeks.length-1].split('-W').map(Number);
@@ -315,10 +316,10 @@
             const unresolved = total - resolved;
             const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
             document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card"><div class="stat-label">Bug 总数</div><div class="stat-value">${total}</div></div>
-                <div class="stat-card"><div class="stat-label">已解决</div><div class="stat-value" style="color:#10b981">${resolved}</div></div>
-                <div class="stat-card"><div class="stat-label">未解决</div><div class="stat-value" style="color:#ef4444">${unresolved}</div></div>
-                <div class="stat-card"><div class="stat-label">解决率</div><div class="stat-value">${rate}%</div></div>
+                <div class="stat-card"><div class="stat-label">Bug 鎬绘暟</div><div class="stat-value">${total}</div></div>
+                <div class="stat-card"><div class="stat-label">宸茶В鍐?/div><div class="stat-value" style="color:#10b981">${resolved}</div></div>
+                <div class="stat-card"><div class="stat-label">鏈В鍐?/div><div class="stat-value" style="color:#ef4444">${unresolved}</div></div>
+                <div class="stat-card"><div class="stat-label">瑙ｅ喅鐜?/div><div class="stat-value">${rate}%</div></div>
             `;
         }
 
@@ -327,7 +328,7 @@
             const agg = aggregateByWeek(rawData);
             if (agg.labels.length === 0) return;
 
-            // 图1：每周新增 vs 解决
+            // 鍥?锛氭瘡鍛ㄦ柊澧?vs 瑙ｅ喅
             if (trendChart) trendChart.destroy();
             const ctx1 = document.getElementById('trendChart').getContext('2d');
             trendChart = new Chart(ctx1, {
@@ -336,12 +337,12 @@
                     labels: agg.labels,
                     datasets: [
                         {
-                            label: '每周新增 Bug', data: agg.created,
+                            label: '姣忓懆鏂板 Bug', data: agg.created,
                             borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
                             fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#ef4444', borderWidth: 2
                         },
                         {
-                            label: '每周解决 Bug', data: agg.resolved,
+                            label: '姣忓懆瑙ｅ喅 Bug', data: agg.resolved,
                             borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
                             fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#10b981', borderWidth: 2
                         }
@@ -351,14 +352,14 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: 'Bug 增长 vs 解决曲线（按周）', font: { size: 14, weight: '600' } }
+                        title: { display: true, text: 'Bug 澧為暱 vs 瑙ｅ喅鏇茬嚎锛堟寜鍛級', font: { size: 14, weight: '600' } }
                     },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Bug 数量' } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Bug 鏁伴噺' } } },
                     interaction: { intersect: false, mode: 'index' }
                 }
             });
 
-            // 图2：累计未解决
+            // 鍥?锛氱疮璁℃湭瑙ｅ喅
             if (cumulativeChart) cumulativeChart.destroy();
             const ctx2 = document.getElementById('cumulativeChart').getContext('2d');
             cumulativeChart = new Chart(ctx2, {
@@ -366,7 +367,7 @@
                 data: {
                     labels: agg.labels,
                     datasets: [{
-                        label: '累计未解决 Bug', data: agg.open,
+                        label: '绱鏈В鍐?Bug', data: agg.open,
                         borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
                         fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#f59e0b', borderWidth: 2
                     }]
@@ -375,9 +376,9 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: '累计未解决 Bug 趋势（按周）', font: { size: 14, weight: '600' } }
+                        title: { display: true, text: '绱鏈В鍐?Bug 瓒嬪娍锛堟寜鍛級', font: { size: 14, weight: '600' } }
                     },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '未解决数量' } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '鏈В鍐虫暟閲? } } },
                     interaction: { intersect: false, mode: 'index' }
                 }
             });
@@ -391,14 +392,14 @@
             document.getElementById('fileInput').value = '';
         }
 
-        // ===== Jira 导入功能 =====
+        // ===== Jira 瀵煎叆鍔熻兘 =====
         function switchSource(src) {
             document.querySelectorAll('.source-tab').forEach(t => t.classList.toggle('active', t.dataset.source === src));
             document.getElementById('excelPanel').style.display = src === 'excel' ? 'block' : 'none';
             document.getElementById('jiraPanel').style.display = src === 'jira' ? 'block' : 'none';
         }
 
-        // 加载/保存 Jira 配置
+        // 鍔犺浇/淇濆瓨 Jira 閰嶇疆
         function loadJiraConfig() {
             try {
                 const cfg = JSON.parse(localStorage.getItem('jira_config') || '{}');
@@ -423,14 +424,14 @@
             const errorEl = document.getElementById('jiraError');
             const btn = document.getElementById('jiraImportBtn');
 
-            if (!cfg.domain) { showJiraError('请填写 Jira 域名'); return; }
-            if (!input) { showJiraError('请输入 Jira 搜索链接或 JQL'); return; }
+            if (!cfg.domain) { showJiraError('璇峰～鍐?Jira 鍩熷悕'); return; }
+            if (!input) { showJiraError('璇疯緭鍏?Jira 鎼滅储閾炬帴鎴?JQL'); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 导入中...';
+            btn.innerHTML = '<span class="loading"></span> 瀵煎叆涓?..';
             errorEl.style.display = 'none';
 
-            // 判断是 URL 还是 JQL
+            // 鍒ゆ柇鏄?URL 杩樻槸 JQL
             const isUrl = /^https?:\/\//i.test(input);
             const payload = {
                 domain: cfg.domain,
@@ -447,86 +448,86 @@
                     body: JSON.stringify(payload),
                 });
                 const data = await resp.json();
-                if (!resp.ok) { throw new Error(data.error || '导入失败'); }
+                if (!resp.ok) { throw new Error(data.error || '瀵煎叆澶辫触'); }
 
                 if (!data.issues || data.issues.length === 0) {
-                    throw new Error('未找到任何 CR 数据，请检查 JQL 或链接');
+                    throw new Error('鏈壘鍒颁换浣?CR 鏁版嵁锛岃妫€鏌?JQL 鎴栭摼鎺?);
                 }
 
                 processJiraData(data.issues);
-                document.getElementById('fileName').textContent = `🔗 Jira: ${data.returned}/${data.total} 条 CR`;
+                document.getElementById('fileName').textContent = `馃敆 Jira: ${data.returned}/${data.total} 鏉?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
-                switchSource('excel'); // 切回显示看板
+                switchSource('excel'); // 鍒囧洖鏄剧ず鐪嬫澘
             } catch(e) {
                 showJiraError(e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '🔗 导入 CR';
+                btn.innerHTML = '馃敆 瀵煎叆 CR';
             }
         }
 
         function showJiraError(msg) {
             const el = document.getElementById('jiraError');
-            el.textContent = '❌ ' + msg;
+            el.textContent = '鉂?' + msg;
             el.style.display = 'block';
         }
 
-        // 将 Jira issues 聚合为趋势数据
+        // 灏?Jira issues 鑱氬悎涓鸿秼鍔挎暟鎹?
         function processJiraData(issues) {
-            // 按日期聚合：新增Bug（created）、已解决Bug（resolved）
+            // 鎸夋棩鏈熻仛鍚堬細鏂板Bug锛坈reated锛夈€佸凡瑙ｅ喅Bug锛坮esolved锛?
             const dateMap = {};
             const versionSet = new Set();
 
             issues.forEach(issue => {
-                const version = issue.version || '未指定';
+                const version = issue.version || '鏈寚瀹?;
                 versionSet.add(version);
 
-                // 新增
+                // 鏂板
                 if (issue.created) {
                     const key = issue.created;
-                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解决: 0, 版本: version};
-                    dateMap[key].新增Bug++;
+                    if (!dateMap[key]) dateMap[key] = {鏃ユ湡: key, 鏂板Bug: 0, 宸茶В鍐? 0, 鐗堟湰: version};
+                    dateMap[key].鏂板Bug++;
                 }
-                // 已解决
+                // 宸茶В鍐?
                 if (issue.resolved) {
                     const key = issue.resolved;
-                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解决: 0, 版本: version};
-                    dateMap[key].已解决++;
+                    if (!dateMap[key]) dateMap[key] = {鏃ユ湡: key, 鏂板Bug: 0, 宸茶В鍐? 0, 鐗堟湰: version};
+                    dateMap[key].宸茶В鍐?+;
                 }
             });
 
-            // 转为数组并按日期排序，计算累计
-            rawData = Object.values(dateMap).sort((a, b) => a.日期.localeCompare(b.日期));
+            // 杞负鏁扮粍骞舵寜鏃ユ湡鎺掑簭锛岃绠楃疮璁?
+            rawData = Object.values(dateMap).sort((a, b) => a.鏃ユ湡.localeCompare(b.鏃ユ湡));
             let cumulative = 0;
             rawData.forEach(row => {
-                cumulative += row.新增Bug - row.已解决;
-                row.累计Bug = Math.max(0, cumulative);
-                row.固件版本 = row.版本;
+                cumulative += row.鏂板Bug - row.宸茶В鍐?
+                row.绱Bug = Math.max(0, cumulative);
+                row.鍥轰欢鐗堟湰 = row.鐗堟湰;
             });
 
-            if (!rawData.length) { showJiraError('数据中没有有效的日期信息'); return; }
+            if (!rawData.length) { showJiraError('鏁版嵁涓病鏈夋湁鏁堢殑鏃ユ湡淇℃伅'); return; }
 
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
 
-            // 填充 X 轴选择
+            // 濉厖 X 杞撮€夋嫨
             const keys = Object.keys(rawData[0]);
             const xSelect = document.getElementById('xAxisSelect');
             xSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
-            xSelect.value = '日期';
+            xSelect.value = '鏃ユ湡';
 
             renderStats();
             renderVersionPills();
             renderCharts();
         }
 
-        // 页面加载时初始化 Jira 配置
+        // 椤甸潰鍔犺浇鏃跺垵濮嬪寲 Jira 閰嶇疆
         loadJiraConfig();
         ['jiraDomain','jiraEmail','jiraToken'].forEach(id => {
             document.getElementById(id).addEventListener('change', saveJiraConfig);
         });
 
-        // ===== 浏览器免登录导入 =====
+        // ===== 娴忚鍣ㄥ厤鐧诲綍瀵煎叆 =====
         function extractFilterInfo(url) {
             try {
                 const u = new URL(url);
@@ -546,15 +547,15 @@
             const url = document.getElementById('browserJiraUrl').value.trim();
             const errorEl = document.getElementById('browserError');
             errorEl.style.display = 'none';
-            if (!url) { showBrowserError('请粘贴 Jira filter 链接'); return; }
+            if (!url) { showBrowserError('璇风矘璐?Jira filter 閾炬帴'); return; }
             const info = extractFilterInfo(url);
-            if (!info || !info.domain) { showBrowserError('无法解析 Jira 链接'); return; }
+            if (!info || !info.domain) { showBrowserError('鏃犳硶瑙ｆ瀽 Jira 閾炬帴'); return; }
 
-            // 构建 JQL
+            // 鏋勫缓 JQL
             const jql = info.jql || (info.filterId ? `filter=${info.filterId}` : '');
-            if (!jql) { showBrowserError('链接中未找到 filter ID 或 JQL'); return; }
+            if (!jql) { showBrowserError('閾炬帴涓湭鎵惧埌 filter ID 鎴?JQL'); return; }
 
-            // 尝试浏览器直接请求（带 cookie）
+            // 灏濊瘯娴忚鍣ㄧ洿鎺ヨ姹傦紙甯?cookie锛?
             const apiUrl = `${info.domain}/rest/api/2/search`;
             const body = JSON.stringify({
                 jql: jql, maxResults: 500,
@@ -569,50 +570,50 @@
                     body: body,
                 });
                 if (!resp.ok) {
-                    if (resp.status === 401) throw new Error('未登录或会话已过期，请先在浏览器登录 Jira');
-                    if (resp.status === 403) throw new Error('无权限访问该 filter');
-                    throw new Error(`Jira 返回 ${resp.status}`);
+                    if (resp.status === 401) throw new Error('鏈櫥褰曟垨浼氳瘽宸茶繃鏈燂紝璇峰厛鍦ㄦ祻瑙堝櫒鐧诲綍 Jira');
+                    if (resp.status === 403) throw new Error('鏃犳潈闄愯闂 filter');
+                    throw new Error(`Jira 杩斿洖 ${resp.status}`);
                 }
                 const data = await resp.json();
                 if (!data.issues || !data.issues.length) {
-                    showBrowserError('未找到任何 CR 数据');
+                    showBrowserError('鏈壘鍒颁换浣?CR 鏁版嵁');
                     return;
                 }
-                // 转换为统一格式并处理
+                // 杞崲涓虹粺涓€鏍煎紡骞跺鐞?
                 const issues = data.issues.map(issue => ({
                     key: issue.key,
                     summary: issue.fields?.summary || '',
                     status: issue.fields?.status?.name || 'Unknown',
                     created: (issue.fields?.created || '').slice(0,10),
                     resolved: (issue.fields?.resolutiondate || '').slice(0,10),
-                    version: issue.fields?.fixVersions?.[0]?.name || '未指定',
+                    version: issue.fields?.fixVersions?.[0]?.name || '鏈寚瀹?,
                 }));
                 processJiraData(issues);
-                document.getElementById('fileName').textContent = `🌐 浏览器导入: ${issues.length} 条 CR`;
+                document.getElementById('fileName').textContent = `馃寪 娴忚鍣ㄥ鍏? ${issues.length} 鏉?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
             } catch(e) {
-                // CORS 或网络错误 → 显示 CSV 导出降级方案
+                // CORS 鎴栫綉缁滈敊璇?鈫?鏄剧ず CSV 瀵煎嚭闄嶇骇鏂规
                 console.warn('Browser import failed:', e);
                 showCsvFallback(info, jql);
-                showBrowserError(`浏览器直接导入失败（${e.message}），请使用下方 CSV 导出方式`);
+                showBrowserError(`娴忚鍣ㄧ洿鎺ュ鍏ュけ璐ワ紙${e.message}锛夛紝璇蜂娇鐢ㄤ笅鏂?CSV 瀵煎嚭鏂瑰紡`);
             }
         }
 
         function showCsvFallback(info, jql) {
             const fallback = document.getElementById('csvFallback');
             fallback.style.display = 'block';
-            // 构建 Jira CSV 导出链接
+            // 鏋勫缓 Jira CSV 瀵煎嚭閾炬帴
             const csvUrl = `${info.domain}/sr/jira.issueviews:searchrequest-csv-all-fields/temp/SearchRequest.csv?jql=${encodeURIComponent(jql)}&tempMax=1000`;
             document.getElementById('csvExportLink').href = csvUrl;
         }
 
         function showBrowserError(msg) {
             const el = document.getElementById('browserError');
-            el.textContent = '❌ ' + msg;
+            el.textContent = '鉂?' + msg;
             el.style.display = 'block';
         }
 
-        // CSV 拖拽处理
+        // CSV 鎷栨嫿澶勭悊
         const csvDropZone = document.getElementById('csvDropZone');
         if (csvDropZone) {
             csvDropZone.addEventListener('dragover', e => { e.preventDefault(); csvDropZone.classList.add('dragover'); });
@@ -629,16 +630,16 @@
             reader.onload = e => {
                 const text = e.target.result;
                 const issues = parseJiraCsv(text);
-                if (!issues.length) { showBrowserError('CSV 解析失败或为空'); return; }
+                if (!issues.length) { showBrowserError('CSV 瑙ｆ瀽澶辫触鎴栦负绌?); return; }
                 processJiraData(issues);
-                document.getElementById('fileName').textContent = `📂 CSV导入: ${issues.length} 条 CR`;
+                document.getElementById('fileName').textContent = `馃搨 CSV瀵煎叆: ${issues.length} 鏉?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
             };
             reader.readAsText(file);
         }
 
         function parseJiraCsv(text) {
-            // 简单 CSV 解析（支持引号包裹）
+            // 绠€鍗?CSV 瑙ｆ瀽锛堟敮鎸佸紩鍙峰寘瑁癸級
             const lines = text.split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) return [];
             const parseLine = line => {
@@ -665,7 +666,7 @@
                     status: cols[iStatus] || 'Unknown',
                     created: (cols[iCreated] || '').slice(0,10),
                     resolved: (cols[iResolved] || '').slice(0,10),
-                    version: cols[iVersion] || '未指定',
+                    version: cols[iVersion] || '鏈寚瀹?,
                 });
             }
             return issues;

@@ -12,521 +12,281 @@
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preload" href="/static/js/components.js?v={{ STATIC_VERSION }}" as="script">
     <style>
-        /* ===== Design Tokens ===== */
-        :root {
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-accent: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
-            --gradient-soft: linear-gradient(135deg, rgba(102,126,234,0.08) 0%, rgba(118,75,162,0.08) 100%);
-            --glass-bg: rgba(255, 255, 255, 0.9);
-            --glass-border: rgba(0, 0, 0, 0.06);
-            --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
-            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --radius-lg: 14px;
-            --radius-xl: 18px;
-        }
-        [data-theme="dark"] {
-            --bg-primary: #0a0a0f;
-            --bg-card: rgba(28, 28, 32, 0.6);
-            --text-primary: #f0f0f5;
-            --text-secondary: #9b9ba5;
-            --glass-bg: rgba(20, 20, 28, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            --shadow-hover: 0 20px 50px rgba(124, 58, 237, 0.3);
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        /* ===== Background ===== */
         body {
-            background: linear-gradient(180deg, #fafbfc 0%, #f4f5f7 100%);
-        }
-
-        body {
-            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #fff;
+            color: #1d1d1f;
             min-height: 100vh;
-            color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow-x: hidden;
         }
 
         /* ===== Nav ===== */
         .nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: #fff;
             padding: 0 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
             position: sticky; top: 0; z-index: 100;
-            height: 56px;
+            height: 52px;
         }
         .nav-left { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .nav-center { display: flex; align-items: center; gap: 2px; position: absolute; left: 50%; transform: translateX(-50%); }
         .nav-category {
             background: none; border: none; cursor: pointer;
-            color: rgba(0, 0, 0, 0.6); font-size: 12px; font-weight: 400;
-            padding: 4px 10px; border-radius: 6px; transition: all 0.15s ease;
+            color: #86868b; font-size: 13px; font-weight: 400;
+            padding: 5px 12px; border-radius: 8px; transition: all 0.15s ease;
             font-family: inherit; white-space: nowrap;
         }
-        .nav-category:hover { color: #000; background: rgba(0, 0, 0, 0.05); }
-        .nav-category.active { color: #000; background: rgba(0, 0, 0, 0.08); font-weight: 500; }
+        .nav-category:hover { color: #1d1d1f; background: #f5f5f7; }
+        .nav-category.active { color: #1d1d1f; background: #f5f5f7; font-weight: 500; }
         .nav-logo {
-            font-size: 18px; font-weight: 700;
-            color: var(--text-primary); letter-spacing: -0.3px;
+            font-size: 17px; font-weight: 600;
+            color: #1d1d1f; letter-spacing: -0.3px;
             text-decoration: none;
             display: flex; align-items: center; gap: 8px;
-        }
-        .nav-logo::before {
-            content: '🧰';
-            -webkit-text-fill-color: initial;
-            font-size: 20px;
         }
         .nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
         .nav-search-btn { display: flex; align-items: center; justify-content: center; }
         .nav-search-box {
             display: none; align-items: center; gap: 8px;
             padding: 6px 12px; border-radius: 8px;
-            background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08);
+            background: #f5f5f7; border: 1px solid #d2d2d7;
         }
         .nav-search-box.show { display: flex; }
-        .nav-search-box svg { width: 16px; height: 16px; color: rgba(0,0,0,0.4); flex-shrink: 0; }
+        .nav-search-box svg { width: 16px; height: 16px; color: #86868b; flex-shrink: 0; }
         .nav-search-box input {
             border: none; background: none; outline: none;
-            font-size: 13px; color: #000; width: 180px; font-family: inherit;
+            font-size: 13px; color: #1d1d1f; width: 180px; font-family: inherit;
         }
-        .nav-search-box input::placeholder { color: rgba(0,0,0,0.4); }
-
+        .nav-search-box input::placeholder { color: #aeaeb2; }
         .nav-btn {
-            width: 36px; height: 36px; border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.06); background: rgba(0, 0, 0, 0.02);
-            cursor: pointer; font-size: 16px;
+            width: 34px; height: 34px; border-radius: 8px;
+            border: 1px solid #e8e8ed; background: #fff;
+            cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             transition: all 0.15s ease; flex-shrink: 0;
-            color: var(--text-primary);
+            color: #1d1d1f;
         }
-        .nav-btn:hover {
-            background: rgba(0, 0, 0, 0.05);
-            border-color: rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-cmdk {
-            display: flex; align-items: center; gap: 8px;
-            padding: 6px 12px; border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.06); background: rgba(0, 0, 0, 0.02);
-            cursor: pointer; transition: all 0.15s ease; font-family: inherit;
-            color: var(--text-secondary); font-size: 13px;
-            height: 36px;
-        }
-        .nav-cmdk:hover {
-            border-color: rgba(0, 0, 0, 0.12);
-            color: var(--text-primary);
-            background: rgba(0, 0, 0, 0.04);
-        }
-        .nav-cmdk svg { width: 15px; height: 15px; }
-        .nav-kbd {
-            font-size: 10px; padding: 2px 6px; border-radius: 6px;
-            background: var(--gradient-soft); border: 1px solid rgba(102,126,234,0.2);
-            font-family: monospace; font-weight: 600; color: var(--text-primary);
-        }
-
+        .nav-btn:hover { background: #f5f5f7; border-color: #d2d2d7; }
         .user-info { display: flex; align-items: center; gap: 8px; }
-        .user-info .avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(102,126,234,0.3); }
+        .user-info .avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid #e8e8ed; }
         .user-info .avatar-placeholder {
             width: 30px; height: 30px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            background: var(--gradient-accent); color: #fff; font-weight: 600; font-size: 13px;
+            background: #1d1d1f; color: #fff; font-weight: 600; font-size: 13px;
         }
         .user-info .logout-btn {
-            color: var(--text-secondary); text-decoration: none; font-size: 12px;
-            padding: 6px 12px; border-radius: 10px; transition: all 0.2s; border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-        }
-        .user-info .logout-btn:hover { background: rgba(255,59,48,0.08); color: #ff3b30; border-color: rgba(255,59,48,0.25); }
-        .user-info .login-btn {
-            color: #fff; text-decoration: none; font-size: 13px; font-weight: 600;
-            padding: 7px 18px; border-radius: 8px;
-            background: #4f46e5; transition: all 0.15s ease; border: none;
-        }
-        .user-info .login-btn:hover { background: #4338ca; }
-
-        /* ===== Hero ===== */
-        .hero {
-            text-align: center;
-            padding: 72px 24px 36px;
-            max-width: 820px;
-            margin: 0 auto;
-            position: relative;
-        }
-        .hero-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 5px 14px; border-radius: 20px;
-            background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06);
-            font-size: 12px; font-weight: 500; color: var(--text-secondary);
-            margin-bottom: 18px;
-        }
-        .hero-badge-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: #34c759; box-shadow: 0 0 8px #34c759;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.3); }
-        }
-        .hero h1 {
-            font-size: 48px; font-weight: 700;
-            letter-spacing: -1px;
-            line-height: 1.1; margin-bottom: 14px;
-            color: var(--text-primary);
-        }
-        .hero p {
-            font-size: 20px; color: var(--text-secondary);
-            font-weight: 400; line-height: 1.5;
-            max-width: 560px; margin: 0 auto;
-        }
-
-        /* ===== Search ===== */
-        .search-section {
-            max-width: 620px; margin: 0 auto 28px; padding: 0 24px;
-        }
-        .search-box {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 18px;
+            color: #86868b; text-decoration: none; font-size: 12px;
+            padding: 5px 12px; border-radius: 980px; transition: all 0.15s; border: 1px solid #e8e8ed;
             background: #fff;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
-            transition: all 0.15s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
-        .search-box:focus-within {
-            border-color: rgba(79, 70, 229, 0.4);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+        .user-info .logout-btn:hover { background: rgba(255,59,48,0.06); color: #ff3b30; border-color: rgba(255,59,48,0.2); }
+        .user-info .login-btn {
+            color: #fff; text-decoration: none; font-size: 13px; font-weight: 500;
+            padding: 6px 16px; border-radius: 8px;
+            background: #1d1d1f; transition: background 0.15s ease; border: none;
         }
-        .search-box svg { width: 20px; height: 20px; color: var(--text-secondary); flex-shrink: 0; }
-        .search-box input {
-            flex: 1; border: none; outline: none; background: none;
-            font-size: 15px; color: var(--text-primary); font-family: inherit;
-        }
-        .search-box input::placeholder { color: var(--text-tertiary, var(--text-secondary)); }
-        .search-count {
-            font-size: 12px; color: #fff; flex-shrink: 0;
-            padding: 3px 10px; border-radius: 8px;
-            background: var(--gradient-accent); font-weight: 600;
-        }
+        .user-info .login-btn:hover { background: #333; }
 
-        /* ===== Categories ===== */
-        .category-section {
-            max-width: 1200px; margin: 0 auto 32px; padding: 0 24px;
+        /* ===== Page Header ===== */
+        .page-header {
+            max-width: 1200px; margin: 0 auto;
+            padding: 40px 24px 24px;
         }
-        .category-bar {
-            display: flex; gap: 8px; flex-wrap: wrap;
-            justify-content: center;
+        .page-header h1 {
+            font-size: 28px; font-weight: 600;
+            letter-spacing: -0.5px; color: #1d1d1f;
+            margin-bottom: 6px;
         }
-        .category-chip {
-            padding: 9px 18px; border-radius: 12px;
-            font-size: 13px; font-weight: 500; cursor: pointer;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            color: var(--text-secondary);
-            border: 1px solid var(--glass-border);
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .category-chip:hover {
-            color: var(--text-primary);
-            border-color: rgba(102, 126, 234, 0.3);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-        }
-        .category-chip.active {
-            background: var(--gradient-accent);
-            color: #fff;
-            border-color: transparent;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
-        }
-
-        .search-hint {
-            text-align: center; font-size: 12px; color: var(--text-secondary);
-            margin-top: 14px;
-            opacity: 0.7;
-        }
-        .search-hint kbd {
-            display: inline-block; padding: 2px 7px; border-radius: 6px;
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            font-size: 11px; font-family: monospace; color: var(--text-primary);
-            backdrop-filter: blur(5px);
+        .page-header p {
+            font-size: 15px; color: #86868b;
+            font-weight: 400;
         }
 
         /* ===== Dashboard Stats ===== */
         .dashboard-stats {
-            max-width: 1240px; margin: 0 auto 24px; padding: 0 24px;
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+            max-width: 1200px; margin: 0 auto 24px; padding: 0 24px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
         }
         .stat-card {
             background: #fff;
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 14px; padding: 18px 22px;
-            display: flex; align-items: center; gap: 14px;
-            transition: all 0.15s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-            cursor: default;
+            border: 1px solid #e8e8ed;
+            border-radius: 12px; padding: 16px 20px;
+            display: flex; align-items: center; gap: 12px;
+            transition: border-color 0.15s ease;
         }
-        .stat-card:hover {
-            border-color: rgba(0, 0, 0, 0.12);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        }
+        .stat-card:hover { border-color: #d2d2d7; }
         .stat-icon {
-            width: 44px; height: 44px; border-radius: 10px;
+            width: 40px; height: 40px; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px; flex-shrink: 0;
+            background: #f5f5f7; flex-shrink: 0;
         }
-        .stat-icon.tools { background: rgba(79, 70, 229, 0.08); }
-        .stat-icon.fav { background: rgba(245, 158, 11, 0.1); }
-        .stat-icon.recent { background: rgba(14, 165, 233, 0.08); }
+        .stat-icon svg { width: 20px; height: 20px; stroke: #1d1d1f; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
         .stat-info { flex: 1; min-width: 0; }
         .stat-value {
-            font-size: 26px; font-weight: 700; line-height: 1;
-            color: var(--text-primary);
+            font-size: 24px; font-weight: 600; line-height: 1;
+            color: #1d1d1f;
         }
-        .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .stat-label { font-size: 13px; color: #86868b; margin-top: 4px; }
 
         /* ===== Tools Grid ===== */
-        .container { max-width: 1240px; margin: 0 auto; padding: 0 24px 48px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
         }
         .tool-card {
             background: #fff;
-            border-radius: var(--radius-lg);
-            padding: 22px; cursor: pointer;
-            transition: all 0.15s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            position: relative; overflow: hidden;
+            border-radius: 12px;
+            padding: 20px; cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            border: 1px solid #e8e8ed;
             display: flex; flex-direction: column;
         }
-        .tool-card::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-            background: var(--card-accent, var(--gradient-accent));
-            opacity: 0; transition: opacity 0.15s;
-        }
         .tool-card:hover {
-            border-color: rgba(0, 0, 0, 0.12);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #d2d2d7;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        .tool-card:hover::before { opacity: 1; }
-        .tool-card:active { transform: scale(0.99); }
-
-        .tool-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+        .tool-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
         .tool-icon {
-            width: 52px; height: 52px; border-radius: 14px;
+            width: 44px; height: 44px; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 26px; flex-shrink: 0;
-            background: #ffffff;
-            filter: grayscale(1);
-            transition: transform 0.3s;
+            background: #f5f5f7; flex-shrink: 0;
         }
-        .tool-card:hover .tool-icon { transform: scale(1.08) rotate(-3deg); }
-        .tool-card h2 { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.2px; }
+        .tool-icon svg { width: 22px; height: 22px; stroke: #1d1d1f; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .tool-card h2 { font-size: 16px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.2px; }
         .tool-badge {
-            font-size: 10px; padding: 3px 10px; border-radius: 8px;
-            font-weight: 700; margin-top: 3px; display: inline-block;
-            background: #ffffff;
-            color: #1a1a1a;
-            border: 1px solid rgba(0,0,0,0.1);
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 10px; padding: 2px 8px; border-radius: 6px;
+            font-weight: 500; margin-top: 3px; display: inline-block;
+            background: #f5f5f7; color: #86868b;
+            border: 1px solid #e8e8ed;
+            letter-spacing: 0.3px;
         }
         .tool-card p {
-            font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px; flex: 1;
+            font-size: 13px; color: #86868b; line-height: 1.6; margin-bottom: 12px; flex: 1;
         }
-        .feature-list { list-style: none; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .feature-list { list-style: none; margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
         .feature-list li {
-            font-size: 11px; padding: 4px 10px; border-radius: 8px;
-            background: var(--bg-primary); color: var(--text-secondary);
-            border: 1px solid var(--glass-border);
-            transition: all 0.2s;
+            font-size: 11px; padding: 3px 8px; border-radius: 6px;
+            background: #fafafa; color: #86868b;
+            border: 1px solid #e8e8ed;
         }
-        .tool-card:hover .feature-list li { border-color: rgba(102, 126, 234, 0.15); }
         .tool-footer { display: flex; align-items: center; justify-content: space-between; }
         .tool-btn {
             display: inline-flex; align-items: center; gap: 5px;
-            padding: 8px 18px; background: #1a1a1a; color: #fff;
+            padding: 7px 16px; background: #1d1d1f; color: #fff;
             border-radius: 8px; text-decoration: none;
             font-weight: 500; font-size: 13px; border: none; cursor: pointer;
-            transition: all 0.15s ease; font-family: inherit;
+            transition: background 0.15s ease; font-family: inherit;
         }
         .tool-btn:hover { background: #333; }
-        .tool-btn svg { display: none; }
-
         .tool-shortcut {
             margin-left: auto;
-            width: 26px; height: 26px;
-            border-radius: 8px;
+            width: 24px; height: 24px;
+            border-radius: 6px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 700;
-            color: var(--text-secondary);
-            background: var(--bg-primary);
-            border: 1px solid var(--glass-border);
+            font-size: 11px; font-weight: 500;
+            color: #86868b;
+            background: #fafafa;
+            border: 1px solid #e8e8ed;
             flex-shrink: 0;
         }
-
         .fav-btn {
             background: none; border: none; cursor: pointer;
-            font-size: 18px; padding: 6px;
-            color: #1a1a1a; transition: all 0.15s ease;
-            border-radius: 8px; opacity: 0.4;
+            padding: 6px; color: #1d1d1f; transition: opacity 0.15s ease;
+            border-radius: 6px; opacity: 0.3;
+            display: flex; align-items: center; justify-content: center;
         }
-        .fav-btn:hover { opacity: 0.8; }
-        .fav-btn.active { opacity: 1; color: #1a1a1a; }
+        .fav-btn:hover { opacity: 0.7; }
+        .fav-btn.active { opacity: 1; }
+        .fav-btn svg { width: 16px; height: 16px; }
 
         /* ===== Favorites & Recent ===== */
-        .tb-recent-bar { margin-bottom: 20px; }
+        .tb-recent-bar { margin-bottom: 16px; }
         .tb-recent-title {
-            font-size: 13px; font-weight: 600;
-            color: var(--text-secondary); margin-bottom: 12px;
+            font-size: 12px; font-weight: 500;
+            color: #86868b; margin-bottom: 10px;
             display: flex; align-items: center; gap: 6px;
         }
-        .tb-recent-list { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tb-recent-list { display: flex; gap: 8px; flex-wrap: wrap; }
         .tb-recent-item {
             display: inline-flex; align-items: center; gap: 8px;
-            padding: 8px 16px; border-radius: 12px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 13px; color: var(--text-primary);
+            padding: 6px 14px; border-radius: 980px;
+            background: #fff;
+            border: 1px solid #e8e8ed;
+            cursor: pointer; transition: all 0.15s ease;
+            font-size: 13px; color: #1d1d1f;
             text-decoration: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .tb-recent-item:hover {
-            border-color: rgba(102, 126, 234, 0.35);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.12);
-        }
-        .tb-recent-item-icon { font-size: 16px; }
-        .tb-recent-item-time { font-size: 11px; color: var(--text-secondary); }
+        .tb-recent-item:hover { border-color: #d2d2d7; background: #fafafa; }
+        .tb-recent-item-icon { display: flex; align-items: center; }
+        .tb-recent-item-icon svg { width: 14px; height: 14px; stroke: #1d1d1f; fill: none; stroke-width: 1.8; }
+        .tb-recent-item-time { font-size: 11px; color: #aeaeb2; }
 
         /* ===== No Results ===== */
         .no-results {
-            text-align: center; padding: 80px 20px; color: var(--text-secondary);
+            text-align: center; padding: 60px 20px; color: #86868b;
         }
-        .no-results-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
+        .no-results-icon { margin-bottom: 12px; display: flex; justify-content: center; }
+        .no-results-icon svg { width: 40px; height: 40px; stroke: #d2d2d7; fill: none; stroke-width: 1.5; }
 
         /* ===== Footer ===== */
         .footer {
-            text-align: center; padding: 48px 24px 32px; color: var(--text-secondary);
-            font-size: 12px; border-top: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
+            text-align: center; padding: 32px 24px; color: #86868b;
+            font-size: 12px; border-top: 1px solid #e8e8ed;
+            background: #fff;
         }
         .footer a {
-            color: var(--text-primary); text-decoration: none;
-            font-weight: 600; transition: color 0.2s;
+            color: #1d1d1f; text-decoration: none;
+            font-weight: 500;
         }
-        .footer a:hover { color: #7c3aed; }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .tool-card { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        .footer a:hover { text-decoration: underline; }
 
         /* ===== Responsive ===== */
         @media (max-width: 768px) {
-            .dashboard-stats { grid-template-columns: 1fr; padding: 0 14px; gap: 10px; }
-            .stat-card { padding: 14px 18px; }
-            .stat-icon { width: 40px; height: 40px; font-size: 20px; }
-            .stat-value { font-size: 22px; }
-            .stat-label { font-size: 12px; }
-            .nav { padding: 0 14px; height: 52px; overflow: hidden; }
+            .dashboard-stats { grid-template-columns: 1fr; padding: 0 14px; gap: 8px; }
+            .stat-card { padding: 14px 16px; }
+            .stat-icon { width: 36px; height: 36px; }
+            .stat-value { font-size: 20px; }
+            .nav { padding: 0 14px; height: 48px; }
             .nav-center { display: none; }
-            .nav-right { gap: 6px; flex-shrink: 0; }
-            .nav-logo { font-size: 16px; gap: 4px; flex-shrink: 0; }
-            .nav-cmdk span:not(.nav-kbd) { display: none; }
-            .nav-cmdk { padding: 5px 10px; min-height: 38px; }
-            .nav-cmdk svg { width: 16px; height: 16px; }
-            .user-info .logout-btn { padding: 5px 10px; font-size: 11px; }
-            .user-info .login-btn { padding: 7px 14px; font-size: 12px; }
-            .user-info .avatar, .user-info .avatar-placeholder { width: 28px; height: 28px; font-size: 12px; }
-            .hero { padding: 40px 16px 24px; }
-            .hero h1 { font-size: 36px; }
-            .hero p { font-size: 15px; }
+            .nav-right { gap: 6px; }
+            .page-header { padding: 24px 14px 16px; }
+            .page-header h1 { font-size: 22px; }
+            .page-header p { font-size: 14px; }
             .container { padding: 0 14px 32px; }
-            .tools-grid { grid-template-columns: 1fr; gap: 14px; }
-            .search-section { padding: 0 14px; margin-bottom: 20px; }
-            .search-box { padding: 14px 18px; }
-            .search-box input { font-size: 16px; }
-            .category-section { padding: 0 14px; margin-bottom: 24px; }
-            .category-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; justify-content: flex-start; padding-bottom: 4px; scrollbar-width: none; }
-            .category-bar::-webkit-scrollbar { display: none; }
-            .category-chip { white-space: nowrap; flex-shrink: 0; }
-            .search-hint { display: none; }
-            .tool-card { padding: 18px; }
-            .tool-icon { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
-            .tool-card h2 { font-size: 16px; }
+            .tools-grid { grid-template-columns: 1fr; gap: 10px; }
+            .tool-card { padding: 16px; }
+            .tool-icon { width: 40px; height: 40px; }
+            .tool-card h2 { font-size: 15px; }
             .tool-card p { font-size: 13px; }
-            .feature-list li { font-size: 10px; padding: 3px 8px; }
-            .user-info .logout-btn { padding: 5px 10px; font-size: 11px; }
-            .user-info .login-btn { padding: 7px 14px; font-size: 12px; }
+            .nav-btn { width: 32px; height: 32px; }
+            .user-info .logout-btn { padding: 4px 10px; font-size: 11px; }
+            .user-info .login-btn { padding: 6px 12px; font-size: 12px; }
             .user-info .avatar, .user-info .avatar-placeholder { width: 28px; height: 28px; font-size: 12px; }
-            .nav-btn { width: 38px; height: 38px; font-size: 15px; }
-            .category-chip { padding: 9px 15px; min-height: 40px; font-size: 12px; }
-            .fav-btn { padding: 8px; min-height: 40px; font-size: 16px; }
-            .tool-btn { padding: 8px 16px; font-size: 12px; }
-            .tool-shortcut { width: 22px; height: 22px; font-size: 10px; }
-            .tb-recent-item { padding: 7px 12px; font-size: 12px; }
-            .tb-recent-item-icon { font-size: 14px; }
-            .footer { padding: 32px 16px; font-size: 11px; }
-            .bg-orb-1 { width: 300px; height: 300px; }
-            .bg-orb-2 { width: 250px; height: 250px; }
-            .bg-orb-3 { width: 280px; height: 280px; }
+            .footer { padding: 24px 16px; font-size: 11px; }
         }
         @media (max-width: 480px) {
-            .nav-logo { font-size: 15px; }
-            .hero { padding: 28px 12px 18px; }
-            .hero h1 { font-size: 30px; }
-            .hero p { font-size: 14px; }
-            .nav-kbd { display: none; }
-            .nav-btn { width: 36px; height: 36px; font-size: 14px; }
-            .nav-cmdk { padding: 5px 8px; min-height: 36px; }
-            .nav-cmdk svg { width: 14px; height: 14px; }
-            .tool-card { padding: 16px; }
-            .tool-icon { width: 40px; height: 40px; font-size: 20px; }
-            .tool-card h2 { font-size: 15px; }
-            .search-box { padding: 12px 16px; }
-            .category-chip { padding: 8px 13px; font-size: 11px; }
-            .fav-btn { padding: 6px; font-size: 14px; }
+            .page-header h1 { font-size: 20px; }
+            .tool-card { padding: 14px; }
+            .tool-icon { width: 36px; height: 36px; }
         }
         @media (max-width: 360px) {
-            .nav { padding: 0 10px; overflow: hidden; }
-            .nav-logo { font-size: 13px; }
-            .hero h1 { font-size: 26px; }
-            .hero p { font-size: 12px; }
-            .nav-cmdk { display: none; }
+            .nav { padding: 0 10px; }
             .nav-btn[title="设置"] { display: none; }
-            .user-info .logout-btn { padding: 4px 8px; font-size: 10px; }
-            .tool-card { padding: 14px; }
-            .tool-icon { width: 36px; height: 36px; font-size: 18px; }
-            .tool-card h2 { font-size: 14px; }
-            .feature-list { gap: 4px; }
-            .feature-list li { font-size: 9px; padding: 2px 7px; }
-            .tool-btn { padding: 7px 12px; font-size: 11px; }
+            .tool-card { padding: 12px; }
             .tool-shortcut { display: none; }
-            .nav-btn { width: 34px; height: 34px; font-size: 13px; }
         }
         /* 首页强制隐藏统一导航栏，避免重复 */
         .pt-nav-bar, #ptNavBar, .tb-nav-bar, #tb-nav-bar { display: none !important; }
     </style>
-<link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 
 </head>
 <body>
@@ -536,7 +296,7 @@
         </div>
         <div class="nav-center">
             <span style="cursor:pointer;margin-right:4px;display:flex;align-items:center;" onclick="location.href='/'">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                 </svg>
@@ -558,14 +318,14 @@
             <div class="nav-search-box" id="navSearchBox">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
                 <input type="text" id="navSearchInput" placeholder="搜索工具..." oninput="filterTools()" autofocus>
-                <button onclick="toggleNavSearch()" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;padding:0 4px;">✕</button>
+                <button onclick="toggleNavSearch()" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;padding:0 4px;">×</button>
             </div>
             <a href="/settings" target="_blank" rel="noopener noreferrer" class="nav-btn" title="设置">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </a>
             <button class="nav-btn" onclick="toggleTheme()" id="theme-btn" title="切换主题">
-                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="theme-icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 1v2M12 21v2M4.22 4.22l1.41 1.42M18.36 18.36l1.41 1.42M1 12h2M21 12h2M4.22 19.78l1.41-1.42M18.36 5.64l1.42-1.42"/></svg>
             </button>
             <div class="user-info">
                 {% if current_user %}
@@ -582,53 +342,35 @@
         </div>
     </div>
 
-    <div class="hero">
-        <div class="hero-badge"><span class="hero-badge-dot"></span><span id="toolCount">10</span> 款工具 · 持续更新中</div>
-        <h1>效率工具集</h1>
-        <p>一站式工具平台，集成笔记、转换、分析等实用工具</p>
-    </div>
-
-    <div class="search-section" style="display:none;">
-        <div class="search-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
-            <input type="text" id="search-input" placeholder="搜索工具名称或功能..." oninput="filterTools()">
-            <span class="search-count" id="search-count"></span>
-        </div>
-    </div>
-
-    <div class="category-section" style="display:none;">
-        <div class="category-bar" id="category-bar">
-            <button class="category-chip active" data-cat="all" onclick="setCategory('all')">全部</button>
-            <button class="category-chip" data-cat="fav" onclick="setCategory('fav')">⭐ 收藏</button>
-            <button class="category-chip" data-cat="notes" onclick="setCategory('notes')">笔记记录</button>
-            <button class="category-chip" data-cat="convert" onclick="setCategory('convert')">格式转换</button>
-            <button class="category-chip" data-cat="analysis" onclick="setCategory('analysis')">数据分析</button>
-            <button class="category-chip" data-cat="dev" onclick="setCategory('dev')">🛠️ 研发工具</button>
-            <button class="category-chip" data-cat="office" onclick="setCategory('office')">💼 办公效率</button>
-            <button class="category-chip" data-cat="manage" onclick="setCategory('manage')">项目管理</button>
-            <button class="category-chip" data-cat="fun" onclick="setCategory('fun')">趣味工具</button>
-        </div>
-        <div class="search-hint">按 <kbd>/</kbd> 搜索，<kbd>⌘K</kbd> 命令面板，<kbd>1</kbd>-<kbd>9</kbd> 快速打开</div>
+    <div class="page-header">
+        <h1>工具集</h1>
+        <p><span id="toolCount">10</span> 款工具 · 持续更新</p>
     </div>
 
     <!-- Dashboard Stats -->
     <div class="dashboard-stats" id="dashboard-stats">
         <div class="stat-card">
-            <div class="stat-icon tools">🧰</div>
+            <div class="stat-icon tools">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
             <div class="stat-info">
                 <div class="stat-value" id="stat-total">0</div>
                 <div class="stat-label">可用工具</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon fav">⭐</div>
+            <div class="stat-icon fav">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
             <div class="stat-info">
                 <div class="stat-value" id="stat-fav">0</div>
                 <div class="stat-label">已收藏</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon recent">🕐</div>
+            <div class="stat-icon recent">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <div class="stat-info">
                 <div class="stat-value" id="stat-recent">0</div>
                 <div class="stat-label">最近使用</div>
@@ -638,22 +380,24 @@
 
     <div class="container">
         <div id="fav-bar" class="tb-recent-bar" style="display:none">
-            <div class="tb-recent-title">⭐ 我的收藏</div>
+            <div class="tb-recent-title">我的收藏</div>
             <div class="tb-recent-list" id="fav-list"></div>
         </div>
         <div id="recent-bar" class="tb-recent-bar" style="display:none">
-            <div class="tb-recent-title">🕐 最近使用 <a href="javascript:void(0)" onclick="clearRecent()" style="font-size:12px;font-weight:400;color:var(--text-secondary);margin-left:8px;text-decoration:none;">清除记录</a></div>
+            <div class="tb-recent-title">最近使用 <a href="javascript:void(0)" onclick="clearRecent()" style="font-size:12px;font-weight:400;color:#86868b;margin-left:8px;text-decoration:none;">清除记录</a></div>
             <div class="tb-recent-list" id="recent-list"></div>
         </div>
         <div class="tools-grid" id="tools-grid"></div>
         <div class="no-results" id="no-results" style="display:none">
-            <div class="no-results-icon">🔍</div>
-            <p>没有找到匹配的工具，试试其他关键词</p>
+            <div class="no-results-icon">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+            </div>
+            <p>没有找到匹配的工具</p>
         </div>
     </div>
 
     <div class="footer">
-        <p>Powered by Yongshuo | 工具集 v4.0 | <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+        <p>Potential Tools v6.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </div>
 
     <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
@@ -669,57 +413,80 @@
     }
     </script>
     <script>
+    // ===== SVG Icon Library =====
+    const ICONS = {
+        note: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+        pdf: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/></svg>',
+        calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+        info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+        chart: '<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        bell: '<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+        clipboard: '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+        mic: '<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+        report: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+        trend: '<svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+        checklist: '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+        search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>',
+        gauge: '<svg viewBox="0 0 24 24"><path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+        mail: '<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+        bar: '<svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+        settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+        star: '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+        clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        tools: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+    };
+
     // ===== Tool data =====
     const TOOLS = [
-        {id:'noteNB', icon:'📝', name:'牛马笔记', cat:'notes', accent:'#e8833a', bg:'rgba(232,131,58,0.1)',
+        {id:'noteNB', icon:'note', name:'牛马笔记', cat:'notes',
          desc:'强大的记事本应用，支持Markdown编辑、标签管理、多主题切换',
          features:['Markdown','标签管理','多主题','置顶笔记','导入导出'], badge:'已升级'},
-        {id:'md2pdf', icon:'📄', name:'PDF快转', cat:'convert', accent:'#8b5cf6', bg:'rgba(139,92,246,0.1)',
+        {id:'md2pdf', icon:'pdf', name:'PDF快转', cat:'convert',
          desc:'支持Markdown和Word文件转换为PDF，自动添加自定义水印',
          features:['Markdown转PDF','Word转PDF','批量转换','自定义水印','公式渲染']},
-        {id:'plan-generator', icon:'📅', name:'软件计划生成器', cat:'manage', accent:'#0ea5e9', bg:'rgba(14,165,233,0.1)',
+        {id:'plan-generator', icon:'calendar', name:'软件计划生成器', cat:'manage',
          desc:'输入项目类型和起始节点，一键生成完整的软件计划时间节点表',
          features:['多项目类型','自动计算','里程碑标记','导出CSV','周数统计']},
-        {id:'project-info', icon:'📊', name:'项目信息收集', cat:'manage', accent:'#16a34a', bg:'rgba(22,163,74,0.1)',
+        {id:'project-info', icon:'info', name:'项目信息收集', cat:'manage',
          desc:'收集和管理软件项目的完整技术规格信息',
          features:['项目管理','硬件参数','性能指标','功能特性','导入导出']},
-        {id:'excel-analysis', icon:'📊', name:'CR问题分析', cat:'analysis', accent:'#ef4444', bg:'rgba(239,68,68,0.1)',
+        {id:'excel-analysis', icon:'chart', name:'CR问题分析', cat:'analysis',
          desc:'上传问题清单Excel，自动按模块/研发/日期分析，生成带水印PDF报告',
          features:['模块统计','研发统计','趋势分析','字段识别','PDF报告']},
-        {id:'merit', icon:'🔔', name:'功德+1', cat:'fun', accent:'#f59e0b', bg:'rgba(245,158,11,0.1)',
+        {id:'merit', icon:'bell', name:'功德+1', cat:'fun',
          desc:'敲击木鱼，积攒功德，修身养性，净化心灵',
          features:['木鱼敲击','功德弹窗','今日统计','自动保存','音效']},
-        {id:'test-report', icon:'📋', name:'测试报告分析', cat:'analysis', accent:'#4f46e5', bg:'rgba(79,70,229,0.1)',
+        {id:'test-report', icon:'clipboard', name:'测试报告分析', cat:'analysis',
          desc:'上传测试报告Excel，自动提取软件版本、测试内容、测试结论',
          features:['字段识别','多Sheet','Pass/Fail','拖拽上传','PDF导出']},
-        {id:'meeting-minutes', icon:'🎙️', name:'会议纪要', cat:'notes', accent:'#ec4899', bg:'rgba(236,72,153,0.1)',
+        {id:'meeting-minutes', icon:'mic', name:'会议纪要', cat:'notes',
          desc:'实时语音转写会议内容，AI自动生成结构化会议纪要',
          features:['语音识别','AI摘要','待办提取','一键导出','多模型'], badge:'已升级'},
-        {id:'weekly-report', icon:'📋', name:'智能周报', cat:'notes', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
+        {id:'weekly-report', icon:'report', name:'智能周报', cat:'notes',
          desc:'输入本周工作素材，AI自动生成结构化周报，支持多模型选择',
          features:['AI生成','多模型','一键导出','工作总结','下周计划'], badge:'新'},
-        {id:'daily-standup', icon:'🗓️', name:'每日站会助手', cat:'notes', accent:'#f59e0b', bg:'rgba(245,158,11,0.1)',
+        {id:'daily-standup', icon:'calendar', name:'每日站会助手', cat:'notes',
          desc:'自动汇总昨日完成/今日计划/阻塞项，支持Jira导入和AI润色',
          features:['Jira导入','会议待办','AI润色','飞书推送','历史记录'], badge:'新'},
-        {id:'bug-trend', icon:'📈', name:'Bug趋势看板', cat:'dev', accent:'#ef4444', bg:'rgba(239,68,68,0.1)',
+        {id:'bug-trend', icon:'trend', name:'Bug趋势看板', cat:'dev',
          desc:'上传CR Excel，自动生成按固件版本/日期的Bug趋势折线图，多版本对比',
          features:['趋势图','多版本对比','累计Bug','已解决统计','Excel导入'], badge:'新'},
-        {id:'release-checklist', icon:'✅', name:'版本发布检查清单', cat:'dev', accent:'#10b981', bg:'rgba(16,185,129,0.1)',
+        {id:'release-checklist', icon:'checklist', name:'版本发布检查清单', cat:'dev',
          desc:'Bring up→CP→DF→RRR各节点Go/No-Go检查项模板，自动关联项目计划',
          features:['4阶段检查','Go/No-Go','进度追踪','导出结果','本地保存'], badge:'新'},
-        {id:'log-analyzer', icon:'🔍', name:'日志分析器', cat:'dev', accent:'#8b5cf6', bg:'rgba(139,92,246,0.1)',
+        {id:'log-analyzer', icon:'search', name:'日志分析器', cat:'dev',
          desc:'智能手表设备日志关键词提取与异常聚合（死机重启、内存泄露、功耗异常）',
          features:['死机识别','重启追踪','内存泄露','功耗异常','错误聚合'], badge:'新'},
-        {id:'mttf-dashboard', icon:'📊', name:'MTTF可靠性看板', cat:'dev', accent:'#ef4444', bg:'rgba(239,68,68,0.1)',
+        {id:'mttf-dashboard', icon:'gauge', name:'MTTF可靠性看板', cat:'dev',
          desc:'设备挂测日志分析 · 失败事件聚类 · MTBF计算 · 趋势追踪',
          features:['失败识别','MTTF计算','MTBF估算','时间线','导出报告'], badge:'新'},
-        {id:'email-assistant', icon:'✉️', name:'邮件助手', cat:'office', accent:'#0ea5e9', bg:'rgba(14,165,233,0.1)',
+        {id:'email-assistant', icon:'mail', name:'邮件助手', cat:'office',
          desc:'英文技术邮件模板生成+一键翻译，覆盖Bug报告、进度同步、问题升级等场景',
          features:['8种模板','变量填充','中英切换','一键复制','技术邮件'], badge:'新'},
-        {id:'data-viz', icon:'📊', name:'数据可视化Builder', cat:'dev', accent:'#f59e0b', bg:'rgba(245,158,11,0.1)',
+        {id:'data-viz', icon:'bar', name:'数据可视化Builder', cat:'dev',
          desc:'上传Excel自选X/Y轴生成柱状图/折线图/饼图，支持导出图片和CSV',
          features:['多图表类型','自选坐标轴','8种主题色','导出PNG','导出CSV'], badge:'新'},
-        {id:'settings', icon:'⚙️', name:'系统设置', cat:'manage', accent:'#6366f1', bg:'rgba(99,102,241,0.1)',
+        {id:'settings', icon:'settings', name:'系统设置', cat:'manage',
          desc:'AI配置、主题定制、系统诊断',
          features:['AI配置','主题色','系统信息','连接测试'], badge:'新'},
     ];
@@ -734,7 +501,6 @@
 
     // ===== Favorites =====
     const FAV_KEY = (window._USER_PREFIX || '') + 'toolbox_favorites';
-    // 登录用户：迁移旧数据到用户专属 key，并删除旧 key（防止游客看到）
     {% if current_user %}
     (function(){
         if(localStorage.getItem('toolbox_favorites') !== null){
@@ -759,33 +525,16 @@
         }
         try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e) {}
 
-        // 仅更新被点击的按钮，不重新渲染整个网格
         const btn = event && event.currentTarget ? event.currentTarget : null;
         if (btn) {
             btn.classList.toggle('active', !wasFav);
-            btn.innerHTML = wasFav ? '☆' : '★';
+            btn.innerHTML = wasFav ? ICONS.star : ICONS.star;
+            btn.querySelector('svg').setAttribute('fill', wasFav ? 'none' : 'currentColor');
             btn.title = wasFav ? '收藏' : '取消收藏';
         }
 
-        // 如果当前在收藏分类视图下，需要重新渲染（因为列表内容变了）
         if (currentCategory === 'fav') {
             renderTools();
-        } else {
-            // 更新结果计数
-            const countEl = document.getElementById('search-count');
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
-            if (query || currentCategory !== 'all') {
-                const filtered = TOOLS.filter(t => {
-                    const catMatch = currentCategory === 'all' || t.cat === currentCategory ||
-                                     (currentCategory === 'fav' && isFavorite(t.id));
-                    const qMatch = !query ||
-                        t.name.toLowerCase().includes(query) ||
-                        t.desc.toLowerCase().includes(query) ||
-                        t.features.some(f => f.toLowerCase().includes(query));
-                    return catMatch && qMatch;
-                });
-                countEl.textContent = `${filtered.length} 个结果`;
-            }
         }
         renderFavBar();
         updateDashboardStats();
@@ -799,9 +548,7 @@
         const grid = document.getElementById('tools-grid');
         const noResults = document.getElementById('no-results');
         const navSearchInput = document.getElementById('navSearchInput');
-        const oldSearchInput = document.getElementById('search-input');
-        const query = (navSearchInput?.value || oldSearchInput?.value || '').toLowerCase().trim();
-        const countEl = document.getElementById('search-count');
+        const query = (navSearchInput?.value || '').toLowerCase().trim();
 
         let filtered = TOOLS.filter(t => {
             const catMatch = currentCategory === 'all' || t.cat === currentCategory ||
@@ -812,8 +559,6 @@
                 t.features.some(f => f.toLowerCase().includes(query));
             return catMatch && qMatch;
         });
-
-        countEl.textContent = query || currentCategory !== 'all' ? `${filtered.length} 个结果` : '';
 
         if (filtered.length === 0) {
             grid.innerHTML = '';
@@ -826,10 +571,11 @@
         grid.innerHTML = filtered.map((t, i) => {
             const origIdx = TOOLS.indexOf(t);
             const isFav = isFavorite(t.id);
+            const iconSvg = ICONS[t.icon] || ICONS.tools;
             return `
-            <div class="tool-card" style="--card-accent:${t.accent};--card-bg:${t.bg}; animation-delay: ${i * 0.04}s;" onclick="openTool('/${t.id}')">
+            <div class="tool-card" onclick="openTool('/${t.id}')">
                 <div class="tool-header">
-                    <div class="tool-icon">${t.icon}</div>
+                    <div class="tool-icon">${iconSvg}</div>
                     <div>
                         <h2>${t.name}</h2>
                         ${t.badge ? `<span class="tool-badge">${t.badge}</span>` : ''}
@@ -841,11 +587,9 @@
                     ${t.features.map(f => `<li>${f}</li>`).join('')}
                 </ul>
                 <div class="tool-footer">
-                    <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">
-                        打开
-                    </button>
+                    <button onclick="handleCardClick(event, '/${t.id}')" class="tool-btn">打开</button>
                     <button onclick="toggleFavorite('${t.id}', event)" class="fav-btn ${isFav ? 'active' : ''}" title="${isFav ? '取消收藏' : '收藏'}">
-                        ${isFav ? '★' : '☆'}
+                        <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     </button>
                 </div>
             </div>
@@ -867,8 +611,9 @@
         list.innerHTML = favs.map(id => {
             const tool = TOOLS.find(t => t.id === id);
             if (!tool) return '';
+            const iconSvg = ICONS[tool.icon] || ICONS.tools;
             return `<a href="/${esc(id)}" target="_blank" rel="noopener noreferrer" class="tb-recent-item" onclick="event.preventDefault();openTool('/${esc(id)}')">
-                <span class="tb-recent-item-icon">${esc(tool.icon)}</span>
+                <span class="tb-recent-item-icon">${iconSvg}</span>
                 <span>${esc(tool.name)}</span>
             </a>`;
         }).join('');
@@ -891,7 +636,6 @@
         }
     }
 
-    // ESC关闭导航栏搜索
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const box = document.getElementById('navSearchBox');
@@ -903,7 +647,7 @@
 
     function setCategory(cat) {
         currentCategory = cat;
-        document.querySelectorAll('.category-chip, .nav-category').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+        document.querySelectorAll('.nav-category').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
         renderTools();
     }
 
@@ -934,9 +678,10 @@
             const mins = Math.floor((Date.now() - r.time) / 60000);
             const timeStr = mins < 1 ? '刚刚' : mins < 60 ? mins + '分钟前' : Math.floor(mins/60) + '小时前';
             const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+            const iconSvg = ICONS[tool.icon] || ICONS.tools;
             return `<a href="/${esc(r.id)}" target="_blank" rel="noopener noreferrer" class="tb-recent-item" onclick="event.preventDefault();openTool('/${esc(r.id)}')">
-                <span class="tb-recent-item-icon">${esc(r.icon)}</span>
-                <span>${esc(r.name)}</span>
+                <span class="tb-recent-item-icon">${iconSvg}</span>
+                <span>${esc(tool.name)}</span>
                 <span class="tb-recent-item-time">${esc(timeStr)}</span>
             </a>`;
         }).join('');
@@ -978,11 +723,6 @@
     })();
 
     document.addEventListener('keydown', e => {
-        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-            e.preventDefault();
-            document.getElementById('search-input').focus();
-        }
-        if (e.key === 'Escape') document.getElementById('search-input').blur();
         if (document.activeElement.tagName !== 'INPUT' && /^[1-9]$/.test(e.key)) {
             const idx = parseInt(e.key) - 1;
             if (TOOLS[idx]) {
@@ -1015,7 +755,6 @@
             updateDashboardStats();
         }
     });
-    // 异步前缀设置后重新渲染最近使用（回退场景）
     document.addEventListener('userprefix-ready', function() {
         renderRecent();
         renderFavBar();
@@ -1029,17 +768,13 @@
 <style>
 .visit-counter {
     position: fixed; bottom: 20px; right: 20px; z-index: 999;
-    background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
-    padding: 10px 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    display: flex; align-items: center; gap: 8px; font-size: 13px;
-    color: #1a1a1a; user-select: none;
+    background: #fff; border: 1px solid #e8e8ed; border-radius: 10px;
+    padding: 8px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    color: #86868b; user-select: none;
 }
-.visit-counter .label { color: #888; }
-.visit-counter .num { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
-.visit-counter .digit { display: inline-block; overflow: hidden; height: 1.2em; vertical-align: bottom; }
-.visit-counter .digit-inner { display: flex; flex-direction: column; transition: transform 0.5s ease; }
-.visit-counter .digit-inner span { height: 1.2em; line-height: 1.2em; text-align: center; }
-@media (max-width: 768px) { .visit-counter { bottom: 12px; right: 12px; padding: 8px 12px; font-size: 12px; } }
+.visit-counter .num { font-weight: 600; font-size: 14px; color: #1d1d1f; font-variant-numeric: tabular-nums; }
+@media (max-width: 768px) { .visit-counter { bottom: 12px; right: 12px; padding: 6px 10px; font-size: 11px; } }
 </style>
 <div class="visit-counter" id="visitCounter">
     <span class="label">访问</span>
@@ -1047,33 +782,9 @@
 </div>
 <script>
 (function() {
-    const counter = document.getElementById('visitCounter');
     const numEl = document.getElementById('visitNum');
-    let current = 0;
-
-    function animateTo(target) {
-        const targetStr = String(target);
-        const curStr = String(current).padStart(targetStr.length, '0');
-        let html = '';
-        for (let i = 0; i < targetStr.length; i++) {
-            const from = parseInt(curStr[i] || '0');
-            const to = parseInt(targetStr[i]);
-            let digits = '';
-            for (let d = 0; d <= 9; d++) digits += `<span>${d}</span>`;
-            html += `<span class="digit"><span class="digit-inner" style="transform:translateY(-${from * 1.2}em)">${digits}</span></span>`;
-        }
-        numEl.innerHTML = html;
-        requestAnimationFrame(() => {
-            numEl.querySelectorAll('.digit-inner').forEach((el, i) => {
-                const to = parseInt(targetStr[i]);
-                el.style.transform = `translateY(-${to * 1.2}em)`;
-            });
-        });
-        current = target;
-    }
-
     fetch('/api/visit-count').then(r => r.json()).then(d => {
-        if (d.count) animateTo(d.count);
+        if (d.count) numEl.textContent = d.count;
     }).catch(() => {});
 })();
 </script>

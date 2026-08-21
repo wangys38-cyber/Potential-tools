@@ -11,14 +11,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #fff;
             min-height: 100vh;
             color: var(--text-primary);
         }
         .header {
             padding: 24px 32px;
             background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px);
+            
             border-bottom: 1px solid rgba(255,255,255,0.15);
             display: flex;
             align-items: center;
@@ -74,7 +74,7 @@
             font-size: 13px; font-weight: 600; cursor: pointer;
             transition: all 0.2s;
         }
-        .action-btn.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .action-btn.primary { background: #fff; color: #fff; }
         .action-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
         .action-btn.ghost { background: var(--bg-secondary); color: var(--text-primary); }
 
@@ -166,6 +166,7 @@
     </style>
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

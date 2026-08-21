@@ -1,20 +1,20 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>软件计划一键生成器</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+    <title>杞欢璁″垝涓€閿敓鎴愬櫒</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>馃搮</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
-            /* 以下变量为页面定制覆盖；其余主题变量由 theme.css 统一提供 */
+            /* 浠ヤ笅鍙橀噺涓洪〉闈㈠畾鍒惰鐩栵紱鍏朵綑涓婚鍙橀噺鐢?theme.css 缁熶竴鎻愪緵 */
             --purple: #5856d6;
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
             --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
-        /* 暗色模式变量由 theme.css 统一提供 */
+        /* 鏆楄壊妯″紡鍙橀噺鐢?theme.css 缁熶竴鎻愪緵 */
 
         * {
             margin: 0;
@@ -34,8 +34,8 @@
 
         .header {
             background: rgba(255, 255, 255, 0.72);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            
+            -webkit-
             border-radius: var(--radius-lg);
             padding: 20px 28px;
             margin-bottom: 20px;
@@ -615,7 +615,7 @@
         [data-theme="dark"] .timeline-node.milestone .timeline-card { background: rgba(255, 149, 0, 0.08); }
         [data-theme="dark"] .plan-table td[style*="#999"] { color: var(--text-tertiary) !important; }
 
-        /* ===== 计划管理：标签页 ===== */
+        /* ===== 璁″垝绠＄悊锛氭爣绛鹃〉 ===== */
         .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg-card); border-radius: var(--radius-lg); padding: 6px; border: 1px solid var(--border); width: fit-content; }
         .tab-btn { padding: 10px 24px; border: none; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 500; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; }
         .tab-btn:hover { color: var(--text-primary); }
@@ -623,11 +623,11 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* ===== 计划管理：我的计划列表 ===== */
+        /* ===== 璁″垝绠＄悊锛氭垜鐨勮鍒掑垪琛?===== */
         .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
         .plan-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
         .plan-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-color: var(--accent); }
-        .plan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), #af52de); }
+        .plan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff, #af52de); }
         .plan-card-title { font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .plan-card-meta { font-size: 12px; color: var(--text-tertiary); margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
         .plan-card-meta span { display: flex; align-items: center; gap: 4px; }
@@ -643,7 +643,7 @@
         .empty-plans { text-align: center; padding: 60px 20px; color: var(--text-tertiary); }
         .empty-plans .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
 
-        /* ===== 计划管理：编辑模式 ===== */
+        /* ===== 璁″垝绠＄悊锛氱紪杈戞ā寮?===== */
         .project-name-edit { display: inline-flex; align-items: center; gap: 8px; }
         .project-name-input { font-size: 17px; font-weight: 600; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 10px; width: 240px; }
         .edit-toggle { padding: 4px 12px; font-size: 12px; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); border-radius: var(--radius-full); cursor: pointer; transition: all 0.2s; }
@@ -659,13 +659,13 @@
         .status-badge.done { background: rgba(48,209,88,0.15); color: #30d158; }
         .status-badge.delayed { background: rgba(255,59,48,0.15); color: #ff3b30; }
 
-        /* ===== 飞书推送按钮 ===== */
-        .action-btn.feishu { background: linear-gradient(135deg, #00d6b9, #00b4a0); color: #fff; border: none; }
+        /* ===== 椋炰功鎺ㄩ€佹寜閽?===== */
+        .action-btn.feishu { background: #fff; color: #fff; border: none; }
         .action-btn.feishu:hover { box-shadow: 0 4px 12px rgba(0,214,185,0.3); }
-        .action-btn.save { background: linear-gradient(135deg, #5856d6, #af52de); color: #fff; border: none; }
+        .action-btn.save { background: #fff; color: #fff; border: none; }
         .action-btn.save:hover { box-shadow: 0 4px 12px rgba(88,86,214,0.3); }
 
-        /* ===== OCR 图片识别 ===== */
+        /* ===== OCR 鍥剧墖璇嗗埆 ===== */
         .ocr-section { margin-bottom: 20px; }
         .ocr-upload-area {
             display: flex; align-items: center; gap: 16px;
@@ -692,49 +692,50 @@
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
     <div class="container">
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('generator')">生成计划</button>
-            <button class="tab-btn" onclick="switchTab('myplans')">我的计划 <span id="planCountBadge" style="display:none;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;font-size:11px;margin-left:4px;">0</span></button>
+            <button class="tab-btn active" onclick="switchTab('generator')">鐢熸垚璁″垝</button>
+            <button class="tab-btn" onclick="switchTab('myplans')">鎴戠殑璁″垝 <span id="planCountBadge" style="display:none;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;font-size:11px;margin-left:4px;">0</span></button>
         </div>
 
         <div id="tab-generator" class="tab-content active">
-        <!-- 图片识别区域 -->
+        <!-- 鍥剧墖璇嗗埆鍖哄煙 -->
         <div class="ocr-section" id="ocrSection">
             <div class="ocr-upload-area" id="ocrUploadArea" onclick="document.getElementById('ocrFileInput').click()">
-                <div class="ocr-icon">📷</div>
+                <div class="ocr-icon">馃摲</div>
                 <div class="ocr-text">
-                    <strong>截图识别计划</strong>
-                    <span>上传图片 / 拖拽 / Ctrl+V 粘贴截图，自动识别项目名称和节点</span>
+                    <strong>鎴浘璇嗗埆璁″垝</strong>
+                    <span>涓婁紶鍥剧墖 / 鎷栨嫿 / Ctrl+V 绮樿创鎴浘锛岃嚜鍔ㄨ瘑鍒」鐩悕绉板拰鑺傜偣</span>
                 </div>
                 <input type="file" id="ocrFileInput" accept="image/*" style="display:none" onchange="handleOCRFile(this.files[0])">
             </div>
             <div class="ocr-result" id="ocrResult" style="display:none;">
                 <div class="ocr-result-header">
-                    <span>📝 识别结果</span>
-                    <button class="ocr-close" onclick="clearOCRResult()">✕</button>
+                    <span>馃摑 璇嗗埆缁撴灉</span>
+                    <button class="ocr-close" onclick="clearOCRResult()">鉁?/button>
                 </div>
                 <div class="ocr-result-content" id="ocrResultContent"></div>
                 <div class="ocr-actions">
-                    <button class="btn btn-secondary" onclick="applyOCRResult()">✅ 应用到计划</button>
-                    <button class="btn btn-ghost" onclick="clearOCRResult()">重新识别</button>
+                    <button class="btn btn-secondary" onclick="applyOCRResult()">鉁?搴旂敤鍒拌鍒?/button>
+                    <button class="btn btn-ghost" onclick="clearOCRResult()">閲嶆柊璇嗗埆</button>
                 </div>
             </div>
             <div class="ocr-loading" id="ocrLoading" style="display:none;">
                 <div class="spinner"></div>
-                <span>正在识别图片内容...</span>
+                <span>姝ｅ湪璇嗗埆鍥剧墖鍐呭...</span>
             </div>
         </div>
 
         <div class="input-section">
-            <h2>输入参数</h2>
+            <h2>杈撳叆鍙傛暟</h2>
             <div class="input-row">
                 <div class="input-group">
-                    <label for="projectType">项目类型</label>
+                    <label for="projectType">椤圭洰绫诲瀷</label>
                     <select id="projectType">
                         <option value="IOT-watch">IOT-watch</option>
                         <option value="TWS">TWS</option>
@@ -743,54 +744,54 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label for="firstNode">第一个节点 (Bring up)</label>
+                    <label for="firstNode">绗竴涓妭鐐?(Bring up)</label>
                     <input type="date" id="firstNode" value="">
                 </div>
-                <button class="generate-btn" onclick="generatePlan()">生成计划</button>
+                <button class="generate-btn" onclick="generatePlan()">鐢熸垚璁″垝</button>
             </div>
         </div>
 
         <div class="result-section">
-            <h2>生成结果</h2>
-            <div class="success-message" id="successMessage">✓ 计划已成功生成！</div>
+            <h2>鐢熸垚缁撴灉</h2>
+            <div class="success-message" id="successMessage">鉁?璁″垝宸叉垚鍔熺敓鎴愶紒</div>
             
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-color milestone"></div>
-                    <span>里程碑节点</span>
+                    <span>閲岀▼纰戣妭鐐?/span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color normal"></div>
-                    <span>普通节点</span>
+                    <span>鏅€氳妭鐐?/span>
                 </div>
             </div>
 
             <div class="result-header">
                 <div class="project-info">
                     <div class="project-name-edit">
-                        <span id="projectNameDisplay" style="font-size:17px;font-weight:600;">未命名项目</span>
-                        <button class="edit-toggle" id="editNameBtn" onclick="toggleEditName()" style="display:none;">✏️ 改名</button>
-                        <input type="text" class="project-name-input" id="projectNameInput" style="display:none;" placeholder="输入项目名称" onkeydown="if(event.key==='Enter')saveProjectName()">
+                        <span id="projectNameDisplay" style="font-size:17px;font-weight:600;">鏈懡鍚嶉」鐩?/span>
+                        <button class="edit-toggle" id="editNameBtn" onclick="toggleEditName()" style="display:none;">鉁忥笍 鏀瑰悕</button>
+                        <input type="text" class="project-name-input" id="projectNameInput" style="display:none;" placeholder="杈撳叆椤圭洰鍚嶇О" onkeydown="if(event.key==='Enter')saveProjectName()">
                     </div>
                     <div style="font-size:13px;color:var(--text-tertiary);margin-top:4px;">
-                        项目类型：<span id="displayProjectType">未选择</span> | 起始日期：<span id="displayStartDate">未设置</span>
-                        <button class="edit-toggle" id="editModeBtn" onclick="toggleEditMode()" style="margin-left:12px;">✏️ 编辑节点</button>
+                        椤圭洰绫诲瀷锛?span id="displayProjectType">鏈€夋嫨</span> | 璧峰鏃ユ湡锛?span id="displayStartDate">鏈缃?/span>
+                        <button class="edit-toggle" id="editModeBtn" onclick="toggleEditMode()" style="margin-left:12px;">鉁忥笍 缂栬緫鑺傜偣</button>
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <button class="action-btn save" onclick="savePlan()">💾 保存计划</button>
-                    <button class="action-btn feishu" onclick="pushToFeishu()">📤 推送飞书</button>
-                    <button class="action-btn" onclick="aiAdjustPlan()" style="background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;">🤖 AI建议调整</button>
-                    <button class="action-btn copy" onclick="copyPlan()">📋 复制</button>
-                    <button class="action-btn download" onclick="downloadPlan()">📥 CSV</button>
-                    <button class="action-btn print" onclick="printPlan()">🖨️ 打印</button>
+                    <button class="action-btn save" onclick="savePlan()">馃捑 淇濆瓨璁″垝</button>
+                    <button class="action-btn feishu" onclick="pushToFeishu()">馃摛 鎺ㄩ€侀涔?/button>
+                    <button class="action-btn" onclick="aiAdjustPlan()" style="background: #fff;color:#fff;border:none;">馃 AI寤鸿璋冩暣</button>
+                    <button class="action-btn copy" onclick="copyPlan()">馃搵 澶嶅埗</button>
+                    <button class="action-btn download" onclick="downloadPlan()">馃摜 CSV</button>
+                    <button class="action-btn print" onclick="printPlan()">馃枿锔?鎵撳嵃</button>
                 </div>
-                <!-- AI 调整建议面板 -->
-                <div id="aiSuggestionPanel" style="display:none;margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(99,102,241,0.06));border-radius:12px;border:1px solid rgba(124,58,237,0.15);">
+                <!-- AI 璋冩暣寤鸿闈㈡澘 -->
+                <div id="aiSuggestionPanel" style="display:none;margin-top:16px;padding:16px;background: #fff,rgba(99,102,241,0.06));border-radius:12px;border:1px solid rgba(124,58,237,0.15);">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                        <span style="font-size:18px;">🤖</span>
-                        <span style="font-weight:600;font-size:14px;">AI 计划调整建议</span>
-                        <button onclick="document.getElementById('aiSuggestionPanel').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-secondary);">✕</button>
+                        <span style="font-size:18px;">馃</span>
+                        <span style="font-weight:600;font-size:14px;">AI 璁″垝璋冩暣寤鸿</span>
+                        <button onclick="document.getElementById('aiSuggestionPanel').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-secondary);">鉁?/button>
                     </div>
                     <div id="aiSuggestionList" style="display:flex;flex-direction:column;gap:8px;"></div>
                 </div>
@@ -799,23 +800,23 @@
             <table class="plan-table" id="planTable">
                 <thead>
                     <tr>
-                        <th>序号</th>
-                        <th>节点名称</th>
-                        <th>距离上一节点</th>
-                        <th>计划日期</th>
-                        <th>周数</th>
-                        <th>状态</th>
+                        <th>搴忓彿</th>
+                        <th>鑺傜偣鍚嶇О</th>
+                        <th>璺濈涓婁竴鑺傜偣</th>
+                        <th>璁″垝鏃ユ湡</th>
+                        <th>鍛ㄦ暟</th>
+                        <th>鐘舵€?/th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="6" style="text-align: center; color: #999;">请输入参数并点击"生成计划"</td>
+                        <td colspan="6" style="text-align: center; color: #999;">璇疯緭鍏ュ弬鏁板苟鐐瑰嚮"鐢熸垚璁″垝"</td>
                     </tr>
                 </tbody>
             </table>
 
             <div class="timeline-section" id="timelineSection" style="display: none;">
-                <h3>📊 横向时间线</h3>
+                <h3>馃搳 妯悜鏃堕棿绾?/h3>
                 <div class="timeline-container">
                     <div class="timeline" id="timeline"></div>
                 </div>
@@ -825,48 +826,48 @@
 
         <div id="tab-myplans" class="tab-content">
             <div class="input-section">
-                <h2>我的项目计划</h2>
+                <h2>鎴戠殑椤圭洰璁″垝</h2>
                 <div id="plansContainer" class="plans-grid"></div>
                 <div id="emptyPlans" class="empty-plans" style="display:none;">
-                    <div class="icon">📋</div>
-                    <p>还没有保存的计划</p>
-                    <p style="font-size:13px;margin-top:8px;opacity:0.7;">生成计划后点击「保存计划」即可收藏</p>
+                    <div class="icon">馃搵</div>
+                    <p>杩樻病鏈変繚瀛樼殑璁″垝</p>
+                    <p style="font-size:13px;margin-top:8px;opacity:0.7;">鐢熸垚璁″垝鍚庣偣鍑汇€屼繚瀛樿鍒掋€嶅嵆鍙敹钘?/p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 计划快速编辑弹窗 -->
-    <div id="quickEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;">
+    <!-- 璁″垝蹇€熺紪杈戝脊绐?-->
+    <div id="quickEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10000;align-items:center;justify-content:center;">
         <div style="background:var(--tb-bg,#fff);border-radius:16px;width:90%;max-width:520px;max-height:85vh;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
             <div style="padding:18px 22px;border-bottom:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;font-size:17px;font-weight:600;">✏️ 编辑项目计划</h3>
-                <button onclick="closeQuickEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--tb-text-secondary,#999);padding:0;">✕</button>
+                <h3 style="margin:0;font-size:17px;font-weight:600;">鉁忥笍 缂栬緫椤圭洰璁″垝</h3>
+                <button onclick="closeQuickEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--tb-text-secondary,#999);padding:0;">鉁?/button>
             </div>
             <div style="padding:20px 22px;overflow-y:auto;max-height:calc(85vh - 130px);">
                 <div style="margin-bottom:16px;">
-                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">项目名称</label>
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">椤圭洰鍚嶇О</label>
                     <input type="text" id="qe_projectName" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">开始日期</label>
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">寮€濮嬫棩鏈?/label>
                     <input type="date" id="qe_startDate" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">当前进度节点</label>
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">褰撳墠杩涘害鑺傜偣</label>
                     <select id="qe_currentNode" style="width:100%;padding:10px 14px;border:1px solid var(--tb-border,#ddd);border-radius:10px;font-size:14px;box-sizing:border-box;background:#fff;">
-                        <option value="">— 未开始 —</option>
+                        <option value="">鈥?鏈紑濮?鈥?/option>
                     </select>
-                    <p style="font-size:12px;color:var(--tb-text-secondary,#999);margin-top:6px;">选择当前正在进行的节点，之前的节点自动标记为已完成</p>
+                    <p style="font-size:12px;color:var(--tb-text-secondary,#999);margin-top:6px;">閫夋嫨褰撳墠姝ｅ湪杩涜鐨勮妭鐐癸紝涔嬪墠鐨勮妭鐐硅嚜鍔ㄦ爣璁颁负宸插畬鎴?/p>
                 </div>
                 <div style="margin-bottom:8px;">
-                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">节点列表（可编辑名称和日期）</label>
+                    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--tb-text-primary,#333);">鑺傜偣鍒楄〃锛堝彲缂栬緫鍚嶇О鍜屾棩鏈燂級</label>
                     <div id="qe_nodesList" style="border:1px solid var(--tb-border,#ddd);border-radius:10px;max-height:280px;overflow-y:auto;"></div>
                 </div>
             </div>
             <div style="padding:14px 22px;border-top:1px solid var(--tb-border,rgba(0,0,0,0.08));display:flex;justify-content:flex-end;gap:10px;">
-                <button onclick="closeQuickEdit()" style="padding:9px 20px;border:1px solid var(--tb-border,#ddd);border-radius:10px;background:var(--tb-bg-hover,#f5f5f5);cursor:pointer;font-size:14px;">取消</button>
-                <button onclick="saveQuickEdit()" style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;cursor:pointer;font-size:14px;font-weight:500;">💾 保存</button>
+                <button onclick="closeQuickEdit()" style="padding:9px 20px;border:1px solid var(--tb-border,#ddd);border-radius:10px;background:var(--tb-bg-hover,#f5f5f5);cursor:pointer;font-size:14px;">鍙栨秷</button>
+                <button onclick="saveQuickEdit()" style="padding:9px 20px;border:none;border-radius:10px;background: #fff;color:#fff;cursor:pointer;font-size:14px;font-weight:500;">馃捑 淇濆瓨</button>
             </div>
         </div>
     </div>
@@ -954,7 +955,7 @@
             const firstNodeDate = document.getElementById('firstNode').value;
 
             if (!firstNodeDate) {
-                showToast('请选择第一个节点的日期');
+                showToast('璇烽€夋嫨绗竴涓妭鐐圭殑鏃ユ湡');
                 return;
             }
 
@@ -1049,10 +1050,10 @@
                 tr.innerHTML = `
                     <td>${item.index}</td>
                     <td class="node-name">${item.name}</td>
-                    <td class="duration">${item.duration} 周</td>
+                    <td class="duration">${item.duration} 鍛?/td>
                     <td>${item.date}</td>
-                    <td>第 ${item.totalWeeks} 周</td>
-                    <td>${item.isMilestone ? '🚩 里程碑' : '○ 进行中'}</td>
+                    <td>绗?${item.totalWeeks} 鍛?/td>
+                    <td>${item.isMilestone ? '馃毄 閲岀▼纰? : '鈼?杩涜涓?}</td>
                 `;
                 
                 tbody.appendChild(tr);
@@ -1080,7 +1081,7 @@
                     <div class="timeline-card">
                         <span class="node-name">${item.name}</span>
                         <span class="node-date">${item.date}</span>
-                        <span class="node-duration">${item.duration}周</span>
+                        <span class="node-duration">${item.duration}鍛?/span>
                     </div>
                 `;
 
@@ -1097,41 +1098,41 @@
 
         function copyPlan() {
             if (currentPlan.length === 0) {
-                showToast('请先生成计划');
+                showToast('璇峰厛鐢熸垚璁″垝');
                 return;
             }
 
-            let text = '序号\t节点名称\t距离上一节点\t计划日期\t周数\t状态\n';
+            let text = '搴忓彿\t鑺傜偣鍚嶇О\t璺濈涓婁竴鑺傜偣\t璁″垝鏃ユ湡\t鍛ㄦ暟\t鐘舵€乗n';
             currentPlan.forEach(item => {
-                text += `${item.index}\t${item.name}\t${item.duration} 周\t${item.date}\t第 ${item.totalWeeks} 周\t${item.isMilestone ? '里程碑' : '进行中'}\n`;
+                text += `${item.index}\t${item.name}\t${item.duration} 鍛╘t${item.date}\t绗?${item.totalWeeks} 鍛╘t${item.isMilestone ? '閲岀▼纰? : '杩涜涓?}\n`;
             });
 
             navigator.clipboard.writeText(text).then(() => {
-                showToast('✓ 表格已复制到剪贴板', 'success');
+                showToast('鉁?琛ㄦ牸宸插鍒跺埌鍓创鏉?, 'success');
             }).catch(err => {
-                showToast('复制失败，请手动复制', 'error');
+                showToast('澶嶅埗澶辫触锛岃鎵嬪姩澶嶅埗', 'error');
             });
         }
 
         function downloadPlan() {
             if (currentPlan.length === 0) {
-                showToast('请先生成计划');
+                showToast('璇峰厛鐢熸垚璁″垝');
                 return;
             }
 
             const projectType = document.getElementById('projectType').value;
             const config = projectConfigs[projectType];
             
-            let csv = '\uFEFF序号,节点名称,距离上一节点,计划日期,周数,状态\n';
+            let csv = '\uFEFF搴忓彿,鑺傜偣鍚嶇О,璺濈涓婁竴鑺傜偣,璁″垝鏃ユ湡,鍛ㄦ暟,鐘舵€乗n';
             currentPlan.forEach(item => {
-                csv += `${item.index},${item.name},${item.duration} 周,${item.date},第 ${item.totalWeeks} 周,${item.isMilestone ? '里程碑' : '进行中'}\n`;
+                csv += `${item.index},${item.name},${item.duration} 鍛?${item.date},绗?${item.totalWeeks} 鍛?${item.isMilestone ? '閲岀▼纰? : '杩涜涓?}\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${config.name}_软件计划_${formatDate(new Date())}.csv`;
+            link.download = `${config.name}_杞欢璁″垝_${formatDate(new Date())}.csv`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1140,7 +1141,7 @@
 
         function printPlan() {
             if (currentPlan.length === 0) {
-                showToast('请先生成计划');
+                showToast('璇峰厛鐢熸垚璁″垝');
                 return;
             }
 
@@ -1149,11 +1150,11 @@
 
         document.getElementById('firstNode').valueAsDate = new Date();
 
-        // ==================== 计划管理：保存/编辑/列表/飞书推送 ====================
+        // ==================== 璁″垝绠＄悊锛氫繚瀛?缂栬緫/鍒楄〃/椋炰功鎺ㄩ€?====================
         const PLANS_STORAGE_KEY = (typeof _USER_PREFIX !== 'undefined' ? _USER_PREFIX : '') + 'saved_plans';
         let savedPlans = [];
         let currentPlanId = null;
-        let currentProjectName = '未命名项目';
+        let currentProjectName = '鏈懡鍚嶉」鐩?;
         let editMode = false;
 
         function loadSavedPlans() {
@@ -1166,7 +1167,7 @@
         function savePlansToStorage() {
             localStorage.setItem(PLANS_STORAGE_KEY, JSON.stringify(savedPlans));
             updatePlanCountBadge();
-            // 触发云端同步
+            // 瑙﹀彂浜戠鍚屾
             window.dispatchEvent(new CustomEvent('v5-data-changed'));
         }
 
@@ -1192,7 +1193,7 @@
 
         function savePlan() {
             if (currentPlan.length === 0) {
-                showToast('请先生成计划', 'error');
+                showToast('璇峰厛鐢熸垚璁″垝', 'error');
                 return;
             }
             const projectType = document.getElementById('projectType').value;
@@ -1217,11 +1218,11 @@
                 const idx = savedPlans.findIndex(p => p.id === currentPlanId);
                 if (idx >= 0) savedPlans[idx] = planData;
                 else savedPlans.push(planData);
-                showToast('计划已更新', 'success');
+                showToast('璁″垝宸叉洿鏂?, 'success');
             } else {
                 savedPlans.unshift(planData);
                 currentPlanId = planData.id;
-                showToast('计划已保存', 'success');
+                showToast('璁″垝宸蹭繚瀛?, 'success');
             }
             savePlansToStorage();
         }
@@ -1243,28 +1244,28 @@
             switchTab('generator');
             document.querySelectorAll('.tab-btn')[0].classList.add('active');
             document.querySelectorAll('.tab-btn')[1].classList.remove('active');
-            showToast('已加载计划：' + plan.projectName, 'info');
+            showToast('宸插姞杞借鍒掞細' + plan.projectName, 'info');
         }
 
         function deletePlan(id, event) {
             event.stopPropagation();
             const plan = savedPlans.find(p => p.id === id);
-            if (!confirm('确定删除计划「' + (plan?.projectName || '未命名') + '」？')) return;
+            if (!confirm('纭畾鍒犻櫎璁″垝銆? + (plan?.projectName || '鏈懡鍚?) + '銆嶏紵')) return;
             savedPlans = savedPlans.filter(p => p.id !== id);
-            if (currentPlanId === id) { currentPlanId = null; currentProjectName = '未命名项目'; }
+            if (currentPlanId === id) { currentPlanId = null; currentProjectName = '鏈懡鍚嶉」鐩?; }
             savePlansToStorage();
             renderPlansList();
-            showToast('计划已删除', 'success');
+            showToast('璁″垝宸插垹闄?, 'success');
         }
 
         function editPlanName(id, event) {
             event.stopPropagation();
             const plan = savedPlans.find(p => p.id === id);
             if (!plan) return;
-            const newName = prompt('请输入新的项目名称：', plan.projectName);
+            const newName = prompt('璇疯緭鍏ユ柊鐨勯」鐩悕绉帮細', plan.projectName);
             if (newName === null) return;
             const trimmed = newName.trim();
-            if (!trimmed) { showToast('项目名称不能为空', 'warning'); return; }
+            if (!trimmed) { showToast('椤圭洰鍚嶇О涓嶈兘涓虹┖', 'warning'); return; }
             plan.projectName = trimmed;
             plan.updatedAt = Date.now();
             if (currentPlanId === id) {
@@ -1273,10 +1274,10 @@
             }
             savePlansToStorage();
             renderPlansList();
-            showToast('项目名称已更新', 'success');
+            showToast('椤圭洰鍚嶇О宸叉洿鏂?, 'success');
         }
 
-        // ==================== 快速编辑弹窗 ====================
+        // ==================== 蹇€熺紪杈戝脊绐?====================
         let _editingPlanId = null;
 
         function openQuickEdit(planId) {
@@ -1287,10 +1288,10 @@
             document.getElementById('qe_projectName').value = plan.projectName || '';
             document.getElementById('qe_startDate').value = plan.startDate || '';
 
-            // 填充节点下拉和可编辑列表
+            // 濉厖鑺傜偣涓嬫媺鍜屽彲缂栬緫鍒楄〃
             const nodeSelect = document.getElementById('qe_currentNode');
             const nodesList = document.getElementById('qe_nodesList');
-            nodeSelect.innerHTML = '<option value="">— 未开始 —</option>';
+            nodeSelect.innerHTML = '<option value="">鈥?鏈紑濮?鈥?/option>';
             nodesList.innerHTML = '';
 
             let currentNodeIdx = -1;
@@ -1301,23 +1302,23 @@
                 opt.textContent = `${i + 1}. ${n.name}`;
                 nodeSelect.appendChild(opt);
 
-                // 可编辑的节点行
+                // 鍙紪杈戠殑鑺傜偣琛?
                 const row = document.createElement('div');
                 row.style.cssText = 'padding:10px 12px;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px;';
                 row.dataset.index = i;
 
                 const statusColor = n.status === 'done' ? '#10b981' : n.status === 'in-progress' ? '#f59e0b' : '#9ca3af';
-                const statusIcon = n.status === 'done' ? '✅' : n.status === 'in-progress' ? '🔄' : '⬜';
+                const statusIcon = n.status === 'done' ? '鉁? : n.status === 'in-progress' ? '馃攧' : '猬?;
 
                 row.innerHTML = `
-                    <span style="font-size:14px;flex-shrink:0;" title="节点状态">${statusIcon}</span>
+                    <span style="font-size:14px;flex-shrink:0;" title="鑺傜偣鐘舵€?>${statusIcon}</span>
                     <span style="font-size:12px;color:var(--tb-text-secondary,#999);flex-shrink:0;min-width:24px;">${i + 1}.</span>
-                    <input type="text" class="qe-node-name" value="${escapeHtml(n.name)}" style="flex:1;padding:6px 10px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:13px;min-width:0;" placeholder="节点名称">
+                    <input type="text" class="qe-node-name" value="${escapeHtml(n.name)}" style="flex:1;padding:6px 10px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:13px;min-width:0;" placeholder="鑺傜偣鍚嶇О">
                     <input type="date" class="qe-node-date" value="${n.date || ''}" style="padding:6px 8px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:12px;flex-shrink:0;width:130px;">
                     <select class="qe-node-status" style="padding:6px 8px;border:1px solid var(--tb-border,#ddd);border-radius:6px;font-size:12px;flex-shrink:0;background:#fff;">
-                        <option value="pending" ${n.status === 'pending' ? 'selected' : ''}>未开始</option>
-                        <option value="in-progress" ${n.status === 'in-progress' ? 'selected' : ''}>进行中</option>
-                        <option value="done" ${n.status === 'done' ? 'selected' : ''}>已完成</option>
+                        <option value="pending" ${n.status === 'pending' ? 'selected' : ''}>鏈紑濮?/option>
+                        <option value="in-progress" ${n.status === 'in-progress' ? 'selected' : ''}>杩涜涓?/option>
+                        <option value="done" ${n.status === 'done' ? 'selected' : ''}>宸插畬鎴?/option>
                     </select>
                 `;
                 nodesList.appendChild(row);
@@ -1342,12 +1343,12 @@
             const newDate = document.getElementById('qe_startDate').value;
             const currentNodeIdx = document.getElementById('qe_currentNode').value;
 
-            if (!newName) { showToast('项目名称不能为空', 'warning'); return; }
+            if (!newName) { showToast('椤圭洰鍚嶇О涓嶈兘涓虹┖', 'warning'); return; }
 
             plan.projectName = newName;
             plan.startDate = newDate;
 
-            // 保存每个节点的修改
+            // 淇濆瓨姣忎釜鑺傜偣鐨勪慨鏀?
             const nodeRows = document.querySelectorAll('#qe_nodesList > div');
             nodeRows.forEach((row, i) => {
                 if (!plan.nodes[i]) return;
@@ -1359,7 +1360,7 @@
                 if (statusSelect) plan.nodes[i].status = statusSelect.value;
             });
 
-            // 如果选择了当前进度节点，自动更新之前节点为已完成
+            // 濡傛灉閫夋嫨浜嗗綋鍓嶈繘搴﹁妭鐐癸紝鑷姩鏇存柊涔嬪墠鑺傜偣涓哄凡瀹屾垚
             if (currentNodeIdx !== '') {
                 const idx = parseInt(currentNodeIdx);
                 plan.nodes.forEach((n, i) => {
@@ -1370,7 +1371,7 @@
 
             plan.updatedAt = Date.now();
 
-            // 如果当前正在编辑这个计划，同步更新
+            // 濡傛灉褰撳墠姝ｅ湪缂栬緫杩欎釜璁″垝锛屽悓姝ユ洿鏂?
             if (currentPlanId === _editingPlanId) {
                 currentProjectName = newName;
                 document.getElementById('projectNameDisplay').textContent = newName;
@@ -1382,7 +1383,7 @@
             savePlansToStorage();
             renderPlansList();
             closeQuickEdit();
-            showToast('计划已更新', 'success');
+            showToast('璁″垝宸叉洿鏂?, 'success');
         }
 
         function renderPlansList() {
@@ -1399,19 +1400,19 @@
                 const doneCount = plan.nodes.filter(n => n.status === 'done').length;
                 const currentNode = plan.nodes.find(n => n.status === 'in-progress');
                 const progressPct = plan.nodes.length > 0 ? Math.round((doneCount / plan.nodes.length) * 100) : 0;
-                const progressText = currentNode ? `📍 ${currentNode.name}` : (doneCount === plan.nodes.length && plan.nodes.length > 0 ? '✅ 已完成' : '⏳ 未开始');
+                const progressText = currentNode ? `馃搷 ${currentNode.name}` : (doneCount === plan.nodes.length && plan.nodes.length > 0 ? '鉁?宸插畬鎴? : '鈴?鏈紑濮?);
                 const nodeTags = plan.nodes.slice(0, 6).map(n =>
                     '<span class="node-tag' + (n.isMilestone ? ' milestone' : '') + (n.status === 'done' ? ' done' : '') + (n.status === 'in-progress' ? ' in-progress' : '') + '">' + n.name + '</span>'
                 ).join('') + (plan.nodes.length > 6 ? '<span class="node-tag">+' + (plan.nodes.length - 6) + '</span>' : '');
                 const updated = new Date(plan.updatedAt);
                 const updatedStr = updated.getFullYear() + '-' + String(updated.getMonth()+1).padStart(2,'0') + '-' + String(updated.getDate()).padStart(2,'0') + ' ' + String(updated.getHours()).padStart(2,'0') + ':' + String(updated.getMinutes()).padStart(2,'0');
                 return '<div class="plan-card" onclick="openQuickEdit(\'' + plan.id + '\')">' +
-                    '<div class="plan-card-title">📋 ' + escapeHtml(plan.projectName) + '</div>' +
+                    '<div class="plan-card-title">馃搵 ' + escapeHtml(plan.projectName) + '</div>' +
                     '<div class="plan-card-meta">' +
-                        '<span>🏷️ ' + (projectConfigs[plan.projectType]?.name || plan.projectType) + '</span>' +
-                        '<span>📌 ' + plan.nodes.length + '节点</span>' +
-                        '<span>⭐ ' + milestoneCount + '里程碑</span>' +
-                        '<span>🕐 ' + updatedStr + '</span>' +
+                        '<span>馃彿锔?' + (projectConfigs[plan.projectType]?.name || plan.projectType) + '</span>' +
+                        '<span>馃搶 ' + plan.nodes.length + '鑺傜偣</span>' +
+                        '<span>猸?' + milestoneCount + '閲岀▼纰?/span>' +
+                        '<span>馃晲 ' + updatedStr + '</span>' +
                     '</div>' +
                     '<div class="plan-card-progress" style="margin:8px 0;padding:8px 12px;background:rgba(102,126,234,0.08);border-radius:8px;font-size:12px;color:var(--tb-text-secondary,#666);display:flex;justify-content:space-between;align-items:center;">' +
                         '<span>' + progressText + '</span>' +
@@ -1419,10 +1420,10 @@
                     '</div>' +
                     '<div class="plan-card-nodes">' + nodeTags + '</div>' +
                     '<div class="plan-card-actions">' +
-                        '<button class="plan-card-btn" onclick="loadPlan(\'' + plan.id + '\');event.stopPropagation();">📂 打开</button>' +
-                        '<button class="plan-card-btn" onclick="openQuickEdit(\'' + plan.id + '\');event.stopPropagation();">✏️ 编辑</button>' +
-                        '<button class="plan-card-btn" onclick="pushPlanToFeishuById(\'' + plan.id + '\', event)">📤 飞书</button>' +
-                        '<button class="plan-card-btn danger" onclick="deletePlan(\'' + plan.id + '\', event)">🗑️ 删除</button>' +
+                        '<button class="plan-card-btn" onclick="loadPlan(\'' + plan.id + '\');event.stopPropagation();">馃搨 鎵撳紑</button>' +
+                        '<button class="plan-card-btn" onclick="openQuickEdit(\'' + plan.id + '\');event.stopPropagation();">鉁忥笍 缂栬緫</button>' +
+                        '<button class="plan-card-btn" onclick="pushPlanToFeishuById(\'' + plan.id + '\', event)">馃摛 椋炰功</button>' +
+                        '<button class="plan-card-btn danger" onclick="deletePlan(\'' + plan.id + '\', event)">馃棏锔?鍒犻櫎</button>' +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -1434,12 +1435,12 @@
             return div.innerHTML;
         }
 
-        // ==================== OCR 图片识别 ====================
+        // ==================== OCR 鍥剧墖璇嗗埆 ====================
         let _ocrText = '';
 
-        // 初始化拖拽和粘贴监听
+        // 鍒濆鍖栨嫋鎷藉拰绮樿创鐩戝惉
         document.addEventListener('DOMContentLoaded', function() {
-            // 云端同步完成后重新加载计划列表
+            // 浜戠鍚屾瀹屾垚鍚庨噸鏂板姞杞借鍒掑垪琛?
             window.addEventListener('v5-synced', function() {
                 loadSavedPlans();
                 renderSavedPlans();
@@ -1462,7 +1463,7 @@
                     }
                 });
             }
-            // 全局粘贴监听
+            // 鍏ㄥ眬绮樿创鐩戝惉
             document.addEventListener('paste', function(e) {
                 const items = e.clipboardData?.items;
                 if (!items) return;
@@ -1481,11 +1482,11 @@
 
         function handleOCRFile(file) {
             if (!file || !file.type.startsWith('image/')) {
-                showToast('请选择图片文件', 'warning');
+                showToast('璇烽€夋嫨鍥剧墖鏂囦欢', 'warning');
                 return;
             }
             if (file.size > 10 * 1024 * 1024) {
-                showToast('图片不能超过10MB', 'warning');
+                showToast('鍥剧墖涓嶈兘瓒呰繃10MB', 'warning');
                 return;
             }
             const reader = new FileReader();
@@ -1510,7 +1511,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         image: imageData,
-                        prompt: '请识别图片中的项目计划内容。提取：1.项目名称 2.所有节点名称及其对应的日期（如果有）。按顺序列出每个节点，格式为：节点名称 - 日期。如果没有明确日期，只列节点名称。只输出提取的信息，不要其他说明。'
+                        prompt: '璇疯瘑鍒浘鐗囦腑鐨勯」鐩鍒掑唴瀹广€傛彁鍙栵細1.椤圭洰鍚嶇О 2.鎵€鏈夎妭鐐瑰悕绉板強鍏跺搴旂殑鏃ユ湡锛堝鏋滄湁锛夈€傛寜椤哄簭鍒楀嚭姣忎釜鑺傜偣锛屾牸寮忎负锛氳妭鐐瑰悕绉?- 鏃ユ湡銆傚鏋滄病鏈夋槑纭棩鏈燂紝鍙垪鑺傜偣鍚嶇О銆傚彧杈撳嚭鎻愬彇鐨勪俊鎭紝涓嶈鍏朵粬璇存槑銆?
                     })
                 });
                 const data = await resp.json();
@@ -1519,23 +1520,23 @@
                     document.getElementById('ocrResultContent').textContent = data.text;
                     loading.style.display = 'none';
                     result.style.display = 'block';
-                    showToast('识别成功，点击"应用到计划"', 'success');
+                    showToast('璇嗗埆鎴愬姛锛岀偣鍑?搴旂敤鍒拌鍒?', 'success');
                 } else {
-                    throw new Error(data.error || '识别失败');
+                    throw new Error(data.error || '璇嗗埆澶辫触');
                 }
             } catch (err) {
                 loading.style.display = 'none';
                 uploadArea.style.display = 'flex';
-                showToast('识别失败: ' + err.message, 'error');
+                showToast('璇嗗埆澶辫触: ' + err.message, 'error');
             }
         }
 
         function applyOCRResult() {
             if (!_ocrText) {
-                showToast('没有识别结果', 'warning');
+                showToast('娌℃湁璇嗗埆缁撴灉', 'warning');
                 return;
             }
-            // 解析识别结果，提取节点
+            // 瑙ｆ瀽璇嗗埆缁撴灉锛屾彁鍙栬妭鐐?
             const lines = _ocrText.split('\n').filter(l => l.trim());
             const nodes = [];
             let projectName = '';
@@ -1543,20 +1544,20 @@
             for (let line of lines) {
                 line = line.trim();
                 if (!line) continue;
-                // 尝试提取项目名称
-                if (!projectName && (line.includes('项目') || line.includes('计划') || line.length < 20)) {
-                    const nameMatch = line.match(/[：:]\s*(.+)/);
+                // 灏濊瘯鎻愬彇椤圭洰鍚嶇О
+                if (!projectName && (line.includes('椤圭洰') || line.includes('璁″垝') || line.length < 20)) {
+                    const nameMatch = line.match(/[锛?]\s*(.+)/);
                     if (nameMatch) {
                         projectName = nameMatch[1].trim();
                     } else if (!line.includes('-') && !line.match(/\d{4}/)) {
                         projectName = line.replace(/^[\d.\s]+/, '').trim();
                     }
                 }
-                // 提取节点：名称 - 日期 或 名称 日期
+                // 鎻愬彇鑺傜偣锛氬悕绉?- 鏃ユ湡 鎴?鍚嶇О 鏃ユ湡
                 const dateMatch = line.match(/(\d{4}[-/]\d{1,2}[-/]\d{1,2})/);
                 let nodeName = line.replace(/^[\d.\s|-]+/, '').trim();
                 if (dateMatch) {
-                    nodeName = nodeName.replace(dateMatch[1], '').replace(/[-–—|]/g, '').trim();
+                    nodeName = nodeName.replace(dateMatch[1], '').replace(/[-鈥撯€攟]/g, '').trim();
                 }
                 if (nodeName && nodeName.length > 1 && nodeName.length < 50) {
                     nodes.push({
@@ -1567,11 +1568,11 @@
             }
 
             if (nodes.length === 0) {
-                showToast('未识别到有效节点，请手动输入', 'warning');
+                showToast('鏈瘑鍒埌鏈夋晥鑺傜偣锛岃鎵嬪姩杈撳叆', 'warning');
                 return;
             }
 
-            // 应用到计划
+            // 搴旂敤鍒拌鍒?
             currentPlan = nodes.map((n, i) => ({
                 index: i + 1,
                 name: n.name,
@@ -1591,7 +1592,7 @@
             }
 
             renderTable();
-            showToast(`已应用 ${nodes.length} 个节点`, 'success');
+            showToast(`宸插簲鐢?${nodes.length} 涓妭鐐筦, 'success');
         }
 
         function clearOCRResult() {
@@ -1602,7 +1603,7 @@
             document.getElementById('ocrFileInput').value = '';
         }
 
-        // 项目名编辑
+        // 椤圭洰鍚嶇紪杈?
         function toggleEditName() {
             const display = document.getElementById('projectNameDisplay');
             const input = document.getElementById('projectNameInput');
@@ -1620,37 +1621,37 @@
         function saveProjectName() {
             const input = document.getElementById('projectNameInput');
             const display = document.getElementById('projectNameDisplay');
-            const name = input.value.trim() || '未命名项目';
+            const name = input.value.trim() || '鏈懡鍚嶉」鐩?;
             currentProjectName = name;
             display.textContent = name;
             display.style.display = 'inline';
             input.style.display = 'none';
-            showToast('项目名已更新', 'success');
+            showToast('椤圭洰鍚嶅凡鏇存柊', 'success');
         }
 
-        // 节点编辑模式
+        // 鑺傜偣缂栬緫妯″紡
         function toggleEditMode() {
             editMode = !editMode;
             const btn = document.getElementById('editModeBtn');
             btn.classList.toggle('active', editMode);
-            btn.textContent = editMode ? '✓ 完成编辑' : '✏️ 编辑节点';
+            btn.textContent = editMode ? '鉁?瀹屾垚缂栬緫' : '鉁忥笍 缂栬緫鑺傜偣';
             renderTable();
             if (!editMode && currentPlanId) savePlan();
         }
 
-        // 覆盖 renderTable 以支持编辑模式和状态
+        // 瑕嗙洊 renderTable 浠ユ敮鎸佺紪杈戞ā寮忓拰鐘舵€?
         const _origRenderTable = renderTable;
         renderTable = function() {
             if (!editMode) {
                 _origRenderTable();
-                // 添加状态列显示
+                // 娣诲姞鐘舵€佸垪鏄剧ず
                 const tbody = document.querySelector('#planTable tbody');
                 if (tbody && currentPlan.length > 0) {
                     const rows = tbody.querySelectorAll('tr');
                     rows.forEach((row, i) => {
                         if (currentPlan[i]) {
                             const status = currentPlan[i].status || 'pending';
-                            const statusMap = { pending: '待开始', 'in-progress': '进行中', done: '已完成', delayed: '已延期' };
+                            const statusMap = { pending: '寰呭紑濮?, 'in-progress': '杩涜涓?, done: '宸插畬鎴?, delayed: '宸插欢鏈? };
                             const statusCell = document.createElement('td');
                             statusCell.innerHTML = '<span class="status-badge ' + status + '">' + (statusMap[status] || status) + '</span>';
                             row.appendChild(statusCell);
@@ -1659,7 +1660,7 @@
                 }
                 return;
             }
-            // 编辑模式：可编辑表格
+            // 缂栬緫妯″紡锛氬彲缂栬緫琛ㄦ牸
             const tbody = document.querySelector('#planTable tbody');
             if (!tbody) return;
             tbody.innerHTML = currentPlan.map((item, i) => {
@@ -1667,14 +1668,14 @@
                 return '<tr class="' + (item.isMilestone ? 'milestone' : '') + '">' +
                     '<td>' + item.index + '</td>' +
                     '<td><span class="editable" onclick="editNodeField(' + i + ', \'name\', this)">' + escapeHtml(item.name) + '</span></td>' +
-                    '<td>' + (item.duration || 0) + '周</td>' +
+                    '<td>' + (item.duration || 0) + '鍛?/td>' +
                     '<td><span class="editable" onclick="editNodeField(' + i + ', \'date\', this)">' + item.date + '</span></td>' +
                     '<td>W' + item.totalWeeks + '</td>' +
                     '<td><select onchange="updateNodeStatus(' + i + ', this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12px;">' +
-                        '<option value="pending"' + (status==='pending'?' selected':'') + '>待开始</option>' +
-                        '<option value="in-progress"' + (status==='in-progress'?' selected':'') + '>进行中</option>' +
-                        '<option value="done"' + (status==='done'?' selected':'') + '>已完成</option>' +
-                        '<option value="delayed"' + (status==='delayed'?' selected':'') + '>已延期</option>' +
+                        '<option value="pending"' + (status==='pending'?' selected':'') + '>寰呭紑濮?/option>' +
+                        '<option value="in-progress"' + (status==='in-progress'?' selected':'') + '>杩涜涓?/option>' +
+                        '<option value="done"' + (status==='done'?' selected':'') + '>宸插畬鎴?/option>' +
+                        '<option value="delayed"' + (status==='delayed'?' selected':'') + '>宸插欢鏈?/option>' +
                     '</select></td>' +
                 '</tr>';
             }).join('');
@@ -1702,10 +1703,10 @@
             currentPlan[index].status = status;
         }
 
-        // 飞书推送
+        // 椋炰功鎺ㄩ€?
         async function pushToFeishu() {
             if (currentPlan.length === 0) {
-                showToast('请先生成计划', 'error');
+                showToast('璇峰厛鐢熸垚璁″垝', 'error');
                 return;
             }
             await pushPlanDataToFeishu({
@@ -1723,83 +1724,83 @@
         }
 
         async function pushPlanDataToFeishu(plan) {
-            const statusMap = { pending: '⚪ 待开始', 'in-progress': '🔵 进行中', done: '🟢 已完成', delayed: '🔴 已延期' };
-            let md = '**项目类型**：' + (projectConfigs[plan.projectType]?.name || plan.projectType) + '\n\n';
-            md += '**节点计划**：\n\n';
-            md += '| 序号 | 节点 | 日期 | 周数 | 状态 |\n';
+            const statusMap = { pending: '鈿?寰呭紑濮?, 'in-progress': '馃數 杩涜涓?, done: '馃煝 宸插畬鎴?, delayed: '馃敶 宸插欢鏈? };
+            let md = '**椤圭洰绫诲瀷**锛? + (projectConfigs[plan.projectType]?.name || plan.projectType) + '\n\n';
+            md += '**鑺傜偣璁″垝**锛歕n\n';
+            md += '| 搴忓彿 | 鑺傜偣 | 鏃ユ湡 | 鍛ㄦ暟 | 鐘舵€?|\n';
             md += '|------|------|------|------|------|\n';
             plan.nodes.forEach(n => {
-                const milestone = n.isMilestone ? ' ⭐' : '';
-                const status = statusMap[n.status || 'pending'] || '⚪ 待开始';
+                const milestone = n.isMilestone ? ' 猸? : '';
+                const status = statusMap[n.status || 'pending'] || '鈿?寰呭紑濮?;
                 md += '| ' + n.index + ' | ' + n.name + milestone + ' | ' + n.date + ' | W' + n.totalWeeks + ' | ' + status + ' |\n';
             });
-            md += '\n> 共 ' + plan.nodes.length + ' 个节点，' + plan.nodes.filter(n => n.isMilestone).length + ' 个里程碑';
+            md += '\n> 鍏?' + plan.nodes.length + ' 涓妭鐐癸紝' + plan.nodes.filter(n => n.isMilestone).length + ' 涓噷绋嬬';
 
             try {
-                showToast('正在推送飞书...', 'info');
+                showToast('姝ｅ湪鎺ㄩ€侀涔?..', 'info');
                 const resp = await fetch('/api/feishu/push', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'card',
-                        title: '📅 ' + plan.projectName,
+                        title: '馃搮 ' + plan.projectName,
                         content: md,
                         url: window.location.origin + '/plan-generator'
                     })
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    showToast('已推送到飞书', 'success');
+                    showToast('宸叉帹閫佸埌椋炰功', 'success');
                     if (window.ToolboxPush) {
                         window.ToolboxPush.record({
-                            tool: '项目计划',
-                            title: plan.projectName || '未命名项目',
+                            tool: '椤圭洰璁″垝',
+                            title: plan.projectName || '鏈懡鍚嶉」鐩?,
                             status: 'success',
-                            summary: plan.nodes.length + ' 个节点, ' + plan.nodes.filter(function(n){return n.isMilestone;}).length + ' 个里程碑'
+                            summary: plan.nodes.length + ' 涓妭鐐? ' + plan.nodes.filter(function(n){return n.isMilestone;}).length + ' 涓噷绋嬬'
                         });
                     }
                 } else {
-                    showToast('推送失败：' + (data.error || '未知错误'), 'error');
+                    showToast('鎺ㄩ€佸け璐ワ細' + (data.error || '鏈煡閿欒'), 'error');
                     if (window.ToolboxPush) {
                         window.ToolboxPush.record({
-                            tool: '项目计划',
-                            title: plan.projectName || '未命名项目',
+                            tool: '椤圭洰璁″垝',
+                            title: plan.projectName || '鏈懡鍚嶉」鐩?,
                             status: 'failed',
-                            summary: '推送失败',
-                            error: data.error || '未知错误'
+                            summary: '鎺ㄩ€佸け璐?,
+                            error: data.error || '鏈煡閿欒'
                         });
                     }
                 }
             } catch(e) {
-                showToast('推送失败：' + e.message, 'error');
+                showToast('鎺ㄩ€佸け璐ワ細' + e.message, 'error');
                 if (window.ToolboxPush) {
                     window.ToolboxPush.record({
-                        tool: '项目计划',
-                        title: plan.projectName || '未命名项目',
+                        tool: '椤圭洰璁″垝',
+                        title: plan.projectName || '鏈懡鍚嶉」鐩?,
                         status: 'failed',
-                        summary: '推送失败',
+                        summary: '鎺ㄩ€佸け璐?,
                         error: e.message
                     });
                 }
             }
         }
 
-        // 初始化
+        // 鍒濆鍖?
         loadSavedPlans();
-        // 生成计划后显示项目名编辑按钮
+        // 鐢熸垚璁″垝鍚庢樉绀洪」鐩悕缂栬緫鎸夐挳
         const _origGeneratePlan = generatePlan;
         generatePlan = function() {
             _origGeneratePlan();
             if (currentPlan.length > 0) {
                 currentPlanId = null;
-                currentProjectName = '未命名项目';
-                document.getElementById('projectNameDisplay').textContent = '未命名项目';
+                currentProjectName = '鏈懡鍚嶉」鐩?;
+                document.getElementById('projectNameDisplay').textContent = '鏈懡鍚嶉」鐩?;
                 document.getElementById('projectNameDisplay').style.display = 'inline';
                 document.getElementById('editNameBtn').style.display = 'inline-block';
             }
         };
 
-        // ==================== v5.0 工具间流转：接收会议纪要待办并自动填充节点 ====================
+        // ==================== v5.0 宸ュ叿闂存祦杞細鎺ユ敹浼氳绾寰呭姙骞惰嚜鍔ㄥ～鍏呰妭鐐?====================
         (function checkPlanTransfer() {
             try {
                 var prefix = window._USER_PREFIX || '';
@@ -1810,26 +1811,26 @@
                     if (k && pattern.test(k)) matchedKeys.push(k);
                 }
                 if (matchedKeys.length === 0) return;
-                // 取最新的（时间戳最大）
+                // 鍙栨渶鏂扮殑锛堟椂闂存埑鏈€澶э級
                 matchedKeys.sort();
                 var latestKey = matchedKeys[matchedKeys.length - 1];
                 var data = JSON.parse(localStorage.getItem(latestKey) || 'null');
-                // 清除所有匹配的中转数据
+                // 娓呴櫎鎵€鏈夊尮閰嶇殑涓浆鏁版嵁
                 matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
                 if (!data || data.source !== 'meeting-minutes') return;
 
                 var todoList = data.todoList || [];
                 if (todoList.length === 0 && data.todos) {
                     todoList = data.todos.split('\n').map(function(l) {
-                        return l.replace(/^\s*[-*•\d.)\s]+/, '').trim();
+                        return l.replace(/^\s*[-*鈥d.)\s]+/, '').trim();
                     }).filter(function(l) { return l.length > 1 && l.length < 100; });
                 }
                 if (todoList.length === 0) {
-                    showToast('会议纪要中未提取到有效待办事项', 'warning');
+                    showToast('浼氳绾涓湭鎻愬彇鍒版湁鏁堝緟鍔炰簨椤?, 'warning');
                     return;
                 }
 
-                // 自动填充为计划节点
+                // 鑷姩濉厖涓鸿鍒掕妭鐐?
                 var startDate = new Date();
                 currentPlan = todoList.map(function(name, idx) {
                     var d = new Date(startDate);
@@ -1842,8 +1843,8 @@
                         status: 'pending'
                     };
                 });
-                // 设置项目名为会议标题
-                currentProjectName = data.title || '会议项目';
+                // 璁剧疆椤圭洰鍚嶄负浼氳鏍囬
+                currentProjectName = data.title || '浼氳椤圭洰';
                 var nameDisplay = document.getElementById('projectNameDisplay');
                 if (nameDisplay) { nameDisplay.textContent = currentProjectName; nameDisplay.style.display = 'inline'; }
                 var editBtn = document.getElementById('editNameBtn');
@@ -1851,49 +1852,49 @@
                 var firstNodeInput = document.getElementById('firstNode');
                 if (firstNodeInput) firstNodeInput.value = currentPlan[0].date;
 
-                // 渲染
+                // 娓叉煋
                 if (typeof renderTable === 'function') renderTable();
                 if (typeof renderTimeline === 'function') renderTimeline();
 
-                // 显示流转提示横幅
+                // 鏄剧ず娴佽浆鎻愮ず妯箙
                 var banner = document.createElement('div');
                 banner.style.cssText = 'margin:0 0 16px;padding:14px 18px;border-radius:12px;' +
-                    'background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(99,102,241,0.1));' +
+                    'background: #fff,rgba(99,102,241,0.1));' +
                     'border:1px solid rgba(124,58,237,0.2);display:flex;align-items:flex-start;gap:12px;';
                 banner.innerHTML =
-                    '<div style="font-size:24px;">📅</div>' +
+                    '<div style="font-size:24px;">馃搮</div>' +
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">来自会议纪要：' + escapeHtml(data.title || '未命名会议') + '</div>' +
-                        '<div style="font-size:12px;color:var(--text-secondary);">已自动填充 ' + todoList.length + ' 个待办为计划节点，可编辑调整</div>' +
+                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">鏉ヨ嚜浼氳绾锛? + escapeHtml(data.title || '鏈懡鍚嶄細璁?) + '</div>' +
+                        '<div style="font-size:12px;color:var(--text-secondary);">宸茶嚜鍔ㄥ～鍏?' + todoList.length + ' 涓緟鍔炰负璁″垝鑺傜偣锛屽彲缂栬緫璋冩暣</div>' +
                     '</div>' +
-                    '<button onclick="this.parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">关闭</button>';
+                    '<button onclick="this.parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">鍏抽棴</button>';
                 var container = document.querySelector('.container');
                 if (container) container.insertBefore(banner, container.firstChild);
-                showToast('📋 已从会议纪要导入 ' + todoList.length + ' 个待办为计划节点', 'success');
+                showToast('馃搵 宸蹭粠浼氳绾瀵煎叆 ' + todoList.length + ' 涓緟鍔炰负璁″垝鑺傜偣', 'success');
             } catch(e) { console.warn('Plan transfer error:', e); }
         })();
 
-        // ===== v5.0 AI 计划调整建议 =====
+        // ===== v5.0 AI 璁″垝璋冩暣寤鸿 =====
         function aiAdjustPlan() {
             var panel = document.getElementById('aiSuggestionPanel');
             var listEl = document.getElementById('aiSuggestionList');
             if (!panel || !listEl) return;
             if (!currentPlan || currentPlan.length === 0) {
-                showToast('请先生成或导入计划', 'warning');
+                showToast('璇峰厛鐢熸垚鎴栧鍏ヨ鍒?, 'warning');
                 return;
             }
             var suggestions = [];
             var today = new Date();
             today.setHours(0,0,0,0);
 
-            // 1. 延期节点建议
+            // 1. 寤舵湡鑺傜偣寤鸿
             currentPlan.forEach(function(node, idx) {
                 if (node.status === 'delayed') {
                     suggestions.push({
                         type: 'delay',
-                        icon: '⚠️',
-                        title: '延期节点：' + (node.name || '未命名'),
-                        desc: '该节点已延期，建议将排期后移至下周，并评估对后续节点的影响',
+                        icon: '鈿狅笍',
+                        title: '寤舵湡鑺傜偣锛? + (node.name || '鏈懡鍚?),
+                        desc: '璇ヨ妭鐐瑰凡寤舵湡锛屽缓璁皢鎺掓湡鍚庣Щ鑷充笅鍛紝骞惰瘎浼板鍚庣画鑺傜偣鐨勫奖鍝?,
                         action: function() {
                             var d = new Date(node.date);
                             d.setDate(d.getDate() + 7);
@@ -1901,13 +1902,13 @@
                             node.status = 'in-progress';
                             renderTable();
                             if (typeof renderTimeline === 'function') renderTimeline();
-                            showToast('✅ 已将节点后移一周并标记为进行中', 'success');
+                            showToast('鉁?宸插皢鑺傜偣鍚庣Щ涓€鍛ㄥ苟鏍囪涓鸿繘琛屼腑', 'success');
                         }
                     });
                 }
             });
 
-            // 2. 同一天多个节点（资源过载）
+            // 2. 鍚屼竴澶╁涓妭鐐癸紙璧勬簮杩囪浇锛?
             var dateGroups = {};
             currentPlan.forEach(function(node, idx) {
                 var d = node.date;
@@ -1916,12 +1917,12 @@
             });
             Object.keys(dateGroups).forEach(function(d) {
                 if (dateGroups[d].length >= 2) {
-                    var names = dateGroups[d].map(function(i) { return currentPlan[i].name; }).join('、');
+                    var names = dateGroups[d].map(function(i) { return currentPlan[i].name; }).join('銆?);
                     suggestions.push({
                         type: 'overload',
-                        icon: '🔀',
-                        title: '资源过载：' + d + ' 有 ' + dateGroups[d].length + ' 个节点',
-                        desc: '节点「' + names + '」排期在同一天，建议分流到不同日期或并行执行',
+                        icon: '馃攢',
+                        title: '璧勬簮杩囪浇锛? + d + ' 鏈?' + dateGroups[d].length + ' 涓妭鐐?,
+                        desc: '鑺傜偣銆? + names + '銆嶆帓鏈熷湪鍚屼竴澶╋紝寤鸿鍒嗘祦鍒颁笉鍚屾棩鏈熸垨骞惰鎵ц',
                         action: function() {
                             dateGroups[d].forEach(function(idx, i) {
                                 if (i > 0) {
@@ -1932,13 +1933,13 @@
                             });
                             renderTable();
                             if (typeof renderTimeline === 'function') renderTimeline();
-                            showToast('✅ 已将同日节点分流到不同日期', 'success');
+                            showToast('鉁?宸插皢鍚屾棩鑺傜偣鍒嗘祦鍒颁笉鍚屾棩鏈?, 'success');
                         }
                     });
                 }
             });
 
-            // 3. 可并行节点（连续 pending 且无依赖标记）
+            // 3. 鍙苟琛岃妭鐐癸紙杩炵画 pending 涓旀棤渚濊禆鏍囪锛?
             var pendingIndices = currentPlan.map(function(n, i) { return n.status === 'pending' ? i : -1; }).filter(function(i) { return i >= 0; });
             if (pendingIndices.length >= 2) {
                 var consecutive = [];
@@ -1951,21 +1952,21 @@
                     var pair = consecutive[0];
                     suggestions.push({
                         type: 'parallel',
-                        icon: '⚡',
-                        title: '可并行：' + (currentPlan[pair[0]].name || '节点') + ' 与 ' + (currentPlan[pair[1]].name || '节点'),
-                        desc: '两个连续待办节点无明确依赖关系，建议并行执行以缩短工期',
+                        icon: '鈿?,
+                        title: '鍙苟琛岋細' + (currentPlan[pair[0]].name || '鑺傜偣') + ' 涓?' + (currentPlan[pair[1]].name || '鑺傜偣'),
+                        desc: '涓や釜杩炵画寰呭姙鑺傜偣鏃犳槑纭緷璧栧叧绯伙紝寤鸿骞惰鎵ц浠ョ缉鐭伐鏈?,
                         action: function() {
                             var d0 = new Date(currentPlan[pair[0]].date);
                             currentPlan[pair[1]].date = d0.toISOString().split('T')[0];
                             renderTable();
                             if (typeof renderTimeline === 'function') renderTimeline();
-                            showToast('✅ 已将两个节点设置为并行执行', 'success');
+                            showToast('鉁?宸插皢涓や釜鑺傜偣璁剧疆涓哄苟琛屾墽琛?, 'success');
                         }
                     });
                 }
             }
 
-            // 4. 已过期但未完成的节点
+            // 4. 宸茶繃鏈熶絾鏈畬鎴愮殑鑺傜偣
             currentPlan.forEach(function(node, idx) {
                 if (node.status !== 'done' && node.date) {
                     var nodeDate = new Date(node.date);
@@ -1973,22 +1974,22 @@
                     if (nodeDate < today && node.status !== 'delayed') {
                         suggestions.push({
                             type: 'overdue',
-                            icon: '⏰',
-                            title: '已过期未完成：' + (node.name || '未命名'),
-                            desc: '该节点计划日期已过但未完成，建议标记为延期或更新进度',
+                            icon: '鈴?,
+                            title: '宸茶繃鏈熸湭瀹屾垚锛? + (node.name || '鏈懡鍚?),
+                            desc: '璇ヨ妭鐐硅鍒掓棩鏈熷凡杩囦絾鏈畬鎴愶紝寤鸿鏍囪涓哄欢鏈熸垨鏇存柊杩涘害',
                             action: function() {
                                 node.status = 'delayed';
                                 renderTable();
-                                showToast('✅ 已标记为延期', 'success');
+                                showToast('鉁?宸叉爣璁颁负寤舵湡', 'success');
                             }
                         });
                     }
                 }
             });
 
-            // 渲染建议
+            // 娓叉煋寤鸿
             if (suggestions.length === 0) {
-                listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:13px;">✅ 当前计划状态良好，暂无调整建议</div>';
+                listEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-secondary);font-size:13px;">鉁?褰撳墠璁″垝鐘舵€佽壇濂斤紝鏆傛棤璋冩暣寤鸿</div>';
             } else {
                 listEl.innerHTML = suggestions.map(function(s, i) {
                     return '<div style="padding:12px;background:rgba(255,255,255,0.7);border-radius:10px;border:1px solid var(--border);">' +
@@ -1998,8 +1999,8 @@
                         '</div>' +
                         '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.6;">' + escapeHtml(s.desc) + '</div>' +
                         '<div style="display:flex;gap:8px;">' +
-                            '<button onclick="window.__aiAdopt(' + i + ')" style="padding:5px 14px;border-radius:6px;border:none;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font-size:12px;cursor:pointer;font-weight:500;">采纳</button>' +
-                            '<button onclick="this.closest(\'div[style*=padding]\').remove()" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:12px;cursor:pointer;">忽略</button>' +
+                            '<button onclick="window.__aiAdopt(' + i + ')" style="padding:5px 14px;border-radius:6px;border:none;background: #fff;color:#fff;font-size:12px;cursor:pointer;font-weight:500;">閲囩撼</button>' +
+                            '<button onclick="this.closest(\'div[style*=padding]\').remove()" style="padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:12px;cursor:pointer;">蹇界暐</button>' +
                         '</div>' +
                     '</div>';
                 }).join('');
