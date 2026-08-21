@@ -479,7 +479,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
             'resolution': issue.get('resolution', ''),
         })
     all_issues_brief.sort(key=lambda x: x.get('create_date', ''), reverse=True)
-    all_issues_brief = all_issues_brief[:2000]
+    # 不限制数量，导出全部数据用于趋势看板
     
     # 释放大列表内存
     sample_data = data_rows[:3] if data_rows else []
@@ -940,9 +940,9 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
         'bc_rate': bc_rate,
     }
 
-    # all_issues（最多2000条，用于前端研发趋势等功能）
+    # all_issues（不限制数量，导出全部用于前端研发趋势等功能）
     all_issues_brief = []
-    for i in range(min(2000, total)):
+    for i in range(total):
         all_issues_brief.append({
             'id': str(col_id.iloc[i]) if i < len(col_id) else '',
             'title': str(col_title.iloc[i]) if i < len(col_title) else '',
