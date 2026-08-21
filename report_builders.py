@@ -1,8 +1,10 @@
 """报告构建器模块 — 从 app.py 提取"""
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from excel_analyzers import _match_severity_level
+
+_CST = timezone(timedelta(hours=8))
 
 def _build_cr_analysis_report_html(data, watermark, file_name, custom_title=''):
     """构建CR问题分析报告HTML（含Chart.js图表）"""
