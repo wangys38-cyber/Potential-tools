@@ -319,30 +319,156 @@
             allLogs.forEach(l => counts[l.type]++);
             const total = allLogs.length;
 
-            // 提取关键错误关键词
-            const keywordPatterns = {
-                'watchdog超时': /watchdog/i,
-                '内核panic': /kernel\s*panic|panic/i,
-                '硬件错误(HardFault)': /hardfault|busfault|memfault/i,
-                '内存溢出(OOM)': /out\s*of\s*memory|oom/i,
-                '内存泄漏': /memory\s*leak|leak/i,
-                'Malloc失败': /malloc\s*fail|alloc\s*fail/i,
-                '栈溢出': /stack\s*overflow/i,
-                '堆溢出': /heap\s*overflow/i,
-                '异常重启': /reboot|restart|reset/i,
-                '功耗异常': /power\s*consumption|battery\s*drain|sleep\s*current|功耗|掉电|漏电|电流异常|耗电|电量|电池/i,
-                '电量/电池': /battery\s*level|battery\s*percentage|battery\s*capacity|battery\s*voltage|battery\s*current|charging|discharging|电量|电池|充电|放电|电压|续航/i,
-                '断言失败': /assert/i,
-                '空指针': /null\s*pointer|nullptr/i,
-                '死锁': /deadlock/i,
-                '信号量超时': /semaphore|timeout/i,
-            };
-            const foundKeywords = [];
-            for (const [kw, regex] of Object.entries(keywordPatterns)) {
-                const count = allLogs.filter(l => regex.test(l.text)).length;
-                if (count > 0) foundKeywords.push({name: kw, count: count});
+            // 提取具体问题并聚合
+            const issueExtractors = [
+                {
+                    name: '死机/崩溃',
+                    type: 'crash',
+                    color: '#ff3b30',
+                    icon: '💥',
+                    patterns: [
+                        {regex: /watchdog.*?timeout|watchdog.*?reset/i, label: '看门狗超时复位'},
+                        {regex: /kernel\s*panic|panic/i, label: '内核Panic'},
+                        {regex: /hardfault|hard\s*fault/i, label: '硬件错误(HardFault)'},
+                        {regex: /busfault|bus\s*fault/i, label: '总线错误(BusFault)'},
+                        {regex: /memfault|mem\s*fault/i, label: '内存管理错误(MemFault)'},
+                        {regex: /assert.*?fail|assertion.*?fail/i, label: '断言失败'},
+                        {regex: /null\s*pointer|nullptr/i, label: '空指针异常'},
+                        {regex: /deadlock/i, label: '死锁'},
+                        {regex: /abort/i, label: '程序中止(Abort)'},
+                        {regex: /死机|崩溃/i, label: '死机/崩溃'},
+                    ]
+                },
+                {
+                    name: '异常重启',
+                    type: 'reboot',
+                    color: '#ff9500',
+                    icon: '🔄',
+                    patterns: [
+                        {regex: /reboot|restart/i, label: '系统重启'},
+                        {regex: /reset|warm\s*boot|cold\s*boot/i, label: '系统复位'},
+                        {regex: /shutdown|power\s*on/i, label: '关机/上电'},
+                        {regex: /重启|复位/i, label: '重启/复位'},
+                    ]
+                },
+                {
+                    name: '内存问题',
+                    type: 'memory',
+                    color: '#af52de',
+                    icon: '💾',
+                    patterns: [
+                        {regex: /out\s*of\s*memory|oom/i, label: '内存溢出(OOM)'},
+                        {regex: /memory\s*leak|leak/i, label: '内存泄漏'},
+                        {regex: /malloc\s*fail|alloc\s*fail/i, label: '内存分配失败(Malloc Fail)'},
+                        {regex: /heap\s*overflow/i, label: '堆溢出'},
+                        {regex: /stack\s*overflow/i, label: '栈溢出'},
+                        {regex: /内存|泄漏/i, label: '内存/泄漏'},
+                    ]
+                },
+                {
+                    name: '功耗/电量',
+                    type: 'power',
+                    color: '#5ac8fa',
+                    icon: '🔋',
+                    patterns: [
+                        {regex: /battery\s*drain|耗电快|掉电快/i, label: '电量消耗过快'},
+                        {regex: /low\s*battery|电量低|电池电量低/i, label: '低电量警告'},
+                        {regex: /sleep\s*current|休眠电流/i, label: '休眠电流异常'},
+                        {regex: /battery\s*level|battery\s*percentage|电量/i, label: '电量状态'},
+                        {regex: /battery\s*voltage|电压/i, label: '电池电压'},
+                        {regex: /battery\s*current|电流/i, label: '电池电流'},
+                        {regex: /charging|充电/i, label: '充电状态'},
+                        {regex: /discharging|放电/i, label: '放电状态'},
+                        {regex: /power\s*consumption|功耗/i, label: '功耗异常'},
+                        {regex: /pmic|power\s*management/i, label: '电源管理'},
+                        {regex: /掉电|漏电|续航/i, label: '掉电/漏电/续航'},
+                    ]
+                },
+                {
+                    name: '通用错误',
+                    type: 'error',
+                    color: '#ff9500',
+                    icon: '❌',
+                    patterns: [
+                        {regex: /error|错误/i, label: '通用错误'},
+                        {regex: /exception|异常/i, label: '异常'},
+                        {regex: /fail|failed|失败/i, label: '操作失败'},
+                        {regex: /fault|故障/i, label: '故障'},
+                        {regex: /timeout|超时/i, label: '超时'},
+                        {regex: /semaphore|信号量/i, label: '信号量问题'},
+                    ]
+                },
+                {
+                    name: '警告信息',
+                    type: 'warning',
+                    color: '#ffcc00',
+                    icon: '⚠️',
+                    patterns: [
+                        {regex: /warn|warning|警告/i, label: '警告'},
+                        {regex: /deprecated|废弃/i, label: '废弃接口'},
+                        {regex: /注意/i, label: '注意'},
+                    ]
+                }
+            ];
+
+            // 提取具体问题
+            const detailedIssues = [];
+            for (const category of issueExtractors) {
+                if (counts[category.type] === 0) continue;
+                const typeLogs = allLogs.filter(l => l.type === category.type);
+                const subIssues = [];
+                for (const pat of category.patterns) {
+                    const matched = typeLogs.filter(l => pat.regex.test(l.text));
+                    if (matched.length > 0) {
+                        // 提取具体错误信息（取前3个不同的日志示例）
+                        const examples = [];
+                        const seen = new Set();
+                        for (const log of matched) {
+                            // 简化日志内容，提取关键部分
+                            let simplified = log.text;
+                            // 移除时间戳前缀
+                            simplified = simplified.replace(/^\s*[\d\-:\s\.\/]+\s*/, '');
+                            // 移除过长内容
+                            if (simplified.length > 120) simplified = simplified.substring(0, 120) + '...';
+                            if (!seen.has(simplified)) {
+                                seen.add(simplified);
+                                examples.push({line: log.line, text: simplified});
+                            }
+                            if (examples.length >= 3) break;
+                        }
+                        subIssues.push({
+                            label: pat.label,
+                            count: matched.length,
+                            examples: examples
+                        });
+                    }
+                }
+                // 如果没有匹配到具体子类型，归为"其他"
+                if (subIssues.length === 0) {
+                    const examples = [];
+                    const seen = new Set();
+                    for (const log of typeLogs.slice(0, 10)) {
+                        let simplified = log.text.replace(/^\s*[\d\-:\s\.\/]+\s*/, '');
+                        if (simplified.length > 120) simplified = simplified.substring(0, 120) + '...';
+                        if (!seen.has(simplified)) {
+                            seen.add(simplified);
+                            examples.push({line: log.line, text: simplified});
+                        }
+                        if (examples.length >= 3) break;
+                    }
+                    subIssues.push({
+                        label: '其他' + category.name,
+                        count: typeLogs.length,
+                        examples: examples
+                    });
+                }
+                subIssues.sort((a, b) => b.count - a.count);
+                detailedIssues.push({
+                    ...category,
+                    total: counts[category.type],
+                    subIssues: subIssues
+                });
             }
-            foundKeywords.sort((a, b) => b.count - a.count);
 
             // 风险等级评估
             let riskLevel = '低';
@@ -355,71 +481,120 @@
                 riskColor = '#ff9500';
             }
 
-            // 生成问题点列表
-            let issuesHtml = '';
-            const issueList = [];
-            if (counts.crash > 0) {
-                const crashKeywords = foundKeywords.filter(k => /watchdog|panic|hardfault|busfault|memfault|assert|null|deadlock/i.test(k.name));
-                const crashDetail = crashKeywords.length > 0 ? '（主要表现：' + crashKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
-                issueList.push(`<li><strong style="color:#ff3b30;">💥 死机/崩溃问题：${counts.crash}条</strong>${crashDetail} — 属于严重问题，可能导致设备无法正常使用，需优先排查根因。</li>`);
-            }
-            if (counts.reboot > 0) {
-                issueList.push(`<li><strong style="color:#ff9500;">🔄 异常重启：${counts.reboot}次</strong> — 需确认是正常重启还是异常复位，检查重启前的日志是否有死机或电源异常。</li>`);
-            }
-            if (counts.memory > 0) {
-                const memKeywords = foundKeywords.filter(k => /内存|malloc|oom|leak|stack|heap/i.test(k.name));
-                const memDetail = memKeywords.length > 0 ? '（主要表现：' + memKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
-                issueList.push(`<li><strong style="color:#af52de;">💾 内存问题：${counts.memory}条</strong>${memDetail} — 可能存在内存泄漏或内存不足，需检查内存使用趋势和释放逻辑。</li>`);
-            }
-            if (counts.power > 0) {
-                const powerKeywords = foundKeywords.filter(k => /功耗|电量|电池|掉电|漏电|耗电|电流|电压|续航/i.test(k.name));
-                const powerDetail = powerKeywords.length > 0 ? '（主要表现：' + powerKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
-                issueList.push(`<li><strong style="color:#5ac8fa;">🔋 功耗/电量异常：${counts.power}条</strong>${powerDetail} — 可能存在电量消耗过快、休眠电流偏高、唤醒源异常或电源管理配置问题，需重点排查续航表现。</li>`);
-            }
-            if (counts.error > 0) {
-                issueList.push(`<li><strong style="color:#ff9500;">❌ 通用错误：${counts.error}条</strong> — 占比${(counts.error/total*100).toFixed(1)}%，需查看具体错误类型和发生频率。</li>`);
-            }
-            if (counts.warning > 0) {
-                issueList.push(`<li><strong style="color:#ffcc00;">⚠️ 警告信息：${counts.warning}条</strong> — 占比${(counts.warning/total*100).toFixed(1)}%，部分警告可能是潜在问题的早期信号，建议关注。</li>`);
+            // 生成具体问题详情HTML
+            let detailedIssuesHtml = '';
+            for (const issue of detailedIssues) {
+                detailedIssuesHtml += `
+                    <div style="margin-bottom:16px;padding:12px;background:var(--bg-card);border-radius:8px;border-left:4px solid ${issue.color};">
+                        <div style="font-weight:bold;font-size:15px;margin-bottom:8px;color:${issue.color};">
+                            ${issue.icon} ${issue.name}：${issue.total}条
+                        </div>
+                        <div style="margin-left:8px;">
+                `;
+                for (const sub of issue.subIssues) {
+                    detailedIssuesHtml += `
+                        <div style="margin-bottom:10px;">
+                            <div style="font-weight:500;margin-bottom:4px;">
+                                • ${sub.label}：<span style="color:${issue.color};">${sub.count}条</span>
+                            </div>
+                    `;
+                    if (sub.examples.length > 0) {
+                        detailedIssuesHtml += `
+                            <div style="margin-left:16px;font-size:12px;color:var(--text-secondary);">
+                                <div style="margin-bottom:2px;">日志示例：</div>
+                        `;
+                        for (const ex of sub.examples) {
+                            detailedIssuesHtml += `
+                                <div style="padding:4px 8px;background:var(--bg-secondary);border-radius:4px;margin-bottom:2px;word-break:break-all;">
+                                    L${ex.line}: ${escapeHtml(ex.text)}
+                                </div>
+                            `;
+                        }
+                        detailedIssuesHtml += `</div>`;
+                    }
+                    detailedIssuesHtml += `</div>`;
+                }
+                detailedIssuesHtml += `</div></div>`;
             }
 
-            // 关键错误关键词
-            let keywordsHtml = '';
-            if (foundKeywords.length > 0) {
-                keywordsHtml = '<div style="margin-top:12px;"><strong>🔑 关键错误关键词：</strong><br>' +
-                    foundKeywords.slice(0, 8).map(k => `<span style="display:inline-block;background:#f0f0f5;padding:3px 10px;border-radius:12px;font-size:12px;margin:3px;">${k.name} ×${k.count}</span>`).join('') +
-                    '</div>';
+            // 根因分析
+            let rootCauseHtml = '';
+            const rootCauses = [];
+            if (counts.crash > 0) {
+                const crashIssue = detailedIssues.find(i => i.type === 'crash');
+                if (crashIssue) {
+                    const topCrash = crashIssue.subIssues[0];
+                    rootCauses.push(`<strong>死机/崩溃根因</strong>：最主要问题是「${topCrash.label}」(${topCrash.count}条)，可能由硬件异常、驱动Bug或资源竞争导致，建议优先排查该问题的触发条件和上下文。`);
+                }
+            }
+            if (counts.reboot > 3) {
+                const rebootIssue = detailedIssues.find(i => i.type === 'reboot');
+                if (rebootIssue) {
+                    const topReboot = rebootIssue.subIssues[0];
+                    rootCauses.push(`<strong>异常重启根因</strong>：最主要是「${topReboot.label}」(${topReboot.count}次)，需确认是正常重启还是异常复位，检查重启前是否有死机、电源异常或看门狗超时。`);
+                }
+            }
+            if (counts.memory > 0) {
+                const memIssue = detailedIssues.find(i => i.type === 'memory');
+                if (memIssue) {
+                    const topMem = memIssue.subIssues[0];
+                    rootCauses.push(`<strong>内存问题根因</strong>：最主要是「${topMem.label}」(${topMem.count}条)，可能存在内存泄漏、缓冲区溢出或内存不足，需检查malloc/free配对和内存使用趋势。`);
+                }
+            }
+            if (counts.power > 0) {
+                const powerIssue = detailedIssues.find(i => i.type === 'power');
+                if (powerIssue) {
+                    const topPower = powerIssue.subIssues[0];
+                    rootCauses.push(`<strong>功耗/电量根因</strong>：最主要是「${topPower.label}」(${topPower.count}条)，可能存在休眠电流偏高、异常唤醒、外设未关闭或电源管理配置问题，建议测量实际电流并对比规格书。`);
+                }
+            }
+            if (counts.error > 20) {
+                rootCauses.push(`<strong>通用错误根因</strong>：错误数量较多(${counts.error}条)，需查看具体错误类型，可能是接口调用失败、超时或参数错误导致。`);
+            }
+            if (rootCauses.length > 0) {
+                rootCauseHtml = `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">🔍 根因分析：</div>
+                        <ul style="margin:0;padding-left:20px;line-height:1.8;">
+                            ${rootCauses.map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
             }
 
             // 改进建议
             let suggestions = [];
-            if (counts.crash > 0) suggestions.push('优先排查死机/崩溃问题，抓取crash dump和复位原因寄存器，定位具体出错位置');
+            if (counts.crash > 0) {
+                const crashIssue = detailedIssues.find(i => i.type === 'crash');
+                if (crashIssue && crashIssue.subIssues.length > 0) {
+                    suggestions.push(`优先排查「${crashIssue.subIssues[0].label}」问题，抓取crash dump和复位原因寄存器，定位具体出错位置和触发条件`);
+                } else {
+                    suggestions.push('优先排查死机/崩溃问题，抓取crash dump和复位原因寄存器，定位具体出错位置');
+                }
+            }
             if (counts.memory > 0) suggestions.push('开启内存检测工具（如内存越界检测、内存泄漏追踪），检查malloc/free配对和缓冲区大小');
             if (counts.reboot > 3) suggestions.push('记录重启前的最后日志，增加复位原因寄存器打印，区分正常复位和异常复位');
             if (counts.power > 0) {
                 suggestions.push('使用功耗仪测量休眠电流和工作电流，对比规格书确认是否超标');
                 suggestions.push('检查唤醒源配置（GPIO/RTC/Timer），确认是否有异常唤醒导致无法进入低功耗模式');
                 suggestions.push('检查外设电源域管理（GPS/蓝牙/屏幕/传感器），确认未使用时是否正确关闭');
-                suggestions.push('分析电量消耗曲线，定位高耗电时段和对应模块，针对性优化');
             }
             if (total > 100) suggestions.push('日志量较大，建议增加日志分级输出，减少非关键信息打印，提升系统性能');
             if (suggestions.length === 0) suggestions.push('当前日志异常较少，建议持续观察，定期检查日志趋势');
 
             // 组装结论
             content.innerHTML = `
-                <div style="margin-bottom:12px;">
+                <div style="margin-bottom:16px;">
                     <strong>📊 总体评估：</strong>共检测到 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 条异常日志，风险等级：<strong style="color:${riskColor};">${riskLevel}</strong>
                     ${counts.crash > 0 ? '，存在<strong style="color:#ff3b30;">死机/崩溃</strong>严重问题' : ''}
                     ${counts.memory > 0 ? '，存在<strong style="color:#af52de;">内存异常</strong>' : ''}
                     ${counts.power > 0 ? '，存在<strong style="color:#5ac8fa;">功耗/电量异常</strong>' : ''}
                 </div>
-                <div style="margin-bottom:12px;">
-                    <strong>📋 问题点列表：</strong>
-                    <ul style="margin:8px 0;padding-left:20px;line-height:2;">
-                        ${issueList.join('')}
-                    </ul>
+                ${rootCauseHtml}
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:bold;font-size:15px;margin-bottom:8px;">📋 具体问题详情：</div>
+                    ${detailedIssuesHtml}
                 </div>
-                ${keywordsHtml}
                 <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
                     <strong>💡 改进建议：</strong>
                     <ol style="margin:8px 0;padding-left:20px;line-height:1.8;">
