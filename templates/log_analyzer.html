@@ -209,7 +209,6 @@
 
         function analyzeLog(text) {
             const lines = text.split(/\r?\n/);
-            allLogs = [];
             const totalLines = lines.length;
             if (totalLines > 50000) {
                 if (!confirm(`日志文件较大（${totalLines}行），分析可能需要较长时间。是否继续？`)) {
@@ -219,6 +218,52 @@
             }
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('analysis').style.display = 'block';
+
+            // 大文件使用Web Worker，小文件走主线程
+            const useWorker = window.WorkerManager && window.WorkerManager.supported && totalLines > 3000;
+            if (useWorker) {
+                analyzeLogWithWorker(text, totalLines);
+            } else {
+                analyzeLogMainThread(lines, totalLines);
+            }
+        }
+
+        function analyzeLogWithWorker(text, totalLines) {
+            allLogs = [];
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'analyzeProgress';
+            progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--ds-text-secondary);';
+            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">🤖 Web Worker 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div><div style="font-size:11px;color:var(--ds-text-tertiary);margin-top:8px;">使用后台线程处理，不阻塞页面</div>`;
+            document.getElementById('logContent').innerHTML = '';
+            document.getElementById('logContent').appendChild(progressDiv);
+
+            const worker = window.WorkerManager.createWorker('/static/js/workers/log-worker.js', { autoFallback: true });
+            worker.onProgress = function(msg) {
+                const bar = document.getElementById('progressBar');
+                if (bar) bar.style.width = msg.progress + '%';
+                const pt = progressDiv.querySelector('div:nth-child(2)');
+                if (pt) pt.textContent = `已处理 ${msg.processed} / ${msg.total} 行`;
+            };
+            worker.onDone = function(msg) {
+                allLogs = msg.results || [];
+                progressDiv.remove();
+                renderStats();
+                renderTimeline();
+                renderLogs();
+                generateConclusion();
+                worker.terminate();
+            };
+            worker.onError = function(err) {
+                console.warn('Worker error, falling back:', err);
+                progressDiv.remove();
+                const lines = text.split(/\r?\n/);
+                analyzeLogMainThread(lines, totalLines);
+            };
+            worker.post({ action: 'analyze', content: text, chunkSize: 5000 });
+        }
+
+        function analyzeLogMainThread(lines, totalLines) {
+            allLogs = [];
             const progressDiv = document.createElement('div');
             progressDiv.id = 'analyzeProgress';
             progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--ds-text-secondary);';
@@ -734,6 +779,7 @@
             });
         }
     </script>
+<script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
