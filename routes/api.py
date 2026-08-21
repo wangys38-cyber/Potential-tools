@@ -63,20 +63,19 @@ def create_api_blueprint(base_dir, static_version):
     """
     bp = Blueprint('api_routes', __name__)
     static_dir = os.path.join(base_dir, 'static')
-    visit_file = os.path.join(base_dir, 'visit_count.json')
     notenb_dist = os.path.join(static_dir, 'noteNB')
 
     def _read_visit_count():
+        """从数据库读取访问次数"""
         try:
-            with open(visit_file, 'r', encoding='utf-8') as f:
-                return int(json.load(f).get('count', 0))
+            return int(db.get_config('visit_count', 0))
         except Exception:
             return 0
 
     def _write_visit_count(count):
+        """将访问次数写入数据库"""
         try:
-            with open(visit_file, 'w', encoding='utf-8') as f:
-                json.dump({'count': count}, f)
+            db.set_config('visit_count', count)
         except Exception:
             pass
 
