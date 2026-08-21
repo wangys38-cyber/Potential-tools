@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会议纪要 - 工具集</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/meeting_minutes.css?v={{ STATIC_VERSION }}">
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -23,28 +23,28 @@
             <div class="mode-title">选择音频输入方式</div>
             <div class="mode-tabs">
                 <div class="mode-tab active" onclick="switchMode('system')" id="modeSystem">
-                    <span class="mode-tab-icon">🖥️</span>
+                    <span class="mode-tab-icon"></span>
                     <div>
                         <div>系统音频捕获</div>
                         <div style="font-size:12px;opacity:0.7;">捕获在线会议/系统声音</div>
                     </div>
                 </div>
                 <div class="mode-tab" onclick="switchMode('file')" id="modeFile">
-                    <span class="mode-tab-icon">📁</span>
+                    <span class="mode-tab-icon"></span>
                     <div>
                         <div>音频文件上传</div>
                         <div style="font-size:12px;opacity:0.7;">上传录音文件识别</div>
                     </div>
                 </div>
                 <div class="mode-tab" onclick="switchMode('mic')" id="modeMic">
-                    <span class="mode-tab-icon">🎤</span>
+                    <span class="mode-tab-icon"></span>
                     <div>
                         <div>实时语音转写</div>
                         <div style="font-size:12px;opacity:0.7;">麦克风实时捕捉声音转文字</div>
                     </div>
                 </div>
                 <div class="mode-tab" onclick="switchMode('paste')" id="modePaste">
-                    <span class="mode-tab-icon">📝</span>
+                    <span class="mode-tab-icon"></span>
                     <div>
                         <div>粘贴转写文本</div>
                         <div style="font-size:12px;opacity:0.7;">Teams/腾讯会议转录文本直接粘贴</div>
@@ -54,7 +54,7 @@
         </div>
 
         <div class="compat-warning" id="compatWarning">
-            <h3>⚠️ 浏览器兼容性提示</h3>
+            <h3> 浏览器兼容性提示</h3>
             <p id="compatText"></p>
         </div>
 
@@ -84,17 +84,17 @@
                 </div>
                 <div class="recording-controls">
                     <button class="btn btn-primary" id="sysStartBtn" onclick="startSystemCapture()">
-                        🖥️ 捕获系统音频
+                         捕获系统音频
                     </button>
                     <button class="btn btn-danger" id="sysStopBtn" onclick="stopSystemCapture()" disabled>
-                        ⏹️ 停止并转写
+                        ⏹ 停止并转写
                     </button>
                 </div>
             </div>
             <!-- 音频电平监控条 -->
             <div id="audioLevelMonitor" style="background: var(--bg-card); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-                    <span style="font-size:13px; font-weight:600; color:var(--text-primary);">🔊 音频信号</span>
+                    <span style="font-size:13px; font-weight:600; color:var(--text-primary);"> 音频信号</span>
                     <span id="audioLevelText" style="font-size:12px; color:var(--text-secondary);">等待捕获...</span>
                 </div>
                 <div style="height:6px; background:var(--bg-hover, rgba(0,0,0,0.06)); border-radius:3px; overflow:hidden;">
@@ -102,7 +102,7 @@
                 </div>
             </div>
             <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
-                <strong>📋 使用说明：</strong><br>
+                <strong> 使用说明：</strong><br>
                 1. 点击"捕获系统音频"，浏览器会弹出共享屏幕对话框<br>
                 2. <strong>关键步骤</strong>：根据 Teams 运行方式选择正确的共享源：<br>
                 &nbsp;&nbsp;&nbsp;• <strong>Teams 桌面应用</strong> → 选择<strong>「整个屏幕」</strong>（不能选"窗口"！）<br>
@@ -112,7 +112,7 @@
                 5. 会议结束后点击"停止并转写"，自动上传AI识别<br>
                 <br>
                 <details style="margin-top:8px; cursor:pointer;">
-                    <summary style="color: var(--accent); font-weight:600;">⚠️ 常见问题排查</summary>
+                    <summary style="color: var(--accent); font-weight:600;"> 常见问题排查</summary>
                     <div style="margin-top:10px; padding-left:10px;">
                         <strong>Q: 捕获后提示"未捕获到音频"？</strong><br>
                         A: 共享对话框左下角有「分享音频」复选框，必须勾选。如果看不到此选项：<br>
@@ -135,7 +135,7 @@
         <!-- 文件上传模式 -->
         <div id="fileMode" style="display:none;">
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('audioFileInput').click()">
-                <div class="upload-icon">📁</div>
+                <div class="upload-icon"></div>
                 <div class="upload-text">点击或拖拽音频文件到此处</div>
                 <div class="upload-hint">支持 MP3, WAV, M4A, AAC, FLAC, OGG, WEBM 格式，最大 100MB</div>
                 <input type="file" id="audioFileInput" accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.wma,.webm" style="display:none;" onchange="handleFileSelect(event)">
@@ -165,12 +165,12 @@
                 </div>
                 <div class="recording-controls">
                     <button class="btn btn-primary" id="micStartBtn" onclick="startMicRecording()">
-                        🎤 开始实时转写
+                         开始实时转写
                     </button>
                     <button class="btn btn-danger" id="micStopBtn" onclick="stopMicRecording()" disabled>
-                        ⏹️ 停止
+                        ⏹ 停止
                     </button>
-                    <button class="btn btn-ghost btn-sm" onclick="toggleManualInput()" id="manualBtn">✏️ 手动输入</button>
+                    <button class="btn btn-ghost btn-sm" onclick="toggleManualInput()" id="manualBtn"> 手动输入</button>
                 </div>
             </div>
             <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
@@ -189,7 +189,7 @@
         <!-- 粘贴转写文本模式 -->
         <div id="pasteMode" style="display:none;">
             <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
-                <strong>📋 使用说明（推荐 Teams 用户使用）：</strong><br>
+                <strong> 使用说明（推荐 Teams 用户使用）：</strong><br>
                 <strong>方法一：Teams 内置转写（最简单）</strong><br>
                 1. 在 Teams 会议中，点击 <strong>「...更多」→「开始转录」</strong><br>
                 2. 会议结束后，在 Teams 聊天中找到该会议的 <strong>「回顾」(Recap)</strong><br>
@@ -201,7 +201,7 @@
                 直接在下方输入框中粘贴或输入会议内容，每行一条发言<br>
                 <br>
                 <details style="margin-top:8px; cursor:pointer;">
-                    <summary style="color: var(--accent); font-weight:600;">💡 支持的格式</summary>
+                    <summary style="color: var(--accent); font-weight:600;"> 支持的格式</summary>
                     <div style="margin-top:10px; padding-left:10px;">
                         • <strong>Teams .vtt 文件内容</strong>：直接复制粘贴，自动解析时间戳和说话人<br>
                         • <strong>Teams .docx 文件内容</strong>：直接复制粘贴，自动识别说话人和内容<br>
@@ -227,7 +227,7 @@
 王五: 测试阶段预计下周开始"></textarea>
                 <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
                     <button class="btn btn-primary" onclick="processPastedTranscript()" style="padding:10px 24px;">
-                        📝 解析并添加到转写
+                         解析并添加到转写
                     </button>
                     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pasteTextArea').value=''">
                         清空
@@ -239,7 +239,7 @@
             <div style="margin-top:12px;">
                 <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 14px 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                        <span style="font-size:13px; font-weight:600; color:var(--text-primary);">📎 或上传 Teams 转录文件：</span>
+                        <span style="font-size:13px; font-weight:600; color:var(--text-primary);"> 或上传 Teams 转录文件：</span>
                         <input type="file" id="transcriptFileInput" accept=".vtt,.docx,.txt,.srt" style="display:none;" onchange="handleTranscriptFile(event)">
                         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('transcriptFileInput').click()">
                             选择 .vtt / .docx / .txt / .srt 文件
@@ -257,7 +257,7 @@
                 <option value="">加载中...</option>
             </select>
             <button class="btn btn-primary" id="generateBtn" onclick="generateMinutes()" disabled style="padding: 12px 36px; font-size: 16px;">
-                ✨ 生成会议纪要
+                 生成会议纪要
             </button>
         </div>
 
@@ -265,15 +265,15 @@
         <div class="main-grid">
             <div class="transcript-panel">
                 <div class="panel-header">
-                    <span class="panel-title">📝 转写内容</span>
+                    <span class="panel-title"> 转写内容</span>
                     <div class="panel-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="copyTranscript()">📋 复制</button>
-                        <button class="btn btn-ghost btn-sm" onclick="clearTranscript()">🗑️ 清空</button>
+                        <button class="btn btn-ghost btn-sm" onclick="copyTranscript()"> 复制</button>
+                        <button class="btn btn-ghost btn-sm" onclick="clearTranscript()"> 清空</button>
                     </div>
                 </div>
                 <div class="transcript-content" id="transcriptArea">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🎤</div>
+                        <div class="empty-state-icon"></div>
                         <div class="empty-state-text">选择音频输入方式开始<br>系统音频 / 文件上传 / 麦克风 / 粘贴文本</div>
                     </div>
                 </div>
@@ -281,18 +281,18 @@
 
             <div class="minutes-panel">
                 <div class="panel-header">
-                    <span class="panel-title">📋 会议纪要</span>
+                    <span class="panel-title"> 会议纪要</span>
                     <div class="panel-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="copyMinutes()">📋 复制</button>
-                        <button class="btn btn-ghost btn-sm" onclick="pushMinutesToFeishu()">📨 推飞书</button>
-                        <button class="btn btn-ghost btn-sm" onclick="sendToPlanGenerator()">📅 → 项目计划</button>
-                        <button class="btn btn-ghost btn-sm" onclick="downloadMinutes()">💾 下载</button>
-                        <button class="btn btn-ghost btn-sm" onclick="downloadMinutesAsPDF()">📄 下载PDF</button>
+                        <button class="btn btn-ghost btn-sm" onclick="copyMinutes()"> 复制</button>
+                        <button class="btn btn-ghost btn-sm" onclick="pushMinutesToFeishu()"> 推飞书</button>
+                        <button class="btn btn-ghost btn-sm" onclick="sendToPlanGenerator()"> → 项目计划</button>
+                        <button class="btn btn-ghost btn-sm" onclick="downloadMinutes()"> 下载</button>
+                        <button class="btn btn-ghost btn-sm" onclick="downloadMinutesAsPDF()"> 下载PDF</button>
                     </div>
                 </div>
                 <div class="minutes-content" id="minutesArea">
                     <div class="empty-state">
-                        <div class="empty-state-icon" style="opacity:0.5;">📋</div>
+                        <div class="empty-state-icon" style="opacity:0.5;"></div>
                         <div class="empty-state-text">转写完成后点击"生成纪要"<br>AI将自动整理会议纪要</div>
                     </div>
                 </div>

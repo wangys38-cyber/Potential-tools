@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>版本发布检查清单</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,7 +32,7 @@
         .go-badge.nogo { background: rgba(239,68,68,0.15); color: #ef4444; }
         .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
         .check-item:last-child { border-bottom: none; }
-        .check-item input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: #7c3aed; cursor: pointer; flex-shrink: 0; }
+        .check-item input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: #1d1d1f; cursor: pointer; flex-shrink: 0; }
         .check-item-content { flex: 1; }
         .check-item-title { font-size: 14px; font-weight: 500; }
         .check-item-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
@@ -50,7 +50,7 @@
             .container { padding: 0 14px; }
         }
     </style>
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -63,7 +63,7 @@
         <div class="version-input">
             <label>版本号：</label>
             <input type="text" id="versionInput" placeholder="如：V1.78 / V7.9.0.0" oninput="saveState()">
-            <button class="btn" onclick="linkToPlan()">📅 关联项目计划</button>
+            <button class="btn" onclick="linkToPlan()"> 关联项目计划</button>
         </div>
         <div class="progress-bar">
             <div class="progress-header">
@@ -75,20 +75,20 @@
         <div class="stage-tabs" id="stageTabs"></div>
         <div id="checklistContainer"></div>
         <div class="actions">
-            <button class="btn btn-primary" onclick="exportChecklist()">📋 导出检查结果</button>
-            <button class="btn" onclick="resetAll()">🔄 重置全部</button>
+            <button class="btn btn-primary" onclick="exportChecklist()"> 导出检查结果</button>
+            <button class="btn" onclick="resetAll()"> 重置全部</button>
         </div>
     </div>
     <script>
         const STAGES = [
-            { id: 'bringup', name: 'Bring up', icon: '🌱', items: [
+            { id: 'bringup', name: 'Bring up', icon: '', items: [
                 {title: '硬件基本功能验证', desc: '开机、充电、按键、屏幕、传感器基础功能正常'},
                 {title: '基础通信验证', desc: '蓝牙/WiFi/NFC 连接与基本数据传输'},
                 {title: '驱动 Bring up', desc: '各模块驱动加载正常，无严重报错'},
                 {title: '电源管理基础', desc: '开关机、休眠唤醒、基础功耗测量'},
                 {title: '开发环境就绪', desc: '调试口、日志输出、烧录工具可用'},
             ]},
-            { id: 'cp', name: 'CP (Customer Prototype)', icon: '🔧', items: [
+            { id: 'cp', name: 'CP (Customer Prototype)', icon: '', items: [
                 {title: '核心功能完整', desc: '所有 P0 功能可演示，无 Blocker Bug'},
                 {title: '性能基线达标', desc: '启动时间、响应速度、帧率达到基线要求'},
                 {title: '续航初步验证', desc: '典型场景续航达到预期 80% 以上'},
@@ -96,7 +96,7 @@
                 {title: 'CR 问题收敛', desc: 'P0/P1 Bug 全部解决，P2 解决率 > 70%'},
                 {title: '硬件版本锁定', desc: '硬件 BOM 锁定，无重大变更'},
             ]},
-            { id: 'df', name: 'DF (Design For Manufacturing)', icon: '🏭', items: [
+            { id: 'df', name: 'DF (Design For Manufacturing)', icon: '', items: [
                 {title: '量产工艺验证', desc: '产线测试流程跑通，良率达标'},
                 {title: 'EMC/可靠性测试', desc: 'EMC、高低温、跌落、防水等测试通过'},
                 {title: '功耗最终验证', desc: '所有场景续航达到规格书要求'},
@@ -105,7 +105,7 @@
                 {title: 'MTTF 达标', desc: '平均无故障时间达到可靠性指标'},
                 {title: '认证测试通过', desc: 'SRRC/CE/FCC/BQB 等认证测试完成'},
             ]},
-            { id: 'rrr', name: 'RRR (Release Readiness Review)', icon: '🚀', items: [
+            { id: 'rrr', name: 'RRR (Release Readiness Review)', icon: '', items: [
                 {title: '零 Blocker Bug', desc: '无任何阻断发布的严重问题'},
                 {title: 'CR 全部关闭', desc: '所有已知问题解决或接受风险'},
                 {title: '量产固件锁定', desc: '固件版本冻结，签名验证通过'},
@@ -168,7 +168,7 @@
                 <div class="checklist">
                     <div class="checklist-title">
                         ${stage.icon} ${stage.name} 检查项
-                        <span class="go-badge ${isGo?'go':'nogo'}">${isGo?'✅ GO':'⏳ NO-GO'} (${checked}/${total})</span>
+                        <span class="go-badge ${isGo?'go':'nogo'}">${isGo?' GO':'⏳ NO-GO'} (${checked}/${total})</span>
                     </div>
                     ${stage.items.map((item,i) => {
                         const key = `${currentStage}_${i}`;
@@ -211,10 +211,10 @@
             let text = `版本发布检查清单 — ${version}\n生成时间：${new Date().toLocaleString('zh-CN')}\n\n`;
             STAGES.forEach(s => {
                 const checked = countStage(s.id);
-                text += `\n【${s.icon} ${s.name}】${checked===s.items.length?'✅ GO':'⏳ NO-GO'} (${checked}/${s.items.length})\n`;
+                text += `\n【${s.icon} ${s.name}】${checked===s.items.length?' GO':'⏳ NO-GO'} (${checked}/${s.items.length})\n`;
                 s.items.forEach((item,i) => {
                     const key = `${s.id}_${i}`;
-                    text += `${state.checks[key]?'✅':'⬜'} ${item.title}\n`;
+                    text += `${state.checks[key]?'':''} ${item.title}\n`;
                 });
             });
             const blob = new Blob([text], {type:'text/plain;charset=utf-8'});

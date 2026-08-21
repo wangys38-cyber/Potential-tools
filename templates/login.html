@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 工具集</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
@@ -231,7 +231,7 @@
             .theme-toggle { width: 36px; height: 36px; }
         }
     </style>
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -240,10 +240,10 @@
 <body>
 {% include '_navbar.html' %}
 
-    <button class="theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'☀️':'🌙';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题">🌙</button>
+    <button class="theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'':'';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题"></button>
 
     <div class="logo-area">
-        <div class="logo-icon">🧰</div>
+        <div class="logo-icon"></div>
         <h1>工具集</h1>
         <p class="subtitle">效率工具平台</p>
     </div>
@@ -292,14 +292,14 @@
         {% if allow_guest %}
         <div class="divider">或</div>
         <a href="/" class="guest-btn">
-            <span style="font-size:18px;">👤</span>
+            <span style="font-size:18px;"></span>
             游客访问
         </a>
         {% endif %}
 
         {% if not feishu_configured and not google_configured %}
         <div class="config-hint show">
-            <strong>💡 提示：</strong>OAuth 登录需要在环境变量或 <code>config_oauth.json</code> 中配置。当前已开启游客模式，可直接访问。
+            <strong> 提示：</strong>OAuth 登录需要在环境变量或 <code>config_oauth.json</code> 中配置。当前已开启游客模式，可直接访问。
         </div>
         {% elif not feishu_configured or not google_configured %}
         <div class="config-hint show">

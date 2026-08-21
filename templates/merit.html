@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>功德+1 🔔</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>">
+    <title>功德+1 </title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,20 +26,8 @@
         }
 
         /* 背景光晕 */
-        body::before {
-            content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background:
-                radial-gradient(ellipse 60% 40% at 50% 30%, rgba(245,200,66,0.08), transparent),
-                radial-gradient(ellipse 80% 60% at 20% 80%, rgba(139,74,58,0.3), transparent),
-                radial-gradient(ellipse 80% 60% at 80% 20%, rgba(74,44,106,0.4), transparent);
-        }
-        body::after {
-            content: ''; position: fixed; width: 600px; height: 600px;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%);
-            border-radius: 50%; z-index: 0; pointer-events: none;
-            animation: glowPulse 4s ease-in-out infinite;
-        }
+        body::before { display: none; }
+        body::after { display: none; }
         @keyframes glowPulse {
             0%,100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
             50% { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
@@ -57,9 +45,9 @@
         /* 顶部按钮 */
         .reset-btn, .back-btn {
             position: fixed; top: 20px; z-index: 100;
-            background: rgba(255,255,255,0.06);  saturate(180%);
-            -webkit- saturate(180%);
-            border: 1px solid var(--glass-border); border-radius: 14px;
+            background: rgba(255,255,255,0.06);;
+            -webkit-;
+            border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 14px;
             padding: 10px 18px; color: rgba(255,255,255,0.6); font-size: 13px;
             cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
             text-decoration: none; font-weight: 500; letter-spacing: 0.02em;
@@ -72,8 +60,7 @@
         /* 总功德卡片 */
         .total-merit {
             position: fixed; top: 20px; right: 20px; z-index: 100;
-            background: #fff, rgba(212,160,23,0.06));
-             saturate(180%); -webkit- saturate(180%);
+            background: #fff, rgba(212,160,23,0.06));; -webkit-;
             border: 1px solid rgba(245,200,66,0.2); border-radius: 20px;
             padding: 16px 26px; text-align: center;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -181,9 +168,9 @@
         /* 今日功德卡片 */
         .today-merit {
             position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); z-index: 100;
-            background: rgba(255,255,255,0.06);  saturate(180%);
-            -webkit- saturate(180%);
-            border: 1px solid var(--glass-border); border-radius: 18px;
+            background: rgba(255,255,255,0.06);;
+            -webkit-;
+            border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 18px;
             padding: 14px 36px; text-align: center;
             box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
             min-width: 180px;
@@ -195,8 +182,7 @@
         /* 成就弹窗 */
         .achievement {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
-            background: #fff, rgba(212,160,23,0.06));
-             saturate(200%); -webkit- saturate(200%);
+            background: #fff, rgba(212,160,23,0.06));; -webkit-;
             border: 1px solid rgba(245,200,66,0.25); border-radius: 24px;
             padding: 32px 56px; text-align: center; z-index: 200;
             box-shadow: 0 0 80px rgba(245,200,66,0.15), 0 16px 48px rgba(0,0,0,0.4);
@@ -237,7 +223,7 @@
             .merit-popup { font-size: 22px; }
         }
     </style>
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -403,7 +389,7 @@
     </div>
 
     <div class="achievement" id="achievement">
-        <div class="icon" id="achIcon">🎉</div>
+        <div class="icon" id="achIcon"></div>
         <div class="title" id="achTitle">功德圆满</div>
         <div class="desc" id="achDesc">恭喜达成新成就</div>
     </div>
@@ -561,13 +547,13 @@
         });
 
         const achievements = [
-            { count: 10, icon: '🌱', title: '初结善缘', desc: '功德+10，善念初起' },
-            { count: 50, icon: '🍃', title: '积善成德', desc: '功德+50，德行渐增' },
-            { count: 100, icon: '🌸', title: '百善孝先', desc: '功德+100，福报渐近' },
-            { count: 500, icon: '⭐', title: '功德无量', desc: '功德+500，福泽深厚' },
-            { count: 1000, icon: '🌙', title: '千载难逢', desc: '功德+1000，修行有成' },
-            { count: 5000, icon: '☀️', title: '功德圆满', desc: '功德+5000，大功告成' },
-            { count: 10000, icon: '🏆', title: '万德归一', desc: '功德+10000，功德圆满' },
+            { count: 10, icon: '', title: '初结善缘', desc: '功德+10，善念初起' },
+            { count: 50, icon: '', title: '积善成德', desc: '功德+50，德行渐增' },
+            { count: 100, icon: '', title: '百善孝先', desc: '功德+100，福报渐近' },
+            { count: 500, icon: '', title: '功德无量', desc: '功德+500，福泽深厚' },
+            { count: 1000, icon: '', title: '千载难逢', desc: '功德+1000，修行有成' },
+            { count: 5000, icon: '', title: '功德圆满', desc: '功德+5000，大功告成' },
+            { count: 10000, icon: '', title: '万德归一', desc: '功德+10000，功德圆满' },
         ];
         let triggeredAchievements = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_ACH) || '[]'));
 

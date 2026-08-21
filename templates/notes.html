@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -93,7 +93,7 @@
             const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
             list.innerHTML = sorted.map(n => `
                 <div class="note-item ${n.id === currentNoteId ? 'active' : ''}" onclick="openNote('${n.id}')">
-                    <button class="delete-btn" onclick="event.stopPropagation();deleteNote('${n.id}')">✕</button>
+                    <button class="delete-btn" onclick="event.stopPropagation();deleteNote('${n.id}')"></button>
                     <div class="note-title">${escapeHtml(n.title || '无标题')}</div>
                     <div class="note-preview">${escapeHtml((n.content || '').slice(0, 50))}</div>
                     <div class="note-time">${formatTime(n.updatedAt)}</div>

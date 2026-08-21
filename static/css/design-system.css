@@ -95,6 +95,22 @@
     --ds-nav-bg: #1c1c1e;
     --ds-nav-border: rgba(255, 255, 255, 0.08);
     --ds-nav-text: #f0f0f2;
+
+    /* 兼容旧变量名（theme.css 体系） */
+    --bg-primary: #1c1c1e;
+    --bg-secondary: #2c2c2e;
+    --bg-card: #2c2c2e;
+    --bg-elevated: #2c2c2e;
+    --text-primary: #f0f0f2;
+    --text-secondary: #98989d;
+    --text-tertiary: #6b6b73;
+    --border: #38383a;
+    --border-light: #2c2c2e;
+    --border-strong: #48484a;
+    --button-bg: #3a3a3c;
+    --button-text: #ffffff;
+    --accent: #0a84ff;
+    --glass-border: rgba(255,255,255,0.1);
 }
 
 /* ============================================================

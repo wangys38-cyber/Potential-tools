@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF快转</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/md2pdf.css?v={{ STATIC_VERSION }}">
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -21,7 +21,7 @@
     <div class="container">
         <div class="watermark-settings">
             <label for="watermarkInput">
-                <span>🔖</span>
+                <span></span>
                 <span>自定义水印：</span>
             </label>
             <input type="text" id="watermarkInput" placeholder="输入水印内容，默认为 Motorola + 日期" value="">
@@ -30,14 +30,14 @@
 
         <div class="upload-area" id="uploadArea">
             <input type="file" id="fileInput" accept=".md,.docx,.xlsx,.xls">
-            <div class="upload-icon">📁</div>
+            <div class="upload-icon"></div>
             <div class="upload-text">点击或拖拽上传 Markdown、Word 或 Excel 文件</div>
             <div class="upload-hint">支持 .md、.docx、.xlsx、.xls 文件，自动添加自定义水印</div>
         </div>
 
         <div class="excel-actions" id="excelActions" style="display: none;">
             <button class="btn btn-excel" id="excelParseBtn">
-                <span>🔍</span>
+                <span></span>
                 <span id="excelParseText">解析Excel文件</span>
             </button>
             <button class="btn" id="excelCancelBtn" style="background: #8e8e93; color: #fff;">
@@ -47,7 +47,7 @@
 
         <div class="excel-panel" id="excelPanel" style="display: none;">
             <div class="excel-panel-header">
-                <h3>📊 AI 智能整理结果</h3>
+                <h3> AI 智能整理结果</h3>
                 <span class="excel-panel-hint">已识别工作表和数据分类，请选择需要输出的内容</span>
             </div>
             <div class="excel-summary" id="excelSummary"></div>
@@ -55,7 +55,7 @@
             <div class="excel-generate-area">
                 <div class="excel-selected-info" id="excelSelectedInfo">已选择 0 个工作表</div>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                    <label style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">📝 报告标题：</label>
+                    <label style="font-size:13px;color:var(--text-secondary);white-space:nowrap;"> 报告标题：</label>
                     <input type="text" id="excelCustomTitle" placeholder="自定义报告标题（可选）" 
                         style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-secondary);font-size:13px;outline:none;transition:border 0.2s;">
                 </div>
@@ -68,11 +68,11 @@
 
         <div class="excel-mode-switch" id="excelModeSwitch" style="display: none;">
             <button class="excel-mode-btn active" id="modeAI">
-                <span>✨</span>
+                <span></span>
                 <span>AI 智能整理</span>
             </button>
             <button class="excel-mode-btn" id="modeManual">
-                <span>📋</span>
+                <span></span>
                 <span>手动选择数据</span>
             </button>
         </div>
@@ -109,11 +109,11 @@
 
         <div class="excel-organize-area" id="excelOrganizeArea">
             <div class="excel-organize-title">
-                💡 告诉 AI 你想要什么
+                 告诉 AI 你想要什么
             </div>
             <textarea class="excel-organize-input" id="excelOrganizeInput" placeholder="例如：&#10;• 找出薪资最高的3名员工&#10;• 按部门统计人数和平均薪资&#10;• 提取「APP重构」项目的所有信息&#10;• 查找张三的所有记录&#10;• 汇总各项目的完成度"></textarea>
             <div class="excel-organize-tips">
-                💡 试试这些：
+                 试试这些：
                 <span class="tip-item" data-text="薪资最高的前3名">薪资最高的前3名</span>
                 <span class="tip-item" data-text="按部门统计人数">按部门统计人数</span>
                 <span class="tip-item" data-text="薪资平均值">薪资平均值</span>
@@ -122,19 +122,19 @@
                 <span class="tip-item" data-text="项目完成度排序">项目完成度排序</span>
             </div>
             <div class="excel-organize-hint">
-                <strong>🔍 跨Sheet搜索：</strong> 输入项目名、人名等关键词，AI 会在所有工作表中查找相关信息并汇总展示
+                <strong> 跨Sheet搜索：</strong> 输入项目名、人名等关键词，AI 会在所有工作表中查找相关信息并汇总展示
             </div>
             <div class="excel-organize-actions">
                 <button class="btn btn-organize" id="excelOrganizeBtn">
                     <span class="spinner" id="excelOrganizeSpinner" style="display: none;"></span>
-                    <span id="excelOrganizeText">✨ 智能整理预览</span>
+                    <span id="excelOrganizeText"> 智能整理预览</span>
                 </button>
             </div>
         </div>
 
         <div class="excel-preview-area" id="excelPreviewArea">
             <div class="excel-preview-header">
-                <div class="excel-preview-title">📋 整理预览</div>
+                <div class="excel-preview-title"> 整理预览</div>
                 <div class="excel-preview-summary" id="excelPreviewSummary"></div>
             </div>
             <div class="excel-preview-content" id="excelPreviewContent"></div>
@@ -144,14 +144,14 @@
                 </button>
                 <button class="btn btn-primary" id="excelPreviewGenerateBtn">
                     <span class="spinner" id="excelPreviewSpinner" style="display: none;"></span>
-                    <span id="excelPreviewGenerateText">✓ 确认生成PDF</span>
+                    <span id="excelPreviewGenerateText"> 确认生成PDF</span>
                 </button>
             </div>
         </div>
 
         <div class="progress-container" id="progressContainer">
             <div class="progress-header">
-                <h3>📊 批量转换进度</h3>
+                <h3> 批量转换进度</h3>
                 <span class="progress-info" id="progressInfo">0/0 文件</span>
             </div>
             <div class="progress-bar">
@@ -159,7 +159,7 @@
             </div>
             <div class="file-list" id="fileList"></div>
             <button class="btn btn-success download-all-btn" id="downloadAllBtn">
-                <span>📥</span>
+                <span></span>
                 <span>下载全部PDF</span>
             </button>
         </div>
@@ -177,7 +177,7 @@
 
             <div class="panel">
                 <div class="panel-header">
-                    <div class="icon green">👁</div>
+                    <div class="icon green"></div>
                     <h2>实时预览</h2>
                 </div>
                 <div class="preview-area" id="preview">
@@ -196,15 +196,15 @@
                 <span id="uploadText">markdown转PDF</span>
             </button>
             <button class="btn btn-word" id="wordBtn">
-                <span>📄</span>
+                <span></span>
                 <span>Word转PDF</span>
             </button>
             <button class="btn batch-btn" id="batchBtn">
-                <span>📦</span>
+                <span></span>
                 <span>批量转换</span>
             </button>
             <button class="btn btn-success" id="downloadBtn" disabled>
-                <span>📥</span>
+                <span></span>
                 <span>下载PDF</span>
             </button>
         </div>

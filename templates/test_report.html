@@ -1,13 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>测试报告分析工具</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/test_report.css?v={{ STATIC_VERSION }}">
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
 <style>
     /* 页面标题区 - 玻璃拟态 */
@@ -63,12 +63,12 @@
         <!-- 上传区 -->
         <div class="card" id="uploadSection">
             <div class="card-title">
-                <span class="card-title-icon">📤</span>
+                <span class="card-title-icon"></span>
                 上传测试报告
             </div>
             <div class="upload-container">
                 <div class="upload-card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
-                    <div class="upload-icon">📊</div>
+                    <div class="upload-icon"></div>
                     <h3>选择或拖拽Excel文件</h3>
                     <p>支持 .xlsx, .xls 格式的测试报告</p>
                     <div class="upload-hint">点击选择文件，或将文件拖拽到此处</div>
@@ -80,13 +80,13 @@
         <!-- Sheet选择区 -->
         <div class="card hidden" id="sheetSection">
             <div class="card-title">
-                <span class="card-title-icon">📑</span>
+                <span class="card-title-icon"></span>
                 选择Sheet页
             </div>
             <div class="sheet-info" id="sheetInfo"></div>
             <div class="sheet-tabs" id="sheetTabs"></div>
             <div class="actions-bar">
-                <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
+                <button class="btn btn-secondary" onclick="resetAll()"> 重新上传</button>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
             <!-- 项目信息 -->
             <div class="card" id="infoCard">
                 <div class="card-title">
-                    <span class="card-title-icon">📋</span>
+                    <span class="card-title-icon"></span>
                     项目信息
                 </div>
                 <div class="info-grid" id="infoGrid"></div>
@@ -104,7 +104,7 @@
             <!-- 测试统计 -->
             <div class="card">
                 <div class="card-title">
-                    <span class="card-title-icon">📊</span>
+                    <span class="card-title-icon"></span>
                     测试统计
                 </div>
                 <div class="stats-grid" id="statsGrid"></div>
@@ -113,7 +113,7 @@
             <!-- 执行摘要 -->
             <div class="card">
                 <div class="card-title">
-                    <span class="card-title-icon">📋</span>
+                    <span class="card-title-icon"></span>
                     执行摘要
                 </div>
                 <div id="riskBannerContainer"></div>
@@ -123,7 +123,7 @@
             <!-- 分类分析 -->
             <div class="card" id="analysisSectionsCard">
                 <div class="card-title">
-                    <span class="card-title-icon">🗂️</span>
+                    <span class="card-title-icon"></span>
                     分类分析
                 </div>
                 <div id="analysisSections"></div>
@@ -132,7 +132,7 @@
             <!-- 关键发现 -->
             <div class="card" id="keyFindingsCard">
                 <div class="card-title">
-                    <span class="card-title-icon">🔍</span>
+                    <span class="card-title-icon"></span>
                     关键发现
                 </div>
                 <div id="keyFindings"></div>
@@ -141,7 +141,7 @@
             <!-- 改进建议 -->
             <div class="card" id="recommendationsCard">
                 <div class="card-title">
-                    <span class="card-title-icon">💡</span>
+                    <span class="card-title-icon"></span>
                     改进建议
                 </div>
                 <div id="recommendations"></div>
@@ -150,14 +150,14 @@
             <!-- v3.0 AI 深度分析 -->
             <div class="card" id="aiAnalysisCard" style="border: 2px solid var(--accent); position: relative;">
                 <div class="card-title">
-                    <span class="card-title-icon">🤖</span>
+                    <span class="card-title-icon"></span>
                     AI 深度分析
                     <span style="font-size: 12px; color: var(--text-tertiary); margin-left: 8px; font-weight: normal;">v3.0 新功能</span>
                 </div>
                 <div id="aiAnalysisContent" style="min-height: 60px;">
                     <div style="text-align: center; padding: 20px;">
                         <button class="btn btn-primary" id="aiAnalysisBtn" onclick="generateAIAnalysis()" style="background: var(--accent);">
-                            🤖 生成 AI 深度分析
+                             生成 AI 深度分析
                         </button>
                         <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">
                             AI 将基于测试数据生成风险洞察和改进建议
@@ -169,20 +169,20 @@
             <!-- 逐项明细 -->
             <div class="card" id="detailCard">
                 <div class="card-title">
-                    <span class="card-title-icon">📝</span>
+                    <span class="card-title-icon"></span>
                     逐项明细
                 </div>
                 <div id="tableContainer"></div>
             </div>
 
             <div class="actions-bar">
-                <button class="btn btn-primary" id="downloadPdfBtn" onclick="downloadPdf()">📄 下载PDF报告</button>
-                <button class="btn btn-primary" id="saveReportBtn" onclick="saveReport()" style="background:#10b981;display:none;">💾 保存报告</button>
+                <button class="btn btn-primary" id="downloadPdfBtn" onclick="downloadPdf()"> 下载PDF报告</button>
+                <button class="btn btn-primary" id="saveReportBtn" onclick="saveReport()" style="background:#10b981;display:none;"> 保存报告</button>
                 <div class="saved-reports-btn" style="position:relative;display:none;" id="savedReportsBtnWrap">
-                    <button class="btn btn-secondary" onclick="toggleSavedReports()">📂 我的报告</button>
+                    <button class="btn btn-secondary" onclick="toggleSavedReports()"> 我的报告</button>
                     <div class="saved-reports-dropdown" id="savedReportsDropdown"></div>
                 </div>
-                <button class="btn btn-secondary" onclick="resetAll()">🔄 重新上传</button>
+                <button class="btn btn-secondary" onclick="resetAll()"> 重新上传</button>
             </div>
         </div>
 

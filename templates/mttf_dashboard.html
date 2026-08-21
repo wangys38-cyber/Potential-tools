@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTTF可靠性测试看板 - Potential Tools</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+    
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -140,7 +140,7 @@
         .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #fff; }
         .type-crash { background: #ef4444; }
         .type-reboot { background: #f59e0b; }
-        .type-watchdog { background: #8b5cf6; }
+        .type-watchdog { background: #1d1d1f; }
         .type-malloc { background: #0ea5e9; }
         .type-panic { background: #dc2626; }
         .type-other { background: #6b7280; }
@@ -176,17 +176,17 @@
         <!-- 上传区 -->
         <div id="uploadSection">
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-                <div class="upload-zone-icon">📱</div>
+                <div class="upload-zone-icon"></div>
                 <div class="upload-zone-text">点击或拖拽上传挂测日志</div>
                 <div class="upload-zone-hint">支持 .log / .txt，自动识别死机、重启、看门狗、Malloc失败、Kernel Panic等</div>
                 <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFile(this.files[0])">
             </div>
             <div style="text-align:center;margin:10px 0;color:rgba(255,255,255,0.6);font-size:12px;">或</div>
             <div class="paste-section">
-                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📋 粘贴日志内容</div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;"> 粘贴日志内容</div>
                 <textarea id="pasteArea" placeholder="粘贴设备挂测日志，支持多行..."></textarea>
                 <div class="btn-row">
-                    <button class="action-btn primary" onclick="analyzePasted()">🔍 分析粘贴内容</button>
+                    <button class="action-btn primary" onclick="analyzePasted()"> 分析粘贴内容</button>
                     <button class="action-btn ghost" onclick="document.getElementById('pasteArea').value=''">清空</button>
                 </div>
             </div>
@@ -206,22 +206,22 @@
 
             <!-- 失败类型分布 -->
             <div class="panel">
-                <div class="panel-title">📈 失败类型分布</div>
+                <div class="panel-title"> 失败类型分布</div>
                 <div class="failure-bar" id="failureBar"></div>
                 <div id="failureLegend" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11px;"></div>
             </div>
 
             <!-- 失败时间线 -->
             <div class="panel">
-                <div class="panel-title">⏱️ 失败事件时间线</div>
+                <div class="panel-title">⏱ 失败事件时间线</div>
                 <div class="timeline" id="timeline"></div>
             </div>
 
             <!-- 失败详情 -->
             <div class="panel">
                 <div class="panel-title">
-                    📋 失败详情
-                    <button class="action-btn primary" style="margin-left:auto;padding:4px 12px;font-size:11px;" onclick="exportReport()">📥 导出报告</button>
+                     失败详情
+                    <button class="action-btn primary" style="margin-left:auto;padding:4px 12px;font-size:11px;" onclick="exportReport()"> 导出报告</button>
                 </div>
                 <div class="filters" id="filters"></div>
                 <div style="overflow-x:auto;">
@@ -236,7 +236,7 @@
         </div>
 
         <div id="emptyState" class="empty-state">
-            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-icon"></div>
             <p>上传挂测日志后自动分析可靠性指标</p>
         </div>
     </div>
@@ -247,11 +247,11 @@
 
         // 失败模式定义
         const FAILURE_PATTERNS = {
-            crash:    { regex: /(panic|fatal|kernel\s*panic|hardfault|busfault|memfault|死机|crash|abort|assert\s*failed)/i, label: '死机/崩溃', icon: '💥', color: '#ef4444' },
-            reboot:   { regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启|system\s*restart)/i, label: '异常重启', icon: '🔄', color: '#f59e0b' },
-            watchdog: { regex: /(watchdog|wdt|wdog|hung\s*task|soft\s*lockup|hard\s*lockup|看门狗)/i, label: '看门狗超时', icon: '🐕', color: '#8b5cf6' },
-            malloc:   { regex: /(malloc\s*fail|out\s*of\s*memory|oom|heap\s*overflow|allocation\s*failed|内存分配失败)/i, label: 'Malloc失败', icon: '💾', color: '#0ea5e9' },
-            panic:    { regex: /(kernel\s*panic|oops|BUG:|Unable\s+to\s+handle)/i, label: 'Kernel Panic', icon: '💀', color: '#dc2626' },
+            crash:    { regex: /(panic|fatal|kernel\s*panic|hardfault|busfault|memfault|死机|crash|abort|assert\s*failed)/i, label: '死机/崩溃', icon: '', color: '#ef4444' },
+            reboot:   { regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启|system\s*restart)/i, label: '异常重启', icon: '', color: '#f59e0b' },
+            watchdog: { regex: /(watchdog|wdt|wdog|hung\s*task|soft\s*lockup|hard\s*lockup|看门狗)/i, label: '看门狗超时', icon: '', color: '#1d1d1f' },
+            malloc:   { regex: /(malloc\s*fail|out\s*of\s*memory|oom|heap\s*overflow|allocation\s*failed|内存分配失败)/i, label: 'Malloc失败', icon: '', color: '#0ea5e9' },
+            panic:    { regex: /(kernel\s*panic|oops|BUG:|Unable\s+to\s+handle)/i, label: 'Kernel Panic', icon: '', color: '#dc2626' },
         };
 
         // 时间戳提取
@@ -284,7 +284,7 @@
 
         function handleFile(file) {
             if (!file) return;
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileName').textContent = ' ' + file.name;
             document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
             const reader = new FileReader();
@@ -295,7 +295,7 @@
         function analyzePasted() {
             const text = document.getElementById('pasteArea').value;
             if (!text.trim()) { showToast('请先粘贴日志内容', 'warning'); return; }
-            document.getElementById('fileName').textContent = '📋 粘贴内容';
+            document.getElementById('fileName').textContent = ' 粘贴内容';
             document.getElementById('fileSize').textContent = (text.length/1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
             analyzeLog(text, 'pasted_log');
@@ -358,12 +358,12 @@
             const topLabel = topType && topType[1] > 0 ? FAILURE_PATTERNS[topType[0]].label : '无';
 
             document.getElementById('statsGrid').innerHTML = `
-                <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">${testMeta.totalRuntime}</div><div class="stat-label">日志总行数</div></div>
-                <div class="stat-card"><div class="stat-icon">💥</div><div class="stat-value ${total>5?'bad':total>0?'warn':'good'}">${total}</div><div class="stat-label">失败事件数</div></div>
-                <div class="stat-card"><div class="stat-icon">⏱️</div><div class="stat-value ${total>5?'bad':'good'}">${mttf}</div><div class="stat-label">MTTF (估算/千行)</div></div>
-                <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-value">${mtbf}</div><div class="stat-label">MTBF (估算)</div></div>
-                <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" style="font-size:16px;">${topLabel}</div><div class="stat-label">主要失败类型</div></div>
-                <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value ${total===0?'good':'warn'}">${total===0?'PASS':'FAIL'}</div><div class="stat-label">挂测结果</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value">${testMeta.totalRuntime}</div><div class="stat-label">日志总行数</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value ${total>5?'bad':total>0?'warn':'good'}">${total}</div><div class="stat-label">失败事件数</div></div>
+                <div class="stat-card"><div class="stat-icon">⏱</div><div class="stat-value ${total>5?'bad':'good'}">${mttf}</div><div class="stat-label">MTTF (估算/千行)</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value">${mtbf}</div><div class="stat-label">MTBF (估算)</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" style="font-size:16px;">${topLabel}</div><div class="stat-label">主要失败类型</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value ${total===0?'good':'warn'}">${total===0?'PASS':'FAIL'}</div><div class="stat-label">挂测结果</div></div>
             `;
         }
 
@@ -383,7 +383,7 @@
                     legendHtml += `<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${pat.color};"></span>${pat.label}: ${count}</span>`;
                 }
             }
-            if (!barHtml) barHtml = '<div style="width:100%;background:#10b981;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">无失败事件 ✅</div>';
+            if (!barHtml) barHtml = '<div style="width:100%;background:#10b981;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">无失败事件 </div>';
             document.getElementById('failureBar').innerHTML = barHtml;
             document.getElementById('failureLegend').innerHTML = legendHtml;
         }
@@ -391,7 +391,7 @@
         function renderTimeline() {
             const container = document.getElementById('timeline');
             if (allFailures.length === 0) {
-                container.innerHTML = '<div style="text-align:center;padding:20px;color:#10b981;">🎉 未检测到失败事件，挂测通过！</div>';
+                container.innerHTML = '<div style="text-align:center;padding:20px;color:#10b981;"> 未检测到失败事件，挂测通过！</div>';
                 return;
             }
             const show = allFailures.slice(0, 50);

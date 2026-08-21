@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>软件项目信息收集工具</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         :root {
@@ -432,7 +432,7 @@
         }
 
         .camera-section::before {
-            content: '📷';
+            content: '';
             position: absolute;
             top: -10px;
             left: 12px;
@@ -1004,7 +1004,7 @@
         [data-theme="dark"] .detail-section table td[style*="#0071e3"] { color: var(--accent) !important; }
         [data-theme="dark"] .detail-section table tr[style*="#f0f0f3"] { border-color: var(--border) !important; }
     </style>
-<link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
+
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
@@ -1017,14 +1017,14 @@
     <div class="container">
         <div class="toolbar">
             <div class="toolbar-left">
-                <button class="tool-btn primary" onclick="newProject()">➕ 新建项目</button>
-                <button class="tool-btn success" onclick="saveProject()" style="display: none;">💾 保存</button>
-                <button class="tool-btn info" onclick="exportData()">📤 导出数据</button>
-                <button class="tool-btn warning" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+                <button class="tool-btn primary" onclick="newProject()"> 新建项目</button>
+                <button class="tool-btn success" onclick="saveProject()" style="display: none;"> 保存</button>
+                <button class="tool-btn info" onclick="exportData()"> 导出数据</button>
+                <button class="tool-btn warning" onclick="document.getElementById('importFile').click()"> 导入数据</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
             </div>
             <div class="toolbar-right">
-                <button class="tool-btn danger" onclick="deleteProject()">🗑️ 删除项目</button>
+                <button class="tool-btn danger" onclick="deleteProject()"> 删除项目</button>
             </div>
         </div>
 
@@ -1034,7 +1034,7 @@
                 <input type="text" class="search-box" placeholder="搜索项目..." oninput="filterProjects(this.value)">
                 <div class="project-items" id="projectItems">
                     <div class="empty-state">
-                        <div class="icon">📁</div>
+                        <div class="icon"></div>
                         <h3>暂无项目</h3>
                         <p>点击"新建项目"开始创建</p>
                     </div>
@@ -1043,7 +1043,7 @@
 
             <div class="project-form" id="projectForm">
                 <div class="empty-state" id="formEmpty">
-                    <div class="icon">📝</div>
+                    <div class="icon"></div>
                     <h3>请选择或新建一个项目</h3>
                     <p>在左侧选择一个项目查看详情，或点击"新建项目"开始创建</p>
                 </div>
@@ -1303,7 +1303,7 @@
                     </div>
 
                     <div class="form-section">
-                        <h2>🧪 项目测试数据</h2>
+                        <h2> 项目测试数据</h2>
                         <div class="form-grid">
                             <div class="form-group full-width">
                                 <label>测试数据列表</label>
@@ -1324,8 +1324,8 @@
                     </div>
 
                     <div class="form-actions">
-                        <button class="tool-btn" style="background: #f0f0f0; color: #666;" onclick="cancelEdit()">✕ 取消编辑</button>
-                        <button class="tool-btn success" onclick="saveProject()">💾 保存项目</button>
+                        <button class="tool-btn" style="background: #f0f0f0; color: #666;" onclick="cancelEdit()"> 取消编辑</button>
+                        <button class="tool-btn success" onclick="saveProject()"> 保存项目</button>
                     </div>
                 </div>
             </div>
@@ -1378,7 +1378,7 @@
             if (projects.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">📁</div>
+                        <div class="icon"></div>
                         <h3>暂无项目</h3>
                         <p>点击"新建项目"开始创建</p>
                     </div>
@@ -1397,7 +1397,7 @@
             if (filtered.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">🔍</div>
+                        <div class="icon"></div>
                         <h3>未找到项目</h3>
                         <p>尝试其他关键词</p>
                     </div>
@@ -1542,12 +1542,12 @@
                     <div class="detail-header">
                         <h2>${escapeHtml(p.name || '未命名项目')}</h2>
                         <div class="actions">
-                            <button class="tool-btn primary" onclick="enterEditMode()">✏️ 编辑</button>
+                            <button class="tool-btn primary" onclick="enterEditMode()"> 编辑</button>
                         </div>
                     </div>
 
                     <div class="detail-section">
-                        <h3>📋 基本信息</h3>
+                        <h3> 基本信息</h3>
                         <div class="detail-grid">
                             ${renderFields(basicFields)}
                         </div>
@@ -1555,7 +1555,7 @@
 
                     ${colorDots ? `
                     <div class="detail-section">
-                        <h3>🎨 外观设计</h3>
+                        <h3> 外观设计</h3>
                         <div class="detail-item full-width">
                             <div class="label">颜色选项</div>
                             <div class="detail-colors">${colorDots}</div>
@@ -1563,21 +1563,21 @@
                     </div>` : ''}
 
                     <div class="detail-section">
-                        <h3>🔧 硬件参数</h3>
+                        <h3> 硬件参数</h3>
                         <div class="detail-grid">
                             ${renderFields(hardwareFields)}
                         </div>
                     </div>
 
                     <div class="detail-section">
-                        <h3>📊 性能指标</h3>
+                        <h3> 性能指标</h3>
                         <div class="detail-grid">
                             ${renderFields(performanceFields)}
                         </div>
                     </div>
 
                     <div class="detail-section">
-                        <h3>⚙️ 软件功能</h3>
+                        <h3> 软件功能</h3>
                         <div class="detail-grid">
                             ${renderFields(softwareFields)}
                         </div>
@@ -1589,7 +1589,7 @@
                     </div>
 
                     <div class="detail-section">
-                        <h3>📌 版本信息</h3>
+                        <h3> 版本信息</h3>
                         <div class="detail-grid">
                             ${renderFields(versionFields)}
                         </div>
@@ -1597,7 +1597,7 @@
 
                     ${(p.testData && p.testData.length > 0) ? `
                     <div class="detail-section">
-                        <h3>🧪 测试数据</h3>
+                        <h3> 测试数据</h3>
                         <div style="overflow-x: auto; margin-top: 12px;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 13px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                                 <thead>
@@ -1626,7 +1626,7 @@
 
                     ${p.notes ? `
                     <div class="detail-section">
-                        <h3>📝 备注信息</h3>
+                        <h3> 备注信息</h3>
                         <div class="detail-notes">${escapeHtml(p.notes)}</div>
                     </div>` : ''}
                 </div>
@@ -1925,7 +1925,7 @@
             container.innerHTML = features.map((f, i) => `
                 <span class="feature-tag">
                     ${escapeHtml(f)}
-                    <span class="remove" onclick="removeFeature(${i})">✕</span>
+                    <span class="remove" onclick="removeFeature(${i})"></span>
                 </span>
             `).join('');
         }
@@ -1966,7 +1966,7 @@
             container.innerHTML = testData.map((entry, i) => `
                 <div class="test-data-entry">
                     <div class="test-data-entry-header">
-                        <span>🧪 测试数据 #${i + 1}</span>
+                        <span> 测试数据 #${i + 1}</span>
                         <button class="remove-entry-btn" onclick="removeTestDataEntry(${i})">删除</button>
                     </div>
                     <div class="test-data-fields">
