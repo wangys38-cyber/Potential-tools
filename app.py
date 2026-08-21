@@ -208,6 +208,7 @@ _PUBLIC_PATHS = (
     '/api/upload-chunk',     # 同上
     '/api/upload-complete',  # 同上
     '/ws/',                  # WebSocket端点自行检查认证
+    '/share/',               # v5.3: 共享工作空间允许匿名查看
 )
 
 @app.before_request
@@ -294,7 +295,10 @@ def add_cache_headers(response):
     # API 响应不缓存
     elif path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    # HTML页面 — 确保ETag与压缩正确配合
+    # HTML页面 — 确保ETag与压缩正确配合，短缓存
+    elif response.headers.get('Content-Type', '').startswith('text/html'):
+        response.headers['Cache-Control'] = 'public, max-age=60'
+        response.headers['Vary'] = 'Accept-Encoding'
     elif response.headers.get('ETag'):
         response.headers['Vary'] = 'Accept-Encoding'
 
@@ -303,6 +307,7 @@ def add_cache_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
     # HSTS — 仅在 HTTPS 环境下生效
     if request.is_secure:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

@@ -2,6 +2,9 @@
    用法：在 <body> 后添加 {% include '_navbar.html' %}
    依赖：theme.css (已定义 .tb-nav-bar 系列样式)
    页面标题通过模板变量 nav_title 传入，默认显示当前页面路径 #}
+<link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
+<script src="/static/js/performance.js?v={{ STATIC_VERSION }}" defer></script>
+{% if request.path != '/' %}
 <nav class="pt-nav-bar" id="ptNavBar">
     <div class="pt-nav-left">
         <a href="/" class="pt-nav-home" title="返回首页">
@@ -103,4 +106,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 </script>
+{% endif %}
 {% endif %}

@@ -392,8 +392,32 @@ window.PTCollab = (function() {
 
     // ==================== 在工具页面添加分享按钮 ====================
     function injectShareButton(containerId, options) {
-        var container = containerId ? document.getElementById(containerId) : document.querySelector('.page-header, .tb-header, header');
-        if (!container) return;
+        // 尝试多种选择器找到合适的注入位置
+        var selectors = [
+            '.page-header', '.tb-header', '.hero',
+            'header', '.dashboard-header', '.toolbar',
+            '.tb-toolbar', '.action-bar', '.page-actions'
+        ];
+        var container = null;
+        if (containerId) {
+            container = document.getElementById(containerId);
+        } else {
+            for (var i = 0; i < selectors.length; i++) {
+                container = document.querySelector(selectors[i]);
+                if (container) break;
+            }
+        }
+        if (!container) {
+            // 兜底：在页面顶部创建一个浮动分享按钮
+            if (document.querySelector('.pt-collab-float')) return;
+            var floatBtn = document.createElement('button');
+            floatBtn.className = 'pt-collab-btn pt-collab-float';
+            floatBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);';
+            floatBtn.innerHTML = '🔗 分享';
+            floatBtn.onclick = function() { openSharePanel(options || {}); };
+            document.body.appendChild(floatBtn);
+            return;
+        }
         if (container.querySelector('.pt-collab-btn')) return;
 
         var btn = document.createElement('button');
@@ -402,7 +426,8 @@ window.PTCollab = (function() {
         btn.onclick = function() {
             openSharePanel(options || {});
         };
-        container.appendChild(btn);
+        // 尝试插入到容器末尾，如果容器是flex布局则自动排列
+        try { container.appendChild(btn); } catch(e) {}
     }
 
     // ==================== 我的工作空间 ====================
