@@ -178,6 +178,9 @@ def _analyze_issue_sheet(file_path, sheet_name):
     severity_values = set()
     daily_stats = {}  # date -> {new: count, resolved: count}
     current_severity_level = ''
+    # 状态分布统计
+    unresolved_status_dist = {}  # 未关闭问题的状态分布
+    blocker_unresolved_status_dist = {}  # Blocker未关闭问题的状态分布
     
     # 严重程度检测
     has_severity_col = col_map.get('severity', -1) >= 0
@@ -228,6 +231,13 @@ def _analyze_issue_sheet(file_path, sheet_name):
                 by_module[mod]['unresolved'] += 1
             if dev and dev in by_developer:
                 by_developer[dev]['unresolved'] += 1
+            # 未关闭问题的状态分布统计
+            status_raw = issue.get('status', '').strip()
+            if status_raw:
+                unresolved_status_dist[status_raw] = unresolved_status_dist.get(status_raw, 0) + 1
+                # Blocker未关闭的状态分布
+                if current_severity_level == 'blocker':
+                    blocker_unresolved_status_dist[status_raw] = blocker_unresolved_status_dist.get(status_raw, 0) + 1
         
         # 日期统计
         created = issue.get('created_date', '').strip()
@@ -272,6 +282,8 @@ def _analyze_issue_sheet(file_path, sheet_name):
         'resolution_rate': calc_rate(resolved),
         'blocker_total': by_severity['blocker'],
         'blocker_resolved': by_severity_resolved['blocker'],
+        'blocker_unresolved': by_severity['blocker'] - by_severity_resolved['blocker'],
+        'blocker_unresolved_rate': round((by_severity['blocker'] - by_severity_resolved['blocker']) / by_severity['blocker'] * 100, 1) if by_severity['blocker'] > 0 else 0,
         'blocker_rate': calc_rate(by_severity['blocker']),
         'critical_total': by_severity['critical'],
         'critical_resolved': by_severity_resolved['critical'],
@@ -287,6 +299,8 @@ def _analyze_issue_sheet(file_path, sheet_name):
         'trivial_rate': calc_rate(by_severity['trivial']),
         'blocker_critical_total': bc_total,
         'blocker_critical_rate': bc_rate,
+        'unresolved_status_dist': unresolved_status_dist,
+        'blocker_unresolved_status_dist': blocker_unresolved_status_dist,
     }
     
     # 模块统计格式

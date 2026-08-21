@@ -859,15 +859,50 @@ def create_analysis_blueprint():
         high_eff = [d['name'] for d in devs_by_rate[:3] if d['total'] >= 3]
         low_eff = [d['name'] for d in devs_by_rate[-3:] if d['total'] >= 3]
 
+        # 负责人Top
+        dev_top_text = ''
+        for d in devs_list[:5]:
+            dev_top_text += f"{d['name']} {d['total']}、"
+        dev_top_text = dev_top_text.rstrip('、')
+
+        # 重灾模块
+        modules_by_unresolved = sorted(modules_list, key=lambda x: x['unresolved'], reverse=True)
+        hot_modules_text = ''
+        for m in modules_by_unresolved[:5]:
+            hot_modules_text += f"{m['name']} {m['unresolved']}、"
+        hot_modules_text = hot_modules_text.rstrip('、')
+
+        # Blocker统计
+        blocker_total = summary.get('blocker_total', 0)
+        blocker_unresolved = summary.get('blocker_unresolved', 0)
+        blocker_unresolved_rate = summary.get('blocker_unresolved_rate', 0)
+
+        # 状态分布
+        blocker_unresolved_status = summary.get('blocker_unresolved_status_dist', {})
+        status_text = ''
+        if isinstance(blocker_unresolved_status, dict) and blocker_unresolved_status:
+            for status, count in sorted(blocker_unresolved_status.items(), key=lambda x: x[1], reverse=True):
+                status_text += f"{status} {count} / "
+            status_text = status_text.rstrip(' / ')
+
         prompt = f"""你是一位资深智能硬件质量管理专家，请基于以下CR问题分析数据生成专业分析报告。
 
 ## 整体概览
 - 总问题数: {summary.get('total_issues', 0)}
-- 已解决: {summary.get('resolved', 0)}
-- 未解决: {summary.get('unresolved', 0)}
-- 解决率: {summary.get('resolution_rate', 'N/A')}
-- 阻塞问题: {summary.get('blocker', 0)}
-- 严重问题: {summary.get('critical', 0)}
+- 已解决: {summary.get('total_resolved', 0)}
+- 未解决: {summary.get('total_unresolved', 0)}
+- 解决率: {summary.get('resolution_rate', 'N/A')}%
+
+## Blocker 重点关注
+- Blocker 总计: {blocker_total}
+- Blocker 未关闭: {blocker_unresolved}（占比 {blocker_unresolved_rate}%）
+- 未关闭状态分布: {status_text or '无数据'}
+
+## 重灾模块（按未解决数 Top5）
+{hot_modules_text or '无数据'}
+
+## 负责人 Top（按问题数 Top5）
+{dev_top_text or '无数据'}
 
 ## 模块问题分布 (Top 10)
 {modules_text or '无数据'}
@@ -877,7 +912,7 @@ def create_analysis_blueprint():
 高效研发: {', '.join(high_eff) if high_eff else '无'}
 待提升研发: {', '.join(low_eff) if low_eff else '无'}
 
-请输出：整体质量评估、模块问题深度分析、研发效率分析、高风险影响评估、具体改进建议。必须基于真实数据，禁止说数据不足。"""
+请输出：整体质量评估、Blocker深度分析、模块问题分析、研发效率分析、高风险影响评估、具体改进建议。必须基于真实数据，引用具体数字，禁止说数据不足。"""
         try:
             messages = [{'role': 'user', 'content': prompt}]
             reply = _call_ai(messages, max_tokens=1500, temperature=0.3, timeout=60)
@@ -938,6 +973,37 @@ def create_analysis_blueprint():
         high_eff = [d['name'] for d in devs_by_rate[:3] if d['total'] >= 3]
         low_eff = [d['name'] for d in devs_by_rate[-3:] if d['total'] >= 3]
 
+        # 负责人Top（按问题数排序）
+        dev_top_text = ''
+        for d in devs_list[:5]:
+            dev_top_text += f"{d['name']} {d['total']}、"
+        dev_top_text = dev_top_text.rstrip('、')
+
+        # 重灾模块（按未解决数排序Top5）
+        modules_by_unresolved = sorted(modules_list, key=lambda x: x['unresolved'], reverse=True)
+        hot_modules_text = ''
+        for m in modules_by_unresolved[:5]:
+            hot_modules_text += f"{m['name']} {m['unresolved']}、"
+        hot_modules_text = hot_modules_text.rstrip('、')
+
+        # Blocker统计
+        blocker_total = summary.get('blocker_total', 0)
+        blocker_unresolved = summary.get('blocker_unresolved', 0)
+        blocker_unresolved_rate = summary.get('blocker_unresolved_rate', 0)
+
+        # 未关闭状态分布
+        unresolved_status = summary.get('unresolved_status_dist', {})
+        blocker_unresolved_status = summary.get('blocker_unresolved_status_dist', {})
+        status_text = ''
+        if isinstance(blocker_unresolved_status, dict) and blocker_unresolved_status:
+            for status, count in sorted(blocker_unresolved_status.items(), key=lambda x: x[1], reverse=True):
+                status_text += f"{status} {count} / "
+            status_text = status_text.rstrip(' / ')
+        elif isinstance(unresolved_status, dict) and unresolved_status:
+            for status, count in sorted(unresolved_status.items(), key=lambda x: x[1], reverse=True)[:6]:
+                status_text += f"{status} {count} / "
+            status_text = status_text.rstrip(' / ')
+
         # 每日趋势（最近14天）
         daily_text = ''
         if isinstance(daily_stats, list) and len(daily_stats) > 0:
@@ -950,25 +1016,32 @@ def create_analysis_blueprint():
 
 ## 一、整体概览
 - 总问题数: {summary.get('total_issues', 0)}
-- 已解决: {summary.get('resolved', 0)}
-- 未解决: {summary.get('unresolved', 0)}
-- 解决率: {summary.get('resolution_rate', 'N/A')}
-- 阻塞问题(Blocker): {summary.get('blocker', 0)}
-- 严重问题(Critical): {summary.get('critical', 0)}
-- 主要问题(Major): {summary.get('major', 0)}
-- 次要问题(Minor): {summary.get('minor', 0)}
+- 已解决: {summary.get('total_resolved', 0)}
+- 未解决: {summary.get('total_unresolved', 0)}
+- 解决率: {summary.get('resolution_rate', 'N/A')}%
 
-## 二、模块问题分布 (Top 10，按问题数排序)
+## 二、Blocker 重点关注
+- Blocker 总计: {blocker_total}
+- Blocker 未关闭: {blocker_unresolved}（占比 {blocker_unresolved_rate}%）
+- 未关闭状态分布: {status_text or '无数据'}
+
+## 三、重灾模块（按未解决数排序 Top5）
+{hot_modules_text or '无数据'}
+
+## 四、负责人 Top（按问题数排序 Top5）
+{dev_top_text or '无数据'}
+
+## 五、模块问题分布 (Top 10，按问题数排序)
 {modules_text or '无数据'}
 
-## 三、研发人员效率分析 (Top 10，按问题数排序)
+## 六、研发人员效率分析 (Top 10，按问题数排序)
 {devs_text or '无数据'}
 
 **研发效率排名:**
 - 高效研发(解决率≥80%且问题数≥3): {', '.join(high_eff) if high_eff else '无'}
 - 待提升研发(解决率低且问题数≥3): {', '.join(low_eff) if low_eff else '无'}
 
-## 四、每日趋势
+## 七、每日趋势
 {daily_text or '无数据'}
 
 ---
@@ -976,35 +1049,39 @@ def create_analysis_blueprint():
 请按以下结构输出深度分析，**必须基于上述真实数据，禁止编造数据或说数据缺失**：
 
 ### 📊 一、整体质量评估
-基于总问题数、解决率、严重程度分布，评估当前项目整体质量状态。不要说"数据不足"，数据已经在上面给出。
+基于总问题数、解决率、Blocker占比，评估当前项目整体质量状态。
 
-### 🔍 二、模块问题深度分析
-- 哪些模块问题最集中？可能的根因是什么？
-- 哪些模块未解决率高？风险是什么？
+### 🔥 二、Blocker 深度分析
+- Blocker未关闭数量和占比意味着什么风险？
+- 未关闭状态分布（New/Reopened等）反映了什么问题？
+- 哪些模块的Blocker最集中？需要优先投入哪些资源？
+
+### 📦 三、模块问题分析
+- 重灾模块有哪些？未解决问题集中在哪些模块？
 - 模块之间是否存在关联性问题？
+- 哪些模块需要重点关注和资源倾斜？
 
-### 👥 三、研发效率分析
-- 哪些研发效率高（解决率高）？值得总结的经验是什么？
-- 哪些研发效率待提升（解决率低或未解决多）？可能的原因和改进建议？
-- 问题分配是否均衡？是否存在某些研发负担过重？
+### 👥 四、研发效率分析
+- 负责人Top的问题分布是否均衡？是否存在某些研发负担过重？
+- 高效研发有哪些值得总结的经验？
+- 待提升研发可能的原因是什么？有哪些改进建议？
 
-### ⚠️ 四、高风险与影响评估
-- 阻塞和严重问题的影响是什么？对版本发布、用户体验、稳定性的影响？
-- 哪些模块的未解决问题风险最高？
+### ⚠️ 五、高风险与影响评估
+- Blocker未关闭对版本发布、用户体验、稳定性的影响？
 - 如果不及时解决，可能导致什么后果？
 
-### 💡 五、具体改进建议
+### 💡 六、具体改进建议
 给出可执行的改进措施，包括：
 - 模块层面：哪些模块需要重点投入资源？
-- 研发层面：如何提升低效研发的解决效率？
-- 流程层面：是否需要优化问题分配、跟踪、验证流程？
-- 优先级：接下来一周应该优先解决哪些问题？
+- 研发层面：如何优化问题分配和提升解决效率？
+- 流程层面：是否需要优化问题跟踪、验证、回归流程？
+- 优先级：接下来一周应该优先解决哪些Blocker？
 
 要求：
 1. 所有分析必须基于上面提供的真实数据，引用具体数字
 2. 禁止使用"数据不足"、"无法判断"等推脱性表述
 3. 语言专业、简洁，避免空话套话
-4. 重点突出模块问题和研发效率，这是用户最关心的"""
+4. 重点突出Blocker风险、模块问题和研发效率"""
         messages = [{'role': 'user', 'content': prompt}]
         return Response(
             stream_with_context(_call_ai_stream(messages, max_tokens=2500, temperature=0.3)),

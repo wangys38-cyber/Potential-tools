@@ -30,6 +30,7 @@ function showToast(msg, type) {
         let sheetNames = [];
         let currentSheet = '';
         let currentFileId = '';
+        let currentAIAnalysis = '';  // 保存AI根因分析结果，用于飞书推送
 
         // 历史记录
         const HISTORY_KEY = (window._USER_PREFIX || '') + 'cr_analysis_history';
@@ -994,6 +995,7 @@ function showToast(msg, type) {
                 `;
             }
             currentAnalysisData = null;
+            currentAIAnalysis = '';  // 清空AI分析结果
         }
 
         // v3.0: AI 根因分析（SSE 流式）
@@ -1022,6 +1024,7 @@ function showToast(msg, type) {
                     streamArea.innerHTML = html;
                 },
                 onDone: function(fullText) {
+                    currentAIAnalysis = fullText || '';  // 保存AI分析结果用于飞书推送
                     if (streamBar) streamBar.remove();
                     var html = (typeof ToolboxMarkdown !== 'undefined')
                         ? ToolboxMarkdown.renderSafe(fullText || '')
@@ -1558,6 +1561,16 @@ function showToast(msg, type) {
                         }
                         md += `${i + 1}. ${text}\n`;
                     });
+                }
+
+                // AI 根因分析内容
+                if (currentAIAnalysis && currentAIAnalysis.trim().length > 0) {
+                    md += `\n**🤖 AI 根因分析**\n`;
+                    // 截断到3000字符避免飞书消息过长
+                    const aiText = currentAIAnalysis.length > 3000 
+                        ? currentAIAnalysis.substring(0, 3000) + '\n...（内容过长，完整内容请查看PDF报告）' 
+                        : currentAIAnalysis;
+                    md += aiText + '\n';
                 }
 
                 // 先生成PDF报告
