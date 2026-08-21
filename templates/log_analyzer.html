@@ -138,7 +138,7 @@
             crash: {regex: /(panic|fatal|kernel\s*panic|watchdog|hardfault|busfault|memfault|死机|crash|abort)/i, label: '死机', icon: '💥'},
             reboot: {regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启)/i, label: '重启', icon: '🔄'},
             memory: {regex: /(memory\s*leak|out\s*of\s*memory|oom|heap\s*overflow|stack\s*overflow|malloc\s*fail|内存|泄漏)/i, label: '内存', icon: '💾'},
-            power: {regex: /(power\s*consumption|battery\s*drain|low\s*battery|sleep\s*current|功耗|掉电|漏电|电流异常)/i, label: '功耗', icon: '🔋'},
+            power: {regex: /(power\s*consumption|battery\s*drain|low\s*battery|sleep\s*current|battery\s*level|battery\s*percentage|battery\s*capacity|battery\s*voltage|battery\s*current|charging|discharging|charge\s*level|power\s*management|pmic|功耗|掉电|漏电|电流异常|电量|耗电|电池|充电|放电|电流|电压|续航|掉电快|耗电快|电量低|电池电量)/i, label: '功耗', icon: '🔋'},
             error: {regex: /(\berror\b|exception|assert|fail|failed|fault|错误|异常)/i, label: '错误', icon: '❌'},
             warning: {regex: /(\bwarn\b|warning|deprecated|注意|警告)/i, label: '警告', icon: '⚠️'},
         };
@@ -330,7 +330,8 @@
                 '栈溢出': /stack\s*overflow/i,
                 '堆溢出': /heap\s*overflow/i,
                 '异常重启': /reboot|restart|reset/i,
-                '功耗异常': /power\s*consumption|battery\s*drain|sleep\s*current/i,
+                '功耗异常': /power\s*consumption|battery\s*drain|sleep\s*current|功耗|掉电|漏电|电流异常|耗电|电量|电池/i,
+                '电量/电池': /battery\s*level|battery\s*percentage|battery\s*capacity|battery\s*voltage|battery\s*current|charging|discharging|电量|电池|充电|放电|电压|续航/i,
                 '断言失败': /assert/i,
                 '空指针': /null\s*pointer|nullptr/i,
                 '死锁': /deadlock/i,
@@ -371,7 +372,9 @@
                 issueList.push(`<li><strong style="color:#af52de;">💾 内存问题：${counts.memory}条</strong>${memDetail} — 可能存在内存泄漏或内存不足，需检查内存使用趋势和释放逻辑。</li>`);
             }
             if (counts.power > 0) {
-                issueList.push(`<li><strong style="color:#5ac8fa;">🔋 功耗异常：${counts.power}条</strong> — 需检查休眠电流、唤醒源和电源管理配置，可能影响电池续航。</li>`);
+                const powerKeywords = foundKeywords.filter(k => /功耗|电量|电池|掉电|漏电|耗电|电流|电压|续航/i.test(k.name));
+                const powerDetail = powerKeywords.length > 0 ? '（主要表现：' + powerKeywords.slice(0, 3).map(k => k.name + '×' + k.count).join('、') + '）' : '';
+                issueList.push(`<li><strong style="color:#5ac8fa;">🔋 功耗/电量异常：${counts.power}条</strong>${powerDetail} — 可能存在电量消耗过快、休眠电流偏高、唤醒源异常或电源管理配置问题，需重点排查续航表现。</li>`);
             }
             if (counts.error > 0) {
                 issueList.push(`<li><strong style="color:#ff9500;">❌ 通用错误：${counts.error}条</strong> — 占比${(counts.error/total*100).toFixed(1)}%，需查看具体错误类型和发生频率。</li>`);
@@ -393,7 +396,12 @@
             if (counts.crash > 0) suggestions.push('优先排查死机/崩溃问题，抓取crash dump和复位原因寄存器，定位具体出错位置');
             if (counts.memory > 0) suggestions.push('开启内存检测工具（如内存越界检测、内存泄漏追踪），检查malloc/free配对和缓冲区大小');
             if (counts.reboot > 3) suggestions.push('记录重启前的最后日志，增加复位原因寄存器打印，区分正常复位和异常复位');
-            if (counts.power > 0) suggestions.push('使用功耗仪测量休眠电流，检查唤醒源配置和外设电源域管理');
+            if (counts.power > 0) {
+                suggestions.push('使用功耗仪测量休眠电流和工作电流，对比规格书确认是否超标');
+                suggestions.push('检查唤醒源配置（GPIO/RTC/Timer），确认是否有异常唤醒导致无法进入低功耗模式');
+                suggestions.push('检查外设电源域管理（GPS/蓝牙/屏幕/传感器），确认未使用时是否正确关闭');
+                suggestions.push('分析电量消耗曲线，定位高耗电时段和对应模块，针对性优化');
+            }
             if (total > 100) suggestions.push('日志量较大，建议增加日志分级输出，减少非关键信息打印，提升系统性能');
             if (suggestions.length === 0) suggestions.push('当前日志异常较少，建议持续观察，定期检查日志趋势');
 
@@ -403,6 +411,7 @@
                     <strong>📊 总体评估：</strong>共检测到 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 条异常日志，风险等级：<strong style="color:${riskColor};">${riskLevel}</strong>
                     ${counts.crash > 0 ? '，存在<strong style="color:#ff3b30;">死机/崩溃</strong>严重问题' : ''}
                     ${counts.memory > 0 ? '，存在<strong style="color:#af52de;">内存异常</strong>' : ''}
+                    ${counts.power > 0 ? '，存在<strong style="color:#5ac8fa;">功耗/电量异常</strong>' : ''}
                 </div>
                 <div style="margin-bottom:12px;">
                     <strong>📋 问题点列表：</strong>
