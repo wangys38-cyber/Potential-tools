@@ -144,14 +144,47 @@
         uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
         uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 
-        function handleFile(file) {
+        async function handleFile(file) {
             if (!file) return;
             document.getElementById('fileName').textContent = '📄 ' + file.name;
             document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
             document.getElementById('fileInfo').style.display = 'flex';
-            const reader = new FileReader();
-            reader.onload = e => analyzeLog(e.target.result);
-            reader.readAsText(file);
+
+            const isZip = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed';
+
+            if (isZip) {
+                if (typeof JSZip === 'undefined') {
+                    alert('JSZip库未加载，请刷新页面重试');
+                    return;
+                }
+                try {
+                    document.getElementById('fileName').textContent = '📦 ' + file.name + ' (解压中...)';
+                    const zip = await JSZip.loadAsync(file);
+                    const logFiles = [];
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (!zipEntry.dir && /\.(log|txt|text)$/i.test(relativePath)) {
+                            logFiles.push({ path: relativePath, entry: zipEntry });
+                        }
+                    });
+                    if (logFiles.length === 0) {
+                        alert('ZIP文件中未找到 .log 或 .txt 文件');
+                        return;
+                    }
+                    let allContent = '';
+                    for (const lf of logFiles) {
+                        const content = await lf.entry.async('string');
+                        allContent += `\n===== ${lf.path} =====\n` + content + '\n';
+                    }
+                    document.getElementById('fileName').textContent = '📦 ' + file.name + ` (${logFiles.length}个日志文件)`;
+                    analyzeLog(allContent);
+                } catch (e) {
+                    alert('ZIP解压失败: ' + e.message);
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = e => analyzeLog(e.target.result);
+                reader.readAsText(file);
+            }
         }
 
         function analyzeLog(text) {
