@@ -749,7 +749,7 @@ function showToast(msg, type) {
                 unvHtml = `
                     <div style="margin-top:28px;background:linear-gradient(135deg,#fff,#f8f9fa);border-radius:16px;padding:24px;box-shadow:var(--shadow-md);border:1px solid var(--border);">
                         <h3 style="font-size:15px;font-weight:700;color:var(--warning);margin-bottom:8px;display:flex;align-items:center;gap:6px;">⚠️ 待验证问题（共 ${unverifiedList.length} 条）</h3>
-                        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">以下问题的 Status 为 Verified，需要进行验证测试。</p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">以下问题 Status 为 Resolved，研发已修复，等待测试验证。</p>
                         <div style="max-height:400px;overflow-y:auto;">
                         <table>
                             <thead style="position:sticky;top:0;background:#f5f5f7;z-index:1;">

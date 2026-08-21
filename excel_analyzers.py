@@ -458,11 +458,14 @@ def _analyze_issue_sheet(file_path, sheet_name):
         if not issue.get('title', '').strip() or not issue.get('status', '').strip()
     ][:10]  # 最多显示10个
     
-    # 已解决待验证的问题：从 Status 字段筛选 verified
+    # 已解决待验证的问题：Status 为 Resolved（已解决但未验证/未关闭）
     resolved_unverified = []
     for issue in issues:
         status = issue.get('status', '').lower().strip()
-        if status and 'verified' in status:
+        # Resolved = 已解决待验证；排除 Verified/Closed/Done（已验证/已关闭）
+        if status and ('resolved' in status or '已解决' in status) \
+                and 'verified' not in status and 'closed' not in status \
+                and 'done' not in status and '已关闭' not in status:
             resolved_unverified.append({
                 'issue_id': issue.get('id', ''),
                 'developer': issue.get('developer', ''),
@@ -473,7 +476,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
                 'title': issue.get('title', ''),
                 'create_date': issue.get('created_date', ''),
             })
-            if len(resolved_unverified) >= 30:
+            if len(resolved_unverified) >= 50:
                 break
     
     # 收集稳定性模块的问题列表 - 精简到200条节省内存/带宽
@@ -917,6 +920,22 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
             'developer': col_developer.loc[i],
         })
 
+    # 已解决待验证问题（Status 为 Resolved，排除 Verified/Closed/Done）
+    resolved_mask = status_lower.str.contains('resolved|已解决', na=False, regex=True) & \
+                    ~status_lower.str.contains('verified|closed|done|已关闭', na=False, regex=True)
+    resolved_unverified = []
+    for i in df.index[resolved_mask][:50]:
+        resolved_unverified.append({
+            'issue_id': str(col_id.loc[i]),
+            'title': str(col_title.loc[i]),
+            'module': str(col_module.loc[i]),
+            'severity': str(col_severity.loc[i]),
+            'status': str(col_status.loc[i]),
+            'developer': str(col_developer.loc[i]),
+            'resolution': str(col_resolved.loc[i]) if 'resolution' in col_map else '',
+            'create_date': str(col_created.loc[i]),
+        })
+
     # 建议
     suggestions = []
     if severity_warning:
@@ -987,6 +1006,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
         'all_issues': all_issues_brief,
         'suggestions': suggestions,
         'unverified_issues': unverified_issues,
+        'resolved_unverified': resolved_unverified,
         'detected_columns': col_map,
         'sample_data': sample_data,
         'headers': headers,
