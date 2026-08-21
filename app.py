@@ -71,6 +71,9 @@ def _get_static_version():
 
 _STATIC_VERSION = _get_static_version()
 
+# 应用版本号
+APP_VERSION = '5.3.0'
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -166,7 +169,7 @@ os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 def inject_user():
     # 快速检查 session，避免无谓的字典构造
     if not session.get('user_id'):
-        return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION)
+        return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION, APP_VERSION=APP_VERSION)
     return dict(
         current_user={
             'id': session.get('user_id'),
@@ -177,6 +180,7 @@ def inject_user():
         },
         is_logged_in=True,
         STATIC_VERSION=_STATIC_VERSION,
+        APP_VERSION=APP_VERSION,
     )
 
 
