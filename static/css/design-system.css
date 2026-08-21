@@ -425,13 +425,19 @@ button[style*="background"][style*="gradient"] {
     display: none !important;
 }
 
-/* 工具图标容器 */
-.tool-icon,
-.stat-icon {
-    background: var(--ds-bg-secondary) !important;
-    border: 1px solid var(--ds-border-light) !important;
+/* 工具图标容器：白色背景，无边框 */
+.tool-icon {
+    background: var(--ds-bg) !important;
+    border: none !important;
     border-radius: var(--ds-radius-md) !important;
     filter: none !important;
+}
+
+/* 统计卡片图标：浅灰背景 */
+.stat-icon {
+    background: var(--ds-bg-secondary) !important;
+    border: none !important;
+    border-radius: var(--ds-radius-md) !important;
 }
 
 .tool-card:hover .tool-icon {
@@ -1055,10 +1061,14 @@ a:hover {
     color: var(--ds-text-secondary) !important;
 }
 
-[data-theme="dark"] .tool-icon,
+[data-theme="dark"] .tool-icon {
+    background: var(--ds-bg-elevated) !important;
+    border: none !important;
+}
+
 [data-theme="dark"] .stat-icon {
     background: var(--ds-bg-tertiary) !important;
-    border-color: var(--ds-border) !important;
+    border: none !important;
 }
 
 [data-theme="dark"] .hero-badge {
