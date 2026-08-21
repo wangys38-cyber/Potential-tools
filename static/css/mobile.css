@@ -683,6 +683,37 @@
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: #f0f0f2 !important;
 }
+[data-theme="dark"] .btn-excel {
+    background: #34c759 !important;
+    color: #fff !important;
+    border-color: #34c759 !important;
+}
+[data-theme="dark"] .btn-excel:hover {
+    background: #2db84d !important;
+}
+[data-theme="dark"] .btn-primary {
+    background: #007aff !important;
+    color: #fff !important;
+    border-color: #007aff !important;
+}
+[data-theme="dark"] .btn-primary:hover {
+    background: #0056b3 !important;
+}
+[data-theme="dark"] .btn-success {
+    background: #34c759 !important;
+    color: #fff !important;
+    border-color: #34c759 !important;
+}
+[data-theme="dark"] .btn-danger {
+    background: #ff3b30 !important;
+    color: #fff !important;
+    border-color: #ff3b30 !important;
+}
+[data-theme="dark"] .btn-warning {
+    background: #ff9500 !important;
+    color: #fff !important;
+    border-color: #ff9500 !important;
+}
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .button-primary {
     background: #a78bfa !important;

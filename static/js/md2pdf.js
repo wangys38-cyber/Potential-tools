@@ -518,6 +518,15 @@ function showToast(msg, type) {
             excelFileData = file;
             excelActions.style.display = 'flex';
             excelPanel.style.display = 'none';
+            excelModeSwitch.style.display = 'none';
+            excelSelectArea.style.display = 'none';
+            excelOrganizeArea.classList.remove('show');
+            excelPreviewArea.classList.remove('show');
+            // 滚动到按钮位置，确保用户可见
+            setTimeout(() => {
+                excelActions.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+            showToast('Excel文件已加载，点击"解析Excel文件"按钮开始分析', 'success');
         }
 
         excelCancelBtn.addEventListener('click', () => {
