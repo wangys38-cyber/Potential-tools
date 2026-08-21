@@ -197,6 +197,54 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_merit_user ON merit_records(user_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_tasks_status ON background_tasks(status)"))
 
+        # ==================== v5.3 协作：共享工作空间表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS shared_workspaces (
+                id {_PK_TYPE},
+                share_code TEXT NOT NULL UNIQUE,
+                owner_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                tool_type TEXT DEFAULT '',
+                data_ref TEXT DEFAULT '',
+                permission TEXT DEFAULT 'view',
+                expires_at REAL DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0,
+                FOREIGN KEY (owner_id) REFERENCES users(id)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_owner ON shared_workspaces(owner_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_code ON shared_workspaces(share_code)"))
+
+        # ==================== v5.3 协作：评论表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS workspace_comments (
+                id {_PK_TYPE},
+                workspace_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                parent_id INTEGER DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                FOREIGN KEY (workspace_id) REFERENCES shared_workspaces(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_comments_workspace ON workspace_comments(workspace_id)"))
+
+        # ==================== v5.3 协作：协作者表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS workspace_members (
+                id {_PK_TYPE},
+                workspace_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                role TEXT DEFAULT 'viewer',
+                joined_at REAL DEFAULT 0,
+                UNIQUE(workspace_id, user_id),
+                FOREIGN KEY (workspace_id) REFERENCES shared_workspaces(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """))
+
     logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 
@@ -891,6 +939,211 @@ def migrate_json_config(config_path, config_key):
     except Exception as e:
         logger.warning(f"迁移配置 {config_key} 失败: {e}")
         return False
+
+
+# ==================== v5.3 协作：共享工作空间 ====================
+
+import secrets as _secrets
+
+def _generate_share_code():
+    """生成 8 位唯一分享码"""
+    return _secrets.token_urlsafe(6)[:8].replace('-', 'a').replace('_', 'b')
+
+def create_workspace(owner_id, title, tool_type='', data_ref='', permission='view', expires_at=0):
+    """创建共享工作空间，返回分享码"""
+    with engine.begin() as conn:
+        now = time.time()
+        # 生成唯一分享码（最多重试 5 次）
+        for _ in range(5):
+            share_code = _generate_share_code()
+            existing = conn.execute(
+                text("SELECT id FROM shared_workspaces WHERE share_code = :code"),
+                {'code': share_code}
+            ).fetchone()
+            if not existing:
+                break
+        result = conn.execute(
+            text("""
+                INSERT INTO shared_workspaces (share_code, owner_id, title, tool_type, data_ref, permission, expires_at, created_at, updated_at)
+                VALUES (:share_code, :owner_id, :title, :tool_type, :data_ref, :permission, :expires_at, :created_at, :updated_at)
+                RETURNING id
+            """),
+            {'share_code': share_code, 'owner_id': owner_id, 'title': title,
+             'tool_type': tool_type, 'data_ref': data_ref, 'permission': permission,
+             'expires_at': expires_at, 'created_at': now, 'updated_at': now}
+        )
+        ws_id = result.scalar()
+        # 所有者自动加入成员
+        conn.execute(
+            text("""
+                INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+                VALUES (:ws_id, :user_id, 'owner', :joined_at)
+                ON CONFLICT(workspace_id, user_id) DO UPDATE SET role = 'owner'
+            """),
+            {'ws_id': ws_id, 'user_id': owner_id, 'joined_at': now}
+        )
+        return share_code
+
+def get_workspace_by_code(share_code):
+    """根据分享码获取工作空间"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM shared_workspaces WHERE share_code = :code"),
+            {'code': share_code}
+        ).fetchone()
+        if not row:
+            return None
+        ws = _row_to_dict(row)
+        # 检查是否过期
+        if ws.get('expires_at', 0) and ws['expires_at'] < time.time():
+            return None
+        return ws
+
+def get_workspace_by_id(ws_id):
+    """根据 ID 获取工作空间"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM shared_workspaces WHERE id = :id"),
+            {'id': ws_id}
+        ).fetchone()
+        return _row_to_dict(row) if row else None
+
+def get_user_workspaces(user_id, limit=20):
+    """获取用户拥有或加入的工作空间"""
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT DISTINCT w.* FROM shared_workspaces w
+                LEFT JOIN workspace_members m ON w.id = m.workspace_id
+                WHERE w.owner_id = :user_id OR m.user_id = :user_id
+                ORDER BY w.updated_at DESC LIMIT :limit
+            """),
+            {'user_id': user_id, 'limit': limit}
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+def update_workspace(ws_id, title=None, permission=None, expires_at=None, data_ref=None):
+    """更新工作空间"""
+    with engine.begin() as conn:
+        now = time.time()
+        sets = ['updated_at = :updated_at']
+        params = {'updated_at': now, 'id': ws_id}
+        if title is not None:
+            sets.append('title = :title'); params['title'] = title
+        if permission is not None:
+            sets.append('permission = :permission'); params['permission'] = permission
+        if expires_at is not None:
+            sets.append('expires_at = :expires_at'); params['expires_at'] = expires_at
+        if data_ref is not None:
+            sets.append('data_ref = :data_ref'); params['data_ref'] = data_ref
+        result = conn.execute(
+            text(f"UPDATE shared_workspaces SET {', '.join(sets)} WHERE id = :id"),
+            params
+        )
+        return result.rowcount > 0
+
+def delete_workspace(ws_id, owner_id):
+    """删除工作空间（仅所有者）"""
+    with engine.begin() as conn:
+        # 删除评论
+        conn.execute(text("DELETE FROM workspace_comments WHERE workspace_id = :id"), {'id': ws_id})
+        # 删除成员
+        conn.execute(text("DELETE FROM workspace_members WHERE workspace_id = :id"), {'id': ws_id})
+        # 删除工作空间
+        result = conn.execute(
+            text("DELETE FROM shared_workspaces WHERE id = :id AND owner_id = :owner_id"),
+            {'id': ws_id, 'owner_id': owner_id}
+        )
+        return result.rowcount > 0
+
+def join_workspace(ws_id, user_id):
+    """用户加入工作空间"""
+    with engine.begin() as conn:
+        now = time.time()
+        conn.execute(
+            text("""
+                INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+                VALUES (:ws_id, :user_id, 'viewer', :joined_at)
+                ON CONFLICT(workspace_id, user_id) DO NOTHING
+            """),
+            {'ws_id': ws_id, 'user_id': user_id, 'joined_at': now}
+        )
+        # 更新工作空间时间戳
+        conn.execute(
+            text("UPDATE shared_workspaces SET updated_at = :now WHERE id = :id"),
+            {'now': now, 'id': ws_id}
+        )
+        return True
+
+def get_workspace_members(ws_id):
+    """获取工作空间成员列表"""
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT m.*, u.name, u.email, u.avatar FROM workspace_members m
+                JOIN users u ON m.user_id = u.id
+                WHERE m.workspace_id = :ws_id ORDER BY m.joined_at ASC
+            """),
+            {'ws_id': ws_id}
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+
+# ==================== v5.3 协作：评论 ====================
+
+def add_comment(ws_id, user_id, content, parent_id=0):
+    """添加评论"""
+    with engine.begin() as conn:
+        now = time.time()
+        result = conn.execute(
+            text("""
+                INSERT INTO workspace_comments (workspace_id, user_id, content, parent_id, created_at)
+                VALUES (:ws_id, :user_id, :content, :parent_id, :created_at)
+                RETURNING id
+            """),
+            {'ws_id': ws_id, 'user_id': user_id, 'content': content,
+             'parent_id': parent_id, 'created_at': now}
+        )
+        comment_id = result.scalar()
+        # 更新工作空间时间戳
+        conn.execute(
+            text("UPDATE shared_workspaces SET updated_at = :now WHERE id = :id"),
+            {'now': now, 'id': ws_id}
+        )
+        return comment_id
+
+def get_comments(ws_id, limit=100):
+    """获取工作空间评论列表"""
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT c.*, u.name, u.avatar FROM workspace_comments c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.workspace_id = :ws_id
+                ORDER BY c.created_at ASC LIMIT :limit
+            """),
+            {'ws_id': ws_id, 'limit': limit}
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+def delete_comment(comment_id, user_id):
+    """删除评论（仅作者或工作空间所有者）"""
+    with engine.begin() as conn:
+        # 先获取评论信息
+        row = conn.execute(
+            text("SELECT c.*, w.owner_id FROM workspace_comments c JOIN shared_workspaces w ON c.workspace_id = w.id WHERE c.id = :id"),
+            {'id': comment_id}
+        ).fetchone()
+        if not row:
+            return False
+        data = _row_to_dict(row)
+        if data['user_id'] != user_id and data['owner_id'] != user_id:
+            return False
+        result = conn.execute(
+            text("DELETE FROM workspace_comments WHERE id = :id"),
+            {'id': comment_id}
+        )
+        return result.rowcount > 0
 
 
 # ==================== 启动时初始化 ====================

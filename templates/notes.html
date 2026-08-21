@@ -42,9 +42,12 @@
             .editor-body { padding: 16px; }
         }
     </style>
-<link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+<link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+
 </head>
 <body>
+{% include '_navbar.html' %}
+
     <div class="app">
         <div class="sidebar">
             <div class="sidebar-header">

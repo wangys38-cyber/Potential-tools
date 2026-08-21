@@ -690,9 +690,12 @@
     </style>
 <link rel="stylesheet" href="/static/css/v5-glass.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+
 </head>
 <body>
+{% include '_navbar.html' %}
+
     <div class="container">
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('generator')">生成计划</button>

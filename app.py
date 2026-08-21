@@ -35,6 +35,7 @@ from routes.api import create_api_blueprint
 from routes.tools import create_tools_blueprint
 from routes.analysis import create_analysis_blueprint
 from routes.sync import create_sync_blueprint
+from routes.collab import create_collab_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -394,6 +395,18 @@ def auth_logout():
     return auth.logout()
 
 
+# ==================== 协作：共享页面 ====================
+@app.route('/share/<share_code>')
+def share_page(share_code):
+    """共享工作空间页面"""
+    import db as _db
+    ws = _db.get_workspace_by_code(share_code)
+    if not ws:
+        return render_template('share_expired.html'), 404
+    return render_template('share.html', share_code=share_code, workspace=ws,
+                           nav_title=ws.get('title', '共享工作空间'))
+
+
 # ==================== 模板渲染缓存 + ETag ====================
 # 内存缓存已渲染的模板，配合ETag实现304 Not Modified
 # 静态模板（不含current_user）全量缓存；含current_user的按用户缓存
@@ -473,7 +486,10 @@ app.register_blueprint(create_analysis_blueprint())
 # 云端同步
 app.register_blueprint(create_sync_blueprint())
 
-logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync")
+# 协作功能（v5.3）
+app.register_blueprint(create_collab_blueprint())
+
+logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
 
 

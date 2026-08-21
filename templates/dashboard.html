@@ -165,9 +165,12 @@
         @media (max-width: 900px) {
             .col-4, .col-6, .col-8 { grid-column: span 12; }
         }
-    </style>
+    </style>    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+
 </head>
 <body>
+{% include '_navbar.html' %}
+
 
 <div class="page-wrap">
     <div class="page-header">
