@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>日志分析器</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
@@ -80,8 +81,8 @@
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <div class="upload-zone-icon">📄</div>
             <div class="upload-zone-text">点击或拖拽上传日志文件</div>
-            <div class="upload-zone-hint">支持 .log / .txt，自动识别死机、重启、内存、功耗、错误等异常</div>
-            <input type="file" id="fileInput" accept=".log,.txt" style="display:none" onchange="handleFile(this.files[0])">
+            <div class="upload-zone-hint">支持 .log / .txt / .zip（自动解压zip中的日志文件），自动识别死机、重启、内存、功耗、错误等异常</div>
+            <input type="file" id="fileInput" accept=".log,.txt,.zip" style="display:none" onchange="handleFile(this.files[0])">
         </div>
         <div style="text-align:center;margin:12px 0;color:var(--text-secondary);font-size:13px;">或</div>
         <div class="paste-section" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">

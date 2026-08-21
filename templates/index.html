@@ -522,6 +522,8 @@
             .tool-shortcut { display: none; }
             .nav-btn { width: 34px; height: 34px; font-size: 13px; }
         }
+        /* 首页强制隐藏统一导航栏，避免重复 */
+        .pt-nav-bar, #ptNavBar, .tb-nav-bar, #tb-nav-bar { display: none !important; }
     </style>
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
