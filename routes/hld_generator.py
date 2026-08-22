@@ -230,7 +230,7 @@ def generate_hld(feature, feature_id):
     sections = []
 
     # 标题
-    sections.append(f"# {name} — 高层设计文档（HLD）\n")
+    sections.append(f"# {name} — HLD\n")
 
     # 1. 文档信息
     sections.append(generate_doc_info(feature, feature_id, terms))
@@ -244,10 +244,13 @@ def generate_hld(feature, feature_id):
     # 4. 概要设计方案
     sections.append(generate_design(feature))
 
-    # 5. 测试验收关键点
+    # 5. LLD 级细节设计
+    sections.append(generate_lld_detail(feature))
+
+    # 6. 测试验收关键点
     sections.append(generate_testing(feature))
 
-    # 6. 引用参考
+    # 7. 引用参考
     sections.append(generate_references())
 
     return '\n'.join(sections), filename
@@ -267,7 +270,7 @@ def generate_doc_info(feature, feature_id, terms):
     lines.append(f"| Type | {feature['type']} |")
     lines.append(f"| Covered Layer | {feature['covered_layer']} |")
     lines.append(f"| Category | {feature['category']} |")
-    lines.append(f"| Document Type | High-Level Design (HLD) |")
+    lines.append(f"| Document Type | HLD |")
     lines.append(f"| Generated Date | {datetime.now().strftime('%Y-%m-%d')} |")
     lines.append("")
 
@@ -341,8 +344,8 @@ def generate_background(feature):
 
     # 范围说明
     lines.append("### 2.3 范围说明\n")
-    lines.append("- 本文档仅覆盖高层设计（HLD），定义模块职责、数据流、状态流转")
-    lines.append("- 不包含函数级实现、寄存器配置、具体变量定义（属于 LLD 范畴）")
+    lines.append("- 本文档覆盖 HLD 设计，定义模块职责、数据流、状态流转、接口定义、数据结构、核心算法")
+    lines.append("- 包含 LLD 级细节：模块接口、数据结构、伪代码、错误码、内存规划")
     lines.append("- 所有需求均溯源 OD，不新增 OD 未定义的产品行为")
     lines.append("")
 
@@ -629,12 +632,293 @@ def generate_design(feature):
     return '\n'.join(lines)
 
 
+def generate_lld_detail(feature):
+    """生成 LLD 级细节设计章节"""
+    lines = []
+    lines.append("## 5. LLD 级细节设计\n")
+
+    # 5.1 模块接口定义
+    lines.append("### 5.1 模块接口定义\n")
+    lines.append("#### 5.1.1 业务 Service 接口\n")
+    lines.append("```c")
+    lines.append("/* 初始化接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_init(void);")
+    lines.append("")
+    lines.append("/* 反初始化接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_deinit(void);")
+    lines.append("")
+    lines.append("/* 事件处理接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_handle_event(event_t *evt);")
+    lines.append("")
+    lines.append("/* 数据获取接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_get_data(data_type_t type, void *buf, uint32_t len);")
+    lines.append("")
+    lines.append("/* 数据设置接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_set_data(data_type_t type, const void *buf, uint32_t len);")
+    lines.append("")
+    lines.append("/* 状态查询接口 */")
+    lines.append("int " + sanitize_name(feature['name']) + "_get_state(state_t *state);")
+    lines.append("```")
+    lines.append("")
+
+    lines.append("#### 5.1.2 HAL 抽象接口\n")
+    lines.append("```c")
+    lines.append("/* HAL 读接口 */")
+    lines.append("int hal_" + sanitize_name(feature['name']) + "_read(uint32_t addr, void *buf, uint32_t len);")
+    lines.append("")
+    lines.append("/* HAL 写接口 */")
+    lines.append("int hal_" + sanitize_name(feature['name']) + "_write(uint32_t addr, const void *buf, uint32_t len);")
+    lines.append("")
+    lines.append("/* HAL 控制接口 */")
+    lines.append("int hal_" + sanitize_name(feature['name']) + "_ioctl(uint32_t cmd, void *arg);")
+    lines.append("")
+    lines.append("/* HAL 中断回调注册 */")
+    lines.append("int hal_" + sanitize_name(feature['name']) + "_register_isr(isr_handler_t handler, void *ctx);")
+    lines.append("```")
+    lines.append("")
+
+    if feature['covered_layer'].find('Companion') >= 0:
+        lines.append("#### 5.1.3 跨端通信接口（BLE GATT）\n")
+        lines.append("| 特征值 UUID | 属性 | 数据格式 | 说明 |")
+        lines.append("|------------|------|----------|------|")
+        lines.append("| 0xXX01 | Read/Notify | uint8[20] | 状态通知 |")
+        lines.append("| 0xXX02 | Write | uint8[20] | 控制指令下发 |")
+        lines.append("| 0xXX03 | Read/Write | uint8[244] | 数据批量传输（MTU 协商后） |")
+        lines.append("| 0xXX04 | Notify | uint8[20] | 异常/事件上报 |")
+        lines.append("")
+
+    # 5.2 关键数据结构
+    lines.append("### 5.2 关键数据结构\n")
+    lines.append("```c")
+    lines.append("/* 模块上下文结构体 */")
+    lines.append("typedef struct {")
+    lines.append("    uint8_t         state;          /* 模块状态：0=未初始化 1=待机 2=活跃 3=异常 */")
+    lines.append("    uint8_t         flags;          /* 配置标志位 */")
+    lines.append("    uint16_t        event_mask;     /* 事件订阅掩码 */")
+    lines.append("    uint32_t        last_update;    /* 最后更新时间戳（tick） */")
+    lines.append("    void            *hal_ctx;       /* HAL 层上下文指针 */")
+    lines.append("    void            *storage_ctx;   /* 存储服务上下文指针 */")
+    lines.append("    ring_buffer_t   *rx_buf;        /* 接收环形缓冲区 */")
+    lines.append("    ring_buffer_t   *tx_buf;        /* 发送环形缓冲区 */")
+    lines.append("} " + sanitize_name(feature['name']) + "_ctx_t;")
+    lines.append("")
+    lines.append("/* 事件结构体 */")
+    lines.append("typedef struct {")
+    lines.append("    uint16_t        type;           /* 事件类型 */")
+    lines.append("    uint16_t        length;         /* 数据长度 */")
+    lines.append("    uint32_t        timestamp;      /* 事件时间戳 */")
+    lines.append("    uint8_t         data[244];      /* 事件数据（最大 MTU） */")
+    lines.append("} event_t;")
+    lines.append("")
+    lines.append("/* 数据包头 */")
+    lines.append("typedef struct __attribute__((packed)) {")
+    lines.append("    uint16_t        magic;          /* 魔数 0xA5A5 */")
+    lines.append("    uint8_t         version;        /* 协议版本 */")
+    lines.append("    uint8_t         type;           /* 数据类型 */")
+    lines.append("    uint16_t        length;         /* 数据体长度 */")
+    lines.append("    uint16_t        checksum;       /* CRC16 校验 */")
+    lines.append("} data_header_t;")
+    lines.append("```")
+    lines.append("")
+
+    # 5.3 核心算法伪代码
+    lines.append("### 5.3 核心算法伪代码\n")
+    lines.append("#### 5.3.1 主循环处理流程\n")
+    lines.append("```")
+    lines.append("function " + sanitize_name(feature['name']) + "_main_loop():")
+    lines.append("    while running:")
+    lines.append("        event = wait_event(timeout=100ms)")
+    lines.append("        if event is null:")
+    lines.append("            continue")
+    lines.append("        ")
+    lines.append("        switch event.type:")
+    lines.append("            case EVENT_INIT:")
+    lines.append("                do_init()")
+    lines.append("            case EVENT_USER_INPUT:")
+    lines.append("                handle_user_input(event.data)")
+    lines.append("            case EVENT_HAL_DATA:")
+    lines.append("                process_hal_data(event.data)")
+    lines.append("            case EVENT_BT_DATA:")
+    lines.append("                handle_bt_data(event.data)")
+    lines.append("            case EVENT_TIMER:")
+    lines.append("                do_periodic_task()")
+    lines.append("            case EVENT_ERROR:")
+    lines.append("                handle_error(event.data)")
+    lines.append("        ")
+    lines.append("        if need_persist:")
+    lines.append("            save_to_storage()")
+    lines.append("        if need_sync and bt_connected:")
+    lines.append("            sync_to_companion()")
+    lines.append("```")
+    lines.append("")
+
+    lines.append("#### 5.3.2 数据处理流程\n")
+    lines.append("```")
+    lines.append("function process_data(raw_data):")
+    lines.append("    // 1. 数据校验")
+    lines.append("    if not validate_checksum(raw_data):")
+    lines.append("        log_error(ERR_CHECKSUM)")
+    lines.append("        return ERROR")
+    lines.append("    ")
+    lines.append("    // 2. 数据解析")
+    lines.append("    parsed = parse_header(raw_data)")
+    lines.append("    if parsed.version != SUPPORTED_VERSION:")
+    lines.append("        log_error(ERR_VERSION)")
+    lines.append("        return ERROR")
+    lines.append("    ")
+    lines.append("    // 3. 业务处理")
+    lines.append("    result = do_business_logic(parsed)")
+    lines.append("    ")
+    lines.append("    // 4. 结果输出")
+    lines.append("    update_ui(result)")
+    lines.append("    persist_if_needed(result)")
+    lines.append("    notify_if_needed(result)")
+    lines.append("    ")
+    lines.append("    return SUCCESS")
+    lines.append("```")
+    lines.append("")
+
+    if feature['is_enhanced']:
+        lines.append("#### 5.3.3 GPS/Fitness 数据融合算法\n")
+        lines.append("```")
+        lines.append("function sensor_fusion(gps_data, imu_data, hr_data):")
+        lines.append("    // 1. 数据质量评估")
+        lines.append("    gps_quality = assess_gps_quality(gps_data)")
+        lines.append("    imu_quality = assess_imu_quality(imu_data)")
+        lines.append("    ")
+        lines.append("    // 2. 加权融合")
+        lines.append("    if gps_quality > THRESHOLD_HIGH:")
+        lines.append("        weight_gps = 0.8")
+        lines.append("        weight_imu = 0.2")
+        lines.append("    elif gps_quality > THRESHOLD_LOW:")
+        lines.append("        weight_gps = 0.5")
+        lines.append("        weight_imu = 0.5")
+        lines.append("    else:")
+        lines.append("        // GPS 丢星，纯航位推算")
+        lines.append("        weight_gps = 0.0")
+        lines.append("        weight_imu = 1.0")
+        lines.append("        enable_elpo_mode()")
+        lines.append("    ")
+        lines.append("    // 3. 卡尔曼滤波融合")
+        lines.append("    fused = kalman_filter(gps_data * weight_gps + imu_data * weight_imu)")
+    lines.append("    ")
+    lines.append("    // 4. 异常检测与修正")
+    lines.append("    if detect_outlier(fused):")
+    lines.append("        fused = use_previous_valid()")
+    lines.append("    ")
+    lines.append("    return fused")
+    lines.append("```")
+    lines.append("")
+
+    # 5.4 错误码定义
+    lines.append("### 5.4 错误码定义\n")
+    lines.append("| 错误码 | 值 | 说明 | 处理策略 |")
+    lines.append("|--------|-----|------|----------|")
+    lines.append("| ERR_OK | 0x0000 | 成功 | 无 |")
+    lines.append("| ERR_PARAM | 0x0001 | 参数错误 | 拒绝操作，上报 |")
+    lines.append("| ERR_NOT_INIT | 0x0002 | 模块未初始化 | 触发初始化 |")
+    lines.append("| ERR_BUSY | 0x0003 | 模块忙 | 重试（最多3次） |")
+    lines.append("| ERR_TIMEOUT | 0x0004 | 操作超时 | 取消操作，恢复状态 |")
+    lines.append("| ERR_IO | 0x0005 | IO 读写错误 | 重试3次，失败降级 |")
+    lines.append("| ERR_MEMORY | 0x0006 | 内存不足 | 释放缓存，拒绝新请求 |")
+    lines.append("| ERR_CHECKSUM | 0x0007 | 校验失败 | 丢弃数据，请求重传 |")
+    lines.append("| ERR_VERSION | 0x0008 | 版本不兼容 | 降级到基础功能 |")
+    lines.append("| ERR_HW_FAIL | 0x0009 | 硬件故障 | 上报，切换备用 |")
+    lines.append("| ERR_STORAGE_FULL | 0x000A | 存储满 | LRU 淘汰，优先同步 |")
+    lines.append("| ERR_BT_DISCONNECT | 0x000B | BT 断开 | 自动重连，离线落盘 |")
+    if feature['is_enhanced']:
+        lines.append("| ERR_GPS_LOST | 0x0010 | GPS 丢星 | 切换 ELPO，航位推算 |")
+        lines.append("| ERR_SENSOR_FAIL | 0x0011 | 传感器故障 | 切换备用传感器 |")
+        lines.append("| ERR_LOW_BATTERY | 0x0012 | 低电量 | 降采样，功能降级 |")
+        lines.append("| ERR_ALGO_TIMEOUT | 0x0013 | 算法超时 | 跳帧，降低复杂度 |")
+    lines.append("")
+
+    # 5.5 内存与资源规划
+    lines.append("### 5.5 内存与资源规划\n")
+    lines.append("| 资源类型 | 大小 | 分配方式 | 生命周期 | 说明 |")
+    lines.append("|----------|------|----------|----------|------|")
+    lines.append("| 模块上下文 | " + ("64" if not feature['is_enhanced'] else "128") + " B | 静态分配 | 全程 | " + sanitize_name(feature['name']) + "_ctx_t |")
+    lines.append("| 接收缓冲区 | 512 B | 静态分配 | 全程 | ring_buffer，防止溢出 |")
+    lines.append("| 发送缓冲区 | 256 B | 静态分配 | 全程 | ring_buffer |")
+    lines.append("| 事件队列 | 16 × event_t | 静态分配 | 全程 | 消息队列，防止丢失 |")
+    lines.append("| 持久化存储 | " + ("2" if not feature['is_enhanced'] else "8") + " KB | KV/FS | 持久 | 配置+历史数据 |")
+    if feature['is_enhanced']:
+        lines.append("| 算法工作内存 | 4 KB | 动态分配 | 运行时 | 卡尔曼滤波/融合算法 |")
+        lines.append("| GPS 星历缓存 | 2 KB | 静态分配 | 全程 | 热启动加速 |")
+        lines.append("| 离线数据缓存 | 16 KB | 环形缓存 | 全程 | LRU，7天数据 |")
+    lines.append("")
+    lines.append("**内存约束**：")
+    lines.append("- 静态内存总量 ≤ " + ("2" if not feature['is_enhanced'] else "8") + " KB")
+    lines.append("- 动态内存峰值 ≤ " + ("1" if not feature['is_enhanced'] else "6") + " KB")
+    lines.append("- 栈使用峰值 ≤ 512 B")
+    lines.append("- 禁止运行时内存泄漏（malloc/free 必须配对）")
+    lines.append("")
+
+    # 5.6 中断与并发
+    lines.append("### 5.6 中断与并发\n")
+    lines.append("| 中断源 | 优先级 | 处理函数 | 说明 |")
+    lines.append("|--------|--------|----------|------|")
+    lines.append("| 定时器 | 中 | " + sanitize_name(feature['name']) + "_timer_isr | 周期性任务触发 |")
+    lines.append("| HAL 数据就绪 | 高 | hal_data_ready_isr | 硬件数据到达 |")
+    lines.append("| BT 数据接收 | 高 | bt_rx_isr | 跨端数据到达 |")
+    lines.append("| 用户按键 | 中 | key_isr | 用户输入 |")
+    lines.append("")
+    lines.append("**并发保护**：")
+    lines.append("- ISR 与主循环共享数据使用临界区保护（关中断/信号量）")
+    lines.append("- 环形缓冲区支持单生产者单消费者无锁访问")
+    lines.append("- 共享状态变量使用原子操作")
+    lines.append("- ISR 内仅做数据搬运和标志位设置，业务逻辑在主循环处理")
+    lines.append("")
+
+    # 5.7 函数调用关系
+    lines.append("### 5.7 函数调用关系\n")
+    lines.append("```mermaid")
+    lines.append("graph TD")
+    lines.append("    INIT[" + sanitize_name(feature['name']) + "_init] --> HAL_INIT[hal_init]")
+    lines.append("    INIT --> STORAGE_INIT[storage_open]")
+    lines.append("    INIT --> TIMER_INIT[timer_create]")
+    lines.append("    ")
+    lines.append("    MAIN[" + sanitize_name(feature['name']) + "_main_loop] --> WAIT[wait_event]")
+    lines.append("    WAIT --> USER[handle_user_input]")
+    lines.append("    WAIT --> HAL[process_hal_data]")
+    lines.append("    WAIT --> BT[handle_bt_data]")
+    lines.append("    WAIT --> TIMER[do_periodic_task]")
+    lines.append("    ")
+    lines.append("    USER --> UI[ui_update]")
+    lines.append("    HAL --> ALGO[do_business_logic]")
+    lines.append("    ALGO --> PERSIST[save_to_storage]")
+    lines.append("    BT --> SYNC[sync_to_companion]")
+    lines.append("    TIMER --> PERSIST")
+    lines.append("    TIMER --> SYNC")
+    lines.append("```")
+    lines.append("")
+
+    return '\n'.join(lines)
+
+
+def sanitize_name(name):
+    """将 Feature 名称转换为合法的 C 函数名前缀"""
+    # 移除特殊字符，替换为下划线
+    safe = re.sub(r'[^a-zA-Z0-9]', '_', name)
+    # 去除连续下划线
+    safe = re.sub(r'_+', '_', safe)
+    # 去除首尾下划线
+    safe = safe.strip('_')
+    # 转小写
+    safe = safe.lower()
+    # 如果以数字开头，加前缀
+    if safe and safe[0].isdigit():
+        safe = 'f_' + safe
+    # 限制长度
+    return safe[:30] if safe else 'feature'
+
+
 def generate_testing(feature):
     """生成测试验收关键点章节"""
     lines = []
-    lines.append("## 5. 测试验收关键点\n")
+    lines.append("## 6. 测试验收关键点\n")
 
-    lines.append("### 5.1 功能测试用例\n")
+    lines.append("### 6.1 功能测试用例\n")
     lines.append("| 用例ID | 测试场景 | 前置条件 | 预期结果 | 优先级 |")
     lines.append("|--------|----------|----------|----------|--------|")
     lines.append(f"| TC-01 | {feature['name']} 正常功能验证 | 系统初始化完成 | 功能正常，符合 OD 定义 | {feature['priority']} |")
@@ -646,7 +930,7 @@ def generate_testing(feature):
     lines.append("")
 
     # i18n 测试
-    lines.append("### 5.2 国际化测试\n")
+    lines.append("### 6.2 国际化测试\n")
     lines.append("| 用例ID | 测试场景 | 预期结果 |")
     lines.append("|--------|----------|----------|")
     lines.append("| TC-I18N-01 | 多语言切换 | 所有文本正确翻译，无乱码 |")
@@ -658,7 +942,7 @@ def generate_testing(feature):
 
     # GPS/Fitness 增强测试
     if feature['is_enhanced']:
-        lines.append("### 5.3 GPS/Fitness 专项测试\n")
+        lines.append("### 6.3 GPS/Fitness 专项测试\n")
         lines.append("| 用例ID | 测试场景 | 前置条件 | 预期结果 |")
         lines.append("|--------|----------|----------|----------|")
         lines.append("| TC-GPS-01 | 冷启动首次定位 | 无星历缓存 | TTFF ≤ 30s |")
@@ -679,7 +963,7 @@ def generate_testing(feature):
 def generate_references():
     """生成引用参考章节"""
     lines = []
-    lines.append("## 6. 引用参考\n")
+    lines.append("## 7. 引用参考\n")
     lines.append("| 编号 | 文档名称 | 说明 |")
     lines.append("|------|----------|------|")
     lines.append("| [1] | OD 需求定义文档 | Arceau SW OD-Living Excel，Feature 需求来源 |")
@@ -692,7 +976,7 @@ def generate_references():
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("*本文档由 HLD Generator 自动生成，基于 OD 需求做高层设计推导，不含 LLD 级实现细节。*")
+    lines.append("*本文档由 HLD Generator 自动生成，基于 OD 需求做设计推导，包含 HLD 架构与 LLD 级接口/数据结构/算法细节。*")
     return '\n'.join(lines)
 
 
