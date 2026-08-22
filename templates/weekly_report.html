@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鏅鸿兘鍛ㄦ姤鐢熸垚 - 宸ュ叿闆?/title>
+    <title>智能周报生成 - 工具集/title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/weekly_report.css?v={{ STATIC_VERSION }}">
@@ -18,86 +18,86 @@
 
     <div class="page">
 
-        <!-- 杈撳叆琛ㄥ崟鍗＄墖 -->
+        <!-- 输入表单卡片 -->
         <div class="card input-card">
-            <div class="card-title"><span class="step-num">1</span> 濉啓鍛ㄦ姤绱犳潗</div>
+            <div class="card-title"><span class="step-num">1</span> 填写周报素材</div>
 
-            <!-- 姹囨姤浜?+ 姹囨姤鍛ㄦ湡 -->
+            <!-- 汇报�?+ 汇报周期 -->
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="name">姹囨姤浜?<span class="req">*</span></label>
-                    <input type="text" class="form-input" id="name" placeholder="璇疯緭鍏ュ鍚嶏紝濡傦細寮犱笁" autocomplete="off">
+                    <label class="form-label" for="name">汇报�?<span class="req">*</span></label>
+                    <input type="text" class="form-input" id="name" placeholder="请输入姓名，如：张三" autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="weekRange">姹囨姤鍛ㄦ湡</label>
-                    <input type="text" class="form-input" id="weekRange" placeholder="濡傦細2026-08-11 ~ 2026-08-17" autocomplete="off">
+                    <label class="form-label" for="weekRange">汇报周期</label>
+                    <input type="text" class="form-input" id="weekRange" placeholder="如：2026-08-11 ~ 2026-08-17" autocomplete="off">
                 </div>
             </div>
 
-            <!-- 4 涓枃鏈煙 -->
+            <!-- 4 个文本域 -->
             <div class="textarea-grid">
                 <div class="field-card">
-                    <label class="form-label" for="notes">馃摑 宸ヤ綔绗旇 / 璁板綍</label>
-                    <textarea class="field-textarea" id="notes" placeholder="鏈懆瀹屾垚鐨勪富瑕佸伐浣溿€佽繘灞曘€佷骇鍑虹瓑...&#10;渚嬶細瀹屾垚鐧诲綍妯″潡寮€鍙戯紱淇 3 涓嚎涓?Bug锛涜緭鍑烘帴鍙ｆ枃妗ｃ€?></textarea>
+                    <label class="form-label" for="notes">📝 工作笔记 / 记录</label>
+                    <textarea class="field-textarea" id="notes" placeholder="本周完成的主要工作、进展、产出等...&#10;例：完成登录模块开发；修复 3 个线�?Bug；输出接口文档�?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="meetings">馃挰 浼氳鍐呭鎽樿</label>
-                    <textarea class="field-textarea" id="meetings" placeholder="鏈懆鍙傚姞鐨勪細璁€佽璁虹粨璁恒€佸緟鍔炰簨椤?..&#10;渚嬶細鍛ㄤ竴椤圭洰鍛ㄤ細锛岀‘璁や笅鐗堟帓鏈燂紱鍛ㄤ笁闇€姹傝瘎瀹°€?></textarea>
+                    <label class="form-label" for="meetings">💬 会议内容摘要</label>
+                    <textarea class="field-textarea" id="meetings" placeholder="本周参加的会议、讨论结论、待办事�?..&#10;例：周一项目周会，确认下版排期；周三需求评审�?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="crIssues">馃悰 闂 / CR 璁板綍</label>
-                    <textarea class="field-textarea" id="crIssues" placeholder="閬囧埌鐨勯棶棰樸€侀闄┿€佸彉鏇磋褰?CR)...&#10;渚嬶細鑱旇皟闃舵鎺ュ彛瀛楁涓嶄竴鑷达紝宸插弽棣堝悗绔紱CR-1024 瀹℃壒涓€?></textarea>
+                    <label class="form-label" for="crIssues">🐛 问题 / CR 记录</label>
+                    <textarea class="field-textarea" id="crIssues" placeholder="遇到的问题、风险、变更记录CR)...&#10;例：联调阶段接口字段不一致，已反馈后端；CR-1024 审批中�?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="extra">馃搸 鍏朵粬琛ュ厖</label>
-                    <textarea class="field-textarea" id="extra" placeholder="涓嬪懆璁″垝銆佸涔犳敹鑾枫€侀渶鍗忚皟鐨勮祫婧愮瓑琛ュ厖淇℃伅..."></textarea>
+                    <label class="form-label" for="extra">📎 其他补充</label>
+                    <textarea class="field-textarea" id="extra" placeholder="下周计划、学习收获、需协调的资源等补充信息..."></textarea>
                 </div>
             </div>
 
-            <!-- 妯″瀷閫夋嫨 + 鐢熸垚鎸夐挳 -->
+            <!-- 模型选择 + 生成按钮 -->
             <div class="action-row">
                 <div class="form-group model-group">
-                    <label class="form-label" for="model">馃 AI 妯″瀷</label>
+                    <label class="form-label" for="model">🧠 AI 模型</label>
                     <select class="form-select" id="model">
-                        <option value="">鍔犺浇涓?..</option>
+                        <option value="">加载�?..</option>
                     </select>
                 </div>
                 <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">
                     <span class="btn-spinner"></span>
-                    <span class="btn-text">鉁?鐢熸垚鍛ㄦ姤</span>
+                    <span class="btn-text">✓生成周报</span>
                 </button>
             </div>
-            <div class="action-hint">鎻愮ず锛氳嚦灏戝～鍐欎竴椤圭礌鏉愬唴瀹癸紱蹇嵎閿?Ctrl/鈱?+ Enter 鍙揩閫熺敓鎴愩€?/div>
+            <div class="action-hint">提示：至少填写一项素材内容；快捷�?Ctrl/�?+ Enter 可快速生成�?/div>
         </div>
 
-        <!-- 缁撴灉鍗＄墖 -->
+        <!-- 结果卡片 -->
         <div class="card result-card">
             <div class="result-toolbar no-print">
                 <div class="toolbar-left">
-                    <span class="card-title" style="margin:0;"><span class="step-num">2</span> 鍛ㄦ姤缁撴灉</span>
-                    <span class="result-badge" id="resultBadge">鉁?宸茬敓鎴?/span>
+                    <span class="card-title" style="margin:0;"><span class="step-num">2</span> 周报结果</span>
+                    <span class="result-badge" id="resultBadge">✓已生�?/span>
                 </div>
                 <div class="toolbar-right">
-                    <button class="btn btn-secondary btn-sm" onclick="copyReport()">馃搵 澶嶅埗</button>
-                    <button class="btn btn-secondary btn-sm" onclick="pushToFeishu()">馃摠 鎺ㄩ涔?/button>
-                    <button class="btn btn-primary btn-sm" onclick="exportReport()">馃枿锔?瀵煎嚭</button>
+                    <button class="btn btn-secondary btn-sm" onclick="copyReport()">📋 复制</button>
+                    <button class="btn btn-secondary btn-sm" onclick="pushToFeishu()">📨 推飞�?/button>
+                    <button class="btn btn-primary btn-sm" onclick="exportReport()">🖨�?导出</button>
                 </div>
             </div>
             <div class="report-content" id="reportArea">
                 <div class="empty-state">
-                    <div class="empty-state-icon">馃搫</div>
-                    <div class="empty-state-text">濉啓涓婃柟绱犳潗鍚庣偣鍑汇€岀敓鎴愬懆鎶ャ€?/div>
-                    <div class="empty-state-hint">AI 灏嗚嚜鍔ㄥ綊绾虫湰鍛ㄥ伐浣滐紝鐢熸垚缁撴瀯鍖栧懆鎶?/div>
+                    <div class="empty-state-icon">📄</div>
+                    <div class="empty-state-text">填写上方素材后点击「生成周报�?/div>
+                    <div class="empty-state-hint">AI 将自动归纳本周工作，生成结构化周�?/div>
                 </div>
             </div>
         </div>
 
-        <div class="footer no-print"><p>Powered by Yongshuo | 宸ュ叿闆?v3.0</p></div>
+        <div class="footer no-print"><p>Powered by Yongshuo | 工具集v3.0</p></div>
     </div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script>
-    // v5.0 鎺ユ敹绔欎細鍔╂墜涓浆鏁版嵁锛岃嚜鍔ㄥ～鍏呭懆鎶?
+    // v5.0 接收站会助手中转数据，自动填充周�?
     (function importFromStandup() {
         try {
             var prefix = window._USER_PREFIX || '';
@@ -114,7 +114,7 @@
             matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
             if (!data || data.source !== 'daily-standup') return;
 
-            // 濉厖鍚勫瓧娈?
+            // 填充各字�?
             if (data.week_range) {
                 var wr = document.getElementById('weekRange');
                 if (wr) wr.value = data.week_range;
@@ -129,10 +129,10 @@
             fillTextarea('crIssues', data.risks, '');
             fillTextarea('extra', data.next_plan, '');
 
-            // 鏄剧ず瀵煎叆鎻愮ず
+            // 显示导入提示
             var banner = document.createElement('div');
             banner.style.cssText = 'margin:0 0 16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
-            banner.textContent = '鉁?宸蹭粠绔欎細鍔╂墜瀵煎叆 ' + data.standup_count + ' 澶╃珯浼氳褰曪紝鑷姩濉厖鍛ㄦ姤绱犳潗锛屽彲缂栬緫鍚庣敓鎴?;
+            banner.textContent = '✓已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生�?;
             var page = document.querySelector('.page');
             if (page) page.insertBefore(banner, page.firstChild);
         } catch(e) { console.warn('Weekly report import error:', e); }

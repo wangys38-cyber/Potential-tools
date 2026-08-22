@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鐮斿彂鍋ュ悍搴︾湅鏉?- Potential Tools</title>
+    <title>研发健康度看�?- Potential Tools</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
@@ -52,13 +52,13 @@
             padding: 2px 8px; border-radius: 10px; background: #f3f4f6; color: #6b7280;
         }
 
-        /* 璺ㄥ垪 */
+        /* 跨列 */
         .col-4 { grid-column: span 4; }
         .col-6 { grid-column: span 6; }
         .col-8 { grid-column: span 8; }
         .col-12 { grid-column: span 12; }
 
-        /* Bug 瓒嬪娍 */
+        /* Bug 趋势 */
         .bug-trend-chart {
             display: flex; align-items: flex-end; gap: 6px;
             height: 140px; padding: 8px 0;
@@ -98,7 +98,7 @@
         .mttf-trend.down { background: #fee2e2; color: #dc2626; }
         .mttf-meta { margin-top: 16px; font-size: 12px; color: #6b7280; line-height: 1.8; }
 
-        /* 鐗堟湰杩涘害 */
+        /* 版本进度 */
         .progress-row { margin-bottom: 14px; }
         .progress-row:last-child { margin-bottom: 0; }
         .progress-label {
@@ -118,7 +118,7 @@
         .progress-fill.green { background: #fff; }
         .progress-fill.amber { background: #fff; }
 
-        /* 涓汉鏁堣兘 */
+        /* 个人效能 */
         .eff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .eff-item {
             text-align: center; padding: 14px 8px;
@@ -128,7 +128,7 @@
         .eff-label { font-size: 11px; color: #6b7280; margin-top: 4px; }
         .eff-tip { font-size: 11px; color: #9ca3af; margin-top: 12px; text-align: center; }
 
-        /* 椤圭洰姒傝 */
+        /* 项目概览 */
         .proj-list { font-size: 13px; }
         .proj-row {
             display: flex; justify-content: space-between;
@@ -176,93 +176,93 @@
 <div class="page-wrap">
     <div class="page-header">
         <div>
-            <h1>馃搳 鐮斿彂鍋ュ悍搴︾湅鏉?/h1>
-            <div class="subtitle">Bug 瓒嬪娍 路 MTTF 鎸囨爣 路 鐗堟湰杩涘害 路 涓汉鏁堣兘 路 椤圭洰姒傝</div>
+            <h1>📊 研发健康度看�?/h1>
+            <div class="subtitle">Bug 趋势 · MTTF 指标 · 版本进度 · 个人效能 · 项目概览</div>
         </div>
-        <div class="meta" id="updateTime">鏁版嵁鏇存柊锛?-</div>
+        <div class="meta" id="updateTime">数据更新�?-</div>
     </div>
 
     <div class="grid">
-        <!-- Bug 瓒嬪娍鍗＄墖 -->
+        <!-- Bug 趋势卡片 -->
         <div class="card col-8">
             <div class="card-title">
-                <span class="icon">馃悰</span> Bug 瓒嬪娍
-                <span class="badge">杩?7 澶?/span>
+                <span class="icon">🐛</span> Bug 趋势
+                <span class="badge">�?7 �?/span>
             </div>
             <div class="bug-trend-chart" id="bugTrendChart"></div>
             <div class="bug-summary" id="bugSummary"></div>
         </div>
 
-        <!-- MTTF 鎸囨爣鍗＄墖 -->
+        <!-- MTTF 指标卡片 -->
         <div class="card col-4">
             <div class="card-title">
-                <span class="icon">鈴憋笍</span> MTTF 鎸囨爣
+                <span class="icon">⏱️</span> MTTF 指标
                 <span class="badge">SR6</span>
             </div>
             <div class="mttf-value" id="mttfValue">128.5<span class="mttf-unit"> h</span></div>
-            <div class="mttf-trend up" id="mttfTrend">鈫?12.3% 杈冧笂鍛?/div>
+            <div class="mttf-trend up" id="mttfTrend">�?12.3% 较上�?/div>
             <div class="mttf-meta">
-                鐩爣鍊硷細鈮?120 h<br>
-                娴嬭瘯鍛ㄦ湡锛?脳24h 鎸傛祴<br>
-                涓昏澶辫触锛歁alloc 澶辫触 (3娆?
+                目标值：�?120 h<br>
+                测试周期�?×24h 挂测<br>
+                主要失败：Malloc 失败 (3�?
             </div>
         </div>
 
-        <!-- 鐗堟湰杩涘害鍗＄墖 -->
+        <!-- 版本进度卡片 -->
         <div class="card col-6">
             <div class="card-title">
-                <span class="icon">馃殌</span> 鐗堟湰杩涘害
+                <span class="icon">🚀</span> 版本进度
                 <span class="badge">v5.0</span>
             </div>
             <div id="versionProgress"></div>
         </div>
 
-        <!-- 涓汉鏁堣兘鍗＄墖 -->
+        <!-- 个人效能卡片 -->
         <div class="card col-6">
             <div class="card-title">
-                <span class="icon">鈿?/span> 涓汉鏁堣兘
-                <span class="badge">鏈懆</span>
+                <span class="icon">�?/span> 个人效能
+                <span class="badge">本周</span>
             </div>
             <div class="eff-grid" id="effGrid"></div>
-            <div class="eff-tip">鏁版嵁鏉ヨ嚜鏈湴缂撳瓨锛屽彲鍦ㄥ悇宸ュ叿椤佃嚜鍔ㄥ悓姝?/div>
+            <div class="eff-tip">数据来自本地缓存，可在各工具页自动同�?/div>
         </div>
 
-        <!-- 风险/阻塞卡片 -->
+        <!-- ����/������Ƭ -->
         <div class="card col-12" id="riskBlockerCard" style="display:none;">
             <div class="card-title">
-                <span class="icon">⚠️</span> 风险与阻塞项
-                <span class="badge" id="riskBadge">实时</span>
-                <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary);" id="riskSource">来自站会同步</span>
+                <span class="icon">??</span> ������������
+                <span class="badge" id="riskBadge">ʵʱ</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary);" id="riskSource">����վ��ͬ��</span>
             </div>
             <div id="riskBlockerContent">
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#ff3b30;" id="blockerCount">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">阻塞项</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">������</div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:#ff9500;" id="riskLevel">中</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">风险等级</div>
+                        <div style="font-size:24px;font-weight:700;color:#ff9500;" id="riskLevel">��</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">���յȼ�</div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#007aff;" id="yesterdayDone">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">昨日完成</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">�������</div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#34c759;" id="todayPlanned">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">今日计划</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">���ռƻ�</div>
                     </div>
                 </div>
                 <div id="blockerList" style="font-size:13px;line-height:1.8;"></div>
             </div>
         </div>
 
-        <!-- 椤圭洰姒傝鍗＄墖 -->
+        <!-- 项目概览卡片 -->
         <div class="card col-12">
             <div class="card-title">
-                <span class="icon">馃搧</span> 椤圭洰姒傝
+                <span class="icon">📁</span> 项目概览
                 <span class="badge">E62 / SR5 / SR6</span>
-                <button class="action-btn primary" id="historyBtn" style="margin-left:auto;padding:5px 14px;font-size:12px;">馃摐 鎿嶄綔鍘嗗彶</button>
+                <button class="action-btn primary" id="historyBtn" style="margin-left:auto;padding:5px 14px;font-size:12px;">📜 操作历史</button>
             </div>
             <div class="proj-list" id="projList"></div>
         </div>
@@ -271,16 +271,16 @@
 
 <script>
 (function() {
-    // ===== 宸ュ叿鍑芥暟 =====
+    // ===== 工具函数 =====
     function $(id) { return document.getElementById(id); }
     function safeGet(key) {
         try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) { return null; }
     }
 
-    // 鏇存柊鏃堕棿
-    $('updateTime').textContent = '鏁版嵁鏇存柊锛? + new Date().toLocaleString('zh-CN');
+    // 更新时间
+    $('updateTime').textContent = '数据更新�? + new Date().toLocaleString('zh-CN');
 
-    // ===== Bug 瓒嬪娍 =====
+    // ===== Bug 趋势 =====
     function renderBugTrend(apiData) {
         var crData = safeGet('cr_analysis_result') || safeGet('excel_analysis_last');
         var days, values;
@@ -288,17 +288,17 @@
             days = apiData.days;
             values = apiData.values;
         } else if (crData && crData.bugTrend) {
-            days = ['鍛ㄤ竴','鍛ㄤ簩','鍛ㄤ笁','鍛ㄥ洓','鍛ㄤ簲','鍛ㄥ叚','鍛ㄦ棩'];
+            days = ['周一','周二','周三','周四','周五','周六','周日'];
             values = crData.bugTrend;
         } else {
-            days = ['鍛ㄤ竴','鍛ㄤ簩','鍛ㄤ笁','鍛ㄥ洓','鍛ㄤ簲','鍛ㄥ叚','鍛ㄦ棩'];
+            days = ['周一','周二','周三','周四','周五','周六','周日'];
             values = [12, 8, 15, 6, 10, 3, 5];
         }
         var max = Math.max.apply(null, values.concat([1]));
         var chart = $('bugTrendChart');
         chart.innerHTML = values.map(function(v, i) {
             var h = Math.max(4, (v / max) * 120);
-            return '<div class="bug-bar" style="height:' + h + 'px;" title="' + days[i] + ': ' + v + '涓?>' +
+            return '<div class="bug-bar" style="height:' + h + 'px;" title="' + days[i] + ': ' + v + '�?>' +
                 '<span class="bug-bar-value">' + v + '</span>' +
                 '<span class="bug-bar-label">' + days[i] + '</span></div>';
         }).join('');
@@ -307,12 +307,12 @@
         var avg = (total / values.length).toFixed(1);
         var peak = Math.max.apply(null, values);
         $('bugSummary').innerHTML =
-            '<div class="bug-summary-item"><strong>' + total + '</strong>鏈懆鏂板 Bug</div>' +
-            '<div class="bug-summary-item"><strong>' + avg + '</strong>鏃ュ潎鏂板</div>' +
-            '<div class="bug-summary-item"><strong>' + peak + '</strong>宄板€硷紙' + days[values.indexOf(peak)] + '锛?/div>';
+            '<div class="bug-summary-item"><strong>' + total + '</strong>本周新增 Bug</div>' +
+            '<div class="bug-summary-item"><strong>' + avg + '</strong>日均新增</div>' +
+            '<div class="bug-summary-item"><strong>' + peak + '</strong>峰值（' + days[values.indexOf(peak)] + '�?/div>';
     }
 
-    // ===== 鐗堟湰杩涘害 =====
+    // ===== 版本进度 =====
     function renderVersionProgress(apiData) {
         var items;
         if (apiData && apiData.items && apiData.items.length) {
@@ -322,10 +322,10 @@
             });
         } else {
             items = [
-                { name: '鍚庣 Blueprint 鎷嗗垎', pct: 100, color: 'green' },
-                { name: '鍓嶇缁勪欢搴撶粺涓€', pct: 60, color: '' },
-                { name: 'Dashboard 鐪嬫澘', pct: 30, color: 'amber' },
-                { name: '缁熶竴涓婁紶/鍘嗗彶缁勪欢', pct: 45, color: 'amber' },
+                { name: '后端 Blueprint 拆分', pct: 100, color: 'green' },
+                { name: '前端组件库统一', pct: 60, color: '' },
+                { name: 'Dashboard 看板', pct: 30, color: 'amber' },
+                { name: '统一上传/历史组件', pct: 45, color: 'amber' },
             ];
         }
         $('versionProgress').innerHTML = items.map(function(it) {
@@ -336,7 +336,7 @@
         }).join('');
     }
 
-    // ===== 涓汉鏁堣兘 =====
+    // ===== 个人效能 =====
     function renderEfficiency(apiData) {
         var todayTodos, weekResolved, monthCommits, onTimeRate;
         if (apiData) {
@@ -354,13 +354,13 @@
         }
 
         $('effGrid').innerHTML =
-            '<div class="eff-item"><div class="eff-num">' + todayTodos + '</div><div class="eff-label">浠婃棩寰呭姙</div></div>' +
-            '<div class="eff-item"><div class="eff-num">' + weekResolved + '</div><div class="eff-label">鏈懆瑙ｅ崟</div></div>' +
-            '<div class="eff-item"><div class="eff-num">' + monthCommits + '</div><div class="eff-label">鏈湀鎻愪氦</div></div>' +
-            '<div class="eff-item"><div class="eff-num">' + onTimeRate + '%</div><div class="eff-label">鎸夋椂浜や粯鐜?/div></div>';
+            '<div class="eff-item"><div class="eff-num">' + todayTodos + '</div><div class="eff-label">今日待办</div></div>' +
+            '<div class="eff-item"><div class="eff-num">' + weekResolved + '</div><div class="eff-label">本周解单</div></div>' +
+            '<div class="eff-item"><div class="eff-num">' + monthCommits + '</div><div class="eff-label">本月提交</div></div>' +
+            '<div class="eff-item"><div class="eff-num">' + onTimeRate + '%</div><div class="eff-label">按时交付�?/div></div>';
     }
 
-    // ===== MTTF 鎸囨爣 =====
+    // ===== MTTF 指标 =====
     function renderMTTF(apiData) {
         if (!apiData) return;
         var valEl = $('mttfValue');
@@ -369,38 +369,38 @@
             valEl.innerHTML = apiData.value + '<span class="mttf-unit"> ' + (apiData.unit || 'h') + '</span>';
         }
         if (trendEl && apiData.trend) {
-            var arrow = apiData.trend === 'up' ? '鈫? : '鈫?;
+            var arrow = apiData.trend === 'up' ? '�? : '�?;
             var cls = apiData.trend === 'up' ? 'up' : 'down';
             trendEl.className = 'mttf-trend ' + cls;
-            trendEl.textContent = arrow + ' ' + (apiData.trend_pct || 0) + '% 杈冧笂鍛?;
+            trendEl.textContent = arrow + ' ' + (apiData.trend_pct || 0) + '% 较上�?;
         }
     }
 
-    // ===== 椤圭洰姒傝 =====
+    // ===== 项目概览 =====
     function renderProjectOverview(apiData) {
         var rows;
         if (apiData) {
             rows = [
-                { key: '褰撳墠鐗堟湰', val: apiData.current_version || 'v5.0.0 (杩唬1)', tag: 'version' },
-                { key: '椤圭洰鐘舵€?, val: apiData.status || '娲昏穬寮€鍙戜腑', tag: 'active' },
-                { key: '璐熻矗浜у搧绾?, val: apiData.product_lines || 'E62 / SR5 / SR6 鏅鸿兘鎵嬭〃' },
-                { key: '褰撳墠閲岀▼纰?, val: apiData.milestone || 'SR6 CP2 璐ㄩ噺鏀诲潥' },
-                { key: '浠ｇ爜浠撳簱', val: apiData.repo || 'github.com/wangys38-cyber/Potential-tools' },
-                { key: '閮ㄧ讲骞冲彴', val: apiData.deploy_platform || 'Railway (wangys666.top)' },
-                { key: '鎶€鏈爤', val: apiData.tech_stack || 'Flask + 鍘熺敓鍓嶇 + Blueprint' },
+                { key: '当前版本', val: apiData.current_version || 'v5.0.0 (迭代1)', tag: 'version' },
+                { key: '项目状态, val: apiData.status || '活跃开发中', tag: 'active' },
+                { key: '负责产品�?, val: apiData.product_lines || 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程�?, val: apiData.milestone || 'SR6 CP2 质量攻坚' },
+                { key: '代码仓库', val: apiData.repo || 'github.com/wangys38-cyber/Potential-tools' },
+                { key: '部署平台', val: apiData.deploy_platform || 'Railway (wangys666.top)' },
+                { key: '技术栈', val: apiData.tech_stack || 'Flask + 原生前端 + Blueprint' },
             ];
             if (apiData.visit_count != null) {
-                rows.push({ key: '绱璁块棶', val: apiData.visit_count + ' 娆? });
+                rows.push({ key: '累计访问', val: apiData.visit_count + ' �? });
             }
         } else {
             rows = [
-                { key: '褰撳墠鐗堟湰', val: 'v5.0.0 (杩唬1)', tag: 'version' },
-                { key: '椤圭洰鐘舵€?, val: '娲昏穬寮€鍙戜腑', tag: 'active' },
-                { key: '璐熻矗浜у搧绾?, val: 'E62 / SR5 / SR6 鏅鸿兘鎵嬭〃' },
-                { key: '褰撳墠閲岀▼纰?, val: 'SR6 CP2 璐ㄩ噺鏀诲潥' },
-                { key: '浠ｇ爜浠撳簱', val: 'github.com/wangys38-cyber/Potential-tools' },
-                { key: '閮ㄧ讲骞冲彴', val: 'Railway (wangys666.top)' },
-                { key: '鎶€鏈爤', val: 'Flask + 鍘熺敓鍓嶇 + Blueprint' },
+                { key: '当前版本', val: 'v5.0.0 (迭代1)', tag: 'version' },
+                { key: '项目状态, val: '活跃开发中', tag: 'active' },
+                { key: '负责产品�?, val: 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程�?, val: 'SR6 CP2 质量攻坚' },
+                { key: '代码仓库', val: 'github.com/wangys38-cyber/Potential-tools' },
+                { key: '部署平台', val: 'Railway (wangys666.top)' },
+                { key: '技术栈', val: 'Flask + 原生前端 + Blueprint' },
             ];
         }
         $('projList').innerHTML = rows.map(function(r) {
@@ -411,7 +411,7 @@
         }).join('');
     }
 
-    // ===== 椋庨櫓/闃诲爡椤?=====
+    // ===== 风险/阻堅�?=====
     function renderRiskBlocker() {
         try {
             var raw = localStorage.getItem('dashboard_blocker_data');
@@ -423,28 +423,28 @@
             document.getElementById('blockerCount').textContent = data.blockerCount || 0;
             document.getElementById('yesterdayDone').textContent = data.yesterdayCount || 0;
             document.getElementById('todayPlanned').textContent = data.todayCount || 0;
-            // 风险等级计算
-            var level = '低', levelColor = '#34c759';
-            if (data.blockerCount >= 3) { level = '高'; levelColor = '#ff3b30'; }
-            else if (data.blockerCount >= 1) { level = '中'; levelColor = '#ff9500'; }
+            // ���յȼ�����
+            var level = '��', levelColor = '#34c759';
+            if (data.blockerCount >= 3) { level = '��'; levelColor = '#ff3b30'; }
+            else if (data.blockerCount >= 1) { level = '��'; levelColor = '#ff9500'; }
             var levelEl = document.getElementById('riskLevel');
             if (levelEl) { levelEl.textContent = level; levelEl.style.color = levelColor; }
-            // 阻塞项列表
+            // �������б�
             var blockers = data.blockers || [];
-            var listHtml = '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text);">阻塞项详情：</div>';
+            var listHtml = '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text);">���������飺</div>';
             if (blockers.length === 0) {
-                listHtml += '<div style="color:var(--text-secondary);font-size:13px;">暂无阻塞项</div>';
+                listHtml += '<div style="color:var(--text-secondary);font-size:13px;">����������</div>';
             } else {
                 blockers.forEach(function(b, i) {
                     listHtml += '<div style="padding:8px 12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><span style="width:20px;height:20px;background:#ff3b30;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">' + (i+1) + '</span><span style="font-size:13px;color:var(--text);">' + escapeHtml(typeof b === 'string' ? b : (b.text || b)) + '</span></div>';
                 });
             }
             document.getElementById('blockerList').innerHTML = listHtml;
-            document.getElementById('riskSource').textContent = '来自站会同步 · ' + (data.date || '');
+            document.getElementById('riskSource').textContent = '����վ��ͬ�� �� ' + (data.date || '');
         } catch(e) { console.warn('renderRiskBlocker failed:', e); }
     }
 
-    // ===== 浠庡悗绔?API 鑾峰彇鏁版嵁 =====
+    // ===== 从后�?API 获取数据 =====
     async function fetchDashboardStats() {
         try {
             var resp = await fetch('/api/dashboard/stats', { credentials: 'same-origin' });
@@ -459,7 +459,7 @@
         return null;
     }
 
-    // 鍒濆鍖栵細鍏堟覆鏌撻潤鎬?localStorage 鏁版嵁锛屽啀寮傛鎷夊彇 API 鏇存柊
+    // 初始化：先渲染静�?localStorage 数据，再异步拉取 API 更新
     renderBugTrend();
     renderVersionProgress();
     renderEfficiency();
@@ -473,34 +473,34 @@
         renderVersionProgress(data.version_progress);
         renderEfficiency(data.personal_efficiency);
         renderProjectOverview(data.project_overview);
-        $('updateTime').textContent = '鏁版嵁鏇存柊锛? + new Date().toLocaleString('zh-CN') + ' (API)';
+        $('updateTime').textContent = '数据更新�? + new Date().toLocaleString('zh-CN') + ' (API)';
     });
 })();
 </script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script>
-// 鍘嗗彶璁板綍缁勪欢鎺ュ叆锛堥渶鍦?components.js 鍔犺浇鍚庢墽琛岋級
+// 历史记录组件接入（需�?components.js 加载后执行）
 (function() {
     var btn = document.getElementById('historyBtn');
     if (!btn || typeof ToolboxHistory === 'undefined') return;
 
-    // 鑻ユ湰鍦版棤浠讳綍鍘嗗彶璁板綍锛屽啓鍏ョず渚嬫暟鎹究浜庡睍绀?
+    // 若本地无任何历史记录，写入示例数据便于展�?
     var all = ToolboxHistory.getAll();
     var hasRecords = Object.keys(all).some(function(k) { return all[k].length > 0; });
     if (!hasRecords) {
         var now = Date.now();
-        ToolboxHistory.add('excel-analysis', { title: 'SR6_Bug瓒嬪娍鍒嗘瀽.xlsx', timestamp: now - 3600000 });
-        ToolboxHistory.add('test-report', { title: 'E62_娴嬭瘯鎶ュ憡_v1.78.xlsx', timestamp: now - 7200000 });
-        ToolboxHistory.add('daily-standup', { title: '2026-08-19 绔欎細绾', timestamp: now - 86400000 });
-        ToolboxHistory.add('mttf-dashboard', { title: '鎸傛祴鏃ュ織_72h.log', timestamp: now - 172800000 });
+        ToolboxHistory.add('excel-analysis', { title: 'SR6_Bug趋势分析.xlsx', timestamp: now - 3600000 });
+        ToolboxHistory.add('test-report', { title: 'E62_测试报告_v1.78.xlsx', timestamp: now - 7200000 });
+        ToolboxHistory.add('daily-standup', { title: '2026-08-19 站会纪要', timestamp: now - 86400000 });
+        ToolboxHistory.add('mttf-dashboard', { title: '挂测日志_72h.log', timestamp: now - 172800000 });
     }
 
     btn.addEventListener('click', function() {
         ToolboxHistory.showModal(null, {
-            title: '鍏ㄩ儴鎿嶄綔鍘嗗彶',
+            title: '全部操作历史',
             onSelect: function(record, idx, toolId) {
-                if (window.ToolboxToast) ToolboxToast.show('宸插姞杞? ' + record.title, 'success');
+                if (window.ToolboxToast) ToolboxToast.show('已加�? ' + record.title, 'success');
             }
         });
     });

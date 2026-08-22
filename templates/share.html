@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ workspace.title }} - 鍏变韩宸ヤ綔绌洪棿</title>
+    <title>{{ workspace.title }} - 共享工作空间</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
@@ -161,69 +161,69 @@
         <div class="share-title" id="shareTitle">{{ workspace.title }}</div>
         <div class="share-meta">
             <div class="share-meta-item">
-                <span>馃敆</span>
-                <span>鍒嗕韩鐮? <code id="shareCode">{{ share_code }}</code></span>
+                <span>🔗</span>
+                <span>分享�? <code id="shareCode">{{ share_code }}</code></span>
             </div>
             <div class="share-meta-item">
-                <span>馃洜锔?/span>
-                <span id="toolType">{{ workspace.tool_type or '閫氱敤' }}</span>
+                <span>🛠�?/span>
+                <span id="toolType">{{ workspace.tool_type or '通用' }}</span>
             </div>
             <div class="share-meta-item">
-                <span>馃憗锔?/span>
-                <span id="permType">{{ '鍙紪杈? if workspace.permission == 'edit' else '浠呮煡鐪? }}</span>
+                <span>👁/span>
+                <span id="permType">{{ '可编�? if workspace.permission == 'edit' else '仅查�? }}</span>
             </div>
         </div>
         <div class="share-actions">
             <button class="share-btn primary" onclick="PTCollab.joinWorkspace('{{ share_code }}')">
-                馃殌 鍔犲叆鍗忎綔
+                🚀 加入协作
             </button>
             <button class="share-btn" onclick="PTCollab.copyShareLink()">
-                馃搵 澶嶅埗閾炬帴
+                📋 复制链接
             </button>
             <button class="share-btn" onclick="PTCollab.toggleComments()">
-                馃挰 璇勮 <span id="commentBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;">0</span>
+                💬 评论 <span id="commentBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;">0</span>
             </button>
         </div>
     </div>
 
     <div class="share-section">
-        <div class="section-title">馃懃 鍗忎綔鑰?(<span id="memberCount">0</span>)</div>
+        <div class="section-title">👥 协作�?(<span id="memberCount">0</span>)</div>
         <div class="members-list" id="membersList">
-            <div class="empty-state">鍔犺浇涓?..</div>
+            <div class="empty-state">加载�?..</div>
         </div>
     </div>
 
     {% if workspace.data_ref %}
     <div class="share-section">
-        <div class="section-title">馃摝 鍏变韩鏁版嵁</div>
+        <div class="section-title">📦 共享数据</div>
         <div class="data-preview" id="dataPreview">{{ workspace.data_ref }}</div>
     </div>
     {% endif %}
 
     <div class="share-section">
-        <div class="section-title">馃摑 娲诲姩璁板綍</div>
-        <div class="empty-state">鏆傛棤娲诲姩璁板綍</div>
+        <div class="section-title">📝 活动记录</div>
+        <div class="empty-state">暂无活动记录</div>
     </div>
 </div>
 
-<!-- 璇勮闈㈡澘 -->
+<!-- 评论面板 -->
 <div class="pt-comments-panel" id="commentsPanel">
     <div class="pt-comments-header">
-        <div class="pt-comments-title">馃挰 璇勮</div>
-        <button class="pt-comments-close" onclick="PTCollab.toggleComments()">鉁?/button>
+        <div class="pt-comments-title">💬 评论</div>
+        <button class="pt-comments-close" onclick="PTCollab.toggleComments()">�?/button>
     </div>
     <div class="pt-comments-list" id="commentsList">
-        <div class="pt-comments-empty">鏆傛棤璇勮锛屾潵鍙戣〃绗竴鏉″惂</div>
+        <div class="pt-comments-empty">暂无评论，来发表第一条吧</div>
     </div>
     <div class="pt-comments-input-area">
-        <textarea class="pt-comments-input" id="commentInput" placeholder="杈撳叆璇勮..." rows="1"></textarea>
-        <button class="pt-comments-send" id="commentSendBtn" onclick="PTCollab.sendComment()">鍙戦€?/button>
+        <textarea class="pt-comments-input" id="commentInput" placeholder="输入评论..." rows="1"></textarea>
+        <button class="pt-comments-send" id="commentSendBtn" onclick="PTCollab.sendComment()">发�?/button>
     </div>
 </div>
 
 <script src="/static/js/collab.js?v={{ STATIC_VERSION }}"></script>
 <script>
-// 鍒濆鍖栧叡浜〉闈?
+// 初始化共享页�?
 PTCollab.initSharePage('{{ share_code }}');
 </script>
 </body>
