@@ -616,15 +616,64 @@ Please write the reply:"""
         try:
             import markdown
             import tempfile as tf
+            import re as _re
+
+            # 检测是否包含 Mermaid 图表
+            has_mermaid = bool(_re.search(r'```mermaid', markdown_content, _re.IGNORECASE))
+
+            # 将 ```mermaid 代码块转换为 <div class="mermaid"> 标签
+            if has_mermaid:
+                def mermaid_replacer(match):
+                    code = match.group(1).strip()
+                    return f'<div class="mermaid">{code}</div>'
+                markdown_content = _re.sub(
+                    r'```mermaid\s*\n(.*?)```',
+                    mermaid_replacer,
+                    markdown_content,
+                    flags=_re.DOTALL | _re.IGNORECASE
+                )
+
             html_content = markdown.markdown(
                 markdown_content,
                 extensions=['extra', 'codehilite', 'tables', 'fenced_code']
             )
+
+            # Mermaid 脚本和初始化
+            mermaid_script = ''
+            wait_selector = None
+            extra_wait = 0
+            if has_mermaid:
+                mermaid_script = '''
+                <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+                <script>
+                    mermaid.initialize({
+                        startOnLoad: true,
+                        theme: 'default',
+                        securityLevel: 'loose',
+                        flowchart: { useMaxWidth: true, htmlLabels: true },
+                        sequence: { useMaxWidth: true },
+                        gantt: { useMaxWidth: true }
+                    });
+                    // 标记渲染完成
+                    window.addEventListener('load', function() {
+                        setTimeout(function() {
+                            document.body.setAttribute('data-mermaid-done', 'true');
+                        }, 2000);
+                    });
+                </script>
+                <style>
+                    .mermaid { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+                    .mermaid svg { max-width: 100% !important; height: auto !important; }
+                </style>
+                '''
+                wait_selector = 'body[data-mermaid-done="true"]'
+                extra_wait = 3000
+
             with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
-                f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>{MD2PDF_PREVIEW_CSS}</style></head><body>{html_content}</body></html>''')
+                f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>{MD2PDF_PREVIEW_CSS}</style>{mermaid_script}</head><body>{html_content}</body></html>''')
                 html_path = f.name
             pdf_path = os.path.join(current_app.config['PDF_FOLDER'], f"md2pdf_{int(time.time())}.pdf")
-            render_pdf(html_path, pdf_path)
+            render_pdf(html_path, pdf_path, wait_selector=wait_selector, extra_wait_ms=extra_wait)
             return jsonify({'filename': os.path.basename(pdf_path)})
         except Exception as e:
             logger.error(f"PDF生成失败: {traceback.format_exc()}")
