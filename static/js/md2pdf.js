@@ -95,6 +95,21 @@ function showToast(msg, type) {
 
                 const data = await response.json();
                 preview.innerHTML = data.html;
+
+                // 渲染 Mermaid 图表
+                if (data.has_mermaid && window.mermaid) {
+                    try {
+                        const mermaidElements = preview.querySelectorAll('.mermaid');
+                        mermaidElements.forEach((el, idx) => {
+                            if (!el.getAttribute('data-processed')) {
+                                el.id = 'mermaid-' + Date.now() + '-' + idx;
+                                mermaid.run({ nodes: [el] }).catch(() => {});
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Mermaid render error:', e);
+                    }
+                }
             } catch (error) {
                 console.error('Preview error:', error);
             }

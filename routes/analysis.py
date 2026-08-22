@@ -489,10 +489,23 @@ def create_analysis_blueprint():
             return jsonify({'html': ''})
         try:
             import markdown
+            import re as _re
+            # 检测并转换 Mermaid 代码块为 <div class="mermaid">
+            has_mermaid = bool(_re.search(r'```mermaid', markdown_content, _re.IGNORECASE))
+            if has_mermaid:
+                def mermaid_replacer(match):
+                    code = match.group(1).strip()
+                    return f'<div class="mermaid">{code}</div>'
+                markdown_content = _re.sub(
+                    r'```mermaid\s*\n(.*?)```',
+                    mermaid_replacer,
+                    markdown_content,
+                    flags=_re.DOTALL | _re.IGNORECASE
+                )
             html_content = markdown.markdown(markdown_content, extensions=['extra', 'codehilite', 'tables', 'fenced_code'])
             if watermark:
                 html_content += f'''<div style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:0.035;font-size:70px;font-weight:600;color:#0071e3;text-align:center;display:flex;align-items:center;justify-content:center;transform:rotate(-15deg);">{watermark}</div>'''
-            return jsonify({'html': html_content})
+            return jsonify({'html': html_content, 'has_mermaid': has_mermaid})
         except Exception as e:
             logger.error(f"预览失败: {traceback.format_exc()}")
             return jsonify({'html': '', 'error': str(e)}), 500
@@ -508,12 +521,45 @@ def create_analysis_blueprint():
         try:
             import markdown
             import tempfile as tf
+            import re as _re
+            # 检测并转换 Mermaid 代码块
+            has_mermaid = bool(_re.search(r'```mermaid', markdown_content, _re.IGNORECASE))
+            if has_mermaid:
+                def mermaid_replacer(match):
+                    code = match.group(1).strip()
+                    return f'<div class="mermaid">{code}</div>'
+                markdown_content = _re.sub(
+                    r'```mermaid\s*\n(.*?)```',
+                    mermaid_replacer,
+                    markdown_content,
+                    flags=_re.DOTALL | _re.IGNORECASE
+                )
             html_content = markdown.markdown(markdown_content, extensions=['extra', 'codehilite', 'tables', 'fenced_code'])
             watermark_html = ''
             if watermark:
                 watermark_html = f'''<div style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:0.035;font-size:70px;font-weight:600;color:#0071e3;text-align:center;display:flex;align-items:center;justify-content:center;transform:rotate(-15deg);">{watermark}</div>'''
+            # Mermaid 脚本
+            mermaid_script = ''
+            wait_selector = None
+            extra_wait = 0
+            if has_mermaid:
+                mermaid_script = '''
+                <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+                <script>
+                    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose',
+                        flowchart: { useMaxWidth: true, htmlLabels: true },
+                        sequence: { useMaxWidth: true }, gantt: { useMaxWidth: true } });
+                    window.addEventListener('load', function() {
+                        setTimeout(function() { document.body.setAttribute('data-mermaid-done', 'true'); }, 2000);
+                    });
+                </script>
+                <style>.mermaid { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+                .mermaid svg { max-width: 100% !important; height: auto !important; }</style>
+                '''
+                wait_selector = 'body[data-mermaid-done="true"]'
+                extra_wait = 3000
             with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
-                f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>{MD2PDF_PREVIEW_CSS}</style></head><body>{html_content}{watermark_html}</body></html>''')
+                f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>{MD2PDF_PREVIEW_CSS}</style>{mermaid_script}</head><body>{html_content}{watermark_html}</body></html>''')
                 html_path = f.name
             if filename:
                 safe_filename = re.sub(r'[^\w\s-]', '', filename).strip() or 'document'
@@ -528,7 +574,7 @@ def create_analysis_blueprint():
 
             def _do_convert_pdf():
                 try:
-                    render_pdf(html_path, pdf_path)
+                    render_pdf(html_path, pdf_path, wait_selector=wait_selector, extra_wait_ms=extra_wait)
                     background_tasks[task_id]['result'] = {'filename': pdf_filename}
                     background_tasks[task_id]['status'] = 'done'
                     save_task_meta(task_id, background_tasks[task_id])
