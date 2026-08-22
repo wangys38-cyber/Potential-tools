@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 全局 AI 助手模块
  * 功能：增强命令面板的 AI 能力、自然语言操作、跨工具查询、智能建议
  */
@@ -228,7 +228,7 @@
 
         if (intent.type === 'tool') {
             html = `<div class="tb-cp-item selected" onclick="AIAssistant.openTool('${intent.tool}')">
-                <div class="tb-cp-item-icon">🔮</div>
+                <div class="tb-cp-item-icon"></div>
                 <div class="tb-cp-item-text">
                     <div class="tb-cp-item-name">跳转到「${intent.action}」</div>
                     <div class="tb-cp-item-desc">AI 识别到你想使用这个工具</div>
@@ -237,7 +237,7 @@
             </div>`;
         } else if (intent.type === 'action') {
             html = `<div class="tb-cp-item selected" onclick="AIAssistant.executeAction()">
-                <div class="tb-cp-item-icon">⚡</div>
+                <div class="tb-cp-item-icon"></div>
                 <div class="tb-cp-item-text">
                     <div class="tb-cp-item-name">执行：${intent.desc}</div>
                     <div class="tb-cp-item-desc">AI 识别到你想执行这个操作</div>
@@ -247,7 +247,7 @@
         }
 
         html += `<div class="tb-cp-item" onclick="AIAssistant.askAI('${query.replace(/'/g, "\\'")}')">
-            <div class="tb-cp-item-icon">🤖</div>
+            <div class="tb-cp-item-icon"></div>
             <div class="tb-cp-item-text">
                 <div class="tb-cp-item-name">询问 AI：${query}</div>
                 <div class="tb-cp-item-desc">让 AI 回答你的问题</div>
@@ -312,7 +312,7 @@
 
         // 显示加载状态
         list.innerHTML = `<div style="padding:20px;">
-            <div style="font-size:13px;color:var(--text-secondary,#86868b);margin-bottom:10px;">🤖 AI 正在思考...</div>
+            <div style="font-size:13px;color:var(--text-secondary,#86868b);margin-bottom:10px;"> AI 正在思考...</div>
             <div id="ai-response-content" style="font-size:14px;line-height:1.7;color:var(--text-primary,#1d1d1f);white-space:pre-wrap;word-break:break-word;"></div>
         </div>`;
 
@@ -338,25 +338,25 @@
 
                     // 添加复制按钮
                     if (aiResponseEl) {
-                        aiResponseEl.innerHTML += `<div style="margin-top:12px;"><button onclick="AIAssistant.copyResponse()" style="padding:6px 14px;font-size:12px;border:1px solid var(--border,rgba(0,0,0,0.1));border-radius:6px;background:var(--bg-primary,#f5f5f7);cursor:pointer;">📋 复制回复</button></div>`;
+                        aiResponseEl.innerHTML += `<div style="margin-top:12px;"><button onclick="AIAssistant.copyResponse()" style="padding:6px 14px;font-size:12px;border:1px solid var(--border,rgba(0,0,0,0.1));border-radius:6px;background:var(--bg-primary,#f5f5f7);cursor:pointer;"> 复制回复</button></div>`;
                     }
                 },
                 (err) => {
                     if (aiResponseEl) {
-                        aiResponseEl.innerHTML = `<span style="color:var(--error,#ff3b30);">❌ ${err.message}</span>`;
+                        aiResponseEl.innerHTML = `<span style="color:var(--error,#ff3b30);"> ${err.message}</span>`;
                     }
                 }
             );
         } catch (e) {
             if (aiResponseEl) {
-                aiResponseEl.innerHTML = `<span style="color:var(--error,#ff3b30);">❌ ${e.message}</span>`;
+                aiResponseEl.innerHTML = `<span style="color:var(--error,#ff3b30);"> ${e.message}</span>`;
             }
         }
     }
 
     function copyResponse() {
         if (aiResponseEl) {
-            const text = aiResponseEl.textContent.replace('📋 复制回复', '').trim();
+            const text = aiResponseEl.textContent.replace(' 复制回复', '').trim();
             navigator.clipboard.writeText(text).then(() => {
                 showToast('已复制到剪贴板');
             });
@@ -372,7 +372,7 @@
         // 创建浮动按钮
         floatingBtn = document.createElement('div');
         floatingBtn.id = 'ai-floating-btn';
-        floatingBtn.innerHTML = '🤖';
+        floatingBtn.innerHTML = '';
         floatingBtn.style.cssText = `
             position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;
             background:var(--text-primary,#1d1d1f);color:var(--bg-card,#fff);
@@ -397,7 +397,7 @@
         `;
         chatPanel.innerHTML = `
             <div style="padding:14px 18px;border-bottom:1px solid var(--border,rgba(0,0,0,0.08));display:flex;align-items:center;gap:10px;">
-                <span style="font-size:20px;">🤖</span>
+                <span style="font-size:20px;"></span>
                 <div style="flex:1;">
                     <div style="font-size:15px;font-weight:600;color:var(--text-primary,#1d1d1f);">AI 助手</div>
                     <div style="font-size:11px;color:var(--text-secondary,#86868b);">随时问我任何问题</div>
@@ -479,7 +479,7 @@
         const loadingEl = document.createElement('div');
         loadingEl.id = 'ai-chat-loading';
         loadingEl.style.cssText = 'display:flex;justify-content:flex-start;';
-        loadingEl.innerHTML = '<div style="padding:10px 14px;border-radius:12px;font-size:13px;background:var(--bg-primary,#f5f5f7);color:var(--text-secondary,#86868b);">🤖 思考中...</div>';
+        loadingEl.innerHTML = '<div style="padding:10px 14px;border-radius:12px;font-size:13px;background:var(--bg-primary,#f5f5f7);color:var(--text-secondary,#86868b);"> 思考中...</div>';
         container.appendChild(loadingEl);
         container.scrollTop = container.scrollHeight;
 
@@ -498,7 +498,7 @@
             const loading = document.getElementById('ai-chat-loading');
             if (loading) loading.remove();
 
-            chatMessages.push({ role: 'assistant', content: `❌ ${e.message}` });
+            chatMessages.push({ role: 'assistant', content: ` ${e.message}` });
             renderChatMessages();
         }
     }

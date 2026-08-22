@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 工具集 v2.0 统一组件库
  * 提供全站共享的 JavaScript 组件：主题切换、Toast通知、文件上传、通用工具
  *
@@ -432,7 +432,7 @@ const ToolboxTheme = (function() {
         btn.title = '切换主题';
 
         function updateIcon() {
-            btn.textContent = isDark() ? '☀️' : '🌙';
+            btn.textContent = isDark() ? '' : '';
         }
         updateIcon();
 
@@ -486,7 +486,7 @@ const ToolboxToast = (function() {
     }
 
     function getIcon(type) {
-        var icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+        var icons = { info: 'ℹ', success: '', error: '', warning: '' };
         return icons[type] || icons.info;
     }
 
@@ -1064,14 +1064,14 @@ const ToolboxNav = (function() {
         // 搜索图标
         rightHtml += '<a href="/?focus=search" class="tb-nav-btn" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></a>';
         // 设置按钮
-        rightHtml += '<a href="/settings" class="tb-nav-btn" title="设置">⚙️</a>';
+        rightHtml += '<a href="/settings" class="tb-nav-btn" title="设置">⚙</a>';
         if (opts.extraActions) {
             opts.extraActions.forEach(function(a) {
                 rightHtml += a.html;
             });
         }
         if (opts.showTheme !== false) {
-            rightHtml += '<button class="tb-nav-theme" id="tb-nav-theme-btn" title="切换主题">🌙</button>';
+            rightHtml += '<button class="tb-nav-theme" id="tb-nav-theme-btn" title="切换主题"></button>';
         }
         // 用户信息槽位（异步填充）
         if (opts.showUser !== false) {
@@ -1089,7 +1089,7 @@ const ToolboxNav = (function() {
         var themeBtn = document.getElementById('tb-nav-theme-btn');
         if (themeBtn) {
             function updateThemeIcon() {
-                themeBtn.textContent = ToolboxTheme.isDark() ? '☀️' : '🌙';
+                themeBtn.textContent = ToolboxTheme.isDark() ? '' : '';
             }
             updateThemeIcon();
             themeBtn.addEventListener('click', function() {
@@ -1349,12 +1349,12 @@ const ToolboxAIChat = (function() {
                 }).join('');
                 currentModel = data.current || (data.models[0] && data.models[0].id) || '';
             } else if (data.error) {
-                select.innerHTML = '<option value="">⚠ ' + data.error + '</option>';
+                select.innerHTML = '<option value=""> ' + data.error + '</option>';
             } else {
                 select.innerHTML = '<option value="">暂无可用模型</option>';
             }
         } catch(e) {
-            select.innerHTML = '<option value="">⚠ 加载失败，请检查网络</option>';
+            select.innerHTML = '<option value=""> 加载失败，请检查网络</option>';
         }
     }
 
@@ -1566,7 +1566,7 @@ const ToolboxOCR = (function() {
         reader.onload = function(ev) {
             overlay.innerHTML = `
                 <div style="background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-                    <h3 style="margin:0 0 12px;font-size:16px">📷 OCR 图片识别</h3>
+                    <h3 style="margin:0 0 12px;font-size:16px"> OCR 图片识别</h3>
                     <img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:12px" />
                     <div id="tb-ocr-result" style="min-height:40px;font-size:14px;color:#666">正在识别中...</div>
                     <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
@@ -1655,74 +1655,74 @@ const ToolboxCommandPalette = (function() {
 
     // 工具列表（与首页 TOOLS 保持一致）
     var TOOLS = [
-        {id:'noteNB', icon:'📝', name:'牛马笔记', desc:'Markdown笔记，双向链接，关系图谱', url:'/noteNB/'},
-        {id:'md2pdf', icon:'📄', name:'PDF快转', desc:'Markdown/Word转PDF', url:'/md2pdf'},
-        {id:'plan-generator', icon:'📅', name:'软件计划生成器', desc:'生成项目计划时间节点', url:'/plan-generator'},
-        {id:'project-info', icon:'📊', name:'项目信息收集', desc:'管理项目技术规格', url:'/project-info'},
-        {id:'excel-analysis', icon:'📊', name:'CR问题分析', desc:'问题清单分析+AI根因', url:'/excel-analysis'},
-        {id:'merit', icon:'🔔', name:'功德+1', desc:'敲木鱼积功德', url:'/merit'},
-        {id:'test-report', icon:'📋', name:'测试报告分析', desc:'测试报告提取+AI分析', url:'/test-report'},
-        {id:'meeting-minutes', icon:'🎙️', name:'会议纪要', desc:'语音转写+AI纪要', url:'/meeting-minutes'},
-        {id:'weekly-report', icon:'📋', name:'智能周报', desc:'AI生成结构化周报', url:'/weekly-report'},
-        {id:'bug-trend', icon:'📈', name:'Bug趋势看板', desc:'CR Excel自动生成Bug趋势图', url:'/bug-trend'},
-        {id:'release-checklist', icon:'✅', name:'版本发布检查清单', desc:'Bring up→CP→DF→RRR检查项', url:'/release-checklist'},
-        {id:'log-analyzer', icon:'🔍', name:'日志分析器', desc:'设备日志异常关键词聚合', url:'/log-analyzer'},
-        {id:'email-assistant', icon:'✉️', name:'邮件助手', desc:'英文技术邮件模板+翻译', url:'/email-assistant'},
-        {id:'data-viz', icon:'📊', name:'数据可视化Builder', desc:'Excel自选轴生成图表导出', url:'/data-viz'},
-        {id:'settings', icon:'⚙️', name:'系统设置', desc:'AI配置、主题定制', url:'/settings'},
+        {id:'noteNB', icon:'', name:'牛马笔记', desc:'Markdown笔记，双向链接，关系图谱', url:'/noteNB/'},
+        {id:'md2pdf', icon:'', name:'PDF快转', desc:'Markdown/Word转PDF', url:'/md2pdf'},
+        {id:'plan-generator', icon:'', name:'软件计划生成器', desc:'生成项目计划时间节点', url:'/plan-generator'},
+        {id:'project-info', icon:'', name:'项目信息收集', desc:'管理项目技术规格', url:'/project-info'},
+        {id:'excel-analysis', icon:'', name:'CR问题分析', desc:'问题清单分析+AI根因', url:'/excel-analysis'},
+        {id:'merit', icon:'', name:'功德+1', desc:'敲木鱼积功德', url:'/merit'},
+        {id:'test-report', icon:'', name:'测试报告分析', desc:'测试报告提取+AI分析', url:'/test-report'},
+        {id:'meeting-minutes', icon:'', name:'会议纪要', desc:'语音转写+AI纪要', url:'/meeting-minutes'},
+        {id:'weekly-report', icon:'', name:'智能周报', desc:'AI生成结构化周报', url:'/weekly-report'},
+        {id:'bug-trend', icon:'', name:'Bug趋势看板', desc:'CR Excel自动生成Bug趋势图', url:'/bug-trend'},
+        {id:'release-checklist', icon:'', name:'版本发布检查清单', desc:'Bring up→CP→DF→RRR检查项', url:'/release-checklist'},
+        {id:'log-analyzer', icon:'', name:'日志分析器', desc:'设备日志异常关键词聚合', url:'/log-analyzer'},
+        {id:'email-assistant', icon:'✉', name:'邮件助手', desc:'英文技术邮件模板+翻译', url:'/email-assistant'},
+        {id:'data-viz', icon:'', name:'数据可视化Builder', desc:'Excel自选轴生成图表导出', url:'/data-viz'},
+        {id:'settings', icon:'⚙', name:'系统设置', desc:'AI配置、主题定制', url:'/settings'},
     ];
 
     // 命令列表
     var COMMANDS = [
-        {icon:'🌙', name:'切换深色模式', desc:'Toggle dark theme', action:function(){ var d=document.documentElement.getAttribute('data-theme')==='dark'; document.documentElement.setAttribute('data-theme', d?'light':'dark'); try{localStorage.setItem('toolbox_theme', d?'light':'dark');}catch(e){} }},
-        {icon:'☀️', name:'切换浅色模式', desc:'Toggle light theme', action:function(){ document.documentElement.setAttribute('data-theme','light'); try{localStorage.setItem('toolbox_theme','light');}catch(e){} }},
-        {icon:'🤖', name:'打开 AI 对话', desc:'AI Chat Assistant', action:function(){ if(typeof ToolboxAIChat!=='undefined') ToolboxAIChat.open(); }},
-        {icon:'🔍', name:'OCR 图片识别', desc:'Paste image to recognize', action:function(){ if(typeof ToolboxOCR!=='undefined') ToolboxOCR.open(); }},
-        {icon:'⭐', name:'查看收藏工具', desc:'Go to favorites', action:function(){ window.location.href='/'; }},
-        {icon:'🏠', name:'返回首页', desc:'Back to home', action:function(){ window.location.href='/'; }},
-        {icon:'⚙️', name:'打开设置', desc:'Open settings', action:function(){ window.location.href='/settings'; }},
-        {icon:'🔄', name:'刷新页面', desc:'Reload page', action:function(){ location.reload(); }},
+        {icon:'', name:'切换深色模式', desc:'Toggle dark theme', action:function(){ var d=document.documentElement.getAttribute('data-theme')==='dark'; document.documentElement.setAttribute('data-theme', d?'light':'dark'); try{localStorage.setItem('toolbox_theme', d?'light':'dark');}catch(e){} }},
+        {icon:'', name:'切换浅色模式', desc:'Toggle light theme', action:function(){ document.documentElement.setAttribute('data-theme','light'); try{localStorage.setItem('toolbox_theme','light');}catch(e){} }},
+        {icon:'', name:'打开 AI 对话', desc:'AI Chat Assistant', action:function(){ if(typeof ToolboxAIChat!=='undefined') ToolboxAIChat.open(); }},
+        {icon:'', name:'OCR 图片识别', desc:'Paste image to recognize', action:function(){ if(typeof ToolboxOCR!=='undefined') ToolboxOCR.open(); }},
+        {icon:'', name:'查看收藏工具', desc:'Go to favorites', action:function(){ window.location.href='/'; }},
+        {icon:'', name:'返回首页', desc:'Back to home', action:function(){ window.location.href='/'; }},
+        {icon:'⚙', name:'打开设置', desc:'Open settings', action:function(){ window.location.href='/settings'; }},
+        {icon:'', name:'刷新页面', desc:'Reload page', action:function(){ location.reload(); }},
     ];
 
     // v5.0 上下文感知命令：根据当前页面显示工具内功能
     var CONTEXT_COMMANDS = {
         '/meeting-minutes': [
-            {icon:'🎤', name:'开始录音', desc:'Start recording', action:function(){ var b=document.querySelector('button[onclick*="startRecording"], #startRecBtn'); if(b) b.click(); }},
-            {icon:'⏹️', name:'停止录音', desc:'Stop recording', action:function(){ var b=document.querySelector('button[onclick*="stopRecording"], #stopRecBtn'); if(b) b.click(); }},
-            {icon:'✨', name:'生成会议纪要', desc:'Generate minutes', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
-            {icon:'📋', name:'复制纪要', desc:'Copy minutes', action:function(){ if(typeof copyMinutes==='function') copyMinutes(); }},
-            {icon:'📨', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushMinutesToFeishu==='function') pushMinutesToFeishu(); }},
+            {icon:'', name:'开始录音', desc:'Start recording', action:function(){ var b=document.querySelector('button[onclick*="startRecording"], #startRecBtn'); if(b) b.click(); }},
+            {icon:'⏹', name:'停止录音', desc:'Stop recording', action:function(){ var b=document.querySelector('button[onclick*="stopRecording"], #stopRecBtn'); if(b) b.click(); }},
+            {icon:'', name:'生成会议纪要', desc:'Generate minutes', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
+            {icon:'', name:'复制纪要', desc:'Copy minutes', action:function(){ if(typeof copyMinutes==='function') copyMinutes(); }},
+            {icon:'', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushMinutesToFeishu==='function') pushMinutesToFeishu(); }},
         ],
         '/weekly-report': [
-            {icon:'✨', name:'生成周报', desc:'Generate weekly report', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
-            {icon:'📋', name:'复制周报', desc:'Copy report', action:function(){ if(typeof copyReport==='function') copyReport(); }},
-            {icon:'🖨️', name:'导出/打印', desc:'Export / Print', action:function(){ if(typeof exportReport==='function') exportReport(); }},
-            {icon:'📨', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushToFeishu==='function') pushToFeishu(); }},
+            {icon:'', name:'生成周报', desc:'Generate weekly report', action:function(){ var b=document.getElementById('generateBtn'); if(b) b.click(); }},
+            {icon:'', name:'复制周报', desc:'Copy report', action:function(){ if(typeof copyReport==='function') copyReport(); }},
+            {icon:'', name:'导出/打印', desc:'Export / Print', action:function(){ if(typeof exportReport==='function') exportReport(); }},
+            {icon:'', name:'推送到飞书', desc:'Push to Feishu', action:function(){ if(typeof pushToFeishu==='function') pushToFeishu(); }},
         ],
         '/md2pdf': [
-            {icon:'📄', name:'选择文件', desc:'Select file', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
-            {icon:'🔄', name:'开始转换', desc:'Convert to PDF', action:function(){ var b=document.querySelector('button[onclick*="convert"], #convertBtn'); if(b) b.click(); }},
+            {icon:'', name:'选择文件', desc:'Select file', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'', name:'开始转换', desc:'Convert to PDF', action:function(){ var b=document.querySelector('button[onclick*="convert"], #convertBtn'); if(b) b.click(); }},
         ],
         '/excel-analysis': [
-            {icon:'📊', name:'上传Excel', desc:'Upload Excel', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
-            {icon:'✨', name:'AI 根因分析', desc:'AI root cause analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
+            {icon:'', name:'上传Excel', desc:'Upload Excel', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'', name:'AI 根因分析', desc:'AI root cause analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
         ],
         '/test-report': [
-            {icon:'📋', name:'上传测试报告', desc:'Upload test report', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
-            {icon:'✨', name:'AI 分析', desc:'AI analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
+            {icon:'', name:'上传测试报告', desc:'Upload test report', action:function(){ var i=document.querySelector('input[type=file]'); if(i) i.click(); }},
+            {icon:'', name:'AI 分析', desc:'AI analysis', action:function(){ var b=document.querySelector('button[onclick*="analyze"], #analyzeBtn'); if(b) b.click(); }},
         ],
         '/plan-generator': [
-            {icon:'📅', name:'生成计划', desc:'Generate plan', action:function(){ if(typeof generatePlan==='function') generatePlan(); }},
-            {icon:'📥', name:'导出CSV', desc:'Export CSV', action:function(){ var b=document.querySelector('button[onclick*="export"], #exportBtn'); if(b) b.click(); }},
+            {icon:'', name:'生成计划', desc:'Generate plan', action:function(){ if(typeof generatePlan==='function') generatePlan(); }},
+            {icon:'', name:'导出CSV', desc:'Export CSV', action:function(){ var b=document.querySelector('button[onclick*="export"], #exportBtn'); if(b) b.click(); }},
         ],
         '/project-info': [
-            {icon:'📊', name:'新建项目', desc:'New project', action:function(){ var b=document.querySelector('button[onclick*="newProject"], #newProjectBtn'); if(b) b.click(); }},
-            {icon:'💾', name:'保存项目', desc:'Save project', action:function(){ var b=document.querySelector('button[onclick*="save"], #saveBtn'); if(b) b.click(); }},
+            {icon:'', name:'新建项目', desc:'New project', action:function(){ var b=document.querySelector('button[onclick*="newProject"], #newProjectBtn'); if(b) b.click(); }},
+            {icon:'', name:'保存项目', desc:'Save project', action:function(){ var b=document.querySelector('button[onclick*="save"], #saveBtn'); if(b) b.click(); }},
         ],
         '/settings': [
-            {icon:'🤖', name:'AI 配置', desc:'AI config', action:function(){ window.location.hash='#ai-config'; }},
-            {icon:'📨', name:'飞书推送配置', desc:'Feishu push config', action:function(){ window.location.hash='#feishu'; }},
-            {icon:'🎨', name:'主题设置', desc:'Theme settings', action:function(){ window.location.hash='#theme'; }},
+            {icon:'', name:'AI 配置', desc:'AI config', action:function(){ window.location.hash='#ai-config'; }},
+            {icon:'', name:'飞书推送配置', desc:'Feishu push config', action:function(){ window.location.hash='#feishu'; }},
+            {icon:'', name:'主题设置', desc:'Theme settings', action:function(){ window.location.hash='#theme'; }},
         ],
     };
 
@@ -2192,7 +2192,7 @@ const ToolboxHistory = (function() {
             var title = escapeHtml(record.title || '未命名记录');
             var time = _formatTime(record.timestamp || Date.now());
             html += '<div class="tb-history-item" data-idx="' + idx + '" title="' + title + '">' +
-                '<div class="tb-history-item-icon">📄</div>' +
+                '<div class="tb-history-item-icon"></div>' +
                 '<div class="tb-history-item-content">' +
                     '<div class="tb-history-item-title">' + title + '</div>' +
                     '<div class="tb-history-item-time">' + time + '</div>' +
@@ -2367,13 +2367,13 @@ const ToolboxPush = (function() {
         options = options || {};
         var records = getHistory();
         if (records.length === 0) {
-            container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary, #999);font-size:13px;">📭 暂无推送记录</div>';
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary, #999);font-size:13px;"> 暂无推送记录</div>';
             return;
         }
         container.innerHTML = records.map(function(r, i) {
             var isError = r.status === 'failed' || r.status === 'error';
             var statusColor = isError ? '#ff3b30' : '#34c759';
-            var statusText = isError ? '❌ 失败' : '✅ 成功';
+            var statusText = isError ? ' 失败' : ' 成功';
             var timeStr = new Date(r.timestamp).toLocaleString('zh-CN');
             var resendBtn = (r.status === 'failed' && options.onResend)
                 ? '<button onclick="window.__pushResend(' + i + ')" style="padding:3px 10px;border-radius:6px;border:1px solid #ff3b30;background:rgba(255,59,48,0.1);color:#ff3b30;font-size:11px;cursor:pointer;margin-left:8px;">重发</button>'

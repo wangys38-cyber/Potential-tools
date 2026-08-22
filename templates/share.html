@@ -161,47 +161,47 @@
         <div class="share-title" id="shareTitle">{{ workspace.title }}</div>
         <div class="share-meta">
             <div class="share-meta-item">
-                <span>🔗</span>
-                <span>分享�? <code id="shareCode">{{ share_code }}</code></span>
+                <span></span>
+                <span>分享 <code id="shareCode">{{ share_code }}</code></span>
             </div>
             <div class="share-meta-item">
-                <span>🛠�?/span>
+                <span>?/span>
                 <span id="toolType">{{ workspace.tool_type or '通用' }}</span>
             </div>
             <div class="share-meta-item">
-                <span>👁/span>
-                <span id="permType">{{ '可编�? if workspace.permission == 'edit' else '仅查�? }}</span>
+                <span>/span>
+                <span id="permType">{{ '可编 if workspace.permission == 'edit' else '仅查 }}</span>
             </div>
         </div>
         <div class="share-actions">
             <button class="share-btn primary" onclick="PTCollab.joinWorkspace('{{ share_code }}')">
-                🚀 加入协作
+                 加入协作
             </button>
             <button class="share-btn" onclick="PTCollab.copyShareLink()">
-                📋 复制链接
+                 复制链接
             </button>
             <button class="share-btn" onclick="PTCollab.toggleComments()">
-                💬 评论 <span id="commentBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;">0</span>
+                 评论 <span id="commentBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:0 6px;font-size:11px;">0</span>
             </button>
         </div>
     </div>
 
     <div class="share-section">
-        <div class="section-title">👥 协作�?(<span id="memberCount">0</span>)</div>
+        <div class="section-title"> 协作?(<span id="memberCount">0</span>)</div>
         <div class="members-list" id="membersList">
-            <div class="empty-state">加载�?..</div>
+            <div class="empty-state">加载?..</div>
         </div>
     </div>
 
     {% if workspace.data_ref %}
     <div class="share-section">
-        <div class="section-title">📦 共享数据</div>
+        <div class="section-title"> 共享数据</div>
         <div class="data-preview" id="dataPreview">{{ workspace.data_ref }}</div>
     </div>
     {% endif %}
 
     <div class="share-section">
-        <div class="section-title">📝 活动记录</div>
+        <div class="section-title"> 活动记录</div>
         <div class="empty-state">暂无活动记录</div>
     </div>
 </div>
@@ -209,21 +209,21 @@
 <!-- 评论面板 -->
 <div class="pt-comments-panel" id="commentsPanel">
     <div class="pt-comments-header">
-        <div class="pt-comments-title">💬 评论</div>
-        <button class="pt-comments-close" onclick="PTCollab.toggleComments()">�?/button>
+        <div class="pt-comments-title"> 评论</div>
+        <button class="pt-comments-close" onclick="PTCollab.toggleComments()">?/button>
     </div>
     <div class="pt-comments-list" id="commentsList">
         <div class="pt-comments-empty">暂无评论，来发表第一条吧</div>
     </div>
     <div class="pt-comments-input-area">
         <textarea class="pt-comments-input" id="commentInput" placeholder="输入评论..." rows="1"></textarea>
-        <button class="pt-comments-send" id="commentSendBtn" onclick="PTCollab.sendComment()">发�?/button>
+        <button class="pt-comments-send" id="commentSendBtn" onclick="PTCollab.sendComment()">发?/button>
     </div>
 </div>
 
 <script src="/static/js/collab.js?v={{ STATIC_VERSION }}"></script>
 <script>
-// 初始化共享页�?
+// 初始化共享页?
 PTCollab.initSharePage('{{ share_code }}');
 </script>
 </body>

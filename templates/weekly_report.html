@@ -22,10 +22,10 @@
         <div class="card input-card">
             <div class="card-title"><span class="step-num">1</span> 填写周报素材</div>
 
-            <!-- 汇报�?+ 汇报周期 -->
+            <!-- 汇报?+ 汇报周期 -->
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="name">汇报�?<span class="req">*</span></label>
+                    <label class="form-label" for="name">汇报?<span class="req">*</span></label>
                     <input type="text" class="form-input" id="name" placeholder="请输入姓名，如：张三" autocomplete="off">
                 </div>
                 <div class="form-group">
@@ -37,19 +37,19 @@
             <!-- 4 个文本域 -->
             <div class="textarea-grid">
                 <div class="field-card">
-                    <label class="form-label" for="notes">📝 工作笔记 / 记录</label>
-                    <textarea class="field-textarea" id="notes" placeholder="本周完成的主要工作、进展、产出等...&#10;例：完成登录模块开发；修复 3 个线�?Bug；输出接口文档�?></textarea>
+                    <label class="form-label" for="notes"> 工作笔记 / 记录</label>
+                    <textarea class="field-textarea" id="notes" placeholder="本周完成的主要工作、进展、产出等...&#10;例：完成登录模块开发；修复 3 个线?Bug；输出接口文档?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="meetings">💬 会议内容摘要</label>
-                    <textarea class="field-textarea" id="meetings" placeholder="本周参加的会议、讨论结论、待办事�?..&#10;例：周一项目周会，确认下版排期；周三需求评审�?></textarea>
+                    <label class="form-label" for="meetings"> 会议内容摘要</label>
+                    <textarea class="field-textarea" id="meetings" placeholder="本周参加的会议、讨论结论、待办事?..&#10;例：周一项目周会，确认下版排期；周三需求评审?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="crIssues">🐛 问题 / CR 记录</label>
-                    <textarea class="field-textarea" id="crIssues" placeholder="遇到的问题、风险、变更记录CR)...&#10;例：联调阶段接口字段不一致，已反馈后端；CR-1024 审批中�?></textarea>
+                    <label class="form-label" for="crIssues"> 问题 / CR 记录</label>
+                    <textarea class="field-textarea" id="crIssues" placeholder="遇到的问题、风险、变更记录CR)...&#10;例：联调阶段接口字段不一致，已反馈后端；CR-1024 审批中?></textarea>
                 </div>
                 <div class="field-card">
-                    <label class="form-label" for="extra">📎 其他补充</label>
+                    <label class="form-label" for="extra"> 其他补充</label>
                     <textarea class="field-textarea" id="extra" placeholder="下周计划、学习收获、需协调的资源等补充信息..."></textarea>
                 </div>
             </div>
@@ -57,9 +57,9 @@
             <!-- 模型选择 + 生成按钮 -->
             <div class="action-row">
                 <div class="form-group model-group">
-                    <label class="form-label" for="model">🧠 AI 模型</label>
+                    <label class="form-label" for="model"> AI 模型</label>
                     <select class="form-select" id="model">
-                        <option value="">加载�?..</option>
+                        <option value="">加载?..</option>
                     </select>
                 </div>
                 <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">
@@ -67,7 +67,7 @@
                     <span class="btn-text">✓生成周报</span>
                 </button>
             </div>
-            <div class="action-hint">提示：至少填写一项素材内容；快捷�?Ctrl/�?+ Enter 可快速生成�?/div>
+            <div class="action-hint">提示：至少填写一项素材内容；快捷?Ctrl/?+ Enter 可快速生成?/div>
         </div>
 
         <!-- 结果卡片 -->
@@ -75,19 +75,19 @@
             <div class="result-toolbar no-print">
                 <div class="toolbar-left">
                     <span class="card-title" style="margin:0;"><span class="step-num">2</span> 周报结果</span>
-                    <span class="result-badge" id="resultBadge">✓已生�?/span>
+                    <span class="result-badge" id="resultBadge">✓已生?/span>
                 </div>
                 <div class="toolbar-right">
-                    <button class="btn btn-secondary btn-sm" onclick="copyReport()">📋 复制</button>
-                    <button class="btn btn-secondary btn-sm" onclick="pushToFeishu()">📨 推飞�?/button>
-                    <button class="btn btn-primary btn-sm" onclick="exportReport()">🖨�?导出</button>
+                    <button class="btn btn-secondary btn-sm" onclick="copyReport()"> 复制</button>
+                    <button class="btn btn-secondary btn-sm" onclick="pushToFeishu()"> 推飞?/button>
+                    <button class="btn btn-primary btn-sm" onclick="exportReport()">?导出</button>
                 </div>
             </div>
             <div class="report-content" id="reportArea">
                 <div class="empty-state">
-                    <div class="empty-state-icon">📄</div>
-                    <div class="empty-state-text">填写上方素材后点击「生成周报�?/div>
-                    <div class="empty-state-hint">AI 将自动归纳本周工作，生成结构化周�?/div>
+                    <div class="empty-state-icon"></div>
+                    <div class="empty-state-text">填写上方素材后点击「生成周报?/div>
+                    <div class="empty-state-hint">AI 将自动归纳本周工作，生成结构化周?/div>
                 </div>
             </div>
         </div>
@@ -97,7 +97,7 @@
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script>
-    // v5.0 接收站会助手中转数据，自动填充周�?
+    // v5.0 接收站会助手中转数据，自动填充周?
     (function importFromStandup() {
         try {
             var prefix = window._USER_PREFIX || '';
@@ -114,7 +114,7 @@
             matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
             if (!data || data.source !== 'daily-standup') return;
 
-            // 填充各字�?
+            // 填充各字?
             if (data.week_range) {
                 var wr = document.getElementById('weekRange');
                 if (wr) wr.value = data.week_range;
@@ -132,7 +132,7 @@
             // 显示导入提示
             var banner = document.createElement('div');
             banner.style.cssText = 'margin:0 0 16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
-            banner.textContent = '✓已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生�?;
+            banner.textContent = '✓已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生?;
             var page = document.querySelector('.page');
             if (page) page.insertBefore(banner, page.firstChild);
         } catch(e) { console.warn('Weekly report import error:', e); }

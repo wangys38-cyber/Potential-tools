@@ -1,4 +1,4 @@
-// Task3: 项目计划甘特图
+﻿// Task3: 项目计划甘特图
 (function() {
     var ganttContainer = null;
     var ganttViewMode = 'week'; // week or month
@@ -13,7 +13,7 @@
         var ganttBtn = document.createElement('button');
         ganttBtn.className = 'action-btn';
         ganttBtn.id = 'ganttToggleBtn';
-        ganttBtn.textContent = '📊 甘特图';
+        ganttBtn.textContent = ' 甘特图';
         ganttBtn.onclick = toggleGanttView;
         actionBtns.insertBefore(ganttBtn, actionBtns.firstChild);
 
@@ -27,12 +27,12 @@
         ganttContainer.style.marginTop = '16px';
         ganttContainer.innerHTML = '' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">' +
-                '<h3 style="font-size:16px;font-weight:700;margin:0;">📊 项目甘特图</h3>' +
+                '<h3 style="font-size:16px;font-weight:700;margin:0;"> 项目甘特图</h3>' +
                 '<div style="display:flex;gap:6px;align-items:center;">' +
                     '<span style="font-size:12px;color:var(--text-tertiary);">视图：</span>' +
                     '<button id="ganttWeekBtn" onclick="window.setGanttMode(\'week\')" style="padding:4px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:#000;color:#fff;cursor:pointer;">周</button>' +
                     '<button id="ganttMonthBtn" onclick="window.setGanttMode(\'month\')" style="padding:4px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;">月</button>' +
-                    '<button onclick="window.exportGanttSVG()" style="padding:4px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;margin-left:8px;">📥 导出</button>' +
+                    '<button onclick="window.exportGanttSVG()" style="padding:4px 12px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);cursor:pointer;margin-left:8px;"> 导出</button>' +
                 '</div>' +
             '</div>' +
             '<div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border);padding:16px;overflow-x:auto;">' +
@@ -190,7 +190,7 @@
                 svg += '<rect x="0" y="' + y + '" width="' + chartWidth + '" height="' + rowHeight + '" fill="var(--bg-secondary)" opacity="0.3"/>';
             }
             // 标签
-            svg += '<text x="10" y="' + (y + rowHeight/2 + 4) + '" class="gantt-label">' + (item.isMilestone ? '🚩 ' : '') + item.name + '</text>';
+            svg += '<text x="10" y="' + (y + rowHeight/2 + 4) + '" class="gantt-label">' + (item.isMilestone ? ' ' : '') + item.name + '</text>';
 
             // 条形
             var barX = labelWidth + ((item.startDate - minDate) / 86400000) / daysPerUnit * unitWidth;
@@ -247,7 +247,7 @@
         modal.innerHTML =
             '<div style="background:var(--bg-card);border-radius:16px;width:90%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,0.2);">' +
             '<div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">' +
-            '<h3 style="margin:0;font-size:16px;font-weight:700;">' + (item.isMilestone ? '🚩 ' : '') + item.name + '</h3>' +
+            '<h3 style="margin:0;font-size:16px;font-weight:700;">' + (item.isMilestone ? ' ' : '') + item.name + '</h3>' +
             '<button onclick="document.getElementById(\'ganttDetailModal\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-tertiary);">×</button>' +
             '</div>' +
             '<div style="padding:18px 22px;">' +

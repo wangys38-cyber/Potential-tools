@@ -1,4 +1,4 @@
-/* ===== Potential-tools v5.3 协作功能前端组件 =====
+﻿/* ===== Potential-tools v5.3 协作功能前端组件 =====
  * 包含：分享面板、评论面板、实时轮询、工作空间管理
  * 用法：在页面中引入 <script src="/static/js/collab.js?v=..."></script>
  */
@@ -74,7 +74,7 @@ window.PTCollab = (function() {
         panel.className = 'pt-share-panel';
         panel.id = 'ptSharePanel';
         panel.innerHTML =
-            '<div class="pt-share-title">🔗 分享工作空间</div>' +
+            '<div class="pt-share-title"> 分享工作空间</div>' +
             '<div style="margin-bottom:12px;">' +
             '  <label class="tb-form-label" style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:6px;display:block;">工作空间名称</label>' +
             '  <input type="text" id="ptShareTitle" class="tb-form-input" value="' + _escapeHtml(title) + '" style="width:100%;padding:10px 14px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:14px;font-family:inherit;box-sizing:border-box;">' +
@@ -413,7 +413,7 @@ window.PTCollab = (function() {
             var floatBtn = document.createElement('button');
             floatBtn.className = 'pt-collab-btn pt-collab-float';
             floatBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);';
-            floatBtn.innerHTML = '🔗 分享';
+            floatBtn.innerHTML = ' 分享';
             floatBtn.onclick = function() { openSharePanel(options || {}); };
             document.body.appendChild(floatBtn);
             return;
@@ -422,7 +422,7 @@ window.PTCollab = (function() {
 
         var btn = document.createElement('button');
         btn.className = 'pt-collab-btn';
-        btn.innerHTML = '🔗 分享';
+        btn.innerHTML = ' 分享';
         btn.onclick = function() {
             openSharePanel(options || {});
         };

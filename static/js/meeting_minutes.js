@@ -1,4 +1,4 @@
-// ==================== 全局状态 ====================
+﻿// ==================== 全局状态 ====================
         let currentMode = 'system';
         let transcriptEntries = [];
         let minutesHTML = '';
@@ -213,10 +213,10 @@
                     }
                     if (levelText) {
                         if (level > 5) {
-                            levelText.textContent = '✅ 正在接收音频信号';
+                            levelText.textContent = ' 正在接收音频信号';
                             levelText.style.color = 'var(--success, #34c759)';
                         } else {
-                            levelText.textContent = '⚠️ 未检测到声音 — 请确认 Teams 正在播放声音且勾选了「分享音频」';
+                            levelText.textContent = ' 未检测到声音 — 请确认 Teams 正在播放声音且勾选了「分享音频」';
                             levelText.style.color = 'var(--warning, #ff9500)';
                         }
                     }
@@ -665,7 +665,7 @@
 
             // 初始化转写区域
             const area = document.getElementById('transcriptArea');
-            area.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation: pulse 1.5s ease-in-out infinite;">🎤</div><div class="empty-state-text">正在聆听... 请开始说话</div></div>';
+            area.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation: pulse 1.5s ease-in-out infinite;"></div><div class="empty-state-text">正在聆听... 请开始说话</div></div>';
         }
 
         /**
@@ -812,7 +812,7 @@
             const area = document.getElementById('manualInputArea');
             const btn = document.getElementById('manualBtn');
             area.classList.toggle('show');
-            btn.textContent = area.classList.contains('show') ? '✏️ 收起输入' : '✏️ 手动输入';
+            btn.textContent = area.classList.contains('show') ? '✏ 收起输入' : '✏ 手动输入';
         }
 
         function addManualText() {
@@ -1020,7 +1020,7 @@
 
             // 如果没有内容，显示空状态
             if (transcriptEntries.length === 0 && !currentInterim) {
-                area.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎤</div><div class="empty-state-text">正在聆听...</div></div>';
+                area.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><div class="empty-state-text">正在聆听...</div></div>';
                 _interimEl = null;
                 return;
             }
@@ -1097,7 +1097,7 @@
                     showToast('会议纪要已生成', 'success');
                 },
                 onError: function(err) {
-                    area.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="opacity:0.5;">❌</div><div class="empty-state-text" style="color:var(--danger);">生成失败: ${escapeHtml(err)}</div><div style="font-size:13px;color:var(--text-tertiary);margin-top:8px;">请检查AI配置或稍后重试</div></div>`;
+                    area.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="opacity:0.5;"></div><div class="empty-state-text" style="color:var(--danger);">生成失败: ${escapeHtml(err)}</div><div style="font-size:13px;color:var(--text-tertiary);margin-top:8px;">请检查AI配置或稍后重试</div></div>`;
                     showToast('生成失败: ' + err, 'error');
                 }
             });
@@ -1118,7 +1118,7 @@
             const attendees = document.getElementById('attendees').value.trim() || '';
             const safeTitle = escapeHtml(title);
             const safeAttendees = escapeHtml(attendees);
-            const fullHTML = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title><style>body{font-family:-apple-system,'PingFang SC',sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.8;}h1{font-size:24px;border-bottom:2px solid #0071e3;padding-bottom:8px;}h2{font-size:18px;margin-top:24px;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f7;}</style></head><body><h1>${safeTitle}</h1><p>📅 日期: ${date}<br>👥 参会人员: ${safeAttendees}</p>${minutesHTML}</body></html>`;
+            const fullHTML = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${safeTitle}</title><style>body{font-family:-apple-system,'PingFang SC',sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.8;}h1{font-size:24px;border-bottom:2px solid #0071e3;padding-bottom:8px;}h2{font-size:18px;margin-top:24px;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f7;}</style></head><body><h1>${safeTitle}</h1><p> 日期: ${date}<br> 参会人员: ${safeAttendees}</p>${minutesHTML}</body></html>`;
             const blob = new Blob([fullHTML], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `${title}_${date.replace(/\//g,'')}.html`; a.click();
@@ -1139,7 +1139,7 @@
                 const temp = document.createElement('div'); temp.innerHTML = minutesHTML;
                 mdContent = temp.innerText;
             }
-            const fullMarkdown = `# ${title}\n\n📅 日期: ${date}\n👥 参会人员: ${attendees}\n\n---\n\n${mdContent}`;
+            const fullMarkdown = `# ${title}\n\n 日期: ${date}\n 参会人员: ${attendees}\n\n---\n\n${mdContent}`;
 
             try {
                 showToast('正在生成PDF...', 'info');
@@ -1174,7 +1174,7 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         type: 'meeting',
-                        title: '🎙️ ' + title,
+                        title: ' ' + title,
                         content: text,
                         summary: text.substring(0, 500),
                         url: window.location.href
@@ -1182,12 +1182,12 @@
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    showToast('✅ 已推送到飞书群', 'success');
+                    showToast(' 已推送到飞书群', 'success');
                 } else {
-                    showToast('❌ ' + (data.error || '推送失败'), 'error');
+                    showToast(' ' + (data.error || '推送失败'), 'error');
                 }
             } catch (e) {
-                showToast('❌ 推送失败: ' + e.message, 'error');
+                showToast(' 推送失败: ' + e.message, 'error');
             }
         }
 
@@ -1208,7 +1208,7 @@
             if (!todos) {
                 // 如果没找到明确的待办段，提取所有带 checkbox / 数字 / - 的行
                 const lines = text.split('\n').filter(l =>
-                    /^\s*[-*•]/.test(l) || /^\s*\d+[.)]/.test(l) || /☐|✅|■/.test(l)
+                    /^\s*[-*•]/.test(l) || /^\s*\d+[.)]/.test(l) || /☐||■/.test(l)
                 );
                 todos = lines.join('\n');
             }
@@ -1231,10 +1231,10 @@
                 const prefix = window._USER_PREFIX || '';
                 const key = prefix + 'pipeline_meeting-minutes_' + ts;
                 localStorage.setItem(key, JSON.stringify(transferData));
-                showToast('📅 正在跳转到项目计划生成器...', 'info');
+                showToast(' 正在跳转到项目计划生成器...', 'info');
                 setTimeout(() => { window.location.href = '/plan-generator'; }, 500);
             } catch(e) {
-                showToast('❌ 数据传递失败: ' + e.message, 'error');
+                showToast(' 数据传递失败: ' + e.message, 'error');
             }
         }
 
@@ -1244,15 +1244,15 @@
             type = type || 'info'; duration = duration || 3000;
             const c = document.getElementById('toastContainer');
             const t = document.createElement('div'); t.className = 'toast toast-' + type;
-            const icons = { info:'ℹ️', success:'✅', error:'❌', warning:'⚠️' };
-            t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${escapeHtml(msg)}</span>`;
+            const icons = { info:'ℹ', success:'', error:'', warning:'' };
+            t.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${escapeHtml(msg)}</span>`;
             c.appendChild(t); requestAnimationFrame(() => t.classList.add('show'));
             setTimeout(() => { t.classList.remove('show'); setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 300); }, duration);
         }
         function toggleTheme() {
             // no-op：本模板中 #themeBtn 不存在，避免引用空元素
         }
-        document.addEventListener('themechange', (e) => { const tb = document.getElementById('themeBtn'); if(tb) tb.textContent = e.detail.isDark ? '☀️' : '🌙'; });
+        document.addEventListener('themechange', (e) => { const tb = document.getElementById('themeBtn'); if(tb) tb.textContent = e.detail.isDark ? '' : ''; });
 
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', () => {

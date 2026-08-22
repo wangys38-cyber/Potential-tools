@@ -1,4 +1,4 @@
-// ==================== 全局状态 ====================
+﻿// ==================== 全局状态 ====================
         let reportHTML = '';
         let isGenerating = false;
 
@@ -110,7 +110,7 @@
                 reportHTML = '';
                 area.innerHTML =
                     '<div class="error-state">' +
-                        '<div class="error-state-icon">⚠️</div>' +
+                        '<div class="error-state-icon"></div>' +
                         '<div class="error-state-text">生成失败：' + escapeHtml(err.message) + '</div>' +
                         '<div class="error-state-hint">请检查网络或稍后重试</div>' +
                     '</div>';
@@ -119,7 +119,7 @@
                 isGenerating = false;
                 btn.disabled = false;
                 btn.classList.remove('loading');
-                btn.querySelector('.btn-text').textContent = '✨ 生成周报';
+                btn.querySelector('.btn-text').textContent = ' 生成周报';
             }
         }
 
@@ -174,7 +174,7 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         type: 'weekly',
-                        title: '📊 周报 - ' + new Date().toLocaleDateString('zh-CN'),
+                        title: ' 周报 - ' + new Date().toLocaleDateString('zh-CN'),
                         content: text,
                         summary: text.substring(0, 500),
                         url: window.location.href
@@ -182,12 +182,12 @@
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {
-                    showToast('✅ 已推送到飞书群', 'success');
+                    showToast(' 已推送到飞书群', 'success');
                 } else {
-                    showToast('❌ ' + (data.error || '推送失败'), 'error');
+                    showToast(' ' + (data.error || '推送失败'), 'error');
                 }
             } catch (e) {
-                showToast('❌ 推送失败: ' + e.message, 'error');
+                showToast(' 推送失败: ' + e.message, 'error');
             }
         }
 
@@ -206,7 +206,7 @@
 
             // 记录最近使用（由 components.js 提供）
             if (window.ToolboxRecent) {
-                ToolboxRecent.record('weekly_report', '智能周报生成', '📋');
+                ToolboxRecent.record('weekly_report', '智能周报生成', '');
             }
 
             // 动态加载 AI 模型列表

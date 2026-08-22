@@ -1,4 +1,4 @@
-function showToast(msg, type) {
+﻿function showToast(msg, type) {
             if (typeof ToolboxToast !== 'undefined') {
                 ToolboxToast.show(msg, type || 'info');
             } else {
@@ -419,7 +419,7 @@ function showToast(msg, type) {
                 fileItem.id = `file-${index}`;
                 fileItem.innerHTML = `
                     <div class="file-info">
-                        <span class="file-icon">${file.name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                        <span class="file-icon">${file.name.toLowerCase().endsWith('.md') ? '' : ''}</span>
                         <span class="file-name">${escapeHtml(file.name)}</span>
                     </div>
                     <span class="file-status processing">处理中...</span>
@@ -456,7 +456,7 @@ function showToast(msg, type) {
                             fileItem.classList.add('success');
                             fileItem.innerHTML = `
                                 <div class="file-info">
-                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '' : ''}</span>
                                     <span class="file-name">${escapeHtml(result.original_name)}</span>
                                 </div>
                                 <span class="file-status success">✓ 成功</span>
@@ -466,7 +466,7 @@ function showToast(msg, type) {
                             fileItem.classList.add('failed');
                             fileItem.innerHTML = `
                                 <div class="file-info">
-                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '📝' : '📄'}</span>
+                                    <span class="file-icon">${result.original_name.toLowerCase().endsWith('.md') ? '' : ''}</span>
                                     <span class="file-name">${escapeHtml(result.original_name)}</span>
                                 </div>
                                 <span class="file-status failed">✗ 失败</span>
@@ -651,7 +651,7 @@ function showToast(msg, type) {
                     <div class="excel-sheet-header">
                         <div class="excel-sheet-check"></div>
                         <div class="excel-sheet-info">
-                            <div class="excel-sheet-name">📋 ${sheet.name}</div>
+                            <div class="excel-sheet-name"> ${sheet.name}</div>
                             <div class="excel-sheet-meta">${sheet.row_count} 行 × ${sheet.column_count} 列 · ${sheet.summary}</div>
                         </div>
                         <div class="excel-sheet-toggle">▶</div>
@@ -776,7 +776,7 @@ function showToast(msg, type) {
             } finally {
                 excelOrganizeBtn.disabled = false;
                 excelOrganizeSpinner.style.display = 'none';
-                excelOrganizeText.textContent = '✨ 智能整理预览';
+                excelOrganizeText.textContent = ' 智能整理预览';
             }
         });
 
@@ -940,7 +940,7 @@ function showToast(msg, type) {
                 tab.className = 'excel-select-tab' + (index === 0 ? ' active' : '');
                 tab.dataset.sheetName = sheet.name;
                 const totalRows = sheet.all_data ? sheet.all_data.length : (sheet.data_preview ? sheet.data_preview.length : 0);
-                tab.innerHTML = `📋 ${sheet.name}<span class="row-count">${totalRows}行</span>`;
+                tab.innerHTML = ` ${sheet.name}<span class="row-count">${totalRows}行</span>`;
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.excel-select-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');

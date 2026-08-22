@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -422,14 +422,14 @@
             .then(r => r.json())
             .then(data => {
                 if (data.error) {
-                    uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;">❌ ' + data.error + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
+                    uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;"> ' + data.error + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
                     return;
                 }
                 allFeatures = data.features;
                 showResults(data);
             })
             .catch(err => {
-                uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;">❌ 解析失败: ' + err.message + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
+                uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;"> 解析失败: ' + err.message + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
             });
         }
 
@@ -539,7 +539,7 @@
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
 
-                btnText.textContent = '✅ 生成完成，已下载';
+                btnText.textContent = ' 生成完成，已下载';
                 setTimeout(() => {
                     btn.disabled = false;
                     btnText.textContent = '生成全部 HLD 并下载 ZIP';
@@ -548,7 +548,7 @@
                 }, 3000);
             })
             .catch(err => {
-                btnText.textContent = '❌ 生成失败: ' + err.message;
+                btnText.textContent = ' 生成失败: ' + err.message;
                 btn.disabled = false;
                 progressBar.classList.remove('active');
                 setTimeout(() => {
@@ -565,7 +565,7 @@
             document.getElementById('featureListContainer').style.display = 'none';
             uploadZone.style.display = 'block';
             uploadZone.innerHTML = `
-                <div class="upload-icon">📄</div>
+                <div class="upload-icon"></div>
                 <div class="upload-text">点击或拖拽上传 OD Excel 文件</div>
                 <div class="upload-hint">支持 .xlsx / .xls 格式，自动解析 Feature 并生成 HLD</div>
             `;

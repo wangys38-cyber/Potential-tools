@@ -1,4 +1,4 @@
-function showToast(msg, type) {
+﻿function showToast(msg, type) {
             if (typeof ToolboxToast !== 'undefined') {
                 ToolboxToast.show(msg, type || 'info');
             } else {
@@ -100,7 +100,7 @@ function showToast(msg, type) {
             // 云端 > 20MB 警告
             if (cfg.isCloudEnv && sizeMB > 20) {
                 const ok = confirm(
-                    `⚠️ 文件较大（${sizeMB.toFixed(1)}MB）\n` +
+                    ` 文件较大（${sizeMB.toFixed(1)}MB）\n` +
                     `云端内存有限（512MB），分析大文件可能因内存不足失败。\n` +
                     `\n确认继续？（建议本地部署：git clone https://github.com/wangys38-cyber/CR-tools.git）`
                 );
@@ -252,16 +252,16 @@ function showToast(msg, type) {
             const colGrid = document.getElementById('columnGrid');
 
             const fieldLabels = {
-                module: '📦 Component/s（模块/组件）',
-                developer: '👤 Assignee（研发/负责人）',
-                status: '📊 Status（问题状态）',
-                create_date: '📅 Created（创建日期）',
-                resolve_date: '✅ Resolved（解决日期）',
-                fixed_date: '🔧 Closed Date（fixed日期）',
-                fixed_version: '🏷️ Fix Version/s（fixed版本）',
-                issue_id: '🔢 Key（问题编号）',
-                title: '📝 Summary（问题标题）',
-                severity: '⚠️ Severity（严重性）',
+                module: ' Component/s（模块/组件）',
+                developer: ' Assignee（研发/负责人）',
+                status: ' Status（问题状态）',
+                create_date: ' Created（创建日期）',
+                resolve_date: ' Resolved（解决日期）',
+                fixed_date: ' Closed Date（fixed日期）',
+                fixed_version: ' Fix Version/s（fixed版本）',
+                issue_id: ' Key（问题编号）',
+                title: ' Summary（问题标题）',
+                severity: ' Severity（严重性）',
             };
 
             // Handle sheet names
@@ -281,24 +281,24 @@ function showToast(msg, type) {
             let infoHtml = '';
             
             if (!hasIssues) {
-                infoHtml += '<div style="color:#d4380d;margin-bottom:8px;">⚠️ 未检测到有效问题数据，请确认文件格式或手动配置字段映射</div>';
+                infoHtml += '<div style="color:#d4380d;margin-bottom:8px;"> 未检测到有效问题数据，请确认文件格式或手动配置字段映射</div>';
             }
             
             if (detectedFields.length > 0) {
-                infoHtml += '<div style="font-weight:600;color:var(--text);margin-bottom:8px;">✅ 自动识别到 ' + detectedFields.length + ' 个关键字段映射：</div>';
+                infoHtml += '<div style="font-weight:600;color:var(--text);margin-bottom:8px;"> 自动识别到 ' + detectedFields.length + ' 个关键字段映射：</div>';
                 const detectedText = detectedFields.map(f => 
                     `<span style="display:inline-block;background:rgba(0,113,227,0.08);color:var(--accent);padding:2px 8px;border-radius:6px;margin:2px;font-size:12px;font-weight:600;">${fieldLabels[f] || f} → 第${columnMapping[f] + 1}列</span>`
                 ).join('');
                 infoHtml += detectedText;
             } else {
-                infoHtml += '<div style="color:#d4380d;margin:8px 0;">⚠️ 未能自动识别任何字段，请手动配置下方映射</div>';
+                infoHtml += '<div style="color:#d4380d;margin:8px 0;"> 未能自动识别任何字段，请手动配置下方映射</div>';
             }
             
             // Show sample data if available
             const sampleData = currentAnalysisData.sample_data || [];
             if (sampleData.length > 0) {
                 const maxCols = Math.min(currentHeaders.length, 8);
-                infoHtml += '<div style="margin-top:14px;font-weight:600;color:var(--text);font-size:13px;">📋 数据预览（前3行 × ' + maxCols + '列）：</div>';
+                infoHtml += '<div style="margin-top:14px;font-weight:600;color:var(--text);font-size:13px;"> 数据预览（前3行 × ' + maxCols + '列）：</div>';
                 infoHtml += '<div style="overflow-x:auto;margin-top:8px;"><table style="min-width:100%;">';
                 infoHtml += '<tr>';
                 for (let i = 0; i < maxCols; i++) {
@@ -527,12 +527,12 @@ function showToast(msg, type) {
                 const sw = d.severity_warning || '';
                 let warningHtml = '';
                 if (sw) {
-                    warningHtml = `<div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;color:#856404;font-size:12px;">⚠️ ${sw}</div>`;
+                    warningHtml = `<div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;color:#856404;font-size:12px;"> ${sw}</div>`;
                 }
                 sevInfo.style.display = 'block';
                 sevInfo.innerHTML = `
                     <div style="background:#f5f5f7;border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:13px;">
-                        <div style="font-weight:600;margin-bottom:8px;">🔍 Severity检测</div>
+                        <div style="font-weight:600;margin-bottom:8px;"> Severity检测</div>
                         <div style="color:#666;margin-bottom:6px;">字段: ${sd ? '<span style="color:#34c759;">✓ 已识别Severity</span>' : '<span style="color:#ff3b30;">✗ 未识别</span>'}</div>
                         <div style="color:#666;">实际值: <code style="background:#fff;padding:2px 6px;border-radius:4px;">${sv.length ? escapeHtml(sv.join(', ')) : '(无数据)'}</code></div>
                         ${warningHtml}
@@ -688,7 +688,7 @@ function showToast(msg, type) {
                     sugHtml += `
                         <div style="background:linear-gradient(135deg,#f8f9fa,#e8e8ed);border-radius:20px;padding:28px;margin-bottom:24px;border:1px solid #e5e5ea;">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                                <span style="font-size:24px;">📊</span>
+                                <span style="font-size:24px;"></span>
                                 <h3 style="margin:0;color:var(--text);font-size:18px;font-weight:700;">问题总体概览</h3>
                             </div>
                             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
@@ -755,7 +755,7 @@ function showToast(msg, type) {
                 });
                 unvHtml = `
                     <div style="margin-top:28px;background:linear-gradient(135deg,#fff,#f8f9fa);border-radius:16px;padding:24px;box-shadow:var(--shadow-md);border:1px solid var(--border);">
-                        <h3 style="font-size:15px;font-weight:700;color:var(--warning);margin-bottom:8px;display:flex;align-items:center;gap:6px;">⚠️ 待验证问题（共 ${unverifiedList.length} 条）</h3>
+                        <h3 style="font-size:15px;font-weight:700;color:var(--warning);margin-bottom:8px;display:flex;align-items:center;gap:6px;"> 待验证问题（共 ${unverifiedList.length} 条）</h3>
                         <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">以下问题 Status 为 Resolved，研发已修复，等待测试验证。</p>
                         <div style="max-height:400px;overflow-y:auto;">
                         <table>
@@ -1002,7 +1002,7 @@ function showToast(msg, type) {
             if (aiContent) {
                 aiContent.innerHTML = `
                     <div style="text-align: center; padding: 20px;">
-                        <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">🤖 生成 AI 根因分析</button>
+                        <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);"> 生成 AI 根因分析</button>
                         <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 8px;">AI 将基于问题数据生成根因分析、高风险领域和改进建议</div>
                     </div>
                 `;
@@ -1046,7 +1046,7 @@ function showToast(msg, type) {
                     content.innerHTML = `
                         <div style="line-height: 1.8; font-size: 14px; color: var(--text-primary);">${html}</div>
                         <div style="margin-top: 16px; text-align: right;">
-                            <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;">📋 复制</button>
+                            <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;"> 复制</button>
                         </div>
                     `;
                 },
@@ -1054,7 +1054,7 @@ function showToast(msg, type) {
                     var errMsg = (err || 'AI分析失败').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
                     content.innerHTML = `
                         <div style="padding: 20px; text-align: center;">
-                            <div style="color: var(--danger); margin-bottom: 12px;">❌ ${errMsg}</div>
+                            <div style="color: var(--danger); margin-bottom: 12px;"> ${errMsg}</div>
                             <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
                         </div>
                     `;
@@ -1080,7 +1080,7 @@ function showToast(msg, type) {
             if (Object.keys(allStats).length === 0) {
                 document.getElementById('stabilitySection').innerHTML = `
                     <div style="background:linear-gradient(135deg,#f5f5f7,#e8e8ed);border-radius:12px;padding:40px;text-align:center;">
-                        <div style="font-size:48px;margin-bottom:12px;">📊</div>
+                        <div style="font-size:48px;margin-bottom:12px;"></div>
                         <h3 style="margin:0 0 8px;color:var(--text);">暂无数据</h3>
                         <p style="margin:0;color:var(--text-secondary);font-size:13px;">请先上传文件并完成分析</p>
                     </div>
@@ -1111,7 +1111,7 @@ function showToast(msg, type) {
                 
                 stabilityHtml += `
                     <div style="background:linear-gradient(135deg,#f0f7ff,#e8f1ff);border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #bae0ff;">
-                        <h3 style="margin:0 0 12px;color:var(--text);display:flex;align-items:center;gap:8px;">🛡️ 稳定性模块问题统计</h3>
+                        <h3 style="margin:0 0 12px;color:var(--text);display:flex;align-items:center;gap:8px;"> 稳定性模块问题统计</h3>
                         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;">
                             <div style="background:white;padding:12px;border-radius:8px;text-align:center;">
                                 <div style="font-size:24px;font-weight:700;color:var(--accent);">${stabilityCount}</div>
@@ -1170,7 +1170,7 @@ function showToast(msg, type) {
                 const totalModules = Object.keys(allStats).length;
                 stabilityHtml = `
                     <div style="background:linear-gradient(135deg,#f5f5f7,#e8e8ed);border-radius:12px;padding:40px;text-align:center;">
-                        <div style="font-size:48px;margin-bottom:12px;">🔍</div>
+                        <div style="font-size:48px;margin-bottom:12px;"></div>
                         <h3 style="margin:0 0 8px;color:var(--text);">没有匹配的模块</h3>
                         <p style="margin:0 0 8px;color:var(--text-secondary);font-size:13px;">
                             当前关键字 "${keywordsStr}" 没有匹配到任何模块
@@ -1203,7 +1203,7 @@ function showToast(msg, type) {
                         <div style="background:linear-gradient(135deg,#fff,#f8f9fa);border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid var(--border);">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                                 <h3 style="margin:0;color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
-                                    📋 稳定性问题详情列表
+                                     稳定性问题详情列表
                                 </h3>
                                 <div style="display:flex;gap:8px;">
                                     <select id="stabilityStatusFilter" onchange="filterStabilityIssues()" style="padding:6px 12px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;">
@@ -1218,12 +1218,12 @@ function showToast(msg, type) {
                                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
                                     <thead style="position:sticky;top:0;background:#f5f5f7;z-index:1;">
                                         <tr>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">🔗 eDART ID</th>
+                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> eDART ID</th>
                                             <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;">标题</th>
                                             <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">模块</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">👤 研发</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">📅 创建时间</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">🔴 严重性</th>
+                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 研发</th>
+                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 创建时间</th>
+                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 严重性</th>
                                             <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">状态</th>
                                         </tr>
                                     </thead>
@@ -1415,7 +1415,7 @@ function showToast(msg, type) {
             return `
                 <div style="background:linear-gradient(135deg,#f0f7ff,#e6f0ff);border-radius:20px;padding:28px;border:1px solid #b3d4ff;">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                        <span style="font-size:24px;">💡</span>
+                        <span style="font-size:24px;"></span>
                         <h3 style="margin:0;color:#0040a0;font-size:18px;font-weight:700;">智能分析建议</h3>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1511,7 +1511,7 @@ function showToast(msg, type) {
 
             const btn = document.getElementById('pushFeishuBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = '⏳ 推送中...';
+            btn.innerHTML = ' 推送中...';
             btn.disabled = true;
 
             try {
@@ -1520,11 +1520,11 @@ function showToast(msg, type) {
                 const fileName = d.file_name || 'CR分析报告';
 
                 // 构建 Markdown 内容
-                let md = `**📊 CR 分析报告**\n\n`;
-                md += `📁 文件：${fileName}\n\n`;
+                let md = `** CR 分析报告**\n\n`;
+                md += ` 文件：${fileName}\n\n`;
 
                 // 总览
-                md += `**📈 总览**\n`;
+                md += `** 总览**\n`;
                 md += `- 问题总数：${s.total_issues || 0}\n`;
                 md += `- 已解决：${s.total_resolved || 0}\n`;
                 md += `- 未解决：${s.total_unresolved || 0}\n`;
@@ -1532,11 +1532,11 @@ function showToast(msg, type) {
 
                 // Severity 分布
                 if (s.blocker_total !== undefined || s.critical_total !== undefined) {
-                    md += `**⚠️ Severity 分布**\n`;
-                    if (s.blocker_total !== undefined) md += `- 🔴 Blocker：${s.blocker_total} (${s.blocker_rate || 0}%)\n`;
-                    if (s.critical_total !== undefined) md += `- 🟠 Critical：${s.critical_total} (${s.critical_rate || 0}%)\n`;
-                    if (s.major_total !== undefined) md += `- 🟡 Major：${s.major_total} (${s.major_rate || 0}%)\n`;
-                    if (s.minor_total !== undefined) md += `- 🔵 Minor：${s.minor_total} (${s.minor_rate || 0}%)\n`;
+                    md += `** Severity 分布**\n`;
+                    if (s.blocker_total !== undefined) md += `-  Blocker：${s.blocker_total} (${s.blocker_rate || 0}%)\n`;
+                    if (s.critical_total !== undefined) md += `-  Critical：${s.critical_total} (${s.critical_rate || 0}%)\n`;
+                    if (s.major_total !== undefined) md += `-  Major：${s.major_total} (${s.major_rate || 0}%)\n`;
+                    if (s.minor_total !== undefined) md += `-  Minor：${s.minor_total} (${s.minor_rate || 0}%)\n`;
                     if (s.trivial_total !== undefined) md += `- ⚪ Trivial：${s.trivial_total} (${s.trivial_rate || 0}%)\n`;
                     if (s.blocker_critical_rate !== undefined) md += `- B+C 解决率：${s.blocker_critical_rate}% (${s.blocker_critical_total || 0})\n`;
                     md += `\n`;
@@ -1548,7 +1548,7 @@ function showToast(msg, type) {
                     .sort((a, b) => b[1].total - a[1].total)
                     .slice(0, 5);
                 if (topModules.length > 0) {
-                    md += `**📦 模块分布 TOP5**\n`;
+                    md += `** 模块分布 TOP5**\n`;
                     topModules.forEach(([mod, stats], i) => {
                         const rate = stats.total > 0 ? (stats.resolved / stats.total * 100).toFixed(1) : 0;
                         md += `${i + 1}. ${mod}：${stats.total}个（已解决${stats.resolved}，解决率${rate}%）\n`;
@@ -1562,7 +1562,7 @@ function showToast(msg, type) {
                     .sort((a, b) => (b[1].unresolved || 0) - (a[1].unresolved || 0))
                     .slice(0, 10);
                 if (topDevs.length > 0) {
-                    md += `**👤 问题遗留最多研发 TOP10**\n`;
+                    md += `** 问题遗留最多研发 TOP10**\n`;
                     topDevs.forEach(([dev, stats], i) => {
                         const rate = stats.total > 0 ? (stats.resolved / stats.total * 100).toFixed(1) : 0;
                         md += `${i + 1}. ${dev}：遗留${stats.unresolved || 0}个（总数${stats.total}，已解决${stats.resolved}，解决率${rate}%）\n`;
@@ -1573,7 +1573,7 @@ function showToast(msg, type) {
                 // 智能分析建议
                 const suggestions = d.suggestions || d.analysis_suggestions || [];
                 if (suggestions.length > 0) {
-                    md += `**💡 智能分析建议**\n`;
+                    md += `** 智能分析建议**\n`;
                     suggestions.slice(0, 10).forEach((item, i) => {
                         let text;
                         if (typeof item === 'string') {
@@ -1597,7 +1597,7 @@ function showToast(msg, type) {
 
                 // AI 根因分析内容
                 if (currentAIAnalysis && currentAIAnalysis.trim().length > 0) {
-                    md += `\n**🤖 AI 根因分析**\n`;
+                    md += `\n** AI 根因分析**\n`;
                     // 截断到3000字符避免飞书消息过长
                     const aiText = currentAIAnalysis.length > 3000 
                         ? currentAIAnalysis.substring(0, 3000) + '\n...（内容过长，完整内容请查看PDF报告）' 
@@ -1606,7 +1606,7 @@ function showToast(msg, type) {
                 }
 
                 // 先生成PDF报告
-                btn.innerHTML = '📄 生成PDF中...';
+                btn.innerHTML = ' 生成PDF中...';
                 let pdfUrl = window.location.href;
                 let pdfGenerated = false;
                 try {
@@ -1624,14 +1624,14 @@ function showToast(msg, type) {
                         pdfGenerated = true;
                     } else {
                         console.warn('PDF生成失败:', pdfResult.error);
-                        showToast('⚠️ PDF生成失败，将使用网页链接', 'warning');
+                        showToast(' PDF生成失败，将使用网页链接', 'warning');
                     }
                 } catch (pdfErr) {
                     console.warn('PDF生成失败，使用网页链接:', pdfErr);
-                    showToast('⚠️ PDF生成失败，将使用网页链接', 'warning');
+                    showToast(' PDF生成失败，将使用网页链接', 'warning');
                 }
 
-                btn.innerHTML = '⏳ 推送中...';
+                btn.innerHTML = ' 推送中...';
 
                 // 调用飞书推送 API
                 const resp = await fetch('/api/feishu/push', {
@@ -1639,7 +1639,7 @@ function showToast(msg, type) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'card',
-                        title: `📊 CR分析报告 - ${fileName}`,
+                        title: ` CR分析报告 - ${fileName}`,
                         content: md,
                         url: pdfUrl
                     })
@@ -1648,7 +1648,7 @@ function showToast(msg, type) {
                 const result = await resp.json();
 
                 if (result.status === 'success') {
-                    btn.innerHTML = '✅ 推送成功';
+                    btn.innerHTML = ' 推送成功';
                     if (window.ToolboxPush) {
                         window.ToolboxPush.record({
                             tool: 'CR分析',
@@ -1666,7 +1666,7 @@ function showToast(msg, type) {
                 }
 
             } catch (err) {
-                btn.innerHTML = '❌ 推送失败';
+                btn.innerHTML = ' 推送失败';
                 if (window.ToolboxPush) {
                     window.ToolboxPush.record({
                         tool: 'CR分析',
@@ -1723,7 +1723,7 @@ function showToast(msg, type) {
                 document.getElementById('developerTrendStats').style.display = 'none';
                 document.getElementById('developerTrendChart').style.display = 'none';
                 document.getElementById('developerTrendEmpty').style.display = 'block';
-                document.getElementById('developerTrendEmpty').innerHTML = `❌ 未找到研发「${escapeHtml(name)}」的问题记录`;
+                document.getElementById('developerTrendEmpty').innerHTML = ` 未找到研发「${escapeHtml(name)}」的问题记录`;
                 return;
             }
 
@@ -1789,7 +1789,7 @@ function showToast(msg, type) {
 
             // 5. 渲染统计卡片
             const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
-            const sampleWarning = (matchedStats && devIssues.length < total) ? `<div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;">⚠️ 趋势图基于样本数据（${devIssues.length}/${total}），完整统计以卡片数字为准</div>` : '';
+            const sampleWarning = (matchedStats && devIssues.length < total) ? `<div style="font-size:11px;color:var(--text-3);margin-top:8px;text-align:center;"> 趋势图基于样本数据（${devIssues.length}/${total}），完整统计以卡片数字为准</div>` : '';
 
             document.getElementById('developerTrendStats').style.display = 'grid';
             document.getElementById('developerTrendStats').innerHTML = `
@@ -1833,7 +1833,7 @@ function showToast(msg, type) {
             } else {
                 document.getElementById('developerTrendChart').style.display = 'none';
                 document.getElementById('developerTrendEmpty').style.display = 'block';
-                document.getElementById('developerTrendEmpty').innerHTML = `📊 已找到研发「${escapeHtml(matchedDev || name)}」的 ${total} 个问题，但样本数据中暂无日期信息可绘制趋势图${sampleWarning}`;
+                document.getElementById('developerTrendEmpty').innerHTML = ` 已找到研发「${escapeHtml(matchedDev || name)}」的 ${total} 个问题，但样本数据中暂无日期信息可绘制趋势图${sampleWarning}`;
             }
         }
 
@@ -2005,14 +2005,14 @@ function showToast(msg, type) {
             if (!resultEl) return;
             var history = loadHistory();
             if (history.length === 0) {
-                resultEl.innerHTML = '<div style="padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;color:var(--text-3);">📭 暂无历史数据，分析后将自动积累</div>';
+                resultEl.innerHTML = '<div style="padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;color:var(--text-3);"> 暂无历史数据，分析后将自动积累</div>';
                 return;
             }
             if (!currentAnalysisData || !currentAnalysisData.all_issues) {
                 resultEl.innerHTML = '<div style="color:var(--text-3);">请先分析文件</div>';
                 return;
             }
-            resultEl.innerHTML = '<div style="color:var(--text-3);">🔍 正在分析历史相似 Bug...</div>';
+            resultEl.innerHTML = '<div style="color:var(--text-3);"> 正在分析历史相似 Bug...</div>';
 
             // 提取当前 Bug 的关键词和模块
             var currentIssues = currentAnalysisData.all_issues || [];
@@ -2073,7 +2073,7 @@ function showToast(msg, type) {
             if (topSimilar.length === 0) {
                 html += '<div style="padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;color:var(--text-3);margin-bottom:12px;">未找到高度相似的历史 Bug</div>';
             } else {
-                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);">📋 相似历史 Bug（' + similarBugs.length + ' 条）</div>';
+                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);"> 相似历史 Bug（' + similarBugs.length + ' 条）</div>';
                 html += '<div style="display:flex;flex-direction:column;gap:6px;">';
                 topSimilar.forEach(function(b) {
                     var statusColor = b.status === '已解决' ? '#34c759' : '#ff9500';
@@ -2085,7 +2085,7 @@ function showToast(msg, type) {
                 html += '</div></div>';
             }
             if (topCauses.length > 0) {
-                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);">💡 根因建议（基于历史）</div>';
+                html += '<div style="margin-bottom:14px;"><div style="font-weight:600;margin-bottom:8px;color:var(--text);"> 根因建议（基于历史）</div>';
                 html += '<ul style="margin:0;padding-left:20px;">';
                 topCauses.forEach(function(c) {
                     html += '<li style="margin-bottom:4px;">' + escapeHtml(c[0]) + ' <span style="color:var(--text-3);">(' + c[1] + '次)</span></li>';
@@ -2093,7 +2093,7 @@ function showToast(msg, type) {
                 html += '</ul></div>';
             }
             if (topOwners.length > 0) {
-                html += '<div><div style="font-weight:600;margin-bottom:8px;color:var(--text);">👤 责任人推荐</div>';
+                html += '<div><div style="font-weight:600;margin-bottom:8px;color:var(--text);"> 责任人推荐</div>';
                 html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
                 topOwners.forEach(function(o, i) {
                     var bg = i === 0 ? 'linear-gradient(135deg,#7c3aed,#6366f1)' : 'rgba(0,0,0,0.05)';
@@ -2103,7 +2103,7 @@ function showToast(msg, type) {
                 html += '</div></div>';
             }
             if (topCauses.length === 0 && topOwners.length === 0 && topSimilar.length > 0) {
-                html += '<div style="font-size:12px;color:var(--text-3);margin-top:8px;">💡 历史记录中缺少根因和责任人字段，建议在 CR 数据中补充 owner/root_cause 列以获得更精准推荐</div>';
+                html += '<div style="font-size:12px;color:var(--text-3);margin-top:8px;"> 历史记录中缺少根因和责任人字段，建议在 CR 数据中补充 owner/root_cause 列以获得更精准推荐</div>';
             }
             resultEl.innerHTML = html;
         }
@@ -2123,9 +2123,9 @@ function showToast(msg, type) {
                         <span style="font-size:11px;color:var(--tb-text-secondary,#999);flex-shrink:0;margin-left:8px;">${h.time}</span>
                     </div>
                     <div style="display:flex;gap:12px;font-size:12px;color:var(--tb-text-secondary,#666);">
-                        <span>📊 ${h.total_issues} 问题</span>
-                        <span style="color:#34c759;">✅ ${h.resolved} 已解决</span>
-                        <span style="color:#ff3b30;">⚠️ ${h.unresolved} 未解决</span>
+                        <span> ${h.total_issues} 问题</span>
+                        <span style="color:#34c759;"> ${h.resolved} 已解决</span>
+                        <span style="color:#ff3b30;"> ${h.unresolved} 未解决</span>
                     </div>
                 </div>
             `).join('');

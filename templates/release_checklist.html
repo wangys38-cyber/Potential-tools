@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -168,7 +168,7 @@
                 <div class="checklist">
                     <div class="checklist-title">
                         ${stage.icon} ${stage.name} 检查项
-                        <span class="go-badge ${isGo?'go':'nogo'}">${isGo?' GO':'⏳ NO-GO'} (${checked}/${total})</span>
+                        <span class="go-badge ${isGo?'go':'nogo'}">${isGo?' GO':' NO-GO'} (${checked}/${total})</span>
                     </div>
                     ${stage.items.map((item,i) => {
                         const key = `${currentStage}_${i}`;
@@ -211,7 +211,7 @@
             let text = `版本发布检查清单 — ${version}\n生成时间：${new Date().toLocaleString('zh-CN')}\n\n`;
             STAGES.forEach(s => {
                 const checked = countStage(s.id);
-                text += `\n【${s.icon} ${s.name}】${checked===s.items.length?' GO':'⏳ NO-GO'} (${checked}/${s.items.length})\n`;
+                text += `\n【${s.icon} ${s.name}】${checked===s.items.length?' GO':' NO-GO'} (${checked}/${s.items.length})\n`;
                 s.items.forEach((item,i) => {
                     const key = `${s.id}_${i}`;
                     text += `${state.checks[key]?'':''} ${item.title}\n`;

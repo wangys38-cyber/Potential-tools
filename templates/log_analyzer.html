@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -136,7 +136,7 @@
                 <div class="log-header">
                     <span class="log-title">异常日志</span>
                     <span class="log-count" id="logCount"></span>
-                    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="syncToBugTrend()" id="syncBugTrendBtn">📈 同步Bug趋势</button>
+                    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="syncToBugTrend()" id="syncBugTrendBtn"> 同步Bug趋势</button>
                     <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:6px;" onclick="exportLogs()">导出</button>
                 </div>
                 <div class="log-content" id="logContent"></div>
@@ -234,7 +234,7 @@
             const progressDiv = document.createElement('div');
             progressDiv.id = 'analyzeProgress';
             progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--ds-text-secondary);';
-            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">🤖 Web Worker 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div><div style="font-size:11px;color:var(--ds-text-tertiary);margin-top:8px;">使用后台线程处理，不阻塞页面</div>`;
+            progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;"> Web Worker 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div><div style="font-size:11px;color:var(--ds-text-tertiary);margin-top:8px;">使用后台线程处理，不阻塞页面</div>`;
             document.getElementById('logContent').innerHTML = '';
             document.getElementById('logContent').appendChild(progressDiv);
 

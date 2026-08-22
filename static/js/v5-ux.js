@@ -1,4 +1,4 @@
-/**
+﻿/**
  * v5.0 全局 UX 增强模块
  * - 动态渐变背景光晕
  * - 全局拖拽上传（自动识别文件类型跳转到对应工具）
@@ -23,25 +23,25 @@
 
     // ===== 2. 全局拖拽上传 =====
     var FILE_TOOL_MAP = [
-        { exts: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'], tool: '/meeting-minutes', name: '会议纪要', icon: '🎙️' },
-        { exts: ['md', 'markdown'], tool: '/md2pdf', name: 'PDF快转', icon: '📄' },
-        { exts: ['docx', 'doc'], tool: '/md2pdf', name: 'PDF快转', icon: '📄' },
-        { exts: ['xlsx', 'xls'], tool: '/excel-analysis', name: 'CR问题分析', icon: '📊' },
-        { exts: ['csv'], tool: '/excel-analysis', name: 'CR问题分析', icon: '📊' },
-        { exts: ['pdf'], tool: '/md2pdf', name: 'PDF快转', icon: '📄' },
-        { exts: ['txt'], tool: '/meeting-minutes', name: '会议纪要', icon: '🎙️' },
-        { exts: ['pptx', 'ppt'], tool: '/md2pdf', name: 'PDF快转', icon: '📄' },
+        { exts: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'], tool: '/meeting-minutes', name: '会议纪要', icon: '' },
+        { exts: ['md', 'markdown'], tool: '/md2pdf', name: 'PDF快转', icon: '' },
+        { exts: ['docx', 'doc'], tool: '/md2pdf', name: 'PDF快转', icon: '' },
+        { exts: ['xlsx', 'xls'], tool: '/excel-analysis', name: 'CR问题分析', icon: '' },
+        { exts: ['csv'], tool: '/excel-analysis', name: 'CR问题分析', icon: '' },
+        { exts: ['pdf'], tool: '/md2pdf', name: 'PDF快转', icon: '' },
+        { exts: ['txt'], tool: '/meeting-minutes', name: '会议纪要', icon: '' },
+        { exts: ['pptx', 'ppt'], tool: '/md2pdf', name: 'PDF快转', icon: '' },
     ];
 
     var ALL_TOOLS = [
-        { url: '/meeting-minutes', name: '会议纪要', icon: '🎙️' },
-        { url: '/md2pdf', name: 'PDF快转', icon: '📄' },
-        { url: '/excel-analysis', name: 'CR问题分析', icon: '📊' },
-        { url: '/test-report', name: '测试报告分析', icon: '📋' },
-        { url: '/plan-generator', name: '软件计划生成器', icon: '📅' },
-        { url: '/project-info', name: '项目信息收集', icon: '📊' },
-        { url: '/weekly-report', name: '智能周报', icon: '📋' },
-        { url: '/noteNB/', name: '牛马笔记', icon: '📝' },
+        { url: '/meeting-minutes', name: '会议纪要', icon: '' },
+        { url: '/md2pdf', name: 'PDF快转', icon: '' },
+        { url: '/excel-analysis', name: 'CR问题分析', icon: '' },
+        { url: '/test-report', name: '测试报告分析', icon: '' },
+        { url: '/plan-generator', name: '软件计划生成器', icon: '' },
+        { url: '/project-info', name: '项目信息收集', icon: '' },
+        { url: '/weekly-report', name: '智能周报', icon: '' },
+        { url: '/noteNB/', name: '牛马笔记', icon: '' },
     ];
 
     var dragCounter = 0;

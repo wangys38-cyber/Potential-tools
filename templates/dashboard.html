@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>研发健康度看�?- Potential Tools</title>
+    <title>研发健康度看?- Potential Tools</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
@@ -185,8 +185,8 @@
         <!-- Bug 趋势卡片 -->
         <div class="card col-8">
             <div class="card-title">
-                <span class="icon">🐛</span> Bug 趋势
-                <span class="badge">�?7 �?/span>
+                <span class="icon"></span> Bug 趋势
+                <span class="badge">?7 ?/span>
             </div>
             <div class="bug-trend-chart" id="bugTrendChart"></div>
             <div class="bug-summary" id="bugSummary"></div>
@@ -195,22 +195,22 @@
         <!-- MTTF 指标卡片 -->
         <div class="card col-4">
             <div class="card-title">
-                <span class="icon">⏱️</span> MTTF 指标
+                <span class="icon">⏱</span> MTTF 指标
                 <span class="badge">SR6</span>
             </div>
             <div class="mttf-value" id="mttfValue">128.5<span class="mttf-unit"> h</span></div>
-            <div class="mttf-trend up" id="mttfTrend">�?12.3% 较上�?/div>
+            <div class="mttf-trend up" id="mttfTrend">?12.3% 较上传/div>
             <div class="mttf-meta">
-                目标值：�?120 h<br>
-                测试周期�?×24h 挂测<br>
-                主要失败：Malloc 失败 (3�?
+                目标值：?120 h<br>
+                测试周期?×24h 挂测<br>
+                主要失败：Malloc 失败 (3?
             </div>
         </div>
 
         <!-- 版本进度卡片 -->
         <div class="card col-6">
             <div class="card-title">
-                <span class="icon">🚀</span> 版本进度
+                <span class="icon"></span> 版本进度
                 <span class="badge">v5.0</span>
             </div>
             <div id="versionProgress"></div>
@@ -219,37 +219,37 @@
         <!-- 个人效能卡片 -->
         <div class="card col-6">
             <div class="card-title">
-                <span class="icon">�?/span> 个人效能
+                <span class="icon">?/span> 个人效能
                 <span class="badge">本周</span>
             </div>
             <div class="eff-grid" id="effGrid"></div>
-            <div class="eff-tip">数据来自本地缓存，可在各工具页自动同�?/div>
+            <div class="eff-tip">数据来自本地缓存，可在各工具页自动同?/div>
         </div>
 
-        <!-- ����/������Ƭ -->
+        <!-- /Ƭ -->
         <div class="card col-12" id="riskBlockerCard" style="display:none;">
             <div class="card-title">
-                <span class="icon">??</span> ������������
+                <span class="icon">??</span> 
                 <span class="badge" id="riskBadge">ʵʱ</span>
-                <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary);" id="riskSource">����վ��ͬ��</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary);" id="riskSource">վͬ</span>
             </div>
             <div id="riskBlockerContent">
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#ff3b30;" id="blockerCount">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">������</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:24px;font-weight:700;color:#ff9500;" id="riskLevel">��</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">���յȼ�</div>
+                        <div style="font-size:24px;font-weight:700;color:#ff9500;" id="riskLevel"></div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">յȼ</div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#007aff;" id="yesterdayDone">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">�������</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div>
                     </div>
                     <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
                         <div style="font-size:24px;font-weight:700;color:#34c759;" id="todayPlanned">0</div>
-                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">���ռƻ�</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">ռƻ</div>
                     </div>
                 </div>
                 <div id="blockerList" style="font-size:13px;line-height:1.8;"></div>
@@ -259,9 +259,9 @@
         <!-- 项目概览卡片 -->
         <div class="card col-12">
             <div class="card-title">
-                <span class="icon">📁</span> 项目概览
+                <span class="icon"></span> 项目概览
                 <span class="badge">E62 / SR5 / SR6</span>
-                <button class="action-btn primary" id="historyBtn" style="margin-left:auto;padding:5px 14px;font-size:12px;">📜 操作历史</button>
+                <button class="action-btn primary" id="historyBtn" style="margin-left:auto;padding:5px 14px;font-size:12px;"> 操作历史</button>
             </div>
             <div class="proj-list" id="projList"></div>
         </div>
@@ -277,7 +277,7 @@
     }
 
     // 更新时间
-    $('updateTime').textContent = '数据更新�? + new Date().toLocaleString('zh-CN');
+    $('updateTime').textContent = '数据更新 + new Date().toLocaleString('zh-CN');
 
     // ===== Bug 趋势 =====
     function renderBugTrend(apiData) {
@@ -297,7 +297,7 @@
         var chart = $('bugTrendChart');
         chart.innerHTML = values.map(function(v, i) {
             var h = Math.max(4, (v / max) * 120);
-            return '<div class="bug-bar" style="height:' + h + 'px;" title="' + days[i] + ': ' + v + '�?>' +
+            return '<div class="bug-bar" style="height:' + h + 'px;" title="' + days[i] + ': ' + v + '?>' +
                 '<span class="bug-bar-value">' + v + '</span>' +
                 '<span class="bug-bar-label">' + days[i] + '</span></div>';
         }).join('');
@@ -308,7 +308,7 @@
         $('bugSummary').innerHTML =
             '<div class="bug-summary-item"><strong>' + total + '</strong>本周新增 Bug</div>' +
             '<div class="bug-summary-item"><strong>' + avg + '</strong>日均新增</div>' +
-            '<div class="bug-summary-item"><strong>' + peak + '</strong>峰值（' + days[values.indexOf(peak)] + '�?/div>';
+            '<div class="bug-summary-item"><strong>' + peak + '</strong>峰值（' + days[values.indexOf(peak)] + '?/div>';
     }
 
     // ===== 版本进度 =====
@@ -356,7 +356,7 @@
             '<div class="eff-item"><div class="eff-num">' + todayTodos + '</div><div class="eff-label">今日待办</div></div>' +
             '<div class="eff-item"><div class="eff-num">' + weekResolved + '</div><div class="eff-label">本周解单</div></div>' +
             '<div class="eff-item"><div class="eff-num">' + monthCommits + '</div><div class="eff-label">本月提交</div></div>' +
-            '<div class="eff-item"><div class="eff-num">' + onTimeRate + '%</div><div class="eff-label">按时交付�?/div></div>';
+            '<div class="eff-item"><div class="eff-num">' + onTimeRate + '%</div><div class="eff-label">按时交付?/div></div>';
     }
 
     // ===== MTTF 指标 =====
@@ -368,10 +368,10 @@
             valEl.innerHTML = apiData.value + '<span class="mttf-unit"> ' + (apiData.unit || 'h') + '</span>';
         }
         if (trendEl && apiData.trend) {
-            var arrow = apiData.trend === 'up' ? '�? : '�?;
+            var arrow = apiData.trend === 'up' ? ' : '?;
             var cls = apiData.trend === 'up' ? 'up' : 'down';
             trendEl.className = 'mttf-trend ' + cls;
-            trendEl.textContent = arrow + ' ' + (apiData.trend_pct || 0) + '% 较上�?;
+            trendEl.textContent = arrow + ' ' + (apiData.trend_pct || 0) + '% 较上传;
         }
     }
 
@@ -382,21 +382,21 @@
             rows = [
                 { key: '当前版本', val: apiData.current_version || 'v5.0.0 (迭代1)', tag: 'version' },
                 { key: '项目状态, val: apiData.status || '活跃开发中', tag: 'active' },
-                { key: '负责产品�?, val: apiData.product_lines || 'E62 / SR5 / SR6 智能手表' },
-                { key: '当前里程�?, val: apiData.milestone || 'SR6 CP2 质量攻坚' },
+                { key: '负责产品?, val: apiData.product_lines || 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程?, val: apiData.milestone || 'SR6 CP2 质量攻坚' },
                 { key: '代码仓库', val: apiData.repo || 'github.com/wangys38-cyber/Potential-tools' },
                 { key: '部署平台', val: apiData.deploy_platform || 'Railway (wangys666.top)' },
                 { key: '技术栈', val: apiData.tech_stack || 'Flask + 原生前端 + Blueprint' },
             ];
             if (apiData.visit_count != null) {
-                rows.push({ key: '累计访问', val: apiData.visit_count + ' �? });
+                rows.push({ key: '累计访问', val: apiData.visit_count + '  });
             }
         } else {
             rows = [
                 { key: '当前版本', val: 'v5.0.0 (迭代1)', tag: 'version' },
                 { key: '项目状态, val: '活跃开发中', tag: 'active' },
-                { key: '负责产品�?, val: 'E62 / SR5 / SR6 智能手表' },
-                { key: '当前里程�?, val: 'SR6 CP2 质量攻坚' },
+                { key: '负责产品?, val: 'E62 / SR5 / SR6 智能手表' },
+                { key: '当前里程?, val: 'SR6 CP2 质量攻坚' },
                 { key: '代码仓库', val: 'github.com/wangys38-cyber/Potential-tools' },
                 { key: '部署平台', val: 'Railway (wangys666.top)' },
                 { key: '技术栈', val: 'Flask + 原生前端 + Blueprint' },
@@ -410,7 +410,7 @@
         }).join('');
     }
 
-    // ===== 风险/阻堅�?=====
+    // ===== 风险/阻堅?=====
     function renderRiskBlocker() {
         try {
             var raw = localStorage.getItem('dashboard_blocker_data');
@@ -422,28 +422,28 @@
             document.getElementById('blockerCount').textContent = data.blockerCount || 0;
             document.getElementById('yesterdayDone').textContent = data.yesterdayCount || 0;
             document.getElementById('todayPlanned').textContent = data.todayCount || 0;
-            // ���յȼ�����
-            var level = '��', levelColor = '#34c759';
-            if (data.blockerCount >= 3) { level = '��'; levelColor = '#ff3b30'; }
-            else if (data.blockerCount >= 1) { level = '��'; levelColor = '#ff9500'; }
+            // յȼ
+            var level = '', levelColor = '#34c759';
+            if (data.blockerCount >= 3) { level = ''; levelColor = '#ff3b30'; }
+            else if (data.blockerCount >= 1) { level = ''; levelColor = '#ff9500'; }
             var levelEl = document.getElementById('riskLevel');
             if (levelEl) { levelEl.textContent = level; levelEl.style.color = levelColor; }
-            // �������б�
+            // б
             var blockers = data.blockers || [];
-            var listHtml = '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text);">���������飺</div>';
+            var listHtml = '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text);">飺</div>';
             if (blockers.length === 0) {
-                listHtml += '<div style="color:var(--text-secondary);font-size:13px;">����������</div>';
+                listHtml += '<div style="color:var(--text-secondary);font-size:13px;"></div>';
             } else {
                 blockers.forEach(function(b, i) {
                     listHtml += '<div style="padding:8px 12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><span style="width:20px;height:20px;background:#ff3b30;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">' + (i+1) + '</span><span style="font-size:13px;color:var(--text);">' + escapeHtml(typeof b === 'string' ? b : (b.text || b)) + '</span></div>';
                 });
             }
             document.getElementById('blockerList').innerHTML = listHtml;
-            document.getElementById('riskSource').textContent = '����վ��ͬ�� �� ' + (data.date || '');
+            document.getElementById('riskSource').textContent = 'վͬ  ' + (data.date || '');
         } catch(e) { console.warn('renderRiskBlocker failed:', e); }
     }
 
-    // ===== 从后�?API 获取数据 =====
+    // ===== 从后?API 获取数据 =====
     async function fetchDashboardStats() {
         try {
             var resp = await fetch('/api/dashboard/stats', { credentials: 'same-origin' });
@@ -458,7 +458,7 @@
         return null;
     }
 
-    // 初始化：先渲染静�?localStorage 数据，再异步拉取 API 更新
+    // 初始化：先渲染静?localStorage 数据，再异步拉取 API 更新
     renderBugTrend();
     renderVersionProgress();
     renderEfficiency();
@@ -472,19 +472,19 @@
         renderVersionProgress(data.version_progress);
         renderEfficiency(data.personal_efficiency);
         renderProjectOverview(data.project_overview);
-        $('updateTime').textContent = '数据更新�? + new Date().toLocaleString('zh-CN') + ' (API)';
+        $('updateTime').textContent = '数据更新 + new Date().toLocaleString('zh-CN') + ' (API)';
     });
 })();
 </script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script>
-// 历史记录组件接入（需�?components.js 加载后执行）
+// 历史记录组件接入（需?components.js 加载后执行）
 (function() {
     var btn = document.getElementById('historyBtn');
     if (!btn || typeof ToolboxHistory === 'undefined') return;
 
-    // 若本地无任何历史记录，写入示例数据便于展�?
+    // 若本地无任何历史记录，写入示例数据便于展?
     var all = ToolboxHistory.getAll();
     var hasRecords = Object.keys(all).some(function(k) { return all[k].length > 0; });
     if (!hasRecords) {
@@ -499,7 +499,7 @@
         ToolboxHistory.showModal(null, {
             title: '全部操作历史',
             onSelect: function(record, idx, toolId) {
-                if (window.ToolboxToast) ToolboxToast.show('已加�? ' + record.title, 'success');
+                if (window.ToolboxToast) ToolboxToast.show('已加 ' + record.title, 'success');
             }
         });
     });

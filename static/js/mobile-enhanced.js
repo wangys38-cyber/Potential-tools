@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Potential-tools v5.0 移动端体验增强
  * 功能：手势支持、触摸优化、PWA 安装提示、安全区域适配、下拉刷新
  */
@@ -242,7 +242,7 @@
             animation:slideUp 0.3s ease;
         `;
         banner.innerHTML = `
-            <div style="font-size:32px;">📱</div>
+            <div style="font-size:32px;"></div>
             <div style="flex:1;min-width:0;">
                 <div style="font-size:14px;font-weight:600;color:var(--text-primary,#1d1d1f);">添加到主屏幕</div>
                 <div style="font-size:12px;color:var(--text-secondary,#86868b);margin-top:2px;">像原生应用一样使用工具集</div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * v5.2 多设备数据同步客户端
  * - 拉取云端数据合并到 localStorage
  * - 推送本地变更到云端
@@ -17,41 +17,41 @@
     var CATEGORIES = {
         favorites: {
             keys: [_USER_PREFIX + 'toolbox_favorites', 'toolbox_favorites_v2', 'toolbox_favorites'],
-            name: '收藏工具', icon: '⭐'
+            name: '收藏工具', icon: ''
         },
         recent: {
             keys: [_USER_PREFIX + 'toolbox_recent_tools', 'toolbox_recent_tools'],
-            name: '最近使用', icon: '🕐'
+            name: '最近使用', icon: ''
         },
         merit: {
             keys: ['merit_total', 'merit_history', 'merit_achievements',
                    'STORAGE_KEY_TOTAL', 'STORAGE_KEY_HISTORY', 'STORAGE_KEY_ACH'],
-            name: '功德数据', icon: '🔔'
+            name: '功德数据', icon: ''
         },
         projects: {
             keys: [_USER_PREFIX + 'projectInfoData', 'projectInfoData', 'PROJECT_STORAGE_KEY'],
-            name: '项目信息', icon: '📊'
+            name: '项目信息', icon: ''
         },
         plans: {
             keys: [_USER_PREFIX + 'saved_plans', 'saved_plans'],
-            name: '项目计划', icon: '📋'
+            name: '项目计划', icon: ''
         },
         notes: {
             keys: [_USER_PREFIX + 'niuma_notes', 'niuma_notes'],
-            name: '牛马笔记', icon: '📝'
+            name: '牛马笔记', icon: ''
         },
         theme: {
             keys: ['toolbox_theme'],
-            name: '主题设置', icon: '🎨'
+            name: '主题设置', icon: ''
         },
         form_drafts: {
             keys: ['form_draft_'],
-            name: '表单草稿', icon: '📝',
+            name: '表单草稿', icon: '',
             prefix: true // keys 是前缀匹配
         },
         settings: {
             keys: ['toolbox_settings', 'user_settings'],
-            name: '用户设置', icon: '⚙️'
+            name: '用户设置', icon: '⚙'
         }
     };
 
@@ -189,7 +189,7 @@
                 });
                 if (merged > 0) {
                     setMeta(meta);
-                    if (showToast) showToastMsg('📥 已从云端同步 ' + merged + ' 类数据', 'info');
+                    if (showToast) showToastMsg(' 已从云端同步 ' + merged + ' 类数据', 'info');
                     // 触发页面刷新以应用新数据
                     window.dispatchEvent(new CustomEvent('v5-synced', { detail: { merged: merged } }));
                 }
@@ -218,9 +218,9 @@
         state.syncing = false;
         updateUI();
         if (showToast && state.status === 'success') {
-            showToastMsg('✅ 同步完成', 'success');
+            showToastMsg(' 同步完成', 'success');
         } else if (showToast && state.status === 'error') {
-            showToastMsg('❌ 同步失败: ' + (state.error || '未知错误'), 'error');
+            showToastMsg(' 同步失败: ' + (state.error || '未知错误'), 'error');
         }
     }
 

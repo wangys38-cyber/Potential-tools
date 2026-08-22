@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -1000,7 +1000,7 @@
                 banner.style.cssText = 'margin:0 0 16px;padding:14px 18px;border-radius:12px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);display:flex;align-items:flex-start;gap:12px;';
                 banner.innerHTML =
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">🔧 来自CR分析: ' + escapeHtml(fixPlan.sourceFile || 'CR分析报告') + '</div>' +
+                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;"> 来自CR分析: ' + escapeHtml(fixPlan.sourceFile || 'CR分析报告') + '</div>' +
                         '<div style="font-size:12px;color:var(--text-secondary);">已自动生成' + fixPlan.tasks.length + ' 个修复任务节点，Blocker优先，可编辑调整</div>' +
                         '<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">总问题: ' + (fixPlan.summary?.totalIssues || 0) + ', 未解决: ' + (fixPlan.summary?.unresolved || 0) + ', Blocker: ' + (fixPlan.summary?.blockers || 0) + ', 解决率: ' + (fixPlan.summary?.resolutionRate || 0) + '%</div>' +
                     '</div>' +

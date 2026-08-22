@@ -83,13 +83,13 @@
 <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <div class="container">
         <div class="source-tabs">
-            <div class="source-tab active" data-source="excel" onclick="switchSource('excel')">📊 Excel 上传</div>
-            <div class="source-tab" data-source="jira" onclick="switchSource('jira')">🔗 Jira 导入</div>
+            <div class="source-tab active" data-source="excel" onclick="switchSource('excel')"> Excel 上传</div>
+            <div class="source-tab" data-source="jira" onclick="switchSource('jira')"> Jira 导入</div>
         </div>
         <div id="excelPanel">
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-zone-icon">📊</div>
-            <div class="upload-zone-text">点击或拖拽上�?CR Excel 文件</div>
+            <div class="upload-zone-icon"></div>
+            <div class="upload-zone-text">点击或拖拽上传CR Excel 文件</div>
             <div class="upload-zone-hint">支持 .xlsx / .xls，需包含日期、固件版本、Bug 数量等列</div>
             <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
         </div>
@@ -97,38 +97,38 @@
         <div id="jiraPanel" style="display:none">
             <div class="jira-panel">
                 <div class="jira-config">
-                    <input type="text" id="jiraDomain" placeholder="Jira 域名 (�?https://xxx.atlassian.net)">
-                    <input type="text" id="jiraEmail" placeholder="用户�?/ 邮箱 (Jira Server 用短账号�?wangys38)">
+                    <input type="text" id="jiraDomain" placeholder="Jira 域名 (如https://xxx.atlassian.net)">
+                    <input type="text" id="jiraEmail" placeholder="用户名/ 邮箱 (Jira Server 用短账号如wangys38)">
                     <input type="password" id="jiraToken" placeholder="API Token / PAT / 密码">
                 </div>
                 <div class="jira-input-row">
-                    <input type="text" id="jiraInput" placeholder="粘贴 Jira 搜索链接 �?输入 JQL，如：project = PROJ AND type = Bug">
-                    <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()">🔗 导入 CR</button>
+                    <input type="text" id="jiraInput" placeholder="粘贴 Jira 搜索链接 ?输入 JQL，如：project = PROJ AND type = Bug">
+                    <button class="jira-import-btn" id="jiraImportBtn" onclick="importFromJira()"> 导入 CR</button>
                 </div>
                 <div class="jira-hint">
-                    支持：Jira 搜索�?URL�?code>?jql=</code> / <code>?filter=86482</code>）或直接输入 JQL。Jira Cloud 填邮�?API Token；Jira Server 填用户名+密码�?Personal Access Token。配置仅存本地�?
+                    支持：Jira 搜索?URL?code>?jql=</code> / <code>?filter=86482</code>）或直接输入 JQL。Jira Cloud 填邮?API Token；Jira Server 填用户名+密码?Personal Access Token。配置仅存本地?
                 </div>
                 <div class="error-msg" id="jiraError"></div>
             </div>
-            <div class="divider">�?/div>
+            <div class="divider">?/div>
             <div class="browser-panel">
-                <div class="browser-panel-title">🌐 浏览器免登录导入 <span class="badge">推荐</span></div>
+                <div class="browser-panel-title"> 浏览器免登录导入 <span class="badge">推荐</span></div>
                 <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">
-                    你已在浏览器登录 Jira，可直接用当前会话导入，无需 Token。若�?CORS 拦截，可一键导�?CSV 后拖入�?
+                    你已在浏览器登录 Jira，可直接用当前会话导入，无需 Token。若?CORS 拦截，可一键导?CSV 后拖入?
                 </div>
                 <div class="jira-input-row">
                     <input type="text" id="browserJiraUrl" placeholder="粘贴 Jira filter 链接，如：https://edart.motorola.com/issues/?filter=86482">
-                    <button class="jira-import-btn" style="background: #fff" onclick="importFromBrowser()">🌐 浏览器导�?/button>
+                    <button class="jira-import-btn" style="background: #fff" onclick="importFromBrowser()"> 浏览器导?/button>
                 </div>
                 <div id="csvFallback" style="display:none;margin-top:14px">
                     <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">
-                        ⚠️ 浏览器直接请求被 CORS 拦截。请点击下方按钮�?Jira 导出 CSV，然后拖到下方区域：
+                         浏览器直接请求被 CORS 拦截。请点击下方按钮?Jira 导出 CSV，然后拖到下方区域：
                     </div>
-                    <a id="csvExportLink" class="csv-export-link" target="_blank" rel="noopener">📥 一键导�?Jira CSV（全字段�?/a>
+                    <a id="csvExportLink" class="csv-export-link" target="_blank" rel="noopener"> 一键导?Jira CSV（全字段?/a>
                     <div class="csv-drop-zone" id="csvDropZone" onclick="document.getElementById('csvFileInput').click()">
-                        <div class="csv-drop-zone-icon">📂</div>
-                        <div style="font-size:14px">拖拽 CSV 到这�?�?点击选择</div>
-                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">支持 Jira 导出�?.csv 文件</div>
+                        <div class="csv-drop-zone-icon"></div>
+                        <div style="font-size:14px">拖拽 CSV 到这??点击选择</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">支持 Jira 导出?.csv 文件</div>
                         <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFile(this.files[0])">
                     </div>
                 </div>
@@ -149,8 +149,8 @@
             </div>
         </div>
         <div id="emptyState" class="empty-state">
-            <div class="empty-state-icon">📈</div>
-            <p>上传 CR Excel 后自动生成趋势看�?/p>
+            <div class="empty-state-icon"></div>
+            <p>上传 CR Excel 后自动生成趋势看?/p>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -176,7 +176,7 @@
                 if (!data || data.source !== 'cr-analysis' || !data.trend_data) return;
 
                 rawData = data.trend_data;
-                document.getElementById('fileName').textContent = '📄 ' + (data.file_name || 'CR分析导入');
+                document.getElementById('fileName').textContent = ' ' + (data.file_name || 'CR分析导入');
                 document.getElementById('fileInfo').style.display = 'flex';
                 processData();
 
@@ -196,7 +196,7 @@
 
         function handleFile(file) {
             if (!file) return;
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileName').textContent = ' ' + file.name;
             document.getElementById('fileInfo').style.display = 'flex';
             const reader = new FileReader();
             reader.onload = e => {
@@ -216,7 +216,7 @@
             renderCharts();
         }
 
-        // 获取ISO周标识，�?2026-W33
+        // 获取ISO周标识，?2026-W33
         function getWeekKey(dateStr) {
             if (!dateStr) return null;
             let d = new Date(dateStr);
@@ -228,7 +228,7 @@
                 }
             }
             if (isNaN(d.getTime())) return null;
-            // ISO周：周一为一周开�?
+            // ISO周：周一为一周开?
             const day = d.getDay() || 7;
             d.setDate(d.getDate() + 4 - day);
             const yearStart = new Date(d.getFullYear(), 0, 1);
@@ -237,12 +237,12 @@
         }
 
         function getWeekLabel(weekKey) {
-            // "2026-W33" -> "8月第2�? 简化显�?
+            // "2026-W33" -> "8月第2 简化显?
             const [y, w] = weekKey.split('-W');
-            return y + '年第' + parseInt(w) + '�?;
+            return y + '年第' + parseInt(w) + '?;
         }
 
-        // 识别�?
+        // 识别?
         function detectColumns() {
             const keys = Object.keys(rawData[0]);
             const createdKey = keys.find(k => /创建|created|提交|发现|日期|date|time/i.test(k)) || keys[0];
@@ -259,7 +259,7 @@
             return /已解决|已关闭|关闭|resolved|closed|done|fixed|完成/i.test(s);
         }
 
-        // 按周聚合新增和解�?
+        // 按周聚合新增和解?
         function aggregateByWeek(data) {
             const cols = detectColumns();
             const weekMap = {};
@@ -278,7 +278,7 @@
                         weekMap[rWeek].resolved++;
                     }
                 } else if (isResolved(row, cols.statusKey) && cWeek) {
-                    // 无解决日期时，已解决的算在创建当�?
+                    // 无解决日期时，已解决的算在创建当?
                     weekMap[cWeek].resolved++;
                 }
             });
@@ -317,9 +317,9 @@
             const rate = total > 0 ? (resolved / total * 100).toFixed(1) : 0;
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card"><div class="stat-label">Bug 总数</div><div class="stat-value">${total}</div></div>
-                <div class="stat-card"><div class="stat-label">已解�?/div><div class="stat-value" style="color:#10b981">${resolved}</div></div>
-                <div class="stat-card"><div class="stat-label">未解�?/div><div class="stat-value" style="color:#ef4444">${unresolved}</div></div>
-                <div class="stat-card"><div class="stat-label">解决�?/div><div class="stat-value">${rate}%</div></div>
+                <div class="stat-card"><div class="stat-label">已解?/div><div class="stat-value" style="color:#10b981">${resolved}</div></div>
+                <div class="stat-card"><div class="stat-label">未解?/div><div class="stat-value" style="color:#ef4444">${unresolved}</div></div>
+                <div class="stat-card"><div class="stat-label">解决?/div><div class="stat-value">${rate}%</div></div>
             `;
         }
 
@@ -328,7 +328,7 @@
             const agg = aggregateByWeek(rawData);
             if (agg.labels.length === 0) return;
 
-            // �?：每周新�?vs 解决
+            // ?：每周新?vs 解决
             if (trendChart) trendChart.destroy();
             const ctx1 = document.getElementById('trendChart').getContext('2d');
             trendChart = new Chart(ctx1, {
@@ -359,7 +359,7 @@
                 }
             });
 
-            // �?：累计未解决
+            // ?：累计未解决
             if (cumulativeChart) cumulativeChart.destroy();
             const ctx2 = document.getElementById('cumulativeChart').getContext('2d');
             cumulativeChart = new Chart(ctx2, {
@@ -367,7 +367,7 @@
                 data: {
                     labels: agg.labels,
                     datasets: [{
-                        label: '累计未解�?Bug', data: agg.open,
+                        label: '累计未解?Bug', data: agg.open,
                         borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
                         fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#f59e0b', borderWidth: 2
                     }]
@@ -376,9 +376,9 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: '累计未解�?Bug 趋势（按周）', font: { size: 14, weight: '600' } }
+                        title: { display: true, text: '累计未解?Bug 趋势（按周）', font: { size: 14, weight: '600' } }
                     },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: '未解决数�? } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: '未解决数 } } },
                     interaction: { intersect: false, mode: 'index' }
                 }
             });
@@ -424,14 +424,14 @@
             const errorEl = document.getElementById('jiraError');
             const btn = document.getElementById('jiraImportBtn');
 
-            if (!cfg.domain) { showJiraError('请填�?Jira 域名'); return; }
-            if (!input) { showJiraError('请输�?Jira 搜索链接�?JQL'); return; }
+            if (!cfg.domain) { showJiraError('请填?Jira 域名'); return; }
+            if (!input) { showJiraError('请输?Jira 搜索链接?JQL'); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 导入�?..';
+            btn.innerHTML = '<span class="loading"></span> 导入?..';
             errorEl.style.display = 'none';
 
-            // 判断�?URL 还是 JQL
+            // 判断?URL 还是 JQL
             const isUrl = /^https?:\/\//i.test(input);
             const payload = {
                 domain: cfg.domain,
@@ -451,56 +451,56 @@
                 if (!resp.ok) { throw new Error(data.error || '导入失败'); }
 
                 if (!data.issues || data.issues.length === 0) {
-                    throw new Error('未找到任�?CR 数据，请检�?JQL 或链�?);
+                    throw new Error('未找到任?CR 数据，请检?JQL 或链?);
                 }
 
                 processJiraData(data.issues);
-                document.getElementById('fileName').textContent = `🔗 Jira: ${data.returned}/${data.total} �?CR`;
+                document.getElementById('fileName').textContent = ` Jira: ${data.returned}/${data.total} ?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
                 switchSource('excel'); // 切回显示看板
             } catch(e) {
                 showJiraError(e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '🔗 导入 CR';
+                btn.innerHTML = ' 导入 CR';
             }
         }
 
         function showJiraError(msg) {
             const el = document.getElementById('jiraError');
-            el.textContent = '�?' + msg;
+            el.textContent = '?' + msg;
             el.style.display = 'block';
         }
 
-        // �?Jira issues 聚合为趋势数�?
+        // ?Jira issues 聚合为趋势数?
         function processJiraData(issues) {
-            // 按日期聚合：新增Bug（created）、已解决Bug（resolved�?
+            // 按日期聚合：新增Bug（created）、已解决Bug（resolved?
             const dateMap = {};
             const versionSet = new Set();
 
             issues.forEach(issue => {
-                const version = issue.version || '未指�?;
+                const version = issue.version || '未指?;
                 versionSet.add(version);
 
                 // 新增
                 if (issue.created) {
                     const key = issue.created;
-                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解�? 0, 版本: version};
+                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解 0, 版本: version};
                     dateMap[key].新增Bug++;
                 }
-                // 已解�?
+                // 已解?
                 if (issue.resolved) {
                     const key = issue.resolved;
-                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解�? 0, 版本: version};
-                    dateMap[key].已解�?+;
+                    if (!dateMap[key]) dateMap[key] = {日期: key, 新增Bug: 0, 已解 0, 版本: version};
+                    dateMap[key].已解?+;
                 }
             });
 
-            // 转为数组并按日期排序，计算累�?
+            // 转为数组并按日期排序，计算累?
             rawData = Object.values(dateMap).sort((a, b) => a.日期.localeCompare(b.日期));
             let cumulative = 0;
             rawData.forEach(row => {
-                cumulative += row.新增Bug - row.已解�?
+                cumulative += row.新增Bug - row.已解?
                 row.累计Bug = Math.max(0, cumulative);
                 row.固件版本 = row.版本;
             });
@@ -547,15 +547,15 @@
             const url = document.getElementById('browserJiraUrl').value.trim();
             const errorEl = document.getElementById('browserError');
             errorEl.style.display = 'none';
-            if (!url) { showBrowserError('请粘�?Jira filter 链接'); return; }
+            if (!url) { showBrowserError('请粘?Jira filter 链接'); return; }
             const info = extractFilterInfo(url);
             if (!info || !info.domain) { showBrowserError('无法解析 Jira 链接'); return; }
 
             // 构建 JQL
             const jql = info.jql || (info.filterId ? `filter=${info.filterId}` : '');
-            if (!jql) { showBrowserError('链接中未找到 filter ID �?JQL'); return; }
+            if (!jql) { showBrowserError('链接中未找到 filter ID ?JQL'); return; }
 
-            // 尝试浏览器直接请求（�?cookie�?
+            // 尝试浏览器直接请求（?cookie?
             const apiUrl = `${info.domain}/rest/api/2/search`;
             const body = JSON.stringify({
                 jql: jql, maxResults: 500,
@@ -576,26 +576,26 @@
                 }
                 const data = await resp.json();
                 if (!data.issues || !data.issues.length) {
-                    showBrowserError('未找到任�?CR 数据');
+                    showBrowserError('未找到任?CR 数据');
                     return;
                 }
-                // 转换为统一格式并处�?
+                // 转换为统一格式并处?
                 const issues = data.issues.map(issue => ({
                     key: issue.key,
                     summary: issue.fields?.summary || '',
                     status: issue.fields?.status?.name || 'Unknown',
                     created: (issue.fields?.created || '').slice(0,10),
                     resolved: (issue.fields?.resolutiondate || '').slice(0,10),
-                    version: issue.fields?.fixVersions?.[0]?.name || '未指�?,
+                    version: issue.fields?.fixVersions?.[0]?.name || '未指?,
                 }));
                 processJiraData(issues);
-                document.getElementById('fileName').textContent = `🌐 浏览器导�? ${issues.length} �?CR`;
+                document.getElementById('fileName').textContent = ` 浏览器导 ${issues.length} ?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
             } catch(e) {
-                // CORS 或网络错�?�?显示 CSV 导出降级方案
+                // CORS 或网络错??显示 CSV 导出降级方案
                 console.warn('Browser import failed:', e);
                 showCsvFallback(info, jql);
-                showBrowserError(`浏览器直接导入失败（${e.message}），请使用下�?CSV 导出方式`);
+                showBrowserError(`浏览器直接导入失败（${e.message}），请使用下?CSV 导出方式`);
             }
         }
 
@@ -609,7 +609,7 @@
 
         function showBrowserError(msg) {
             const el = document.getElementById('browserError');
-            el.textContent = '�?' + msg;
+            el.textContent = '?' + msg;
             el.style.display = 'block';
         }
 
@@ -630,16 +630,16 @@
             reader.onload = e => {
                 const text = e.target.result;
                 const issues = parseJiraCsv(text);
-                if (!issues.length) { showBrowserError('CSV 解析失败或为�?); return; }
+                if (!issues.length) { showBrowserError('CSV 解析失败或为?); return; }
                 processJiraData(issues);
-                document.getElementById('fileName').textContent = `📂 CSV导入: ${issues.length} �?CR`;
+                document.getElementById('fileName').textContent = ` CSV导入: ${issues.length} ?CR`;
                 document.getElementById('fileInfo').style.display = 'flex';
             };
             reader.readAsText(file);
         }
 
         function parseJiraCsv(text) {
-            // 简�?CSV 解析（支持引号包裹）
+            // 简?CSV 解析（支持引号包裹）
             const lines = text.split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) return [];
             const parseLine = line => {
@@ -666,7 +666,7 @@
                     status: cols[iStatus] || 'Unknown',
                     created: (cols[iCreated] || '').slice(0,10),
                     resolved: (cols[iResolved] || '').slice(0,10),
-                    version: cols[iVersion] || '未指�?,
+                    version: cols[iVersion] || '未指?,
                 });
             }
             return issues;

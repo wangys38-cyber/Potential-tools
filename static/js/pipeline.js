@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Potential-tools v6.0 - 跨工具数据流转管道
  * 负责工具间的数据传递、同步和联动
  *
@@ -91,7 +91,7 @@
         if (blockerCount > 0) {
             tasks.push({
                 index: taskIndex++,
-                name: '🔴 Blocker问题修复 (' + blockerCount + '个)',
+                name: ' Blocker问题修复 (' + blockerCount + '个)',
                 duration: Math.max(1, Math.ceil(blockerCount / 3)),
                 isMilestone: false,
                 priority: 'blocker',
@@ -125,7 +125,7 @@
         if (tasks.length > 0) {
             tasks.push({
                 index: taskIndex++,
-                name: '✅ 回归测试验证',
+                name: ' 回归测试验证',
                 duration: 1,
                 isMilestone: true,
                 priority: 'normal',

@@ -1,4 +1,4 @@
-let currentFileId = null;
+﻿let currentFileId = null;
         let currentFileName = null;
         let currentSheetName = null;
         let currentAnalysis = null;
@@ -87,7 +87,7 @@ let currentFileId = null;
             resultSection.classList.add('hidden');
 
             sheetInfo.innerHTML = `
-                <div class="file-icon">📄</div>
+                <div class="file-icon"></div>
                 <div class="file-details">
                     <div class="file-name">${escapeHtml(data.file_name)}</div>
                     <div class="file-meta">共 ${data.sheet_count} 个Sheet，请选择要分析的Sheet页</div>
@@ -307,18 +307,18 @@ let currentFileId = null;
 
             if (total === 0) {
                 riskContainer.innerHTML = '';
-                banner.innerHTML = `<h4>📋 分析总结</h4><p>未找到测试项数据，请检查Excel文件格式是否正确。</p>`;
+                banner.innerHTML = `<h4> 分析总结</h4><p>未找到测试项数据，请检查Excel文件格式是否正确。</p>`;
                 return;
             }
 
             const overallRisk = analysis.overall_risk || '无';
             const riskClassMap = { '高': 'high', '中': 'medium', '低': 'low', '无': 'none' };
-            const riskIconMap = { '高': '🔴', '中': '🟡', '低': '🔵', '无': '🟢' };
+            const riskIconMap = { '高': '', '中': '', '低': '', '无': '' };
             const riskCls = riskClassMap[overallRisk] || 'none';
-            riskContainer.innerHTML = `<div class="risk-banner ${riskCls}">${riskIconMap[overallRisk] || '🟢'} 整体风险等级：${overallRisk}</div>`;
+            riskContainer.innerHTML = `<div class="risk-banner ${riskCls}">${riskIconMap[overallRisk] || ''} 整体风险等级：${overallRisk}</div>`;
 
             const execSummary = analysis.executive_summary || '';
-            banner.innerHTML = `<h4>📋 执行摘要</h4><p>${escapeHtml(execSummary)}</p>`;
+            banner.innerHTML = `<h4> 执行摘要</h4><p>${escapeHtml(execSummary)}</p>`;
         }
 
         function renderAnalysisSections(analysis) {
@@ -444,7 +444,7 @@ let currentFileId = null;
         function renderTestItems(items) {
             const container = document.getElementById('tableContainer');
             if (!items || items.length === 0) {
-                container.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>未找到测试项数据</p><p style="font-size:12px;margin-top:8px;">请确保Excel文件包含测试项表格</p></div>`;
+                container.innerHTML = `<div class="empty-state"><div class="icon"></div><p>未找到测试项数据</p><p style="font-size:12px;margin-top:8px;">请确保Excel文件包含测试项表格</p></div>`;
                 return;
             }
 
@@ -593,7 +593,7 @@ let currentFileId = null;
                             ${html}
                         </div>
                         <div style="margin-top: 16px; text-align: right;">
-                            <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;">📋 复制</button>
+                            <button class="btn btn-secondary" onclick="copyAIAnalysis()" style="font-size: 13px;"> 复制</button>
                         </div>
                     `;
                 },
@@ -601,7 +601,7 @@ let currentFileId = null;
                     var errMsg = (err || 'AI分析失败').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
                     content.innerHTML = `
                         <div style="padding: 20px; text-align: center;">
-                            <div style="color: var(--danger); margin-bottom: 12px;">❌ ${errMsg}</div>
+                            <div style="color: var(--danger); margin-bottom: 12px;"> ${errMsg}</div>
                             <button class="btn btn-primary" onclick="generateAIAnalysis()" style="background: var(--accent);">重试</button>
                         </div>
                     `;
@@ -627,7 +627,7 @@ let currentFileId = null;
             const btn = document.getElementById('downloadPdfBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '⏳ 生成中...';
+            btn.innerHTML = ' 生成中...';
 
             try {
                 // 收集 AI 分析内容（如果已生成）
@@ -686,7 +686,7 @@ let currentFileId = null;
             if (lines.length === 0) return '<span class="reason-cell empty">-</span>';
 
             let html = '<div class="action-items-section">';
-            html += '<div class="action-items-header">📋 待办事项</div>';
+            html += '<div class="action-items-header"> 待办事项</div>';
             lines.forEach((line, i) => {
                 html += `<div class="action-item-line">${escapeHtml(line)}</div>`;
             });
@@ -729,7 +729,7 @@ let currentFileId = null;
             const btn = document.getElementById('saveReportBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '⏳ 保存中...';
+            btn.innerHTML = ' 保存中...';
 
             try {
                 const resp = await fetch('/api/user/save-report', {
@@ -742,7 +742,7 @@ let currentFileId = null;
                 });
                 const result = await resp.json();
                 if (result.status === 'success') {
-                    btn.innerHTML = '✅ 已保存';
+                    btn.innerHTML = ' 已保存';
                     setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
                 } else {
                     showToast('保存失败: ' + (result.error || '未知错误'), 'error');
@@ -787,7 +787,7 @@ let currentFileId = null;
                                 <div class="report-title">${escapeHtml(r.title)}</div>
                                 <div class="report-date">${date}</div>
                             </div>
-                            <span class="delete-btn" onclick="deleteSavedReport(event, ${r.id})">🗑️</span>
+                            <span class="delete-btn" onclick="deleteSavedReport(event, ${r.id})"></span>
                         </div>
                     `;
                 }).join('');
