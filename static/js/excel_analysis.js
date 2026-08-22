@@ -457,6 +457,12 @@ function showToast(msg, type) {
             if (pushBtn) pushBtn.style.display = 'inline-block';
             const exportBtn = document.getElementById('exportTrendBtn');
             if (exportBtn) exportBtn.style.display = 'inline-block';
+            const fixPlanBtn = document.getElementById('generateFixPlanBtn');
+            if (fixPlanBtn) fixPlanBtn.style.display = 'inline-block';
+            // 显示导出增强按钮
+            if (window.CRDeepAnalysis && window.CRDeepAnalysis.showExportButtons) {
+                window.CRDeepAnalysis.showExportButtons();
+            }
             const similarSection = document.getElementById('similarBugSection');
             if (similarSection) similarSection.style.display = 'block';
             const fileNameEl = document.getElementById('reportFileName');

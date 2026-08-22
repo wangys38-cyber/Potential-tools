@@ -117,6 +117,9 @@
                 <button class="tab" data-tab="stability" onclick="switchTab('stability')">稳定性分析</button>
                 <button class="tab" data-tab="developers" onclick="switchTab('developers')">研发统计</button>
                 <button class="tab" data-tab="daily" onclick="switchTab('daily')">每日趋势</button>
+                <button class="tab" data-tab="version-compare" onclick="switchTab('version-compare')">版本对比</button>
+                <button class="tab" data-tab="prediction" onclick="switchTab('prediction')">趋势预测</button>
+                <button class="tab" data-tab="developer-load" onclick="switchTab('developer-load')">负载分析</button>
             </div>
 
             <div class="tab-content active" id="tab-suggestions">
@@ -192,6 +195,18 @@
                 <div id="dailyTable"></div>
             </div>
 
+            <div class="tab-content" id="tab-version-compare">
+                <div id="versionCompareSection"></div>
+            </div>
+
+            <div class="tab-content" id="tab-prediction">
+                <div id="bugPredictionSection"></div>
+            </div>
+
+            <div class="tab-content" id="tab-developer-load">
+                <div id="developerLoadSection"></div>
+            </div>
+
             <div class="watermark-config" id="watermarkConfig">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                     <label style="white-space:nowrap;color:var(--ds-text);">报告标题：</label>
@@ -235,6 +250,7 @@
     <script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/cr_deep_analysis.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/cr_enhancement.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
