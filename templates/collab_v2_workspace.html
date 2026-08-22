@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ workspace.title }} - 协作工作空间</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            color: #1a1a1a;
+            -webkit-font-smoothing: antialiased;
+        }
+        .cv2-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+        .cv2-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .cv2-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .cv2-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .cv2-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #86868b;
+            margin-top: 6px;
+        }
+        .cv2-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .cv2-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cv2-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 980px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: #fff;
+            color: #1a1a1a;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            text-decoration: none;
+        }
+        .cv2-btn:hover { background: #f5f5f7; }
+        .cv2-btn.primary {
+            background: #1a1a1a;
+            color: #fff;
+            border-color: #1a1a1a;
+        }
+        .cv2-btn.primary:hover { background: #333; }
+        .cv2-section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cv2-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 0;
+        }
+        .cv2-tab {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #86868b;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: inherit;
+        }
+        .cv2-tab.active {
+            color: #1a1a1a;
+            border-bottom-color: #1a1a1a;
+        }
+        .cv2-tab:hover { color: #1a1a1a; }
+        .cv2-tab-panel { display: none; }
+        .cv2-tab-panel.active { display: block; }
+        .cv2-comment-input-area {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .cv2-comment-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+            min-height: 44px;
+        }
+        .cv2-comment-input:focus { border-color: #333; }
+        .cv2-filter-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .cv2-filter-btn {
+            padding: 4px 12px;
+            border-radius: 980px;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            font-size: 12px;
+            color: #86868b;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .cv2-filter-btn.active {
+            background: #1a1a1a;
+            color: #fff;
+            border-color: #1a1a1a;
+        }
+        .cv2-security-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .cv2-security-label {
+            font-size: 13px;
+            color: #1a1a1a;
+            font-weight: 500;
+            min-width: 80px;
+        }
+        .cv2-security-input {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            width: 200px;
+        }
+        .cv2-security-input:focus { border-color: #333; }
+        .cv2-empty {
+            text-align: center;
+            padding: 32px;
+            color: #86868b;
+            font-size: 13px;
+        }
+        @media (max-width: 768px) {
+            .cv2-container { padding: 12px; }
+            .cv2-card { padding: 16px; }
+            .cv2-title { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="cv2-container">
+    <!-- 头部 -->
+    <div class="cv2-card">
+        <div class="cv2-header">
+            <div>
+                <div class="cv2-title">{{ workspace.title }}</div>
+                <div class="cv2-meta">
+                    <div class="cv2-meta-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <span>{{ share_code }}</span>
+                    </div>
+                    <div class="cv2-meta-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        <span>{{ workspace.tool_type or '通用' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cv2-actions">
+                <button class="cv2-btn" onclick="PTCollabV2._copyLink()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    复制链接
+                </button>
+                <button class="cv2-btn primary" onclick="document.getElementById('ptOnlineAvatars').scrollIntoView({behavior:'smooth'})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    协作
+                </button>
+            </div>
+        </div>
+        <!-- 在线协作者 -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f5f5f7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div id="ptOnlineAvatars">
+                <span style="font-size:12px;color:#86868b;">加载中...</span>
+            </div>
+            <div id="ptEditingStatus"></div>
+        </div>
+    </div>
+
+    <!-- Tab 内容区 -->
+    <div class="cv2-card">
+        <div class="cv2-tabs">
+            <button class="cv2-tab active" onclick="PTCollabV2._switchTab('comments')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                评论
+            </button>
+            <button class="cv2-tab" onclick="PTCollabV2._switchTab('members')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                成员与权限
+            </button>
+            <button class="cv2-tab" onclick="PTCollabV2._switchTab('activity')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                活动记录
+            </button>
+            <button class="cv2-tab" onclick="PTCollabV2._switchTab('security')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                分享设置
+            </button>
+        </div>
+
+        <!-- 评论面板 -->
+        <div class="cv2-tab-panel active" id="cv2PanelComments">
+            <div class="cv2-comment-input-area">
+                <textarea class="cv2-comment-input" id="ptCommentInputV2" placeholder="输入评论，使用 @ 提及协作者..." rows="1"></textarea>
+                <button class="cv2-btn primary" id="ptCommentSendV2" style="align-self:flex-start;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    发送
+                </button>
+            </div>
+            <div id="ptCommentsListV2">
+                <div class="cv2-empty">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 成员与权限面板 -->
+        <div class="cv2-tab-panel" id="cv2PanelMembers">
+            <div id="ptMembersListV2">
+                <div class="cv2-empty">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 活动记录面板 -->
+        <div class="cv2-tab-panel" id="cv2PanelActivity">
+            <div class="cv2-filter-row">
+                <button class="cv2-filter-btn active" onclick="PTCollabV2._filterActivity(this, '')">全部</button>
+                <button class="cv2-filter-btn" onclick="PTCollabV2._filterActivity(this, 'comment')">评论</button>
+                <button class="cv2-filter-btn" onclick="PTCollabV2._filterActivity(this, 'permission_change')">权限变更</button>
+                <button class="cv2-filter-btn" onclick="PTCollabV2._filterActivity(this, 'member_remove')">成员变动</button>
+                <button class="cv2-filter-btn" onclick="PTCollabV2._filterActivity(this, 'security_update')">安全设置</button>
+            </div>
+            <div id="ptActivityList">
+                <div class="cv2-empty">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 分享设置面板 -->
+        <div class="cv2-tab-panel" id="cv2PanelSecurity">
+            <div class="cv2-security-row">
+                <span class="cv2-security-label">访问密码</span>
+                <input type="text" class="cv2-security-input" id="cv2Password" placeholder="留空表示无密码" value="{{ workspace.password or '' }}">
+            </div>
+            <div class="cv2-security-row">
+                <span class="cv2-security-label">访问次数</span>
+                <input type="number" class="cv2-security-input" id="cv2AccessLimit" placeholder="0 表示不限" value="{{ workspace.access_limit or 0 }}" min="0" style="width:120px;">
+                <span style="font-size:12px;color:#86868b;">已访问 {{ workspace.access_count or 0 }} 次</span>
+            </div>
+            <div class="cv2-security-row">
+                <span class="cv2-security-label">过期时间</span>
+                <select class="cv2-security-input" id="cv2Expires" style="width:160px;">
+                    <option value="0">永久有效</option>
+                    <option value="1">1 天后</option>
+                    <option value="7">7 天后</option>
+                </select>
+            </div>
+            <div style="margin-top:16px;">
+                <button class="cv2-btn primary" onclick="PTCollabV2._saveSecurity()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    保存设置
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/collab-v2.js?v={{ STATIC_VERSION }}"></script>
+<script>
+(function() {
+    var shareCode = '{{ share_code }}';
+    var currentUser = {{ current_user | tojson if current_user else 'null' }};
+
+    PTCollabV2.initWorkspacePage(shareCode, currentUser);
+
+    // Tab 切换
+    PTCollabV2._switchTab = function(tabName) {
+        document.querySelectorAll('.cv2-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.cv2-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+        var tabMap = {comments: 'cv2PanelComments', members: 'cv2PanelMembers', activity: 'cv2PanelActivity', security: 'cv2PanelSecurity'};
+        event.target.closest('.cv2-tab').classList.add('active');
+        document.getElementById(tabMap[tabName]).classList.add('active');
+        if (tabName === 'activity') {
+            PTCollabV2.loadActivity(shareCode);
+        }
+    };
+
+    // 活动筛选
+    PTCollabV2._filterActivity = function(btn, type) {
+        document.querySelectorAll('.cv2-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        PTCollabV2.loadActivity(shareCode, type);
+    };
+
+    // 复制链接
+    PTCollabV2._copyLink = function() {
+        var url = window.location.origin + '/collab/' + shareCode;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(function() {
+                alert('链接已复制');
+            }).catch(function() { fallback(); });
+        } else { fallback(); }
+        function fallback() {
+            var ta = document.createElement('textarea');
+            ta.value = url; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); alert('链接已复制'); } catch(e) { alert('复制失败'); }
+            document.body.removeChild(ta);
+        }
+    };
+
+    // 保存安全设置
+    PTCollabV2._saveSecurity = function() {
+        var password = document.getElementById('cv2Password').value.trim();
+        var accessLimit = parseInt(document.getElementById('cv2AccessLimit').value) || 0;
+        PTCollabV2.updateSecurity(password, accessLimit).then(function(data) {
+            if (data.status === 'success') {
+                alert('设置已保存');
+            } else {
+                alert(data.error || '保存失败');
+            }
+        }).catch(function(err) {
+            alert('保存失败: ' + err.message);
+        });
+    };
+})();
+</script>
+</body>
+</html>
