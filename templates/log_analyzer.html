@@ -136,7 +136,8 @@
                 <div class="log-header">
                     <span class="log-title">异常日志</span>
                     <span class="log-count" id="logCount"></span>
-                    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="exportLogs()">导出</button>
+                    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:auto;" onclick="syncToBugTrend()" id="syncBugTrendBtn">📈 同步Bug趋势</button>
+                    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin-left:6px;" onclick="exportLogs()">导出</button>
                 </div>
                 <div class="log-content" id="logContent"></div>
             </div>
@@ -780,9 +781,48 @@
         }
     </script>
 <script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+<script>
+// v6.0: 日志分析 → Bug趋势看板同步
+function syncToBugTrend() {
+    if (allLogs.length === 0) {
+        if (window.ToolboxToast) window.ToolboxToast.show('请先分析日志', 'warning');
+        return;
+    }
+    // 按日期统计错误
+    const dateMap = {};
+    const dateRegex = /(\d{4}[-/]\d{1,2}[-/]\d{1,2})/;
+    allLogs.forEach(log => {
+        const match = log.text.match(dateRegex);
+        const date = match ? match[1].replace(/\//g, '-') : new Date().toISOString().split('T')[0];
+        if (!dateMap[date]) dateMap[date] = 0;
+        dateMap[date]++;
+    });
+    const sortedDates = Object.keys(dateMap).sort();
+    const recentDates = sortedDates.slice(-7);
+    const bugTrendData = {
+        source: 'log-analyzer',
+        generatedAt: new Date().toISOString(),
+        days: recentDates.map(d => d.slice(5)),
+        values: recentDates.map(d => dateMap[d]),
+        totalErrors: allLogs.length,
+        categories: Object.keys(PATTERNS).reduce((acc, t) => {
+            acc[t] = allLogs.filter(l => l.type === t).length;
+            return acc;
+        }, {})
+    };
+    // 存储到localStorage供Bug趋势页面读取
+    try {
+        localStorage.setItem('log_bug_trend_data', JSON.stringify(bugTrendData));
+        if (window.ToolboxToast) window.ToolboxToast.show('已同步' + bugTrendData.days.length + '天Bug趋势数据', 'success');
+    } catch(e) {
+        if (window.ToolboxToast) window.ToolboxToast.show('同步失败: ' + e.message, 'error');
+    }
+}
+</script>
 </body>
 </html>

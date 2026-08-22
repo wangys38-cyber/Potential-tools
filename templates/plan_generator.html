@@ -948,6 +948,55 @@
             } catch(e) { console.warn('Plan transfer error:', e); }
         })();
 
+        // ==================== CR分析 → 修复计划流转 ====================
+        (function checkCRFixPlanTransfer() {
+            try {
+                if (typeof window.Pipeline === 'undefined') return;
+                var payload = window.Pipeline.getData('cr_to_plan');
+                if (!payload || !payload.data || !payload.data.tasks) return;
+                var fixPlan = payload.data;
+                var startDate = new Date();
+                currentPlan = fixPlan.tasks.map(function(task, idx) {
+                    var d = new Date(startDate);
+                    if (idx > 0) {
+                        var prevDuration = fixPlan.tasks[idx - 1].duration || 1;
+                        d.setDate(d.getDate() + prevDuration * 7);
+                    }
+                    return {
+                        index: idx + 1,
+                        name: task.name,
+                        duration: task.duration || 1,
+                        date: d.toISOString().split('T')[0],
+                        dateObj: d,
+                        totalWeeks: idx * (task.duration || 1),
+                        isMilestone: task.isMilestone || false,
+                        status: 'pending'
+                    };
+                });
+                currentProjectName = 'CR修复计划: ' + (fixPlan.sourceFile || 'CR分析');
+                var nameDisplay = document.getElementById('projectNameDisplay');
+                if (nameDisplay) { nameDisplay.textContent = currentProjectName; nameDisplay.style.display = 'inline'; }
+                var editBtn = document.getElementById('editNameBtn');
+                if (editBtn) editBtn.style.display = 'inline-block';
+                var firstNodeInput = document.getElementById('firstNode');
+                if (firstNodeInput) firstNodeInput.value = currentPlan[0].date;
+                if (typeof renderTable === 'function') renderTable();
+                if (typeof renderTimeline === 'function') renderTimeline();
+                var banner = document.createElement('div');
+                banner.style.cssText = 'margin:0 0 16px;padding:14px 18px;border-radius:12px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);display:flex;align-items:flex-start;gap:12px;';
+                banner.innerHTML =
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">🔧 来自CR分析: ' + escapeHtml(fixPlan.sourceFile || 'CR分析报告') + '</div>' +
+                        '<div style="font-size:12px;color:var(--text-secondary);">已自动生成' + fixPlan.tasks.length + ' 个修复任务节点，Blocker优先，可编辑调整</div>' +
+                        '<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">总问题: ' + (fixPlan.summary?.totalIssues || 0) + ', 未解决: ' + (fixPlan.summary?.unresolved || 0) + ', Blocker: ' + (fixPlan.summary?.blockers || 0) + ', 解决率: ' + (fixPlan.summary?.resolutionRate || 0) + '%</div>' +
+                    '</div>' +
+                    '<button onclick="this.parentElement.remove()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);cursor:pointer;font-size:12px;">关闭</button>';
+                var container = document.querySelector('.container');
+                if (container) container.insertBefore(banner, container.firstChild);
+                if (window.ToolboxToast) window.ToolboxToast.show('已从CR分析导入 ' + fixPlan.tasks.length + ' 个修复任务', 'success');
+            } catch(e) { console.warn('CR fix plan transfer error:', e); }
+        })();
+
         // ==================== AI 计划调整建议 ====================
         function aiAdjustPlan() {
             var panel = document.getElementById('aiSuggestionPanel');
@@ -1012,6 +1061,7 @@
         }
     </script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>

@@ -96,9 +96,12 @@
                     CR 分析报告
                     <span id="reportFileName" style="font-size:13px;font-weight:400;color:var(--ds-text-secondary);"></span>
                 </h2>
-                <div style="display:flex;gap:8px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-secondary" id="exportTrendBtn" onclick="exportToBugTrend()" style="display:none;padding:8px 16px;font-size:13px;">
                         导入趋势看板
+                    </button>
+                    <button class="btn btn-secondary" id="generateFixPlanBtn" onclick="generateFixPlan()" style="display:none;padding:8px 16px;font-size:13px;">
+                        🔧 生成修复计划
                     </button>
                     <button class="btn btn-primary" id="pushFeishuBtn" onclick="pushToFeishu()" style="display:none;padding:8px 16px;font-size:13px;">
                         推送到飞书
@@ -230,10 +233,39 @@
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/cr_enhancement.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <script>
+    // v6.0: CR分析 → 修复计划流转
+    function generateFixPlan() {
+        if (typeof window.currentAnalysis === 'undefined' || !window.currentAnalysis) {
+            if (window.ToolboxToast) window.ToolboxToast.show('请先完成CR分析', 'warning');
+            return;
+        }
+        var fixPlan = window.Pipeline.crToFixPlan(window.currentAnalysis);
+        if (!fixPlan || fixPlan.tasks.length === 0) {
+            if (window.ToolboxToast) window.ToolboxToast.show('未找到可生成修复计划的未解决问题', 'warning');
+            return;
+        }
+        window.Pipeline.navigateWithData('/plan-generator', 'cr_to_plan', fixPlan);
+    }
+    // 分析完成后显示修复计划按钮
+    var _origShowResults = null;
+    document.addEventListener('DOMContentLoaded', function() {
+        var observer = new MutationObserver(function() {
+            var btn = document.getElementById('generateFixPlanBtn');
+            var resultCard = document.getElementById('resultCard');
+            if (btn && resultCard && resultCard.style.display !== 'none') {
+                btn.style.display = 'inline-block';
+            }
+        });
+        var resultCard = document.getElementById('resultCard');
+        if (resultCard) observer.observe(resultCard, { attributes: true, childList: true, subtree: true });
+    });
+    </script>
 </body>
 </html>

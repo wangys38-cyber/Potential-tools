@@ -137,6 +137,7 @@
             <div class="panel-title">
                 阻塞项
                 <span class="badge" id="blockerCount">0 项</span>
+                <button class="action-btn" style="margin-left:auto;padding:4px 10px;font-size:11px;" onclick="syncBlockersToDashboard()">📊 同步Dashboard</button>
             </div>
             <div class="input-row">
                 <input type="text" id="blockerInput" placeholder="输入阻塞项，回车添加..." onkeydown="if(event.key==='Enter'){addItem('blocker');}">
@@ -559,7 +560,31 @@
         renderTags('blocker');
         renderHistory();
         autoRunOnLoad();
+
+        // v6.0: 阻塞项同步到Dashboard
+        function syncBlockersToDashboard() {
+            if (items.blocker.length === 0) {
+                showToast('暂无阻塞项可同步', 'warning');
+                return;
+            }
+            var dashboardData = {
+                source: 'daily-standup',
+                date: new Date().toLocaleDateString('zh-CN'),
+                blockers: items.blocker.map(function(b) { return typeof b === 'string' ? b : (b.text || b); }),
+                blockerCount: items.blocker.length,
+                yesterdayCount: items.yesterday.length,
+                todayCount: items.today.length,
+                timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem('dashboard_blocker_data', JSON.stringify(dashboardData));
+                showToast('已同步' + items.blocker.length + '项阻塞到Dashboard', 'success');
+            } catch(e) {
+                showToast('同步失败: ' + e.message, 'error');
+            }
+        }
     </script>
+    <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 </body>

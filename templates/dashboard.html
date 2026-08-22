@@ -227,6 +227,36 @@
             <div class="eff-tip">鏁版嵁鏉ヨ嚜鏈湴缂撳瓨锛屽彲鍦ㄥ悇宸ュ叿椤佃嚜鍔ㄥ悓姝?/div>
         </div>
 
+        <!-- 风险/阻塞卡片 -->
+        <div class="card col-12" id="riskBlockerCard" style="display:none;">
+            <div class="card-title">
+                <span class="icon">⚠️</span> 风险与阻塞项
+                <span class="badge" id="riskBadge">实时</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary);" id="riskSource">来自站会同步</span>
+            </div>
+            <div id="riskBlockerContent">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
+                    <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:700;color:#ff3b30;" id="blockerCount">0</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">阻塞项</div>
+                    </div>
+                    <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:700;color:#ff9500;" id="riskLevel">中</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">风险等级</div>
+                    </div>
+                    <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:700;color:#007aff;" id="yesterdayDone">0</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">昨日完成</div>
+                    </div>
+                    <div style="background:var(--bg-secondary);border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:24px;font-weight:700;color:#34c759;" id="todayPlanned">0</div>
+                        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">今日计划</div>
+                    </div>
+                </div>
+                <div id="blockerList" style="font-size:13px;line-height:1.8;"></div>
+            </div>
+        </div>
+
         <!-- 椤圭洰姒傝鍗＄墖 -->
         <div class="card col-12">
             <div class="card-title">
@@ -381,6 +411,39 @@
         }).join('');
     }
 
+    // ===== 椋庨櫓/闃诲爡椤?=====
+    function renderRiskBlocker() {
+        try {
+            var raw = localStorage.getItem('dashboard_blocker_data');
+            if (!raw) return;
+            var data = JSON.parse(raw);
+            var card = document.getElementById('riskBlockerCard');
+            if (!card) return;
+            card.style.display = 'block';
+            document.getElementById('blockerCount').textContent = data.blockerCount || 0;
+            document.getElementById('yesterdayDone').textContent = data.yesterdayCount || 0;
+            document.getElementById('todayPlanned').textContent = data.todayCount || 0;
+            // 风险等级计算
+            var level = '低', levelColor = '#34c759';
+            if (data.blockerCount >= 3) { level = '高'; levelColor = '#ff3b30'; }
+            else if (data.blockerCount >= 1) { level = '中'; levelColor = '#ff9500'; }
+            var levelEl = document.getElementById('riskLevel');
+            if (levelEl) { levelEl.textContent = level; levelEl.style.color = levelColor; }
+            // 阻塞项列表
+            var blockers = data.blockers || [];
+            var listHtml = '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--text);">阻塞项详情：</div>';
+            if (blockers.length === 0) {
+                listHtml += '<div style="color:var(--text-secondary);font-size:13px;">暂无阻塞项</div>';
+            } else {
+                blockers.forEach(function(b, i) {
+                    listHtml += '<div style="padding:8px 12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><span style="width:20px;height:20px;background:#ff3b30;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;">' + (i+1) + '</span><span style="font-size:13px;color:var(--text);">' + escapeHtml(typeof b === 'string' ? b : (b.text || b)) + '</span></div>';
+                });
+            }
+            document.getElementById('blockerList').innerHTML = listHtml;
+            document.getElementById('riskSource').textContent = '来自站会同步 · ' + (data.date || '');
+        } catch(e) { console.warn('renderRiskBlocker failed:', e); }
+    }
+
     // ===== 浠庡悗绔?API 鑾峰彇鏁版嵁 =====
     async function fetchDashboardStats() {
         try {
@@ -401,6 +464,7 @@
     renderVersionProgress();
     renderEfficiency();
     renderProjectOverview();
+    renderRiskBlocker();
 
     fetchDashboardStats().then(function(data) {
         if (!data) return;
