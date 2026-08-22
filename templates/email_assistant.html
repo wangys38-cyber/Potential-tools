@@ -1,30 +1,28 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>邮件助手</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><path d=%22M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z%22/><polyline points=%2222,6 12,13 2,6%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
-        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
-        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
-        .sidebar { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 20px; }
+        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+        .sidebar { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 80px; }
         .sidebar-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-        .template-list { display: flex; flex-direction: column; gap: 6px; }
-        .template-item { padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .template-list { display: flex; flex-direction: column; gap: 4px; }
+        .template-item { padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 10px; color: var(--text-primary); }
         .template-item:hover { background: var(--bg-primary); }
-        .template-item.active { background: #fff,rgba(0,0,0,0.1)); border-left: 3px solid #1d1d1f; font-weight: 500; }
-        .template-icon { font-size: 18px; flex-shrink: 0; }
+        .template-item.active { background: rgba(0,0,0,0.05); border-left: 3px solid #1d1d1f; font-weight: 500; }
+        [data-theme="dark"] .template-item.active { background: rgba(255,255,255,0.1); border-left-color: #fff; }
+        .template-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .template-icon svg { width: 18px; height: 18px; }
         .main-panel { display: flex; flex-direction: column; gap: 16px; }
-        .form-card { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
-        .form-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-        .form-group { margin-bottom: 14px; }
+        .form-card { background: var(--bg-card); border-radius: 16px; padding: 24px; border: 1px solid var(--border); }
+        .form-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .form-group input, .form-group textarea, .form-group select {
             width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
@@ -34,11 +32,15 @@
         .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1d1d1f; }
         .form-group textarea { min-height: 80px; resize: vertical; line-height: 1.6; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
         .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
         .btn-primary { background: #1d1d1f; color: #fff; border: none; }
         .btn:hover { transform: translateY(-1px); }
-        .preview-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .tone-group { display: flex; gap: 8px; }
+        .tone-btn { flex: 1; justify-content: center; padding: 10px; }
+        .tone-btn.active { background: #1d1d1f; color: #fff; border: none; }
+        .preview-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; display: none; }
         .preview-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .preview-title { font-size: 14px; font-weight: 600; }
         .preview-body { padding: 24px; font-family: 'SF Pro Text', -apple-system, sans-serif; font-size: 14px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
@@ -47,22 +49,24 @@
         .lang-toggle { display: flex; gap: 4px; background: var(--bg-primary); padding: 3px; border-radius: 8px; }
         .lang-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 12px; color: var(--text-secondary); }
         .lang-btn.active { background: var(--bg-card); color: var(--text-primary); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 10px; background: var(--bg-card); box-shadow: 0 8px 32px rgba(0,0,0,0.15); font-size: 14px; z-index: 10000; opacity: 0; transition: opacity 0.3s; }
-        .toast.show { opacity: 1; }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 12px 24px; border-radius: 100px; background: #1d1d1f; color: #fff; font-size: 14px; z-index: 10000; opacity: 0; transition: all 0.3s; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .page-header { padding: 20px 0 10px; }
+        .page-header h1 { font-size: 24px; font-weight: 800; color: var(--text-primary); }
+        .page-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
         @media (max-width: 768px) {
-            .header { padding: 20px 16px; padding-left: 60px; }
-            .header h1 { font-size: 22px; }
             .container { grid-template-columns: 1fr; padding: 0 14px; }
             .sidebar { position: static; }
-            .template-list { flex-direction: row; overflow-x: auto; gap: 8px; }
+            .template-list { flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 8px; }
             .template-item { white-space: nowrap; flex-shrink: 0; }
             .form-row { grid-template-columns: 1fr; }
         }
     </style>
 
-<link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
-
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
@@ -74,57 +78,76 @@
             <div class="template-list" id="templateList"></div>
         </div>
         <div class="main-panel">
+            <div class="page-header">
+                <h1>邮件助手</h1>
+                <p>英文技术邮件模板生成 + 一键翻译，覆盖 Bug 报告、进度同步、问题升级等场景</p>
+            </div>
             <div class="form-card">
                 <div class="form-title" id="formTitle">填写邮件信息</div>
                 <div id="formFields"></div>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="generateEmail()">✓生成邮件</button>
-                    <button class="btn" onclick="clearForm()">🗑✓清空</button>
+                    <button class="btn btn-primary" onclick="generateEmail()">生成邮件</button>
+                    <button class="btn" onclick="clearForm()">清空</button>
                 </div>
             </div>
-            <div class="preview-card" id="previewCard" style="display:none">
+            <div class="preview-card" id="previewCard">
                 <div class="preview-header">
-                    <span class="preview-title">邮件预览</span>
-                    <div style="display:flex;gap:10px;align-items:center">
+                    <div class="preview-title">邮件预览</div>
+                    <div style="display:flex;gap:12px;align-items:center;">
                         <div class="lang-toggle">
                             <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
                             <button class="lang-btn" data-lang="zh" onclick="switchLang('zh')">中文</button>
                         </div>
-                        <button class="btn" style="padding:6px 12px;font-size:12px" onclick="copyEmail()">📋 复制</button>
+                        <button class="btn" style="padding:6px 14px;font-size:13px;" onclick="copyEmail()">复制</button>
                     </div>
                 </div>
                 <div class="preview-body" id="previewBody"></div>
             </div>
         </div>
     </div>
+
     <div class="toast" id="toast"></div>
+
     <script>
         const TEMPLATES = [
-            { id: 'ai-reply', icon: '🤖', name: 'AI 智能回复', fields: ['emailContent','tone'], desc: 'AI generate email reply' },
-            { id: 'bug', icon: '🐛', name: 'Bug 报告', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
-            { id: 'status', icon: '📊', name: '进度同步', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
-            { id: 'request', icon: '🙏', name: '资源请求', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
-            { id: 'escalation', icon: '🚨', name: '问题升级', fields: ['recipient','subject','issue','impact','previousAttempts','needAction'], desc: 'Escalate a critical issue' },
-            { id: 'followup', icon: '📌', name: '跟进提醒', fields: ['recipient','subject','topic','previousDate','actionNeeded','deadline'], desc: 'Follow up on pending items' },
-            { id: 'apology', icon: '🙇', name: '问题致歉', fields: ['recipient','subject','issue','apology','solution','preventMeasure'], desc: 'Apologize for an issue' },
-            { id: 'release', icon: '🚀', name: '版本发布', fields: ['recipient','subject','version','highlights','changes','knownIssues','download'], desc: 'Announce a new release' },
-            { id: 'meeting', icon: '📅', name: '会议邀�?, fields: ['recipient','subject','meetingTitle','time','location','agenda','prep'], desc: 'Schedule a meeting' },
+            { id: 'ai-reply', icon: 'ai', name: 'AI 智能回复', fields: ['emailContent','tone'], desc: 'AI generate email reply' },
+            { id: 'bug', icon: 'bug', name: 'Bug 报告', fields: ['recipient','subject','bugTitle','severity','steps','expected','actual','version'], desc: 'Report a bug with steps to reproduce' },
+            { id: 'status', icon: 'chart', name: '进度同步', fields: ['recipient','subject','project','progress','blockers','nextSteps'], desc: 'Weekly/daily status update' },
+            { id: 'request', icon: 'request', name: '资源请求', fields: ['recipient','subject','requestItem','reason','deadline','impact'], desc: 'Request resources or support' },
+            { id: 'escalation', icon: 'alert', name: '问题升级', fields: ['recipient','subject','issue','impact','previousAttempts','needAction'], desc: 'Escalate a critical issue' },
+            { id: 'followup', icon: 'pin', name: '跟进提醒', fields: ['recipient','subject','topic','previousDate','actionNeeded','deadline'], desc: 'Follow up on pending items' },
+            { id: 'apology', icon: 'apology', name: '问题致歉', fields: ['recipient','subject','issue','apology','solution','preventMeasure'], desc: 'Apologize for an issue' },
+            { id: 'release', icon: 'release', name: '版本发布', fields: ['recipient','subject','version','highlights','changes','knownIssues','download'], desc: 'Announce a new release' },
+            { id: 'meeting', icon: 'calendar', name: '会议邀请', fields: ['recipient','subject','meetingTitle','time','location','agenda','prep'], desc: 'Schedule a meeting' },
         ];
 
+        const ICONS = {
+            ai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4h-1v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2H8a4 4 0 0 1-4-4v-1a4 4 0 0 1 4-4V6a4 4 0 0 1 4-4z"/></svg>',
+            bug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 6V4M9 3l3 3 3-3M5 12H3M21 12h-2M5 18H3M21 18h-2"/></svg>',
+            chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+            request: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+            alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>',
+            apology: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+            release: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+            calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+        };
+
         const FIELD_LABELS = {
-            recipient: '收件�?(Recipient)', subject: '主题 (Subject)', bugTitle: 'Bug 标题',
+            recipient: '收件人 (Recipient)', subject: '主题 (Subject)', bugTitle: 'Bug 标题',
             severity: '严重程度 (Critical/Major/Minor)', steps: '复现步骤 (Steps to reproduce)',
             expected: '预期结果 (Expected)', actual: '实际结果 (Actual)', version: '固件版本 (Version)',
-            project: '项目名称 (Project)', progress: '当前进度 (Progress %)', blockers: '阻塞�?(Blockers)',
-            nextSteps: '下一步计�?(Next steps)', requestItem: '请求内容 (Request)', reason: '请求原因 (Reason)',
+            project: '项目名称 (Project)', progress: '当前进度 (Progress %)', blockers: '阻塞项 (Blockers)',
+            nextSteps: '下一步计划 (Next steps)', requestItem: '请求内容 (Request)', reason: '请求原因 (Reason)',
             deadline: '截止日期 (Deadline)', impact: '影响范围 (Impact)', issue: '问题描述 (Issue)',
-            previousAttempts: '已尝试方�?(Previous attempts)', needAction: '需要的支持 (Action needed)',
-            topic: '跟进主题 (Topic)', previousDate: '上次沟通日�?, actionNeeded: '需要的行动',
+            previousAttempts: '已尝试方案 (Previous attempts)', needAction: '需要的支持 (Action needed)',
+            topic: '跟进主题 (Topic)', previousDate: '上次沟通日期', actionNeeded: '需要的行动',
             apology: '致歉内容 (Apology)', solution: '解决方案 (Solution)', preventMeasure: '预防措施 (Prevention)',
-            version: '版本�?(Version)', highlights: '重点更新 (Highlights)', changes: '变更内容 (Changes)',
+            highlights: '重点更新 (Highlights)', changes: '变更内容 (Changes)',
             knownIssues: '已知问题 (Known issues)', download: '下载链接 (Download link)',
             meetingTitle: '会议主题 (Title)', time: '会议时间 (Time)', location: '会议地点 (Location/Link)',
             agenda: '议程 (Agenda)', prep: '会前准备 (Preparation)',
+            emailContent: '收到的邮件内容（英文）', tone: '回复语气',
         };
 
         let currentTemplate = TEMPLATES[0];
@@ -134,7 +157,7 @@
         function renderTemplateList() {
             document.getElementById('templateList').innerHTML = TEMPLATES.map(t =>
                 `<div class="template-item ${t.id===currentTemplate.id?'active':''}" onclick="selectTemplate('${t.id}')">
-                    <span class="template-icon">${t.icon}</span>${t.name}
+                    <span class="template-icon">${ICONS[t.icon] || ''}</span>${t.name}
                 </div>`
             ).join('');
         }
@@ -147,19 +170,19 @@
         }
 
         function renderFormFields() {
-            document.getElementById('formTitle').textContent = currentTemplate.icon + ' ' + currentTemplate.name + ' - 填写信息';
+            document.getElementById('formTitle').textContent = currentTemplate.name + ' - 填写信息';
             if (currentTemplate.id === 'ai-reply') {
                 document.getElementById('formFields').innerHTML = `
                     <div class="form-group">
-                        <label>📧 收到的邮件内容（英文�?/label>
+                        <label>收到的邮件内容（英文）</label>
                         <textarea id="field_emailContent" placeholder="Paste the email you received here..." style="min-height:160px;"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>🎯 回复语气</label>
-                        <div style="display:flex;gap:8px;" id="toneGroup">
-                            <button type="button" class="btn tone-btn active" data-tone="formal" onclick="selectTone('formal')" style="flex:1;justify-content:center;">🎩 正式</button>
-                            <button type="button" class="btn tone-btn" data-tone="concise" onclick="selectTone('concise')" style="flex:1;justify-content:center;">�?简�?/button>
-                            <button type="button" class="btn tone-btn" data-tone="friendly" onclick="selectTone('friendly')" style="flex:1;justify-content:center;">😊 友好</button>
+                        <label>回复语气</label>
+                        <div class="tone-group" id="toneGroup">
+                            <button type="button" class="btn tone-btn active" data-tone="formal" onclick="selectTone('formal')">正式</button>
+                            <button type="button" class="btn tone-btn" data-tone="concise" onclick="selectTone('concise')">简洁</button>
+                            <button type="button" class="btn tone-btn" data-tone="friendly" onclick="selectTone('friendly')">友好</button>
                         </div>
                     </div>
                     <input type="hidden" id="field_tone" value="formal">
@@ -180,29 +203,19 @@
             document.getElementById('field_tone').value = tone;
             document.querySelectorAll('.tone-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.tone === tone);
-                if (b.dataset.tone === tone) {
-                    b.style.background = '#1d1d1f';
-                    b.style.color = '#fff';
-                    b.style.border = 'none';
-                } else {
-                    b.style.background = '';
-                    b.style.color = '';
-                    b.style.border = '';
-                }
             });
         }
 
         function getVal(f) { return document.getElementById('field_'+f)?.value || ''; }
 
         function generateEmail() {
-            // AI 智能回复模板
             if (currentTemplate.id === 'ai-reply') {
                 const emailContent = getVal('emailContent').trim();
                 const tone = getVal('tone') || 'formal';
-                if (!emailContent) { showToast('请先粘贴收到的邮件内�?); return; }
+                if (!emailContent) { showToast('请先粘贴收到的邮件内容'); return; }
                 const btn = document.querySelector('.btn-primary');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '✓AI 生成�?..';
+                btn.innerHTML = 'AI 生成中...';
                 btn.disabled = true;
                 fetch('/api/email-reply', {
                     method: 'POST',
@@ -211,15 +224,15 @@
                 })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.error) { showToast('�?' + data.error); return; }
+                    if (data.error) { showToast('错误: ' + data.error); return; }
                     generatedEN = data.reply || '';
                     generatedZH = translateToZH(generatedEN);
                     currentLang = 'en';
                     renderPreview();
                     document.getElementById('previewCard').style.display = 'block';
-                    showToast('✓AI 回复已生�?);
+                    showToast('AI 回复已生成');
                 })
-                .catch(e => showToast('✓生成失败: ' + e.message))
+                .catch(e => showToast('生成失败: ' + e.message))
                 .finally(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -325,7 +338,7 @@ Best regards`;
                 case 'apology':
                     body = `Hi ${recipient},
 
-I sincerely apologize for ${getVal('issue') || '[the issue]'}.
+I sincerely apologize for ${getVal('issue') || 'the issue'}.
 
 ${getVal('apology') || ''}
 
@@ -383,37 +396,36 @@ Best regards`;
             currentLang = 'en';
             renderPreview();
             document.getElementById('previewCard').style.display = 'block';
-            showToast('✓邮件已生�?);
+            showToast('邮件已生成');
         }
 
         function translateToZH(text) {
-            // 简单的关键词翻译（完整翻译需调用 AI API�?
             const dict = {
-                'Hi ': '你好�?, 'Best regards': '此致敬礼',
-                'I would like to report': '我想报告', 'I am writing to request': '我写信请�?,
-                'I am escalating': '我在此升�?, 'Following up on': '跟进',
-                'I sincerely apologize': '我诚挚道�?, 'We are pleased to announce': '我们很高兴地宣布',
+                'Hi ': '你好，', 'Best regards': '此致敬礼',
+                'I would like to report': '我想报告', 'I am writing to request': '我写信请求',
+                'I am escalating': '我在此升级', 'Following up on': '跟进',
+                'I sincerely apologize': '我诚挚致歉', 'We are pleased to announce': '我们很高兴地宣布',
                 'I would like to schedule': '我想安排',
-                'Bug Title:': 'Bug 标题�?, 'Severity:': '严重程度�?,
-                'Steps to Reproduce:': '复现步骤�?, 'Expected Result:': '预期结果�?,
-                'Actual Result:': '实际结果�?, 'Progress:': '进度�?,
+                'Bug Title:': 'Bug 标题：', 'Severity:': '严重程度：',
+                'Steps to Reproduce:': '复现步骤：', 'Expected Result:': '预期结果：',
+                'Actual Result:': '实际结果：', 'Progress:': '进度：',
                 'Blockers:': '阻塞项：', 'Next Steps:': '下一步：',
-                'Request:': '请求�?, 'Reason:': '原因�?, 'Impact:': '影响�?,
-                'Deadline:': '截止日期�?, 'Issue:': '问题�?,
-                'Previous Attempts:': '已尝试方案：', 'Action Needed:': '需要的支持�?,
-                'Solution:': '解决方案�?, 'Prevention:': '预防措施�?,
-                'Highlights:': '重点更新�?, 'Changes:': '变更内容�?,
-                'Known Issues:': '已知问题�?, 'Download:': '下载�?,
-                'Title:': '主题�?, 'Time:': '时间�?, 'Location:': '地点�?,
-                'Agenda:': '议程�?, 'Preparation:': '会前准备�?,
-                'Please let me know': '请告�?, 'Thank you': '感谢',
-                'Subject:': '主题�?, 'None': '�?,
+                'Request:': '请求：', 'Reason:': '原因：', 'Impact:': '影响：',
+                'Deadline:': '截止日期：', 'Issue:': '问题：',
+                'Previous Attempts:': '已尝试方案：', 'Action Needed:': '需要的支持：',
+                'Solution:': '解决方案：', 'Prevention:': '预防措施：',
+                'Highlights:': '重点更新：', 'Changes:': '变更内容：',
+                'Known Issues:': '已知问题：', 'Download:': '下载：',
+                'Title:': '主题：', 'Time:': '时间：', 'Location:': '地点：',
+                'Agenda:': '议程：', 'Preparation:': '会前准备：',
+                'Please let me know': '请告知', 'Thank you': '感谢',
+                'Subject:': '主题：', 'None': '无',
             };
             let result = text;
             Object.entries(dict).forEach(([en, zh]) => {
                 result = result.split(en).join(zh);
             });
-            return result + '\n\n---\n（注：完整翻译建议复制后使用 AI 翻译工具润色�?;
+            return result + '\n\n---\n（注：完整翻译建议复制后使用 AI 翻译工具润色）';
         }
 
         function switchLang(lang) {
@@ -433,13 +445,13 @@ Best regards`;
 
         function copyEmail() {
             const text = currentLang === 'en' ? generatedEN : generatedZH;
-            navigator.clipboard.writeText(text).then(() => showToast('📋 已复制到剪贴�?));
+            navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
         }
 
         function clearForm() {
             currentTemplate.fields.forEach(f => { const el = document.getElementById('field_'+f); if(el) el.value = ''; });
             document.getElementById('previewCard').style.display = 'none';
-            showToast('🗑✓已清�?);
+            showToast('已清空');
         }
 
         function showToast(msg) {
@@ -451,9 +463,9 @@ Best regards`;
         renderTemplateList();
         renderFormFields();
     </script>
-<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
