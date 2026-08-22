@@ -53,9 +53,6 @@
         dropOverlay.className = 'v5-drop-overlay';
         dropOverlay.innerHTML =
             '<div class="v5-drop-content">' +
-                '<div class="v5-drop-icon">📁</div>' +
-                '<div class="v5-drop-text">释放文件自动识别工具</div>' +
-                '<div class="v5-drop-hint">支持音频、Excel、Word、Markdown 等格式</div>' +
             '</div>';
         document.body.appendChild(dropOverlay);
         return dropOverlay;
