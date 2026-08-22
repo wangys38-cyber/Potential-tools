@@ -1,4 +1,4 @@
-﻿function showToast(msg, type) {
+function showToast(msg, type) {
             if (typeof ToolboxToast !== 'undefined') {
                 ToolboxToast.show(msg, type || 'info');
             } else {
@@ -963,7 +963,9 @@
                     body: JSON.stringify({
                         analysis_data: currentAnalysisData,
                         watermark: watermark,
-                        custom_title: customTitle
+                        custom_title: customTitle,
+                        ai_analysis: currentAIAnalysis || '',
+                        all_issues: currentAnalysisData.all_issues || []
                     })
                 });
                 const result = await resp.json();
@@ -1434,28 +1436,28 @@
         function exportToBugTrend() {
             if (!currentAnalysisData) { showToast('请先分析文件', 'warning'); return; }
             const d = currentAnalysisData;
-            // 构造趋势数据：优先用 all_issues，否则从 module_stats 构造
+            // 极简格式：c=创建日期, r=解决日期, m=模块, s=状态
             let trendData = [];
             if (d.all_issues && d.all_issues.length > 0) {
                 trendData = d.all_issues.map(function(item) {
+                    const cd = (item.create_date || item.date || item.created || '').slice(0, 10);
+                    const rd = (item.resolved_date || item.closed_date || '').slice(0, 10);
                     return {
-                        '创建日期': item.create_date || item.date || item.created || '',
-                        '解决日期': item.resolved_date || item.closed_date || '',
-                        '模块': item.module || item.component || '未分类',
-                        '严重性': item.severity || 'Unknown',
-                        '状态': item.status || (item.resolved ? '已解决' : '未解决'),
-                        '研发': item.developer || ''
+                        c: cd,
+                        r: rd,
+                        m: item.module || item.component || '',
+                        s: item.status || (item.resolved ? 'Resolved' : 'Open')
                     };
                 });
             } else if (d.module_stats) {
                 Object.keys(d.module_stats).forEach(function(mod) {
                     var stat = d.module_stats[mod];
                     trendData.push({
-                        '日期': new Date().toISOString().split('T')[0],
-                        '模块': mod,
-                        '严重性': 'Mixed',
-                        '状态': '统计',
-                        'Bug数': stat.count || stat.total || 0
+                        c: new Date().toISOString().slice(0, 10),
+                        r: '',
+                        m: mod,
+                        s: 'stat',
+                        n: stat.count || stat.total || 0
                     });
                 });
             }
@@ -1464,38 +1466,60 @@
                 return;
             }
             const ts = Date.now();
-            const transferData = {
-                source: 'cr-analysis',
-                file_name: d.file_name || 'CR分析',
-                summary: {
-                    total: (d.summary && d.summary.total) || trendData.length,
-                    resolved: (d.summary && d.summary.resolved) || 0,
-                    unresolved: (d.summary && d.summary.unresolved) || 0
-                },
-                trend_data: trendData,
-                timestamp: new Date().toISOString()
+            let transferData = {
+                src: 'cr',
+                fn: d.file_name || 'CR分析',
+                td: trendData,
+                t: ts
             };
             try {
                 const prefix = window._USER_PREFIX || '';
                 const key = prefix + 'pipeline_cr-analysis_' + ts;
-                const jsonStr = JSON.stringify(transferData);
-                // 检查数据大小，超过 4MB 则进一步精简
-                if (jsonStr.length > 4 * 1024 * 1024) {
-                    transferData.trend_data = trendData.map(function(item) {
-                        return {
-                            '创建日期': item['创建日期'],
-                            '解决日期': item['解决日期'],
-                            '模块': item['模块'],
-                            '状态': item['状态']
-                        };
+                let jsonStr = JSON.stringify(transferData);
+                // 超过 3MB 则去掉模块字段
+                if (jsonStr.length > 3 * 1024 * 1024) {
+                    transferData.td = trendData.map(function(item) {
+                        return { c: item.c, r: item.r, s: item.s };
                     });
+                    jsonStr = JSON.stringify(transferData);
                 }
-                localStorage.setItem(key, JSON.stringify(transferData));
+                // 还是超过 4MB 则按周聚合
+                if (jsonStr.length > 4 * 1024 * 1024) {
+                    const weekly = {};
+                    trendData.forEach(function(item) {
+                        if (item.c) {
+                            const dt = new Date(item.c);
+                            if (!isNaN(dt.getTime())) {
+                                const weekStart = new Date(dt);
+                                weekStart.setDate(dt.getDate() - dt.getDay());
+                                const wk = weekStart.toISOString().slice(0, 10);
+                                if (!weekly[wk]) weekly[wk] = { new: 0, resolved: 0 };
+                                weekly[wk].new++;
+                            }
+                        }
+                        if (item.r) {
+                            const dt = new Date(item.r);
+                            if (!isNaN(dt.getTime())) {
+                                const weekStart = new Date(dt);
+                                weekStart.setDate(dt.getDate() - dt.getDay());
+                                const wk = weekStart.toISOString().slice(0, 10);
+                                if (!weekly[wk]) weekly[wk] = { new: 0, resolved: 0 };
+                                weekly[wk].resolved++;
+                            }
+                        }
+                    });
+                    transferData.td = Object.keys(weekly).sort().map(function(wk) {
+                        return { w: wk, n: weekly[wk].new, r: weekly[wk].resolved };
+                    });
+                    transferData.agg = 'weekly';
+                    jsonStr = JSON.stringify(transferData);
+                }
+                localStorage.setItem(key, jsonStr);
                 showToast('正在跳转到 Bug 趋势看板...', 'info');
                 setTimeout(function() { window.location.href = '/bug-trend'; }, 500);
             } catch(e) {
                 if (e.name === 'QuotaExceededError' || e.message.indexOf('quota') !== -1) {
-                    showToast('数据量过大，无法传递到趋势看板，请减少数据量', 'error');
+                    showToast('数据量过大，请使用按周聚合模式或减少数据量', 'error');
                 } else {
                     showToast('数据传递失败: ' + e.message, 'error');
                 }

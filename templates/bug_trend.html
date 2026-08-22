@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -173,10 +173,47 @@
                 var latestKey = matchedKeys[matchedKeys.length - 1];
                 var data = JSON.parse(localStorage.getItem(latestKey) || 'null');
                 matchedKeys.forEach(function(k) { localStorage.removeItem(k); });
-                if (!data || data.source !== 'cr-analysis' || !data.trend_data) return;
+                if (!data) return;
+                // 兼容新旧格式
+                let trendData = [];
+                let fileName = '';
+                if (data.src === 'cr' && data.td) {
+                    // 新格式：短字段名
+                    fileName = data.fn || 'CR分析导入';
+                    if (data.agg === 'weekly') {
+                        // 按周聚合格式：w=周, n=新增, r=解决
+                        trendData = data.td.map(function(item) {
+                            return {
+                                '周': item.w,
+                                '新增': item.n || 0,
+                                '解决': item.r || 0
+                            };
+                        });
+                        window._weeklyAggregated = true;
+                    } else {
+                        // 标准格式：c=创建日期, r=解决日期, m=模块, s=状态
+                        trendData = data.td.map(function(item) {
+                            return {
+                                '创建日期': item.c || '',
+                                '解决日期': item.r || '',
+                                '模块': item.m || '未分类',
+                                '严重性': 'Unknown',
+                                '状态': item.s || 'Open',
+                                '研发': '',
+                                '标题': ''
+                            };
+                        });
+                    }
+                } else if (data.source === 'cr-analysis' && data.trend_data) {
+                    // 旧格式兼容
+                    fileName = data.file_name || 'CR分析导入';
+                    trendData = data.trend_data;
+                } else {
+                    return;
+                }
 
-                rawData = data.trend_data;
-                document.getElementById('fileName').textContent = ' ' + (data.file_name || 'CR分析导入');
+                rawData = trendData;
+                document.getElementById('fileName').textContent = ' ' + fileName;
                 document.getElementById('fileInfo').style.display = 'flex';
                 processData();
 
@@ -261,6 +298,21 @@
 
         // 按周聚合新增和解?
         function aggregateByWeek(data) {
+            // 如果数据已经按周聚合（从CR分析导入的超大文件降级模式）
+            if (window._weeklyAggregated && data.length > 0 && data[0]['周']) {
+                const weeks = data.map(d => d['周']).sort();
+                let cumCreated = 0, cumResolved = 0;
+                return {
+                    labels: weeks.map(w => w + '周'),
+                    created: weeks.map((w, i) => { const v = data.find(d => d['周'] === w)['新增'] || 0; cumCreated += v; return v; }),
+                    resolved: weeks.map((w, i) => { const v = data.find(d => d['周'] === w)['解决'] || 0; cumResolved += v; return v; }),
+                    open: weeks.map((w, i) => {
+                        const c = weeks.slice(0, i+1).reduce((s, x) => s + (data.find(d => d['周'] === x)['新增'] || 0), 0);
+                        const r = weeks.slice(0, i+1).reduce((s, x) => s + (data.find(d => d['周'] === x)['解决'] || 0), 0);
+                        return c - r;
+                    })
+                };
+            }
             const cols = detectColumns();
             const weekMap = {};
             data.forEach(row => {

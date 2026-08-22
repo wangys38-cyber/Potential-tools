@@ -1144,10 +1144,12 @@ def create_analysis_blueprint():
         watermark = data.get('watermark', '')
         custom_title = data.get('custom_title', '').strip()
         file_name = data.get('file_name', '')
+        ai_analysis = data.get('ai_analysis', '')
+        all_issues = data.get('all_issues', [])
         if not analysis_data:
             return jsonify({'error': '缺少分析数据'}), 400
         try:
-            html_content = _build_cr_analysis_report_html(analysis_data, watermark, file_name, custom_title)
+            html_content = _build_cr_analysis_report_html(analysis_data, watermark, file_name, custom_title, ai_analysis, all_issues)
             import tempfile as tf
             with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
                 f.write(html_content)

@@ -6,8 +6,17 @@ from excel_analyzers import _match_severity_level
 
 _CST = timezone(timedelta(hours=8))
 
-def _build_cr_analysis_report_html(data, watermark, file_name, custom_title=''):
+def _is_resolved_status(status):
+    """判断问题状态是否为已解决"""
+    if not status:
+        return False
+    s = str(status).lower()
+    return any(kw in s for kw in ['resolved', 'closed', 'done', 'fixed', 'verified', '已解决', '已关闭', '已完成', '已验证'])
+
+def _build_cr_analysis_report_html(data, watermark, file_name, custom_title='', ai_analysis='', all_issues=None):
     """构建CR问题分析报告HTML（含Chart.js图表）"""
+    if all_issues is None:
+        all_issues = []
     summary = data.get('summary', {})
     module_stats = data.get('module_stats', {})
     dev_stats = data.get('dev_stats', {})
@@ -458,7 +467,74 @@ def _build_cr_analysis_report_html(data, watermark, file_name, custom_title=''):
         </div>
         '''
 
-    # 生成完整HTML（按新顺序：概览→智能建议→严重程度→模块饼图→每日折线图→研发→稳定性→待验证）
+    # AI根因分析结果
+    ai_html = ''
+    if ai_analysis and ai_analysis.strip():
+        # 将AI分析结果的markdown格式转为HTML
+        ai_content = ai_analysis.replace('\n', '<br>')
+        ai_html = f'''
+        <div style="margin-bottom:28px;break-inside:avoid;">
+            <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#1d1d1f;padding-bottom:8px;border-bottom:2px solid #5856d6;">AI 根因分析</h2>
+            <div style="background:linear-gradient(135deg,#f8f7ff,#f0eeff);border-radius:12px;padding:20px;border:1px solid #d4ccff;font-size:13px;line-height:1.8;color:#3c3c43;">
+                {ai_content}
+            </div>
+        </div>
+        '''
+
+    # 完整问题列表（未解决优先，全部展示）
+    issues_html = ''
+    if all_issues and len(all_issues) > 0:
+        # 按状态分组：未解决在前
+        unresolved_issues = [i for i in all_issues if not _is_resolved_status(i.get('status', ''))]
+        resolved_issues = [i for i in all_issues if _is_resolved_status(i.get('status', ''))]
+        sorted_issues = unresolved_issues + resolved_issues
+        
+        # 限制最多展示500条，避免PDF过大
+        display_issues = sorted_issues[:500]
+        issue_rows = ''
+        for idx, item in enumerate(display_issues, 1):
+            status = item.get('status', '-')
+            severity = item.get('severity', '-')
+            is_unresolved = not _is_resolved_status(status)
+            row_bg = '#fff5f5' if is_unresolved else '#ffffff'
+            issue_rows += f'''
+            <tr style="background:{row_bg};">
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;text-align:center;font-size:10px;">{idx}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;font-family:monospace;font-size:10px;white-space:nowrap;">{item.get('issue_id', item.get('key', '-'))}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;font-size:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{item.get('title', item.get('summary', '-'))}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;font-size:10px;">{item.get('module', item.get('component', '-'))}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;font-size:10px;">{item.get('developer', '-')}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;text-align:center;font-size:10px;font-weight:600;color:{'#ff3b30' if is_unresolved else '#34c759'};">{status}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;text-align:center;font-size:10px;">{severity}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e5ea;font-size:10px;white-space:nowrap;">{item.get('create_date', item.get('created', '-'))[:10] if item.get('create_date', item.get('created', '')) else '-'}</td>
+            </tr>
+            '''
+        
+        issues_html = f'''
+        <div style="margin-bottom:28px;">
+            <h2 style="font-size:16px;font-weight:700;margin-bottom:12px;color:#1d1d1f;padding-bottom:8px;border-bottom:2px solid #1d1d1f;">完整问题列表 (共 {len(all_issues)} 条，显示 {len(display_issues)} 条)</h2>
+            <div style="font-size:11px;color:#6e6e73;margin-bottom:10px;">未解决问题 ({len(unresolved_issues)}) 以浅红色背景标注，按未解决→已解决排序</div>
+            <div style="max-height:800px;overflow-y:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:10px;">
+                <thead>
+                    <tr style="background:#1d1d1f;color:white;position:sticky;top:0;">
+                        <th style="padding:6px 8px;text-align:center;width:30px;">#</th>
+                        <th style="padding:6px 8px;text-align:left;width:80px;">ID</th>
+                        <th style="padding:6px 8px;text-align:left;">标题</th>
+                        <th style="padding:6px 8px;text-align:left;width:80px;">模块</th>
+                        <th style="padding:6px 8px;text-align:left;width:70px;">研发</th>
+                        <th style="padding:6px 8px;text-align:center;width:60px;">状态</th>
+                        <th style="padding:6px 8px;text-align:center;width:50px;">严重性</th>
+                        <th style="padding:6px 8px;text-align:center;width:70px;">创建日期</th>
+                    </tr>
+                </thead>
+                <tbody>{issue_rows}</tbody>
+            </table>
+            </div>
+        </div>
+        '''
+
+    # 生成完整HTML（按新顺序：概览→智能建议→严重程度→模块饼图→每日折线图→研发→稳定性→待验证→AI分析→完整列表）
     now = datetime.now(_CST).strftime('%Y-%m-%d %H:%M:%S')
     # 使用自定义标题或默认标题
     report_title = custom_title if custom_title else '📊 CR问题分析报告'
@@ -502,6 +578,8 @@ def _build_cr_analysis_report_html(data, watermark, file_name, custom_title=''):
     {dev_html}
     {stability_html}
     {unverified_html}
+    {ai_html}
+    {issues_html}
     <div class="footer">
         📊 CR问题智能分析系统 — 自动生成报告
     </div>
