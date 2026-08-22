@@ -304,6 +304,20 @@
                 <h3>横向时间线</h3>
                 <div class="timeline-container"><div class="timeline" id="timeline"></div></div>
             </div>
+
+            <!-- 计划增强功能区域 -->
+            <div id="planEnhancementSection" style="margin-top:20px;">
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                    <button class="action-btn active" onclick="PlanEnhancement.switchSubTab('dependency')" id="subtab-dependency">依赖关系</button>
+                    <button class="action-btn" onclick="PlanEnhancement.switchSubTab('resource')" id="subtab-resource">资源分配</button>
+                    <button class="action-btn" onclick="PlanEnhancement.switchSubTab('milestone')" id="subtab-milestone">里程碑</button>
+                    <button class="action-btn" onclick="PlanEnhancement.switchSubTab('baseline')" id="subtab-baseline">基线对比</button>
+                </div>
+                <div id="dependencySection"></div>
+                <div id="resourceSection" style="display:none;"></div>
+                <div id="milestoneSection" style="display:none;"></div>
+                <div id="baselineSection" style="display:none;"></div>
+            </div>
         </div>
         </div><!-- /tab-generator -->
 
@@ -1067,5 +1081,6 @@
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/gantt_chart.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/plan_enhancement.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
