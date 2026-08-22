@@ -505,7 +505,14 @@ app.register_blueprint(create_sync_blueprint())
 # 协作功能（v5.3）
 app.register_blueprint(create_collab_blueprint())
 
-logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab")
+# HLD 生成器
+try:
+    from routes.hld_generator import bp_hld
+    app.register_blueprint(bp_hld)
+except ImportError as e:
+    logger.warning(f"HLD Blueprint 加载失败: {e}")
+
+logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab, hld")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
 
 

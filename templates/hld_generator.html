@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLD 生成器 — 工具集</title>
+    {% include '_navbar.html' %}
+    <style>
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary, #f5f5f7);
+            color: var(--text-primary, #1d1d1f);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .page-desc {
+            font-size: 15px;
+            color: var(--text-secondary, #86868b);
+            margin-bottom: 32px;
+        }
+        .upload-zone {
+            background: var(--bg-card, #fff);
+            border: 2px dashed var(--border, rgba(0,0,0,0.1));
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--text-primary, #1d1d1f);
+            background: var(--bg-hover, #fafafa);
+        }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .upload-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary, #86868b);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--text-primary, #1d1d1f);
+            color: var(--bg-card, #fff);
+            border: none;
+            border-radius: 980px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:hover {
+            background: #333;
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary, #1d1d1f);
+            border: 1px solid var(--border, rgba(0,0,0,0.15));
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover, #fafafa);
+        }
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-card, #fff);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border, rgba(0,0,0,0.06));
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary, #86868b);
+        }
+        .stat-enhanced .stat-value {
+            color: #ff6b35;
+        }
+        .feature-list {
+            background: var(--bg-card, #fff);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border, rgba(0,0,0,0.06));
+            margin-bottom: 24px;
+        }
+        .feature-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px 120px 100px;
+            padding: 14px 20px;
+            background: var(--bg-hover, #fafafa);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary, #86868b);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+        }
+        .feature-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px 120px 100px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border, rgba(0,0,0,0.04));
+            font-size: 14px;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .feature-row:hover {
+            background: var(--bg-hover, #fafafa);
+        }
+        .feature-row:last-child {
+            border-bottom: none;
+        }
+        .feature-id {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: var(--text-secondary, #86868b);
+        }
+        .feature-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .priority {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .priority-p0 { background: #ffe5e5; color: #d70015; }
+        .priority-p1 { background: #fff4e5; color: #c77700; }
+        .priority-p2 { background: #e5f0ff; color: #0066cc; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .tag-enhanced {
+            background: #fff0e8;
+            color: #ff6b35;
+        }
+        .tag-standard {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100001;
+            justify-content: center;
+            align-items: center;
+        }
+        .preview-modal.active {
+            display: flex;
+        }
+        .preview-content {
+            background: var(--bg-card, #fff);
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+        }
+        .preview-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .preview-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary, #86868b);
+            padding: 4px 8px;
+        }
+        .preview-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border, rgba(0,0,0,0.1));
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+        .progress-bar.active {
+            display: block;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--text-primary, #1d1d1f);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary, #86868b);
+        }
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .page-title { font-size: 24px; }
+            .feature-header, .feature-row {
+                grid-template-columns: 60px 1fr 80px 80px;
+            }
+            .feature-header > div:nth-child(5),
+            .feature-header > div:nth-child(6),
+            .feature-row > div:nth-child(5),
+            .feature-row > div:nth-child(6) {
+                display: none;
+            }
+            .upload-zone { padding: 32px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">HLD 生成器</h1>
+        <p class="page-desc">基于 OD Excel 需求文档，自动生成每个 Feature 的高层设计文档（HLD），支持 GPS/Fitness 增强分支、Mermaid 时序图/状态机、批量 ZIP 下载</p>
+
+        <!-- 上传区域 -->
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">点击或拖拽上传 OD Excel 文件</div>
+            <div class="upload-hint">支持 .xlsx / .xls 格式，自动解析 Feature 并生成 HLD</div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+        </div>
+
+        <!-- 统计栏 -->
+        <div class="stats-bar" id="statsBar" style="display:none">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Feature 总数</div>
+            </div>
+            <div class="stat-card stat-enhanced">
+                <div class="stat-value" id="enhancedCount">0</div>
+                <div class="stat-label">GPS/Fitness 增强</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="standardCount">0</div>
+                <div class="stat-label">标准 Feature</div>
+            </div>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="action-bar" id="actionBar" style="display:none">
+            <button class="btn" id="generateBtn" onclick="generateAll()">
+                <span id="generateBtnText">生成全部 HLD 并下载 ZIP</span>
+            </button>
+            <button class="btn btn-secondary" onclick="reupload()">重新上传</button>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Feature 列表 -->
+        <div id="featureListContainer" style="display:none">
+            <div class="feature-list">
+                <div class="feature-header">
+                    <div>ID</div>
+                    <div>Feature Name</div>
+                    <div>Priority</div>
+                    <div>Type</div>
+                    <div>分类</div>
+                    <div>标签</div>
+                </div>
+                <div id="featureRows"></div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">📋</div>
+            <p>上传 OD Excel 文件后，这里会显示解析到的 Feature 列表</p>
+        </div>
+    </div>
+
+    <!-- 预览弹窗 -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <div class="preview-title" id="previewTitle">HLD 预览</div>
+                <button class="preview-close" onclick="closePreview()">×</button>
+            </div>
+            <div class="preview-body" id="previewBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let allFeatures = [];
+
+        // 上传区域交互
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('请上传 .xlsx 或 .xls 格式的 Excel 文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            uploadZone.innerHTML = '<div class="loading" style="border-color:rgba(0,0,0,0.2);border-top-color:#1d1d1f;width:32px;height:32px;"></div><div style="margin-top:16px;font-size:14px;">正在解析 OD 文档...</div>';
+
+            fetch('/hld/api/parse', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;">❌ ' + data.error + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
+                    return;
+                }
+                allFeatures = data.features;
+                showResults(data);
+            })
+            .catch(err => {
+                uploadZone.innerHTML = '<div style="color:#d70015;font-size:16px;">❌ 解析失败: ' + err.message + '</div><div style="margin-top:12px;font-size:13px;color:#86868b;">点击重新上传</div>';
+            });
+        }
+
+        function showResults(data) {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('statsBar').style.display = 'grid';
+            document.getElementById('actionBar').style.display = 'flex';
+            document.getElementById('featureListContainer').style.display = 'block';
+            uploadZone.style.display = 'none';
+
+            document.getElementById('totalCount').textContent = data.total;
+            document.getElementById('enhancedCount').textContent = data.enhanced_count;
+            document.getElementById('standardCount').textContent = data.total - data.enhanced_count;
+
+            const rows = document.getElementById('featureRows');
+            rows.innerHTML = '';
+            data.preview.forEach((f, idx) => {
+                const row = document.createElement('div');
+                row.className = 'feature-row';
+                row.innerHTML = `
+                    <div class="feature-id">${f.id}</div>
+                    <div class="feature-name" title="${f.name}">${f.name}</div>
+                    <div><span class="priority priority-${f.priority.toLowerCase()}">${f.priority}</span></div>
+                    <div>${f.type}</div>
+                    <div style="font-size:12px;color:var(--text-secondary);">${f.category}</div>
+                    <div><span class="tag ${f.is_enhanced ? 'tag-enhanced' : 'tag-standard'}">${f.is_enhanced ? 'GPS/Fitness' : 'Standard'}</span></div>
+                `;
+                row.style.cursor = 'pointer';
+                row.onclick = () => previewFeature(f, idx);
+                rows.appendChild(row);
+            });
+
+            if (data.total > 20) {
+                const moreRow = document.createElement('div');
+                moreRow.className = 'feature-row';
+                moreRow.style.justifyContent = 'center';
+                moreRow.style.color = 'var(--text-secondary)';
+                moreRow.style.fontSize = '13px';
+                moreRow.innerHTML = `... 还有 ${data.total - 20} 个 Feature，生成全部后查看完整列表`;
+                rows.appendChild(moreRow);
+            }
+        }
+
+        function previewFeature(feature, idx) {
+            const fullFeature = allFeatures[idx];
+            const fid = feature.id;
+
+            document.getElementById('previewTitle').textContent = `${fid} — ${feature.name}`;
+            document.getElementById('previewBody').textContent = '正在生成预览...';
+            document.getElementById('previewModal').classList.add('active');
+
+            fetch('/hld/api/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feature: fullFeature, feature_id: fid })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('previewBody').textContent = '生成失败: ' + data.error;
+                } else {
+                    document.getElementById('previewBody').textContent = data.content;
+                }
+            })
+            .catch(err => {
+                document.getElementById('previewBody').textContent = '生成失败: ' + err.message;
+            });
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.remove('active');
+        }
+
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'previewModal') closePreview();
+        });
+
+        function generateAll() {
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('generateBtnText');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="loading"></span> 正在生成...';
+            progressBar.classList.add('active');
+            progressFill.style.width = '30%';
+
+            fetch('/hld/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ features: allFeatures })
+            })
+            .then(response => {
+                progressFill.style.width = '80%';
+                if (!response.ok) throw new Error('生成失败');
+                return response.blob();
+            })
+            .then(blob => {
+                progressFill.style.width = '100%';
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `HLD_Arceau_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                btnText.textContent = '✅ 生成完成，已下载';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btnText.textContent = '生成全部 HLD 并下载 ZIP';
+                    progressBar.classList.remove('active');
+                    progressFill.style.width = '0%';
+                }, 3000);
+            })
+            .catch(err => {
+                btnText.textContent = '❌ 生成失败: ' + err.message;
+                btn.disabled = false;
+                progressBar.classList.remove('active');
+                setTimeout(() => {
+                    btnText.textContent = '生成全部 HLD 并下载 ZIP';
+                }, 3000);
+            });
+        }
+
+        function reupload() {
+            allFeatures = [];
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('statsBar').style.display = 'none';
+            document.getElementById('actionBar').style.display = 'none';
+            document.getElementById('featureListContainer').style.display = 'none';
+            uploadZone.style.display = 'block';
+            uploadZone.innerHTML = `
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">点击或拖拽上传 OD Excel 文件</div>
+                <div class="upload-hint">支持 .xlsx / .xls 格式，自动解析 Feature 并生成 HLD</div>
+            `;
+            fileInput.value = '';
+        }
+    </script>
+</body>
+</html>
