@@ -738,7 +738,7 @@ def generate_index(features):
 def hld_page():
     """HLD 生成器页面"""
     from flask import render_template
-    return render_template('hld_generator.html')
+    return render_template('hld_generator.html', nav_title='HLD 生成器')
 
 
 @bp_hld.route('/api/parse', methods=['POST'])
