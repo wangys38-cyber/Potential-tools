@@ -290,12 +290,19 @@ def handle_exception(error):
 def add_cache_headers(response):
     """为静态资源添加缓存头，减少重复下载，并添加安全响应头"""
     path = request.path
-    # JS/CSS 文件：带版本号查询参数时缓存1小时，否则不缓存
+    has_version = request.args.get('v') is not None
+    # JS/CSS 文件：带版本号时缓存1年（immutable），否则缓存1小时
     if path.startswith('/static/') and (path.endswith('.js') or path.endswith('.css')):
-        response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
-    # 其他静态文件缓存1天
+        if has_version:
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+    # 其他静态文件：带版本号缓存1年，否则缓存1天
     elif path.startswith('/static/') or path.startswith('/assets/'):
-        response.headers['Cache-Control'] = 'public, max-age=3600'
+        if has_version:
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response.headers['Cache-Control'] = 'public, max-age=86400'
     # API 响应不缓存
     elif path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
