@@ -37,6 +37,7 @@ from routes.analysis import create_analysis_blueprint
 from routes.sync import create_sync_blueprint
 from routes.collab import create_collab_blueprint
 from routes.collab_v2 import create_collab_v2_blueprint
+from routes.visualization import create_visualization_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -73,7 +74,7 @@ def _get_static_version():
 _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
-APP_VERSION = '5.3.0'
+APP_VERSION = '5.4.0'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -508,6 +509,9 @@ app.register_blueprint(create_collab_blueprint())
 
 # 协作功能深化（v7.0）
 app.register_blueprint(create_collab_v2_blueprint())
+
+# 数据可视化增强（v8.0）
+app.register_blueprint(create_visualization_blueprint())
 
 # HLD 生成器
 try:

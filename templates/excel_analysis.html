@@ -129,9 +129,23 @@
                         <canvas id="modulePieChart" style="max-height:280px;"></canvas>
                     </div>
                     <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);">
-                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">每日新增趋势</h3>
-                        <canvas id="dailyLineChart" style="max-height:280px;"></canvas>
+                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">模块问题柱状图</h3>
+                        <div id="moduleBarWrap" style="height:280px;position:relative;"><canvas id="moduleBarChart"></canvas></div>
                     </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;">
+                    <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);">
+                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">严重程度分布（模块×严重度）</h3>
+                        <div id="severityStackedWrap" style="height:280px;position:relative;"><canvas id="severityStackedChart"></canvas></div>
+                    </div>
+                    <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);">
+                        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">研发解决效率散点图</h3>
+                        <div id="rdEfficiencyWrap" style="height:280px;position:relative;"><canvas id="rdEfficiencyChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="chart-card" style="background: var(--ds-bg-elevated);border-radius:var(--ds-radius-lg);padding:24px;box-shadow:var(--ds-shadow-sm);border:1px solid var(--ds-border-light);margin-bottom:28px;">
+                    <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--ds-text);">每日趋势与累计Bug曲线</h3>
+                    <div id="dailyCumulativeWrap" style="height:320px;position:relative;"><canvas id="dailyCumulativeChart"></canvas></div>
                 </div>
                 <div id="suggestionsList"></div>
                 <div id="unverifiedSection"></div>
@@ -252,6 +266,8 @@
     <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/cr_deep_analysis.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/cr_enhancement.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/cr_viz_enhancement.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>

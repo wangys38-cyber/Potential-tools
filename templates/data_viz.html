@@ -4,81 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据可视化 Builder</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='2'/><path d='M9 9h6v6H9z'/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
-        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
-        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
-        .upload-zone { border: 2px dashed var(--border-strong); border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--bg-card); margin-bottom: 20px; }
-        .upload-zone:hover, .upload-zone.dragover { border-color: #1d1d1f; background: rgba(0,0,0,0.05); }
-        .upload-zone-icon { font-size: 48px; margin-bottom: 12px; }
-        .upload-zone-text { font-size: 16px; }
-        .upload-zone-hint { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
-        .file-info { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--bg-card); border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--ds-bg-secondary); min-height: 100vh; color: var(--ds-text); -webkit-font-smoothing: antialiased; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+
+        .upload-zone { border: 2px dashed var(--ds-border); border-radius: var(--ds-radius-xl); padding: 36px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--ds-bg-elevated); margin-bottom: 16px; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--ds-text); background: var(--ds-bg-tertiary); }
+        .upload-zone-text { font-size: 15px; font-weight: 500; }
+        .upload-zone-hint { font-size: 12px; color: var(--ds-text-secondary); margin-top: 6px; }
+
+        .file-info { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--ds-bg-elevated); border-radius: var(--ds-radius-lg); margin-bottom: 16px; border: 1px solid var(--ds-border-light); }
         .file-info-name { flex: 1; font-size: 14px; font-weight: 500; }
-        .file-info-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; }
-        .controls { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-        .control-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
-        .control-group select, .control-group input { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; }
-        .chart-types { display: flex; gap: 8px; }
-        .chart-type-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; transition: all 0.2s; text-align: center; }
-        .chart-type-btn.active { background: #1d1d1f; color: #fff; border-color: transparent; }
-        .chart-type-btn:hover { border-color: #1d1d1f; }
-        .chart-container { background: var(--bg-card); border-radius: 16px; padding: 24px; border: 1px solid var(--border); margin-bottom: 16px; }
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-        .chart-title-input { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; font-weight: 600; }
-        .chart-actions { display: flex; gap: 8px; }
-        .btn { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); cursor: pointer; font-size: 13px; color: var(--text-primary); transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: #1d1d1f; color: #fff; border: none; }
-        .btn:hover { transform: translateY(-1px); }
-        .chart-wrapper { position: relative; height: 420px; }
-        .data-preview { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); margin-bottom: 16px; }
-        .data-preview-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+        .file-info-meta { font-size: 12px; color: var(--ds-text-secondary); }
+
+        .card { background: var(--ds-bg-elevated); border-radius: var(--ds-radius-xl); padding: 20px; margin-bottom: 16px; border: 1px solid var(--ds-border-light); }
+        .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--ds-text); }
+
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .control-group label { display: block; font-size: 12px; color: var(--ds-text-secondary); margin-bottom: 6px; font-weight: 500; }
+        .control-group select, .control-group input { width: 100%; padding: 8px 12px; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border); background: var(--ds-bg); color: var(--ds-text); font-size: 13px; font-family: inherit; }
+        .control-group select[multiple] { height: auto; min-height: 70px; }
+
+        .chart-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .chart-type-btn { padding: 8px 4px; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border); background: var(--ds-bg); cursor: pointer; font-size: 11px; transition: all 0.15s; text-align: center; color: var(--ds-text-secondary); }
+        .chart-type-btn.active { background: var(--ds-text); color: var(--ds-bg); border-color: var(--ds-text); }
+        .chart-type-btn:hover { border-color: var(--ds-text); }
+
+        .btn { padding: 8px 16px; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border); background: var(--ds-bg-elevated); cursor: pointer; font-size: 13px; color: var(--ds-text); transition: all 0.15s; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+        .btn:hover { background: var(--ds-bg-tertiary); }
+        .btn-primary { background: var(--ds-text); color: var(--ds-bg); border-color: var(--ds-text); }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .chart-container { background: var(--ds-bg-elevated); border-radius: var(--ds-radius-xl); padding: 20px; border: 1px solid var(--ds-border-light); margin-bottom: 16px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+        .chart-title-input { flex: 1; min-width: 200px; padding: 8px 14px; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border); background: var(--ds-bg); color: var(--ds-text); font-size: 14px; font-weight: 600; font-family: inherit; }
+        .chart-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chart-wrap { position: relative; height: 420px; }
+
+        .annotation-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+        .annotation-row input { padding: 6px 10px; border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border); background: var(--ds-bg); color: var(--ds-text); font-size: 12px; width: 120px; }
+        .annotation-row select { padding: 6px 10px; border-radius: var(--ds-radius-sm); border: 1px solid var(--ds-border); background: var(--ds-bg); color: var(--ds-text); font-size: 12px; }
+
         .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .data-table th, .data-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        .data-table th { background: var(--bg-primary); font-weight: 600; color: var(--text-secondary); position: sticky; top: 0; }
-        .data-table-wrap { max-height: 240px; overflow: auto; border-radius: 8px; }
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
-        .empty-state-icon { font-size: 56px; margin-bottom: 16px; }
-        .color-picker { display: flex; gap: 6px; flex-wrap: wrap; }
-        .color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
-        .color-dot.active { border-color: var(--text-primary); transform: scale(1.15); }
+        .data-table th, .data-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--ds-border-light); }
+        .data-table th { background: var(--ds-bg-secondary); font-weight: 600; color: var(--ds-text-secondary); position: sticky; top: 0; }
+        .data-table-wrap { max-height: 240px; overflow: auto; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border-light); }
+
+        .template-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+        .template-select { padding: 6px 12px; border-radius: var(--ds-radius-md); border: 1px solid var(--ds-border); background: var(--ds-bg); color: var(--ds-text); font-size: 13px; min-width: 160px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--ds-text-secondary); }
+        .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .toggle-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .toggle-row label { font-size: 12px; color: var(--ds-text-secondary); cursor: pointer; margin: 0; }
+
         @media (max-width: 768px) {
-            .header { padding: 20px 16px; padding-left: 60px; }
-            .header h1 { font-size: 22px; }
-            .container { padding: 0 14px; }
-            .chart-wrapper { height: 300px; }
-            .controls { grid-template-columns: 1fr; }
+            .container { padding: 16px 14px; }
+            .chart-wrap { height: 300px; }
+            .chart-types { grid-template-columns: repeat(3, 1fr); }
         }
     </style>
-
-<link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
-
-    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
-    <div class="container">
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-zone-icon"></div>
-            <div class="upload-zone-text">点击或拖拽上传 Excel 文件</div>
-            <div class="upload-zone-hint">支持 .xlsx / .xls / .csv，自动识别列名</div>
-            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+<div class="container">
+    <h1 class="page-title">数据可视化 Builder</h1>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-zone-text">点击或拖拽上传 Excel / CSV 文件</div>
+        <div class="upload-zone-hint">支持 .xlsx / .xls / .csv，自动识别列名</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+    </div>
+
+    <div id="fileInfo" style="display:none" class="file-info">
+        <span id="fileName" class="file-info-name"></span>
+        <span id="rowCount" class="file-info-meta"></span>
+        <button class="btn btn-sm" onclick="resetUpload()">重新上传</button>
+    </div>
+
+    <div id="builder" style="display:none">
+        <!-- 模板栏 -->
+        <div class="card">
+            <div class="template-bar">
+                <span style="font-size:13px;font-weight:600;">图表模板</span>
+                <select class="template-select" id="templateSelect" onchange="loadTemplate(this.value)">
+                    <option value="">选择模板...</option>
+                </select>
+                <button class="btn btn-sm" onclick="saveTemplateDialog()">保存为模板</button>
+                <button class="btn btn-sm" onclick="deleteTemplate()">删除模板</button>
+            </div>
         </div>
-        <div id="fileInfo" style="display:none" class="file-info">
-            <span id="fileName" class="file-info-name"></span>
-            <span id="rowCount" style="font-size:12px;color:var(--text-secondary)"></span>
-            <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
-        </div>
-        <div id="builder" style="display:none">
-            <div class="controls">
+
+        <!-- 控制面板 -->
+        <div class="card">
+            <div class="controls-grid">
                 <div class="control-group">
                     <label>X 轴（分类）</label>
                     <select id="xAxisSelect" onchange="renderChart()"></select>
@@ -89,174 +117,428 @@
                 </div>
                 <div class="control-group">
                     <label>图表类型</label>
-                    <div class="chart-types">
-                        <div class="chart-type-btn active" data-type="bar" onclick="setChartType('bar')"> 柱状图</div>
-                        <div class="chart-type-btn" data-type="line" onclick="setChartType('line')"> 折线图</div>
-                        <div class="chart-type-btn" data-type="pie" onclick="setChartType('pie')"> 饼图</div>
+                    <div class="chart-types" id="chartTypes">
+                        <div class="chart-type-btn active" data-type="bar" onclick="setChartType('bar')">柱状图</div>
+                        <div class="chart-type-btn" data-type="line" onclick="setChartType('line')">折线图</div>
+                        <div class="chart-type-btn" data-type="pie" onclick="setChartType('pie')">饼图</div>
+                        <div class="chart-type-btn" data-type="scatter" onclick="setChartType('scatter')">散点图</div>
+                        <div class="chart-type-btn" data-type="bubble" onclick="setChartType('bubble')">气泡图</div>
+                        <div class="chart-type-btn" data-type="radar" onclick="setChartType('radar')">雷达图</div>
+                        <div class="chart-type-btn" data-type="stackedArea" onclick="setChartType('stackedArea')">堆叠面积</div>
+                        <div class="chart-type-btn" data-type="heatmap" onclick="setChartType('heatmap')">热力图</div>
                     </div>
                 </div>
                 <div class="control-group">
-                    <label>主题色</label>
-                    <div class="color-picker" id="colorPicker"></div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <div class="chart-header">
-                    <input type="text" class="chart-title-input" id="chartTitle" placeholder="输入图表标题..." value="数据图表" oninput="renderChart()">
-                    <div class="chart-actions">
-                        <button class="btn btn-primary" onclick="exportImage()"> 导出图片</button>
-                        <button class="btn" onclick="exportCSV()"> 导出 CSV</button>
+                    <label>双 Y 轴</label>
+                    <div class="toggle-row">
+                        <input type="checkbox" id="dualAxis" onchange="renderChart()">
+                        <label for="dualAxis">启用双 Y 轴（最后一个系列用右轴）</label>
+                    </div>
+                    <div class="toggle-row" style="margin-top:8px;">
+                        <input type="checkbox" id="stacked" onchange="renderChart()">
+                        <label for="stacked">堆叠显示</label>
                     </div>
                 </div>
-                <div class="chart-wrapper"><canvas id="mainChart"></canvas></div>
             </div>
-            <div class="data-preview">
-                <div class="data-preview-title"> 数据预览（前 20 行）</div>
-                <div class="data-table-wrap"><table class="data-table" id="dataTable"></table></div>
+
+            <!-- 标注设置 -->
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--ds-border-light);">
+                <div class="card-title" style="margin-bottom:10px;">图表标注</div>
+                <div class="annotation-row">
+                    <span style="font-size:12px;color:var(--ds-text-secondary);">水平线（目标线）</span>
+                    <input type="number" id="hLineValue" placeholder="Y轴数值" step="any" oninput="renderChart()">
+                    <input type="text" id="hLineLabel" placeholder="标签（如：目标）" style="width:100px;" oninput="renderChart()">
+                </div>
+                <div class="annotation-row">
+                    <span style="font-size:12px;color:var(--ds-text-secondary);">垂直线（里程碑）</span>
+                    <input type="text" id="vLineValue" placeholder="X轴标签" oninput="renderChart()">
+                    <input type="text" id="vLineLabel" placeholder="标签（如：发版）" style="width:100px;" oninput="renderChart()">
+                </div>
             </div>
         </div>
-        <div id="emptyState" class="empty-state">
-            <div class="empty-state-icon"></div>
-            <p>上传 Excel 后选择坐标轴生成图表</p>
+
+        <!-- 图表区 -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <input type="text" class="chart-title-input" id="chartTitle" placeholder="输入图表标题..." value="数据图表" oninput="renderChart()">
+                <div class="chart-actions">
+                    <button class="btn btn-sm btn-primary" onclick="exportPNG()">导出 PNG</button>
+                    <button class="btn btn-sm" onclick="exportSVG()">导出 SVG</button>
+                    <button class="btn btn-sm" onclick="exportCSV()">导出 CSV</button>
+                </div>
+            </div>
+            <div class="chart-wrap" id="chartWrap"><canvas id="mainChart"></canvas></div>
+        </div>
+
+        <!-- 数据预览 -->
+        <div class="card">
+            <div class="card-title">数据预览（前 20 行）</div>
+            <div class="data-table-wrap"><table class="data-table" id="dataTable"></table></div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script>
-        let rawData = [], columns = [], chart = null, chartType = 'bar';
-        const COLORS = ['#1d1d1f','#10b981','#f59e0b','#ef4444','#0ea5e9','#1d1d1f','#ec4899','#14b8a6'];
-        let selectedColor = COLORS[0];
 
-        const uploadZone = document.getElementById('uploadZone');
-        uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-        uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+    <div id="emptyState" class="empty-state">
+        <div style="margin-bottom:12px;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <p>上传 Excel 后选择坐标轴生成图表</p>
+    </div>
+</div>
 
-        function handleFile(file) {
-            if (!file) return;
-            document.getElementById('fileName').textContent = ' ' + file.name;
-            const reader = new FileReader();
-            reader.onload = e => {
-                const wb = XLSX.read(e.target.result, {type:'array'});
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                rawData = XLSX.utils.sheet_to_json(ws, {defval:''});
-                if (!rawData.length) { alert('文件为空或格式不正确'); return; }
-                columns = Object.keys(rawData[0]);
-                document.getElementById('rowCount').textContent = rawData.length + ' 行 × ' + columns.length + ' 列';
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
+<script>
+(function() {
+    'use strict';
+
+    var rawData = [], columns = [], chart = null, chartType = 'bar';
+    var templates = [];
+    var COLORS = ['#000000','#34c759','#ff9500','#ff3b30','#007aff','#5856d6','#af52de','#ff2d55'];
+
+    // ========== 文件上传 ==========
+    var uploadZone = document.getElementById('uploadZone');
+    uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
+    uploadZone.addEventListener('drop', function(e) { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+    window.handleFile = function(file) {
+        if (!file) return;
+        document.getElementById('fileName').textContent = file.name;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var wb = XLSX.read(e.target.result, {type:'array'});
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            rawData = XLSX.utils.sheet_to_json(ws, {defval:''});
+            if (!rawData.length) { alert('文件为空或格式不正确'); return; }
+            columns = Object.keys(rawData[0]);
+            document.getElementById('rowCount').textContent = rawData.length + ' 行 x ' + columns.length + ' 列';
+            document.getElementById('fileInfo').style.display = 'flex';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('builder').style.display = 'block';
+            populateSelects();
+            renderDataTable();
+            renderChart();
+        };
+        if (file.name.endsWith('.csv')) {
+            reader.readAsText(file);
+            reader.onload = function(e) {
+                var text = e.target.result;
+                var lines = text.split(/\r?\n/).filter(function(l){return l.trim();});
+                if (lines.length < 2) return;
+                var parseLine = function(line) {
+                    var result = [], cur = '', inQ = false;
+                    for (var i = 0; i < line.length; i++) {
+                        var c = line[i];
+                        if (c === '"') inQ = !inQ;
+                        else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+                        else cur += c;
+                    }
+                    result.push(cur); return result;
+                };
+                var headers = parseLine(lines[0]).map(function(h){return h.trim();});
+                rawData = [];
+                for (var i = 1; i < lines.length; i++) {
+                    var vals = parseLine(lines[i]);
+                    var row = {};
+                    headers.forEach(function(h, j){ row[h] = vals[j] || ''; });
+                    rawData.push(row);
+                }
+                columns = headers;
+                document.getElementById('rowCount').textContent = rawData.length + ' 行 x ' + columns.length + ' 列';
                 document.getElementById('fileInfo').style.display = 'flex';
                 document.getElementById('emptyState').style.display = 'none';
                 document.getElementById('builder').style.display = 'block';
                 populateSelects();
-                renderColorPicker();
                 renderDataTable();
                 renderChart();
             };
+        } else {
             reader.readAsArrayBuffer(file);
         }
+    };
 
-        function populateSelects() {
-            const xSel = document.getElementById('xAxisSelect');
-            const ySel = document.getElementById('yAxisSelect');
-            xSel.innerHTML = columns.map(c => `<option value="${c}">${c}</option>`).join('');
-            ySel.innerHTML = columns.map(c => `<option value="${c}">${c}</option>`).join('');
-            // 自动选择：第一列为 X，第二列为 Y
-            if (columns.length > 0) xSel.value = columns[0];
-            if (columns.length > 1) { ySel.value = columns[1]; ySel.selectedIndex = 1; }
+    function populateSelects() {
+        var xSel = document.getElementById('xAxisSelect');
+        var ySel = document.getElementById('yAxisSelect');
+        xSel.innerHTML = columns.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+        ySel.innerHTML = columns.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+        if (columns.length > 0) xSel.value = columns[0];
+        if (columns.length > 1) { ySel.selectedIndex = 1; }
+    }
+
+    window.setChartType = function(type) {
+        chartType = type;
+        document.querySelectorAll('.chart-type-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.type === type); });
+        renderChart();
+    };
+
+    // ========== 渲染图表 ==========
+    window.renderChart = function() {
+        if (!rawData.length) return;
+        chart = PTChart.destroy(chart);
+
+        var xKey = document.getElementById('xAxisSelect').value;
+        var yOptions = Array.from(document.getElementById('yAxisSelect').selectedOptions).map(function(o){return o.value;});
+        var yKeys = yOptions.length ? yOptions : (columns.length > 1 ? [columns[1]] : [columns[0]]);
+        var title = document.getElementById('chartTitle').value || '数据图表';
+        var dualAxis = document.getElementById('dualAxis').checked;
+        var stacked = document.getElementById('stacked').checked;
+        var hLineVal = document.getElementById('hLineValue').value;
+        var hLineLabel = document.getElementById('hLineLabel').value;
+        var vLineVal = document.getElementById('vLineValue').value;
+        var vLineLabel = document.getElementById('vLineLabel').value;
+
+        // 热力图特殊处理
+        if (chartType === 'heatmap') {
+            renderHeatmapCustom(xKey, yKeys);
+            return;
         }
 
-        function renderColorPicker() {
-            document.getElementById('colorPicker').innerHTML = COLORS.map((c,i) =>
-                `<div class="color-dot ${c===selectedColor?'active':''}" style="background:${c}" onclick="setColor('${c}')"></div>`
-            ).join('');
-        }
-
-        function setColor(c) { selectedColor = c; renderColorPicker(); renderChart(); }
-
-        function setChartType(type) {
-            chartType = type;
-            document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-            renderChart();
-        }
-
-        function renderChart() {
-            const xKey = document.getElementById('xAxisSelect').value;
-            const yOptions = Array.from(document.getElementById('yAxisSelect').selectedOptions).map(o => o.value);
-            const yKeys = yOptions.length ? yOptions : [columns[1] || columns[0]];
-            const title = document.getElementById('chartTitle').value || '数据图表';
-            const labels = rawData.map(r => String(r[xKey]));
-
-            const datasets = yKeys.map((key, i) => {
-                const data = rawData.map(r => parseFloat(r[key]) || 0);
-                const color = COLORS[i % COLORS.length];
-                if (chartType === 'pie') {
-                    return { label: key, data: data, backgroundColor: COLORS.slice(0, labels.length), borderWidth: 0 };
+        var labels = rawData.map(function(r){return String(r[xKey]);});
+        var datasets = yKeys.map(function(key, i) {
+            var data = rawData.map(function(r){
+                if (chartType === 'scatter' || chartType === 'bubble') {
+                    // 散点/气泡：需要 x,y 数值
+                    var xVal = parseFloat(r[xKey]) || 0;
+                    var yVal = parseFloat(r[key]) || 0;
+                    if (chartType === 'bubble') {
+                        var sizeKey = yKeys[i+1] || key;
+                        return { x: xVal, y: yVal, r: Math.max(3, Math.min(20, parseFloat(r[sizeKey]) || 5)) };
+                    }
+                    return { x: xVal, y: yVal };
                 }
-                return {
-                    label: key, data: data,
-                    borderColor: color, backgroundColor: chartType === 'bar' ? color + 'cc' : color + '22',
-                    fill: chartType === 'line', tension: 0.3, borderWidth: 2,
-                    pointBackgroundColor: color, pointRadius: 3
-                };
+                return parseFloat(r[key]) || 0;
             });
+            var color = COLORS[i % COLORS.length];
+            var ds = {
+                label: key, data: data,
+                borderColor: color,
+                backgroundColor: chartType === 'pie' ? COLORS.slice(0, labels.length) :
+                    (chartType === 'line' || chartType === 'stackedArea' ? color + '22' : color + 'cc'),
+                fill: chartType === 'line' || chartType === 'stackedArea',
+                tension: 0.3, borderWidth: 2,
+                pointBackgroundColor: color, pointRadius: chartType === 'scatter' ? 5 : 3
+            };
+            if (dualAxis && i === yKeys.length - 1 && yKeys.length > 1) {
+                ds.yAxisID = 'y1';
+            }
+            return ds;
+        });
 
-            if (chart) chart.destroy();
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: chartType,
-                data: { labels, datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        title: { display: true, text: title, font: { size: 16, weight: '600' }, padding: { bottom: 16 } },
-                        legend: { position: 'top' }
-                    },
-                    scales: chartType === 'pie' ? {} : {
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                        x: { grid: { display: false } }
+        var actualType = chartType === 'stackedArea' ? 'line' : chartType;
+
+        var options = {
+            plugins: {
+                title: { display: true, text: title, font: { size: 15, weight: '600' }, padding: { bottom: 14 } },
+                legend: { position: 'top' }
+            },
+            scales: {}
+        };
+
+        if (chartType !== 'pie' && chartType !== 'radar') {
+            options.scales.y = { beginAtZero: true, stacked: stacked };
+            options.scales.x = { stacked: stacked };
+            if (dualAxis && yKeys.length > 1) {
+                options.scales.y1 = { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } };
+            }
+        }
+
+        // 标注线（通过 plugin 实现）
+        var annotationPlugin = {
+            id: 'customAnnotations',
+            afterDraw: function(chart) {
+                var ctx = chart.ctx;
+                var yScale = chart.scales.y;
+                var xScale = chart.scales.x;
+                if (!yScale || !xScale) return;
+                ctx.save();
+                // 水平线
+                if (hLineVal !== '' && !isNaN(parseFloat(hLineVal))) {
+                    var y = yScale.getPixelForValue(parseFloat(hLineVal));
+                    ctx.strokeStyle = '#ff3b30';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(xScale.left, y);
+                    ctx.lineTo(xScale.right, y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    if (hLineLabel) {
+                        ctx.fillStyle = '#ff3b30';
+                        ctx.font = '11px -apple-system, sans-serif';
+                        ctx.fillText(hLineLabel, xScale.left + 4, y - 4);
                     }
                 }
+                // 垂直线
+                if (vLineVal) {
+                    var idx = labels.indexOf(vLineVal);
+                    if (idx >= 0) {
+                        var x = xScale.getPixelForValue(idx);
+                        ctx.strokeStyle = '#007aff';
+                        ctx.lineWidth = 1.5;
+                        ctx.setLineDash([6, 4]);
+                        ctx.beginPath();
+                        ctx.moveTo(x, yScale.top);
+                        ctx.lineTo(x, yScale.bottom);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        if (vLineLabel) {
+                            ctx.fillStyle = '#007aff';
+                            ctx.font = '11px -apple-system, sans-serif';
+                            ctx.save();
+                            ctx.translate(x + 4, yScale.top + 12);
+                            ctx.fillText(vLineLabel, 0, 0);
+                            ctx.restore();
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+        };
+
+        var config = {
+            type: actualType,
+            data: { labels: labels, datasets: datasets },
+            options: options,
+            plugins: [annotationPlugin]
+        };
+
+        if (chartType === 'radar') {
+            config.options.scales = { r: { beginAtZero: true } };
+        }
+
+        chart = PTChart.create('mainChart', config);
+    };
+
+    function renderHeatmapCustom(xKey, yKeys) {
+        // 简单热力图：x 为分类，y 轴为数值列，值为数据
+        var yKey = yKeys[0] || columns[1];
+        var xLabels = [...new Set(rawData.map(function(r){return String(r[xKey]);}))];
+        var yLabels = yKeys.length > 1 ? yKeys : [yKey];
+        var matrix = yLabels.map(function(yk) {
+            return xLabels.map(function(xl) {
+                var rows = rawData.filter(function(r){return String(r[xKey]) === xl;});
+                return rows.reduce(function(s, r){return s + (parseFloat(r[yk]) || 0);}, 0);
+            });
+        });
+        PTChart.renderHeatmap('chartWrap', {
+            labels: { x: xLabels, y: yLabels },
+            matrix: matrix
+        }, { cellWidth: 40, cellHeight: 32, labelWidth: 80 });
+    }
+
+    // ========== 数据预览 ==========
+    function renderDataTable() {
+        var table = document.getElementById('dataTable');
+        var preview = rawData.slice(0, 20);
+        table.innerHTML = '<thead><tr>' + columns.map(function(c){return '<th>'+c+'</th>';}).join('') + '</tr></thead>' +
+            '<tbody>' + preview.map(function(r){
+                return '<tr>' + columns.map(function(c){return '<td>'+r[c]+'</td>';}).join('') + '</tr>';
+            }).join('') + '</tbody>';
+    }
+
+    // ========== 导出 ==========
+    window.exportPNG = function() {
+        if (chart) PTChart.exportPNG(chart, document.getElementById('chartTitle').value || 'chart');
+    };
+    window.exportSVG = function() {
+        if (chart) PTChart.exportSVG(chart, document.getElementById('chartTitle').value || 'chart');
+    };
+    window.exportCSV = function() {
+        var xKey = document.getElementById('xAxisSelect').value;
+        var yKeys = Array.from(document.getElementById('yAxisSelect').selectedOptions).map(function(o){return o.value;});
+        var keys = [xKey].concat(yKeys.length ? yKeys : [columns[1]]);
+        PTChart.exportCSV(
+            rawData.map(function(r){return String(r[xKey]);}),
+            yKeys.map(function(k){return {label: k, data: rawData.map(function(r){return parseFloat(r[k]) || 0;});};}),
+            document.getElementById('chartTitle').value || 'data'
+        );
+    };
+
+    // ========== 模板功能 ==========
+    async function loadTemplates() {
+        try {
+            var resp = await fetch('/api/chart-templates');
+            var data = await resp.json();
+            if (data.status === 'success') {
+                templates = data.templates || [];
+                var sel = document.getElementById('templateSelect');
+                sel.innerHTML = '<option value="">选择模板...</option>' +
+                    templates.map(function(t){return '<option value="'+t.id+'">'+t.name+' ('+t.chart_type+')</option>';}).join('');
+            }
+        } catch(e) { console.warn('Load templates failed:', e); }
+    }
+
+    window.loadTemplate = function(id) {
+        if (!id) return;
+        var tpl = templates.find(function(t){return t.id == id;});
+        if (!tpl || !tpl.config) return;
+        var cfg = tpl.config;
+        if (cfg.chartType) setChartType(cfg.chartType);
+        if (cfg.xAxis && document.getElementById('xAxisSelect')) document.getElementById('xAxisSelect').value = cfg.xAxis;
+        if (cfg.title) document.getElementById('chartTitle').value = cfg.title;
+        if (cfg.dualAxis != null) document.getElementById('dualAxis').checked = cfg.dualAxis;
+        if (cfg.stacked != null) document.getElementById('stacked').checked = cfg.stacked;
+        if (cfg.yAxes && cfg.yAxes.length) {
+            Array.from(document.getElementById('yAxisSelect').options).forEach(function(o){
+                o.selected = cfg.yAxes.indexOf(o.value) >= 0;
             });
         }
+        renderChart();
+    };
 
-        function renderDataTable() {
-            const table = document.getElementById('dataTable');
-            const preview = rawData.slice(0, 20);
-            table.innerHTML = '<thead><tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr></thead>' +
-                '<tbody>' + preview.map(r => '<tr>' + columns.map(c => `<td>${r[c]}</td>`).join('') + '</tr>').join('') + '</tbody>';
-        }
+    window.saveTemplateDialog = function() {
+        var name = prompt('请输入模板名称：');
+        if (!name) return;
+        var xKey = document.getElementById('xAxisSelect').value;
+        var yKeys = Array.from(document.getElementById('yAxisSelect').selectedOptions).map(function(o){return o.value;});
+        var config = {
+            chartType: chartType,
+            xAxis: xKey,
+            yAxes: yKeys,
+            title: document.getElementById('chartTitle').value,
+            dualAxis: document.getElementById('dualAxis').checked,
+            stacked: document.getElementById('stacked').checked
+        };
+        fetch('/api/chart-templates', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name: name, chart_type: chartType, config: config})
+        }).then(function(r){return r.json();}).then(function(data){
+            if (data.status === 'success') {
+                alert('模板保存成功');
+                loadTemplates();
+            } else {
+                alert('保存失败: ' + (data.error || ''));
+            }
+        }).catch(function(){alert('保存失败');});
+    };
 
-        function exportImage() {
-            const canvas = document.getElementById('mainChart');
-            const link = document.createElement('a');
-            link.download = (document.getElementById('chartTitle').value || 'chart') + '.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }
+    window.deleteTemplate = function() {
+        var id = document.getElementById('templateSelect').value;
+        if (!id) { alert('请先选择要删除的模板'); return; }
+        if (!confirm('确定删除该模板？')) return;
+        fetch('/api/chart-templates/' + id, {method: 'DELETE'})
+            .then(function(r){return r.json();}).then(function(data){
+                if (data.status === 'success') { alert('已删除'); loadTemplates(); }
+            });
+    };
 
-        function exportCSV() {
-            const xKey = document.getElementById('xAxisSelect').value;
-            const yKeys = Array.from(document.getElementById('yAxisSelect').selectedOptions).map(o => o.value);
-            const keys = [xKey, ...(yKeys.length ? yKeys : [columns[1]])];
-            const csv = [keys.join(','), ...rawData.map(r => keys.map(k => `"${r[k]}"`).join(','))].join('\n');
-            const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = (document.getElementById('chartTitle').value || 'data') + '.csv';
-            a.click(); URL.revokeObjectURL(url);
-        }
+    // ========== 重置 ==========
+    window.resetUpload = function() {
+        rawData = []; columns = [];
+        chart = PTChart.destroy(chart);
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('builder').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('fileInput').value = '';
+    };
 
-        function resetUpload() {
-            rawData = []; columns = [];
-            if (chart) { chart.destroy(); chart = null; }
-            document.getElementById('fileInfo').style.display = 'none';
-            document.getElementById('builder').style.display = 'none';
-            document.getElementById('emptyState').style.display = 'block';
-            document.getElementById('fileInput').value = '';
-        }
-    </script>
-<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
+    // 初始化加载模板列表
+    loadTemplates();
+})();
+</script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
