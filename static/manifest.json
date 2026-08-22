@@ -1,23 +1,64 @@
 {
   "name": "工具集 — Potential Tools",
   "short_name": "工具集",
-  "description": "效率工具集合，支持离线使用",
+  "description": "研发效率工具集合：CR分析、项目计划、日志分析、邮件助手、AI助手等",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#0071e3",
+  "background_color": "#ffffff",
+  "theme_color": "#1d1d1f",
   "orientation": "any",
+  "categories": ["productivity", "utilities", "developer-tools"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white'>🧰</text></svg>",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "shortcuts": [
-    { "name": "牛马笔记", "url": "/noteNB/", "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>", "sizes": "any"}] },
-    { "name": "功德+1", "url": "/merit", "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>", "sizes": "any"}] },
-    { "name": "系统设置", "url": "/settings", "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>", "sizes": "any"}] }
+    {
+      "name": "CR 分析",
+      "short_name": "CR分析",
+      "description": "上传Excel分析问题清单",
+      "url": "/excel-analysis",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>📊</text></svg>", "sizes": "any"}]
+    },
+    {
+      "name": "项目计划",
+      "short_name": "计划",
+      "description": "生成软件项目计划",
+      "url": "/plan-generator",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>📅</text></svg>", "sizes": "any"}]
+    },
+    {
+      "name": "日志分析",
+      "short_name": "日志",
+      "description": "智能分析设备日志",
+      "url": "/log-analyzer",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>🔍</text></svg>", "sizes": "any"}]
+    },
+    {
+      "name": "邮件助手",
+      "short_name": "邮件",
+      "description": "英文技术邮件生成翻译",
+      "url": "/email-assistant",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>✉️</text></svg>", "sizes": "any"}]
+    },
+    {
+      "name": "每日站会",
+      "short_name": "站会",
+      "description": "AI生成每日站会内容",
+      "url": "/daily-standup",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>📝</text></svg>", "sizes": "any"}]
+    },
+    {
+      "name": "Bug 趋势",
+      "short_name": "趋势",
+      "description": "Bug增长解决趋势图",
+      "url": "/bug-trend",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231d1d1f'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>📈</text></svg>", "sizes": "any"}]
+    }
   ]
 }

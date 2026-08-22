@@ -4,8 +4,14 @@
    页面标题通过模板变量 nav_title 传入，默认显示当前页面路径 #}
 <link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1d1d1f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工具集">
 <script src="/static/js/performance.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/performance-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/mobile-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
 {% if request.path != '/' %}
 <nav class="pt-nav-bar" id="ptNavBar">
     <div class="pt-nav-left">
