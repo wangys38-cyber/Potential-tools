@@ -415,6 +415,7 @@ function showToast(msg, type) {
                         if (pb) pb.style.display = 'none';
                         currentAnalysisData = statusResult.data;
                         currentAnalysisData.file_name = currentFileName;
+                        window.currentAnalysisData = currentAnalysisData;
                         displayResults();
                         return;
                     } else if (statusResult.status === 'error') {
@@ -926,6 +927,12 @@ function showToast(msg, type) {
                     }
                 }
             });
+            // 渲染增强功能：研发效率、模块健康
+            setTimeout(function() {
+                if (window.renderEfficiencyRanking) window.renderEfficiencyRanking();
+                if (window.renderModuleHealth) window.renderModuleHealth();
+                if (window.CRDeepAnalysis && window.CRDeepAnalysis.refresh) window.CRDeepAnalysis.refresh();
+            }, 100);
         }
 
         function switchTab(tab) {
@@ -1001,6 +1008,7 @@ function showToast(msg, type) {
                 `;
             }
             currentAnalysisData = null;
+            window.currentAnalysisData = null;
             currentAIAnalysis = '';  // 清空AI分析结果
         }
 
@@ -1436,8 +1444,7 @@ function showToast(msg, type) {
                         '模块': item.module || item.component || '未分类',
                         '严重性': item.severity || 'Unknown',
                         '状态': item.status || (item.resolved ? '已解决' : '未解决'),
-                        '研发': item.developer || '',
-                        '标题': item.title || item.summary || item.issue || ''
+                        '研发': item.developer || ''
                     };
                 });
             } else if (d.module_stats) {
@@ -1448,8 +1455,7 @@ function showToast(msg, type) {
                         '模块': mod,
                         '严重性': 'Mixed',
                         '状态': '统计',
-                        'Bug数': stat.count || stat.total || 0,
-                        '标题': mod + ' 模块统计'
+                        'Bug数': stat.count || stat.total || 0
                     });
                 });
             }
@@ -1461,18 +1467,38 @@ function showToast(msg, type) {
             const transferData = {
                 source: 'cr-analysis',
                 file_name: d.file_name || 'CR分析',
-                summary: d.summary || {},
+                summary: {
+                    total: (d.summary && d.summary.total) || trendData.length,
+                    resolved: (d.summary && d.summary.resolved) || 0,
+                    unresolved: (d.summary && d.summary.unresolved) || 0
+                },
                 trend_data: trendData,
                 timestamp: new Date().toISOString()
             };
             try {
                 const prefix = window._USER_PREFIX || '';
                 const key = prefix + 'pipeline_cr-analysis_' + ts;
+                const jsonStr = JSON.stringify(transferData);
+                // 检查数据大小，超过 4MB 则进一步精简
+                if (jsonStr.length > 4 * 1024 * 1024) {
+                    transferData.trend_data = trendData.map(function(item) {
+                        return {
+                            '创建日期': item['创建日期'],
+                            '解决日期': item['解决日期'],
+                            '模块': item['模块'],
+                            '状态': item['状态']
+                        };
+                    });
+                }
                 localStorage.setItem(key, JSON.stringify(transferData));
-                showToast('📈 正在跳转到 Bug 趋势看板...', 'info');
+                showToast('正在跳转到 Bug 趋势看板...', 'info');
                 setTimeout(function() { window.location.href = '/bug-trend'; }, 500);
             } catch(e) {
-                showToast('❌ 数据传递失败: ' + e.message, 'error');
+                if (e.name === 'QuotaExceededError' || e.message.indexOf('quota') !== -1) {
+                    showToast('数据量过大，无法传递到趋势看板，请减少数据量', 'error');
+                } else {
+                    showToast('数据传递失败: ' + e.message, 'error');
+                }
             }
         }
 
@@ -2127,6 +2153,7 @@ function showToast(msg, type) {
             if (!record) { showToast('记录不存在', 'error'); return; }
             currentAnalysisData = record.data;
             currentFileName = record.file_name;
+            window.currentAnalysisData = currentAnalysisData;
             // 隐藏上传区域，显示结果
             document.getElementById('uploadCard').style.display = 'none';
             document.getElementById('columnConfigCard').style.display = 'none';

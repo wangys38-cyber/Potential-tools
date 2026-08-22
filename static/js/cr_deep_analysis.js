@@ -632,6 +632,19 @@
 
     // ============ 初始化 ============
 
+    function refresh() {
+        // 分析完成后刷新各模块状态
+        const issues = getIssues();
+        const predResult = document.getElementById('bugPredictionResult');
+        if (predResult && issues.length > 0) {
+            predResult.innerHTML = '已加载 ' + issues.length + ' 条问题数据，点击"生成预测"按钮查看趋势预测';
+        }
+        const loadResult = document.getElementById('developerLoadResult');
+        if (loadResult && issues.length > 0) {
+            loadResult.innerHTML = '已加载 ' + issues.length + ' 条问题数据，点击"分析负载"按钮查看研发负载';
+        }
+    }
+
     function init() {
         initVersionCompare();
         initBugPrediction();
@@ -642,6 +655,7 @@
     // 暴露到全局
     window.CRDeepAnalysis = {
         init,
+        refresh,
         loadVersion,
         useCurrentAsVersion,
         compareVersions,

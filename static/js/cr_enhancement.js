@@ -7,13 +7,13 @@
         effBtn.className = 'tab';
         effBtn.dataset.tab = 'efficiency';
         effBtn.onclick = function() { switchTab('efficiency'); };
-        effBtn.innerHTML = '&#9889; 研发效率';
+        effBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>研发效率';
         tabsContainer.appendChild(effBtn);
         var healthBtn = document.createElement('button');
         healthBtn.className = 'tab';
         healthBtn.dataset.tab = 'health';
         healthBtn.onclick = function() { switchTab('health'); };
-        healthBtn.innerHTML = '&#128154; 模块健康';
+        healthBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>模块健康';
         tabsContainer.appendChild(healthBtn);
         var tabDaily = document.getElementById('tab-daily');
         if (tabDaily && tabDaily.parentNode) {
