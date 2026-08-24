@@ -71,6 +71,14 @@
                 </button>
                 <input type="text" class="nb-title-input" id="nbTitleInput" placeholder="笔记标题..." oninput="NB.onTitleInput(this.value)">
                 <div class="nb-editor-actions">
+                    <button class="nb-btn nb-btn-primary nb-done-btn" id="nbDoneBtn" onclick="NB.doneEditing()" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>完成</span>
+                    </button>
+                    <button class="nb-btn nb-btn-ghost nb-edit-btn" id="nbEditBtn" onclick="NB.startEditing()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>编辑</span>
+                    </button>
                     <button class="nb-icon-btn" id="nbPinBtn" onclick="NB.togglePin()" title="置顶">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
                     </button>

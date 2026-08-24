@@ -431,22 +431,48 @@
         var body = document.getElementById('nbEditorBody');
         var editPane = document.getElementById('nbEditPane');
         var previewPane = document.getElementById('nbPreviewPane');
+        var doneBtn = document.getElementById('nbDoneBtn');
+        var editBtn = document.getElementById('nbEditBtn');
         if (!body) return;
         body.classList.remove('split', 'preview-only');
         if (state.mode === 'edit') {
             if (editPane) editPane.classList.remove('hidden');
             if (previewPane) previewPane.style.display = 'none';
+            if (doneBtn) doneBtn.style.display = 'inline-flex';
+            if (editBtn) editBtn.style.display = 'none';
         } else if (state.mode === 'preview') {
             body.classList.add('preview-only');
             if (editPane) editPane.classList.add('hidden');
             if (previewPane) previewPane.style.display = 'block';
+            if (doneBtn) doneBtn.style.display = 'none';
+            if (editBtn) editBtn.style.display = 'inline-flex';
             updatePreview();
         } else if (state.mode === 'split') {
             body.classList.add('split');
             if (editPane) editPane.classList.remove('hidden');
             if (previewPane) previewPane.style.display = 'block';
+            if (doneBtn) doneBtn.style.display = 'inline-flex';
+            if (editBtn) editBtn.style.display = 'none';
             updatePreview();
         }
+    }
+
+    function doneEditing() {
+        var note = getCurrentNote();
+        if (note) {
+            saveToLocal();
+            if (CONFIG.isLoggedIn) syncToServer(note, 'PUT');
+            updateSaveStatus('saved');
+        }
+        setMode('preview');
+    }
+
+    function startEditing() {
+        setMode('edit');
+        setTimeout(function() {
+            var textarea = document.getElementById('nbContentTextarea');
+            if (textarea) textarea.focus();
+        }, 50);
     }
 
     // ==================== 工具栏操作 ====================
@@ -651,6 +677,8 @@
         setSort: setSort,
         setCategory: setCategory,
         setMode: setMode,
+        doneEditing: doneEditing,
+        startEditing: startEditing,
         insertFormat: insertFormat,
         insertLine: insertLine,
         exportMarkdown: exportMarkdown,
