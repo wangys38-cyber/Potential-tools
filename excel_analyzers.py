@@ -1086,7 +1086,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
 
     # 严重程度已解决统计
     for level in by_severity_resolved:
-        by_severity_resolved[level] = int((severity_levels == level) & resolved_mask).sum()
+        by_severity_resolved[level] = int(((severity_levels == level) & resolved_mask).sum())
 
     severity_values = set(col_severity[col_severity != ''].unique())
 
