@@ -13,7 +13,7 @@ import requests
 import auth
 import db
 import ai_utils
-from routes.common import MD2PDF_PREVIEW_CSS, render_pdf, _CST
+from routes.common import MD2PDF_PREVIEW_CSS, render_pdf
 
 logger = logging.getLogger(__name__)
 

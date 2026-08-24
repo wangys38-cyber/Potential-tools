@@ -3,7 +3,6 @@ HLD 生成器蓝图
 基于 OD Excel 需求文档，自动生成每个 Feature 的高层设计文档（HLD）
 支持 GPS/Fitness 增强分支、Mermaid 时序图/状态机、批量 ZIP 下载
 """
-import os
 import io
 import zipfile
 import re

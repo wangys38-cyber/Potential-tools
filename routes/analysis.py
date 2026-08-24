@@ -22,11 +22,10 @@ from html import escape as _html_escape
 from flask import Blueprint, request, jsonify, Response, stream_with_context, send_file, g, current_app
 
 import auth
-import db
 import ai_utils
 from routes.common import (
     ExcelReader, validate_file_id, render_pdf, MD2PDF_PREVIEW_CSS,
-    background_tasks, load_task_meta, save_task_meta, delete_task_meta, _CST,
+    background_tasks, load_task_meta, save_task_meta, _CST,
 )
 from report_builders import _build_cr_analysis_report_html
 
@@ -39,7 +38,7 @@ _call_ai_stream = ai_utils.call_ai_stream
 # Excel 分析器导入
 from excel_analyzers import (
     _analyze_issue_sheet, _analyze_issue_sheet_fast, _detect_issue_columns,
-    _is_valid_severity_value, _log_mem, _match_severity_level, _safe_get,
+    _log_mem,
 )
 
 # 分析结果缓存

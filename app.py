@@ -1,36 +1,20 @@
-from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response, send_file, send_from_directory, Response, stream_with_context, g
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response, g
 import os
 import sys
-import re
 import logging
 import traceback
-import json
-import tempfile
 import time
 import hashlib
-import secrets
-import gc
-import requests
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from functools import wraps
 from jinja2 import BytecodeCache
 
 # 认证模块
 import auth
 import db
-import ai_utils
-import feishu_push
-import report_builders
-from report_builders import _analyze_sheet_detail, _build_cr_analysis_report_html, _build_test_report_pdf_html
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
-from routes.common import (
-    ExcelReader, read_excel_file, validate_file_id,
-    render_pdf, MD2PDF_PREVIEW_CSS,
-    background_tasks, load_task_meta, save_task_meta, delete_task_meta,
-    _CST,
-)
 from routes.api import create_api_blueprint
 from routes.tools import create_tools_blueprint
 from routes.analysis import create_analysis_blueprint
@@ -44,7 +28,6 @@ from whitenoise import WhiteNoise
 from flask_compress import Compress
 # 实时语音识别：flask-sock 提供 WebSocket 支持
 from flask_sock import Sock
-import websocket as _ws_client  # websocket-client，连接 DashScope
 
 import datetime as _dt
 
@@ -340,8 +323,6 @@ try:
     register_user_bp(app)
 except ImportError as e:
     logger.warning(f"bp_user Blueprint 加载失败: {e}")
-
-from date_utils import normalize_date
 
 
 # ==================== 认证装饰器（保留供旧代码引用） ====================
