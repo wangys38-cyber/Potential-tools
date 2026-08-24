@@ -371,20 +371,62 @@ def create_analysis_blueprint():
                 gc.collect()
                 return jsonify({'status': 'done', 'data': result})
             else:
-                rows = reader.get_sheet_data(sheet_name)
+                # v6.0 优化：只读表头 + 流式统计行数，不加载全部数据
+                try:
+                    from excel_analyzers import _read_excel_headers_only
+                    headers = _read_excel_headers_only(file_path, sheet_name)
+                except Exception:
+                    headers = None
+
+                if not headers:
+                    # 回退到原方法
+                    rows = reader.get_sheet_data(sheet_name)
+                    reader.close()
+                    if not rows or len(rows) < 1:
+                        return jsonify({'status': 'done', 'data': {'headers': [], 'detected_columns': {}, 'detected_fields_count': 0, 'current_sheet': sheet_name, 'summary': {'total_issues': 0}, 'sample_data': []}})
+                    headers = [str(c).strip() if c else '' for c in rows[0]]
+                    col_map = _detect_issue_columns(headers)
+                    raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1)}
+                    detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
+                    data_rows = rows[1:]
+                    total_issues = sum(1 for row in data_rows if any(str(c).strip() for c in row))
+                    sample_data = data_rows[:3] if data_rows else []
+                    logger.info(f"字段映射完成(回退): detected_columns={detected_columns}, total_issues={total_issues}")
+                    result = {'headers': headers, 'detected_columns': detected_columns, 'detected_fields_count': len(detected_columns), 'current_sheet': sheet_name, 'summary': {'total_issues': total_issues}, 'sample_data': sample_data}
+                    del rows, data_rows
+                    gc.collect()
+                    return jsonify({'status': 'done', 'data': result})
+
                 reader.close()
-                if not rows or len(rows) < 1:
-                    return jsonify({'status': 'done', 'data': {'headers': [], 'detected_columns': {}, 'detected_fields_count': 0, 'current_sheet': sheet_name, 'summary': {'total_issues': 0}, 'sample_data': []}})
-                headers = [str(c).strip() if c else '' for c in rows[0]]
+                headers = [str(c).strip() if c else '' for c in headers]
                 col_map = _detect_issue_columns(headers)
                 raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1)}
                 detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
-                data_rows = rows[1:]
-                total_issues = sum(1 for row in data_rows if any(str(c).strip() for c in row))
-                sample_data = data_rows[:3] if data_rows else []
-                logger.info(f"字段映射完成: detected_columns={detected_columns}, total_issues={total_issues}")
+
+                # 流式统计行数 + 取前3行示例
+                total_issues = 0
+                sample_data = []
+                try:
+                    from openpyxl import load_workbook
+                    wb = load_workbook(file_path, read_only=True, data_only=True)
+                    if sheet_name not in wb.sheetnames:
+                        sheet_name = wb.sheetnames[0]
+                    ws = wb[sheet_name]
+                    for i, row in enumerate(ws.iter_rows(values_only=True)):
+                        if i == 0:
+                            continue  # 跳过表头
+                        row_vals = [str(c).strip() if c is not None else '' for c in row]
+                        if any(row_vals):
+                            total_issues += 1
+                            if len(sample_data) < 3:
+                                sample_data.append(row_vals)
+                    wb.close()
+                except Exception as e:
+                    logger.warning(f"流式统计行数失败，使用估算值: {e}")
+                    total_issues = 0
+
+                logger.info(f"字段映射完成(优化): detected_columns={detected_columns}, total_issues={total_issues}")
                 result = {'headers': headers, 'detected_columns': detected_columns, 'detected_fields_count': len(detected_columns), 'current_sheet': sheet_name, 'summary': {'total_issues': total_issues}, 'sample_data': sample_data}
-                del rows, data_rows
                 gc.collect()
                 return jsonify({'status': 'done', 'data': result})
         except Exception as e:
