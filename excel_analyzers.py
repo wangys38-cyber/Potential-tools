@@ -705,14 +705,14 @@ def _detect_issue_columns(headers):
         # 研发 - 匹配 "assignee"
         elif h == 'assignee':
             col_map['developer'] = i
-        # 创建日期 - 精确匹配 "created"
-        elif h == 'created' or '创建日期' in h:
+        # 创建日期 - 匹配 "created"、"created date"、"创建日期" 等
+        elif h == 'created' or 'created date' in h or '创建日期' in h or '创建时间' in h:
             col_map['created_date'] = i
         # Fix Version/s
         elif 'fix version' in h or 'fixversion' in h or 'fix_version' in h:
             col_map['fix_version'] = i
-        # Resolved 日期 - 精确匹配 "resolved"
-        elif h == 'resolved' or h == '解决日期':
+        # Resolved 日期 - 匹配 "resolved"、"resolved date"、"解决日期" 等
+        elif h == 'resolved' or 'resolved date' in h or h == '解决日期' or '解决时间' in h:
             col_map['resolved_date'] = i
         # Closed Date - fixed日期
         elif 'closed' in h and 'date' in h:
