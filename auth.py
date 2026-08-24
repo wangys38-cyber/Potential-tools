@@ -74,8 +74,15 @@ def is_guest_allowed(path):
     if not ALLOW_GUEST:
         return False
     for allowed in GUEST_ALLOWED_PATHS:
-        if path == allowed or path.startswith(allowed + '/') or path.startswith(allowed + '?'):
+        if path == allowed:
             return True
+        # 处理带尾部斜杠的前缀路径（如 /api/auth/、/auth/、/static/）
+        if allowed.endswith('/'):
+            if path.startswith(allowed):
+                return True
+        else:
+            if path.startswith(allowed + '/') or path.startswith(allowed + '?'):
+                return True
     return False
 
 FEISHU_APP_ID = os.environ.get('FEISHU_APP_ID', _config.get('feishu', {}).get('app_id', ''))
