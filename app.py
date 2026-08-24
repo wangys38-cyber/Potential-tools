@@ -22,6 +22,7 @@ from routes.sync import create_sync_blueprint
 from routes.collab import create_collab_blueprint
 from routes.collab_v2 import create_collab_v2_blueprint
 from routes.visualization import create_visualization_blueprint
+from routes.notes import create_notes_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -494,6 +495,9 @@ app.register_blueprint(create_collab_v2_blueprint())
 # 数据可视化增强（v8.0）
 app.register_blueprint(create_visualization_blueprint())
 
+# 牛马笔记全面重构（v8.0）
+app.register_blueprint(create_notes_blueprint())
+
 # HLD 生成器
 try:
     from routes.hld_generator import bp_hld
@@ -501,7 +505,7 @@ try:
 except ImportError as e:
     logger.warning(f"HLD Blueprint 加载失败: {e}")
 
-logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab, collab_v2, hld")
+logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab, collab_v2, hld, notes")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
 
 

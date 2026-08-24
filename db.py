@@ -345,6 +345,28 @@ def init_db():
         """))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id)"))
 
+        # ==================== v8.0 牛马笔记：独立笔记表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS notes (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                note_uid TEXT NOT NULL,
+                title TEXT DEFAULT '',
+                content TEXT DEFAULT '',
+                category TEXT DEFAULT '',
+                tags TEXT DEFAULT '[]',
+                is_todo INTEGER DEFAULT 0,
+                pinned INTEGER DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0,
+                UNIQUE(user_id, note_uid),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(user_id, updated_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(user_id, category)"))
+
     logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 
@@ -1665,6 +1687,117 @@ def remove_team_member(team_id, user_id):
             {'team_id': team_id, 'user_id': user_id}
         )
         return result.rowcount > 0
+
+
+# ==================== v8.0 牛马笔记：独立笔记 CRUD ====================
+
+def get_notes(user_id):
+    """获取用户所有笔记，按 pinned 优先、updated_at 降序排列"""
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at
+                FROM notes WHERE user_id = :user_id
+                ORDER BY pinned DESC, updated_at DESC
+            """),
+            {'user_id': user_id}
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = _row_to_dict(row)
+            try:
+                item['tags'] = json.loads(item.get('tags', '[]') or '[]')
+            except (json.JSONDecodeError, TypeError):
+                item['tags'] = []
+            item['is_todo'] = bool(item.get('is_todo', 0))
+            item['pinned'] = bool(item.get('pinned', 0))
+            result.append(item)
+        return result
+
+
+def get_note_by_uid(user_id, note_uid):
+    """根据 note_uid 获取单条笔记"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at
+                FROM notes WHERE user_id = :user_id AND note_uid = :note_uid
+            """),
+            {'user_id': user_id, 'note_uid': note_uid}
+        ).fetchone()
+        if not row:
+            return None
+        item = _row_to_dict(row)
+        try:
+            item['tags'] = json.loads(item.get('tags', '[]') or '[]')
+        except (json.JSONDecodeError, TypeError):
+            item['tags'] = []
+        item['is_todo'] = bool(item.get('is_todo', 0))
+        item['pinned'] = bool(item.get('pinned', 0))
+        return item
+
+
+def create_note(user_id, note_uid, title='', content='', category='', tags=None, is_todo=False, pinned=False):
+    """创建笔记，返回笔记字典"""
+    with engine.begin() as conn:
+        now = time.time()
+        tags_str = json.dumps(tags or [], ensure_ascii=False)
+        conn.execute(
+            text("""
+                INSERT INTO notes (user_id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at)
+                VALUES (:user_id, :note_uid, :title, :content, :category, :tags, :is_todo, :pinned, :created_at, :updated_at)
+            """),
+            {
+                'user_id': user_id, 'note_uid': note_uid, 'title': title, 'content': content,
+                'category': category, 'tags': tags_str, 'is_todo': 1 if is_todo else 0,
+                'pinned': 1 if pinned else 0, 'created_at': now, 'updated_at': now
+            }
+        )
+    return get_note_by_uid(user_id, note_uid)
+
+
+def update_note(user_id, note_uid, title=None, content=None, category=None, tags=None, is_todo=None, pinned=None):
+    """更新笔记字段，返回是否成功"""
+    with engine.begin() as conn:
+        sets = ['updated_at = :updated_at']
+        params = {'updated_at': time.time(), 'user_id': user_id, 'note_uid': note_uid}
+        if title is not None:
+            sets.append('title = :title'); params['title'] = title
+        if content is not None:
+            sets.append('content = :content'); params['content'] = content
+        if category is not None:
+            sets.append('category = :category'); params['category'] = category
+        if tags is not None:
+            sets.append('tags = :tags'); params['tags'] = json.dumps(tags, ensure_ascii=False)
+        if is_todo is not None:
+            sets.append('is_todo = :is_todo'); params['is_todo'] = 1 if is_todo else 0
+        if pinned is not None:
+            sets.append('pinned = :pinned'); params['pinned'] = 1 if pinned else 0
+        result = conn.execute(
+            text(f"UPDATE notes SET {', '.join(sets)} WHERE user_id = :user_id AND note_uid = :note_uid"),
+            params
+        )
+        return result.rowcount > 0
+
+
+def delete_note(user_id, note_uid):
+    """删除笔记，返回是否成功"""
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("DELETE FROM notes WHERE user_id = :user_id AND note_uid = :note_uid"),
+            {'user_id': user_id, 'note_uid': note_uid}
+        )
+        return result.rowcount > 0
+
+
+def get_note_categories(user_id):
+    """获取用户所有笔记的分类列表（去重）"""
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT DISTINCT category FROM notes WHERE user_id = :user_id AND category != '' ORDER BY category"),
+            {'user_id': user_id}
+        ).fetchall()
+        return [row[0] for row in rows if row[0]]
 
 
 # ==================== 启动时初始化 ====================

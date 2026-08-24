@@ -4,203 +4,166 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>牛马笔记</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='2'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/><polyline points='10 9 9 9 8 9'/></svg>">
-    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f5f7; color: #1a1a1a; min-height: 100vh; }
-        .app { display: flex; height: calc(100vh - 52px); }
-        .sidebar { width: 280px; background: #fff; border-right: 1px solid #e5e5e5; display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-header { padding: 16px; border-bottom: 1px solid #e5e5e5; display: flex; gap: 8px; }
-        .new-btn { flex: 1; padding: 10px 16px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
-        .new-btn:hover { background: #333; }
-        .notes-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .note-item { padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; transition: background 0.15s; border: 1px solid transparent; }
-        .note-item:hover { background: #f5f5f7; }
-        .note-item.active { background: #f0f0f0; border-color: #e0e0e0; }
-        .note-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .note-preview { font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
-        .note-time { font-size: 11px; color: #aaa; }
-        .note-item .delete-btn { display: none; float: right; background: none; border: none; color: #999; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
-        .note-item:hover .delete-btn { display: inline-block; }
-        .note-item .delete-btn:hover { background: #fee; color: #d44; }
-        .empty-list { text-align: center; padding: 40px 20px; color: #999; font-size: 13px; }
-        .editor { flex: 1; display: flex; flex-direction: column; background: #fff; }
-        .editor-header { padding: 16px 24px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; gap: 12px; }
-        .title-input { flex: 1; font-size: 20px; font-weight: 700; border: none; outline: none; background: none; color: #1a1a1a; }
-        .title-input::placeholder { color: #ccc; }
-        .editor-body { flex: 1; padding: 24px; overflow-y: auto; }
-        .content-textarea { width: 100%; height: 100%; border: none; outline: none; font-size: 15px; line-height: 1.8; color: #1a1a1a; resize: none; font-family: inherit; background: none; }
-        .content-textarea::placeholder { color: #ccc; }
-        .empty-editor { flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; }
-        .save-status { font-size: 12px; color: #999; }
-        @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .editor-header { padding: 12px 16px; }
-            .editor-body { padding: 16px; }
-        }
-    </style>
-<link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
-
-    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/></svg>">
+    <link rel="stylesheet" href="/static/noteNB/v6-premium.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
 
-    <div class="app">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <button class="new-btn" onclick="newNote()">+ 新建笔记</button>
-            </div>
-            <div class="notes-list" id="notesList"></div>
+<div class="nb-app" id="nbApp">
+    <!-- 侧边栏 -->
+    <aside class="nb-sidebar" id="nbSidebar">
+        <div class="nb-sidebar-header">
+            <button class="nb-btn nb-btn-primary nb-btn-block" id="nbNewBtn" onclick="NB.newNote()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>新建笔记</span>
+            </button>
         </div>
-        <div class="editor" id="editor">
-            <div class="empty-editor">选择或新建一篇笔记开始记录</div>
+
+        <div class="nb-search-wrap">
+            <svg class="nb-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" class="nb-search-input" id="nbSearchInput" placeholder="搜索笔记..." oninput="NB.onSearch(this.value)">
+        </div>
+
+        <div class="nb-filter-bar">
+            <select class="nb-sort-select" id="nbSortSelect" onchange="NB.setSort(this.value)">
+                <option value="updated">按修改时间</option>
+                <option value="created">按创建时间</option>
+                <option value="title">按标题</option>
+            </select>
+            <button class="nb-icon-btn" id="nbTemplateBtn" onclick="NB.toggleTemplateMenu()" title="模板">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            </button>
+        </div>
+
+        <div class="nb-template-menu" id="nbTemplateMenu" style="display:none;">
+            <div class="nb-template-item" onclick="NB.useTemplate('meeting')">会议纪要</div>
+            <div class="nb-template-item" onclick="NB.useTemplate('todo')">待办清单</div>
+            <div class="nb-template-item" onclick="NB.useTemplate('project')">项目笔记</div>
+            <div class="nb-template-item" onclick="NB.useTemplate('study')">学习笔记</div>
+        </div>
+
+        <div class="nb-category-list" id="nbCategoryList"></div>
+
+        <div class="nb-notes-list" id="nbNotesList"></div>
+    </aside>
+
+    <!-- 移动端遮罩 -->
+    <div class="nb-sidebar-overlay" id="nbSidebarOverlay" onclick="NB.toggleSidebar()"></div>
+
+    <!-- 编辑区 -->
+    <main class="nb-editor" id="nbEditor">
+        <div class="nb-editor-empty" id="nbEditorEmpty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>选择或新建一篇笔记开始记录</p>
+        </div>
+
+        <div class="nb-editor-content" id="nbEditorContent" style="display:none;">
+            <div class="nb-editor-header">
+                <button class="nb-icon-btn nb-mobile-menu-btn" onclick="NB.toggleSidebar()" title="菜单">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <input type="text" class="nb-title-input" id="nbTitleInput" placeholder="笔记标题..." oninput="NB.onTitleInput(this.value)">
+                <div class="nb-editor-actions">
+                    <button class="nb-icon-btn" id="nbPinBtn" onclick="NB.togglePin()" title="置顶">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
+                    </button>
+                    <button class="nb-icon-btn" onclick="NB.exportMarkdown()" title="导出 Markdown">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
+                    <button class="nb-icon-btn nb-danger-btn" onclick="NB.deleteCurrentNote()" title="删除">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="nb-meta-bar">
+                <input type="text" class="nb-category-input" id="nbCategoryInput" placeholder="分类" oninput="NB.onCategoryInput(this.value)">
+                <input type="text" class="nb-tags-input" id="nbTagsInput" placeholder="标签（逗号分隔）" oninput="NB.onTagsInput(this.value)">
+                <span class="nb-save-status" id="nbSaveStatus">已保存</span>
+            </div>
+
+            <div class="nb-toolbar" id="nbToolbar">
+                <button class="nb-tool-btn" onclick="NB.insertFormat('**', '**')" title="加粗">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('*', '*')" title="斜体">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('~~', '~~')" title="删除线">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+                </button>
+                <span class="nb-tool-sep"></span>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('# ', '')" title="标题">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/><path d="M6 4v16"/><path d="M18 4v16"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertLine('- [ ] ')" title="待办">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertLine('- ')" title="无序列表">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertLine('1. ')" title="有序列表">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+                </button>
+                <span class="nb-tool-sep"></span>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('`', '`')" title="行内代码">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('\n```\n', '\n```\n')" title="代码块">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></svg>
+                </button>
+                <button class="nb-tool-btn" onclick="NB.insertFormat('[', '](url)')" title="链接">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </button>
+                <span class="nb-tool-sep"></span>
+                <button class="nb-tool-btn nb-mode-btn active" id="nbEditModeBtn" onclick="NB.setMode('edit')" title="编辑模式">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="nb-tool-btn nb-mode-btn" id="nbPreviewModeBtn" onclick="NB.setMode('preview')" title="预览模式">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="nb-tool-btn nb-mode-btn" id="nbSplitModeBtn" onclick="NB.setMode('split')" title="分屏模式">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                </button>
+            </div>
+
+            <div class="nb-editor-body" id="nbEditorBody">
+                <div class="nb-edit-pane" id="nbEditPane">
+                    <textarea class="nb-content-textarea" id="nbContentTextarea" placeholder="开始记录（支持 Markdown）..." oninput="NB.onContentInput(this.value)"></textarea>
+                </div>
+                <div class="nb-preview-pane" id="nbPreviewPane" style="display:none;">
+                    <div class="nb-markdown-body" id="nbPreviewContent"></div>
+                </div>
+            </div>
+
+            <div class="nb-editor-footer">
+                <span class="nb-stats" id="nbStats">0 字 · 0 行</span>
+                <span class="nb-updated-time" id="nbUpdatedTime"></span>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 确认删除弹窗 -->
+<div class="nb-modal" id="nbDeleteModal" style="display:none;">
+    <div class="nb-modal-content">
+        <h3>确认删除</h3>
+        <p>确定要删除这篇笔记吗？此操作不可撤销。</p>
+        <div class="nb-modal-actions">
+            <button class="nb-btn nb-btn-ghost" onclick="NB.closeDeleteModal()">取消</button>
+            <button class="nb-btn nb-btn-danger" onclick="NB.confirmDelete()">删除</button>
         </div>
     </div>
+</div>
 
-    <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
-    <script>
-        const STORAGE_KEY = (window._USER_PREFIX || '') + 'niuma_notes';
-        let notes = [];
-        let currentNoteId = null;
-        let saveTimer = null;
-
-        function loadNotes() {
-            try {
-                notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            } catch(e) { notes = []; }
-            renderList();
-        }
-
-        function saveNotes() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-                window.dispatchEvent(new CustomEvent('v5-data-changed'));
-            } catch(e) {}
-        }
-
-        function renderList() {
-            const list = document.getElementById('notesList');
-            if (notes.length === 0) {
-                list.innerHTML = '<div class="empty-list">暂无笔记<br>点击上方新建</div>';
-                return;
-            }
-            const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
-            list.innerHTML = sorted.map(n => `
-                <div class="note-item ${n.id === currentNoteId ? 'active' : ''}" onclick="openNote('${n.id}')">
-                    <button class="delete-btn" onclick="event.stopPropagation();deleteNote('${n.id}')"></button>
-                    <div class="note-title">${escapeHtml(n.title || '无标题')}</div>
-                    <div class="note-preview">${escapeHtml((n.content || '').slice(0, 50))}</div>
-                    <div class="note-time">${formatTime(n.updatedAt)}</div>
-                </div>
-            `).join('');
-        }
-
-        function newNote() {
-            const note = {
-                id: 'note_' + Date.now(),
-                title: '',
-                content: '',
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            };
-            notes.unshift(note);
-            currentNoteId = note.id;
-            saveNotes();
-            renderList();
-            renderEditor();
-            setTimeout(() => document.querySelector('.title-input')?.focus(), 50);
-        }
-
-        function openNote(id) {
-            currentNoteId = id;
-            renderList();
-            renderEditor();
-        }
-
-        function deleteNote(id) {
-            if (!confirm('确定删除这篇笔记？')) return;
-            notes = notes.filter(n => n.id !== id);
-            if (currentNoteId === id) currentNoteId = null;
-            saveNotes();
-            renderList();
-            renderEditor();
-        }
-
-        function renderEditor() {
-            const editor = document.getElementById('editor');
-            if (!currentNoteId) {
-                editor.innerHTML = '<div class="empty-editor">选择或新建一篇笔记开始记录</div>';
-                return;
-            }
-            const note = notes.find(n => n.id === currentNoteId);
-            if (!note) {
-                editor.innerHTML = '<div class="empty-editor">笔记不存在</div>';
-                return;
-            }
-            editor.innerHTML = `
-                <div class="editor-header">
-                    <input type="text" class="title-input" id="titleInput" placeholder="笔记标题..." value="${escapeHtml(note.title)}" oninput="updateTitle(this.value)">
-                    <span class="save-status" id="saveStatus">已保存</span>
-                </div>
-                <div class="editor-body">
-                    <textarea class="content-textarea" id="contentInput" placeholder="开始记录..." oninput="updateContent(this.value)">${escapeHtml(note.content)}</textarea>
-                </div>
-            `;
-        }
-
-        function updateTitle(val) {
-            const note = notes.find(n => n.id === currentNoteId);
-            if (!note) return;
-            note.title = val;
-            note.updatedAt = Date.now();
-            debounceSave();
-            renderList();
-        }
-
-        function updateContent(val) {
-            const note = notes.find(n => n.id === currentNoteId);
-            if (!note) return;
-            note.content = val;
-            note.updatedAt = Date.now();
-            debounceSave();
-            renderList();
-        }
-
-        function debounceSave() {
-            document.getElementById('saveStatus').textContent = '编辑中...';
-            clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                saveNotes();
-                document.getElementById('saveStatus').textContent = '已保存';
-            }, 500);
-        }
-
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str || '';
-            return div.innerHTML;
-        }
-
-        function formatTime(ts) {
-            const d = new Date(ts);
-            const now = new Date();
-            const diff = now - d;
-            if (diff < 60000) return '刚刚';
-            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-            return d.toLocaleDateString('zh-CN');
-        }
-
-        // 云端同步后刷新
-        window.addEventListener('v5-synced', () => { loadNotes(); renderEditor(); });
-
-        loadNotes();
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+window.NB_CONFIG = {
+    isLoggedIn: {% if current_user %}true{% else %}false{% endif %},
+    userId: {% if current_user %}{{ current_user.id }}{% else %}0{% endif %}
+};
+</script>
+<script src="/static/noteNB/app.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>
