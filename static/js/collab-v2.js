@@ -53,7 +53,6 @@ window.PTCollabV2 = (function() {
         if (window.ToolboxToast) {
             ToolboxToast.show(msg, type || 'info');
         } else {
-            console.log('[PTCollabV2]', msg);
         }
     }
 

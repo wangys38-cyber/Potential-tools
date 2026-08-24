@@ -109,7 +109,6 @@
                         showToast('已选择文件: ' + file.name, 'success');
                     } catch(err) {
                         // 回退：触发点击
-                        console.log('Drag drop fallback:', err);
                     }
                 });
             }

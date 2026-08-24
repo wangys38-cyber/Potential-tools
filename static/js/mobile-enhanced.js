@@ -12,7 +12,6 @@
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (!isMobile && !isTouch) {
-        console.log('[Mobile] 非移动设备，跳过移动端增强');
         return;
     }
 
@@ -216,14 +215,12 @@
 
         // 安装成功
         window.addEventListener('appinstalled', function() {
-            console.log('[PWA] 应用已安装');
             deferredPrompt = null;
             hideInstallBanner();
         });
 
         // 检查是否已安装
         if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('[PWA] 已在独立模式运行');
             return;
         }
     }
@@ -258,7 +255,6 @@
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then(function(choice) {
                     if (choice.outcome === 'accepted') {
-                        console.log('[PWA] 用户接受安装');
                     }
                     deferredPrompt = null;
                     hideInstallBanner();
@@ -341,7 +337,6 @@
         initMobileOptimizations();
         initMobileNav();
 
-        console.log('[Mobile] 移动端体验增强已加载');
     }
 
     if (document.readyState === 'loading') {

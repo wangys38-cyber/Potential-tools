@@ -38,7 +38,6 @@
 
                     // 只在开发环境或慢速页面输出
                     if (metrics.loadTime > 3000 || window.location.hostname === 'localhost') {
-                        console.log('[Performance] 页面加载性能:', metrics);
                     }
 
                     // 慢速页面警告
@@ -374,7 +373,6 @@
         initImageOptimization();
         initErrorMonitoring();
 
-        console.log('[Performance] 增强性能优化已加载');
     }
 
     if (document.readyState === 'loading') {

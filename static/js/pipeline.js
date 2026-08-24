@@ -298,7 +298,6 @@
         if (window.ToolboxToast) {
             window.ToolboxToast.show(message, type || 'info');
         } else {
-            console.log('[Pipeline]', message);
         }
     }
 

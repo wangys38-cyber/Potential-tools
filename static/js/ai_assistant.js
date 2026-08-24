@@ -530,7 +530,6 @@
             createFloatingAssistant();
         }
 
-        console.log('AIAssistant initialized');
     }
 
     // 暴露到全局

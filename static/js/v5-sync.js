@@ -371,7 +371,6 @@
         if (typeof showToast === 'function') {
             showToast(msg, type);
         } else {
-            console.log('[Sync]', msg);
         }
     }
 
