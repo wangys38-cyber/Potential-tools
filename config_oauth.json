@@ -9,6 +9,11 @@
         "client_secret": "FROM_ENV_GOOGLE_CLIENT_SECRET",
         "redirect_uri": "https://wangys666.top/auth/google/callback"
     },
+    "wechat": {
+        "app_id": "FROM_ENV_WECHAT_APP_ID",
+        "app_secret": "FROM_ENV_WECHAT_APP_SECRET",
+        "redirect_uri": "https://wangys666.top/auth/wechat/callback"
+    },
     "session_secret": "FROM_ENV_SESSION_SECRET",
     "allow_guest": true
 }

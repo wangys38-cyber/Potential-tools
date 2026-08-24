@@ -378,7 +378,8 @@ def login_page():
     error = request.args.get('error', '')
     return render_template('login.html',
                            error=error,
-                           allow_guest=auth.ALLOW_GUEST)
+                           allow_guest=auth.ALLOW_GUEST,
+                           wechat_configured=auth.is_configured('wechat'))
 
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -401,8 +402,14 @@ def api_auth_logout():
 
 @app.route('/auth/wechat')
 def auth_wechat():
-    """微信登录（预留）"""
+    """发起微信OAuth登录"""
     return auth.wechat_login()
+
+
+@app.route('/auth/wechat/callback')
+def auth_wechat_callback():
+    """微信OAuth回调"""
+    return auth.wechat_callback()
 
 
 @app.route('/auth/feishu')

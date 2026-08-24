@@ -85,6 +85,10 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', _config.get('google', {}).
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', _config.get('google', {}).get('client_secret', ''))
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', _config.get('google', {}).get('redirect_uri', ''))
 
+WECHAT_APP_ID = os.environ.get('WECHAT_APP_ID', _config.get('wechat', {}).get('app_id', ''))
+WECHAT_APP_SECRET = os.environ.get('WECHAT_APP_SECRET', _config.get('wechat', {}).get('app_secret', ''))
+WECHAT_REDIRECT_URI = os.environ.get('WECHAT_REDIRECT_URI', _config.get('wechat', {}).get('redirect_uri', ''))
+
 
 # ==================== 核心认证函数 ====================
 
@@ -94,6 +98,8 @@ def is_configured(provider):
         return bool(FEISHU_APP_ID and FEISHU_APP_SECRET and 'YOUR_' not in FEISHU_APP_ID and 'FROM_ENV' not in FEISHU_APP_ID)
     elif provider == 'google':
         return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and 'YOUR_' not in GOOGLE_CLIENT_ID and 'FROM_ENV' not in GOOGLE_CLIENT_ID)
+    elif provider == 'wechat':
+        return bool(WECHAT_APP_ID and WECHAT_APP_SECRET and 'FROM_ENV' not in WECHAT_APP_ID)
     return False
 
 
@@ -430,5 +436,103 @@ def logout_api():
 
 
 def wechat_login():
-    """GET /auth/wechat — 微信登录预留路由"""
-    return jsonify({'status': 'pending', 'message': '微信登录配置中'}), 200
+    """发起微信OAuth登录（网站应用扫码授权）"""
+    if not is_configured('wechat'):
+        return jsonify({'error': '微信登录未配置'}), 503
+
+    state = secrets.token_urlsafe(16)
+    session['oauth_state'] = state
+
+    # 保存用户原始请求路径，登录后跳回
+    next_url = request.args.get('next') or session.get('next_url') or '/'
+    session['next_url'] = next_url
+
+    from urllib.parse import quote
+    auth_url = (
+        f"https://open.weixin.qq.com/connect/qrconnect"
+        f"?appid={WECHAT_APP_ID}"
+        f"&redirect_uri={quote(WECHAT_REDIRECT_URI, safe='')}"
+        f"&response_type=code"
+        f"&scope=snsapi_login"
+        f"&state={state}"
+        f"#wechat_redirect"
+    )
+    return redirect(auth_url)
+
+
+def wechat_callback():
+    """微信OAuth回调"""
+    code = request.args.get('code')
+    state = request.args.get('state', '')
+
+    # 验证state
+    if state != session.get('oauth_state'):
+        return redirect(url_for('login_page', error='state_mismatch'))
+    session.pop('oauth_state', None)
+
+    if not code:
+        return redirect(url_for('login_page', error='no_code'))
+
+    try:
+        # Step 1: 用 code 换取 access_token
+        token_resp = requests.get(
+            'https://api.weixin.qq.com/sns/oauth2/access_token',
+            params={
+                'appid': WECHAT_APP_ID,
+                'secret': WECHAT_APP_SECRET,
+                'code': code,
+                'grant_type': 'authorization_code',
+            },
+            timeout=10
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get('access_token')
+        openid = token_data.get('openid')
+        unionid = token_data.get('unionid', '')
+
+        if not access_token or not openid:
+            logger.error(f"微信获取access_token失败: {token_data}")
+            return redirect(url_for('login_page', error='token_failed'))
+
+        # Step 2: 用 access_token + openid 获取用户信息
+        user_resp = requests.get(
+            'https://api.weixin.qq.com/sns/userinfo',
+            params={
+                'access_token': access_token,
+                'openid': openid,
+            },
+            timeout=10
+        )
+        # 微信返回可能是 GBK 编码，手动处理
+        user_resp.encoding = 'utf-8'
+        user_data = user_resp.json()
+
+        nickname = user_data.get('nickname', '微信用户')
+        headimgurl = user_data.get('headimgurl', '')
+        # sex: 1=男, 2=女, 0=未知
+        sex = user_data.get('sex', 0)
+        country = user_data.get('country', '')
+        province = user_data.get('province', '')
+        city = user_data.get('city', '')
+
+        # 优先使用 unionid（跨应用唯一），其次 openid
+        provider_uid = unionid or openid
+
+        # 创建或更新用户记录
+        try:
+            user_id = db.upsert_user('wechat', provider_uid, nickname, '', headimgurl)
+        except Exception as e:
+            logger.warning(f"数据库写入用户失败（不影响登录）: {e}")
+            import hashlib
+            user_id = int(hashlib.md5(f"wechat:{provider_uid}".encode()).hexdigest()[:8], 16)
+
+        # 用户信息写入 session
+        _set_session_user(user_id, nickname, '', headimgurl, 'wechat')
+
+        logger.info(f"微信用户登录成功: {nickname} (ID: {user_id})")
+        next_url = session.pop('next_url', None) or '/'
+        return redirect(next_url)
+
+    except Exception as e:
+        logger.error(f"微信OAuth回调异常: {e}")
+        return redirect(url_for('login_page', error='callback_exception'))
