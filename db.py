@@ -88,11 +88,23 @@ def init_db():
                 name TEXT,
                 email TEXT,
                 avatar TEXT,
+                username TEXT DEFAULT '',
+                password_hash TEXT DEFAULT '',
                 created_at REAL DEFAULT 0,
                 last_login REAL DEFAULT 0,
                 UNIQUE(provider, provider_uid)
             )
         """))
+
+        # v9.0: 账号密码登录 — 为旧表迁移新增 username / password_hash 列
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN username TEXT DEFAULT ''"))
+        except Exception:
+            pass  # 列已存在
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''"))
+        except Exception:
+            pass  # 列已存在
 
         # ==================== 用户数据表 ====================
         conn.execute(text(f"""
@@ -409,6 +421,101 @@ def get_user_by_id(user_id):
             {'id': user_id}
         ).fetchone()
         return _row_to_dict(row)
+
+
+# ==================== v9.0 账号密码登录 ====================
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
+def create_user_with_password(username, email, password):
+    """创建账号密码用户，返回用户ID；用户名或邮箱已存在返回 None"""
+    username = (username or '').strip()
+    email = (email or '').strip().lower()
+    if not username or not password:
+        return None
+    with engine.begin() as conn:
+        now = time.time()
+        # 唯一性校验：用户名或邮箱已存在则拒绝
+        existing = conn.execute(
+            text("SELECT id FROM users WHERE username = :username OR (email = :email AND email != '')"),
+            {'username': username, 'email': email}
+        ).fetchone()
+        if existing:
+            return None
+        pw_hash = generate_password_hash(password)
+        result = conn.execute(
+            text("""
+                INSERT INTO users (provider, provider_uid, name, email, username, password_hash, created_at, last_login)
+                VALUES ('local', :provider_uid, :name, :email, :username, :password_hash, :created_at, :last_login)
+                RETURNING id
+            """),
+            {
+                'provider_uid': f'local:{username}',
+                'name': username,
+                'email': email,
+                'username': username,
+                'password_hash': pw_hash,
+                'created_at': now,
+                'last_login': now,
+            }
+        )
+        return result.scalar()
+
+
+def get_user_by_username(username):
+    """根据用户名获取用户"""
+    if not username:
+        return None
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM users WHERE username = :username"),
+            {'username': username.strip()}
+        ).fetchone()
+        return _row_to_dict(row)
+
+
+def get_user_by_email(email):
+    """根据邮箱获取用户"""
+    if not email:
+        return None
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT * FROM users WHERE email = :email"),
+            {'email': email.strip().lower()}
+        ).fetchone()
+        return _row_to_dict(row)
+
+
+def verify_user_password(username_or_email, password):
+    """验证用户名/邮箱 + 密码，返回用户 dict 或 None"""
+    if not username_or_email or not password:
+        return None
+    key = username_or_email.strip()
+    user = get_user_by_username(key)
+    if not user and '@' in key:
+        user = get_user_by_email(key)
+    if not user:
+        return None
+    pw_hash = user.get('password_hash') or ''
+    if not pw_hash:
+        return None
+    if check_password_hash(pw_hash, password):
+        return user
+    return None
+
+
+def update_user_password(user_id, new_password):
+    """更新用户密码，返回是否成功"""
+    if not new_password:
+        return False
+    pw_hash = generate_password_hash(new_password)
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("UPDATE users SET password_hash = :password_hash WHERE id = :id"),
+            {'password_hash': pw_hash, 'id': user_id}
+        )
+        return result.rowcount > 0
 
 
 def save_user_data(user_id, data_type, title, content):

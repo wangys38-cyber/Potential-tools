@@ -10,5 +10,5 @@
         "redirect_uri": "https://wangys666.top/auth/google/callback"
     },
     "session_secret": "FROM_ENV_SESSION_SECRET",
-    "allow_guest": false
+    "allow_guest": true
 }

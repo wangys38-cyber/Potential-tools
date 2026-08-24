@@ -7,22 +7,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <style>
-        :root {
-            /* 其余主题变量由 theme.css 统一提供 */
-            --border: rgba(0, 0, 0, 0.08);
-        }
-        [data-theme="dark"] {
-            --bg-primary: #000000;
-            --bg-card: #1c1c1e;
-            --text-primary: #f5f5f7;
-            --text-secondary: #86868b;
-            --border: rgba(255, 255, 255, 0.1);
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: var(--bg-primary);
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -30,281 +18,313 @@
             justify-content: center;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            color: #1d1d1f;
         }
 
-        /* Theme toggle */
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            cursor: pointer;
-            font-size: 18px;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-            z-index: 1000;
-        }
-        .theme-toggle:hover { transform: scale(1.08); }
-
-        /* Logo */
         .logo-area {
-            margin-bottom: 40px;
+            margin-bottom: 32px;
             text-align: center;
         }
         .logo-icon {
-            width: 80px; height: 80px;
-            border-radius: 20px;
-            background: #fff;
+            width: 64px; height: 64px;
+            border-radius: 16px;
+            background: #1d1d1f;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
-            margin: 0 auto 20px;
-            box-shadow: 0 8px 32px rgba(0, 113, 227, 0.25);
+            margin: 0 auto 16px;
         }
+        .logo-icon svg { width: 32px; height: 32px; stroke: #fff; }
         .logo-area h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            color: var(--text-primary);
             letter-spacing: -0.5px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .logo-area .subtitle {
-            font-size: 15px;
-            color: var(--text-secondary);
-            font-weight: 400;
+            font-size: 14px;
+            color: #86868b;
         }
 
-        /* Card */
-        .login-card {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 40px 36px;
-            width: 400px;
+        .auth-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px 28px;
+            width: 380px;
             max-width: 90vw;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.06);
-            border: 1px solid var(--border);
-        }
-        [data-theme="dark"] .login-card {
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(0,0,0,0.08);
         }
 
-        /* Buttons */
-        .login-btn {
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 6px;
+        }
+        .input-wrap {
+            position: relative;
+        }
+        .input-wrap input {
+            width: 100%;
+            padding: 11px 40px 11px 14px;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+            color: #1d1d1f;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-wrap input:focus {
+            border-color: #1d1d1f;
+        }
+        .input-wrap input::placeholder { color: #c7c7cc; }
+        .toggle-pw {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+        }
+        .toggle-pw svg { width: 18px; height: 18px; stroke: #86868b; }
+
+        .btn-primary {
             width: 100%;
-            padding: 14px 24px;
-            border-radius: 12px;
+            padding: 12px 24px;
+            border-radius: 10px;
             font-size: 15px;
-            font-weight: 500;
+            font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            margin-bottom: 10px;
-            text-decoration: none;
-        }
-        .login-btn:hover {
-            transform: translateY(-1px);
-        }
-        .login-btn:active {
-            transform: translateY(0);
-        }
-        .login-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .login-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-
-        .btn-feishu {
             background: #000;
             color: #fff;
+            font-family: inherit;
+            transition: opacity 0.15s;
+            margin-top: 4px;
         }
-        .btn-feishu:hover { background: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .btn-google {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
+        .btn-wechat {
+            width: 100%;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            border: 1px solid rgba(0,0,0,0.12);
+            cursor: pointer;
+            background: #f5f5f7;
+            color: #86868b;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.15s;
         }
-        [data-theme="dark"] .btn-google {
-            background: #2c2c2e;
-        }
-        .btn-google:hover { background: var(--bg-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .btn-wechat:hover { background: #ebebed; }
+        .btn-wechat svg { width: 20px; height: 20px; stroke: #86868b; }
 
-        /* Divider */
+        .btn-guest {
+            width: 100%;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            border: 1px solid rgba(0,0,0,0.12);
+            cursor: pointer;
+            background: #fff;
+            color: #1d1d1f;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-guest:hover { background: #f5f5f7; }
+        .btn-guest svg { width: 20px; height: 20px; }
+
         .divider {
             display: flex;
             align-items: center;
             gap: 12px;
             margin: 20px 0;
-            color: var(--text-secondary);
-            font-size: 13px;
+            color: #c7c7cc;
+            font-size: 12px;
         }
         .divider::before, .divider::after {
             content: '';
             flex: 1;
             height: 1px;
-            background: var(--border);
+            background: rgba(0,0,0,0.08);
         }
 
-        /* Guest button */
-        .guest-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            background: transparent;
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            text-decoration: none;
-        }
-        .guest-btn:hover {
-            background: rgba(0, 113, 227, 0.06);
-            transform: translateY(-1px);
-        }
-
-        /* Error */
-        .error-msg {
-            background: rgba(255, 59, 48, 0.08);
-            color: #ff3b30;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .error-msg.show { display: block; }
-
-        /* Config hint */
-        .config-hint {
-            margin-top: 20px;
-            padding: 14px 16px;
-            background: rgba(255, 149, 0, 0.08);
-            border-radius: 12px;
+        .switch-link {
+            text-align: center;
+            margin-top: 16px;
             font-size: 13px;
-            color: #ff9500;
-            text-align: left;
-            line-height: 1.6;
-            display: none;
+            color: #86868b;
         }
-        .config-hint.show { display: block; }
+        .switch-link a {
+            color: #0071e3;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .switch-link a:hover { text-decoration: underline; }
 
-        /* Footer */
+        .form-hidden { display: none; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #1d1d1f;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.25s ease;
+            z-index: 9999;
+            pointer-events: none;
+            max-width: 90vw;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.error { background: #ff3b30; }
+
         .login-footer {
-            margin-top: 32px;
+            margin-top: 24px;
             text-align: center;
             font-size: 12px;
-            color: var(--text-secondary);
+            color: #86868b;
             line-height: 1.6;
         }
 
-        /* Mobile responsiveness */
-        @media (max-width: 480px) {
-            html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
-            body { overflow-x: hidden; }
-            .login-card { padding: 28px 20px; }
-            .logo-area { margin-bottom: 24px; }
-            .logo-icon { width: 64px; height: 64px; font-size: 32px; }
-            .theme-toggle { width: 40px; height: 40px; }
-        }
-        @media (max-width: 360px) {
-            .login-card { padding: 20px 16px; }
-            .logo-icon { width: 56px; height: 56px; font-size: 28px; }
-            .logo-area h1 { font-size: 22px; }
-            .theme-toggle { width: 36px; height: 36px; }
+        @media (max-width: 400px) {
+            .auth-card { padding: 24px 20px; }
         }
     </style>
-
-<link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
-
-    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
-
-    <button class="theme-toggle" onclick="this.textContent=ToolboxTheme.isDark()?'':'';ToolboxTheme.setTheme(ToolboxTheme.isDark()?'light':'dark');" title="切换主题"></button>
+    <div id="toast" class="toast"></div>
 
     <div class="logo-area">
         <div class="logo-icon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 9h6v6H9z"/>
+            </svg>
         </div>
         <h1>工具集</h1>
+        <p class="subtitle">登录以保存你的分析记录和设置</p>
     </div>
 
-    <div class="login-card">
-        {% if error %}
-        <div class="error-msg show">
-            {% set error_map = {
-                'state_mismatch': '安全验证失败，请重试',
-                'no_code': '未收到授权码，请重试',
-                'token_failed': '获取令牌失败，请检查配置',
-                'user_token_failed': '获取用户令牌失败，请重试',
-                'user_info_failed': '获取用户信息失败，请重试',
-                'callback_exception': '登录过程异常，请重试',
-                'access_denied': '您取消了授权'
-            }
-            %}
-            {{ error_map.get(error, '登录失败: ' + error) }}
+    <div class="auth-card">
+        <!-- 登录表单 -->
+        <div id="login-form">
+            <div class="form-title">账号登录</div>
+            <div class="form-group">
+                <label for="login-username">用户名 / 邮箱</label>
+                <div class="input-wrap">
+                    <input type="text" id="login-username" placeholder="请输入用户名或邮箱" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <div class="input-wrap">
+                    <input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password">
+                    <button type="button" class="toggle-pw" onclick="togglePassword('login-password', this)" aria-label="显示密码">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="btn-primary" id="login-submit" onclick="doLogin()">登录</button>
+            <div class="switch-link">
+                没有账号？<a onclick="showRegister()">立即注册</a>
+            </div>
         </div>
-        {% endif %}
 
-        {% if feishu_configured %}
-        <a href="/auth/feishu" class="login-btn btn-feishu">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 6.5L9 4l3 5-4.5 3.5L3.5 6.5zm9.5 2l5-2 3 5-5 2-3-5zm-6 7l5-2 3 5-5 2-3-5zm9-1l5-2 3 5-5 2-3-5z"/></svg>
-            飞书账号登录
-        </a>
-        {% else %}
-        <button class="login-btn btn-feishu" disabled>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 6.5L9 4l3 5-4.5 3.5L3.5 6.5zm9.5 2l5-2 3 5-5 2-3-5zm-6 7l5-2 3 5-5 2-3-5zm9-1l5-2 3 5-5 2-3-5z"/></svg>
-            飞书账号登录（未配置）
-        </button>
-        {% endif %}
+        <!-- 注册表单 -->
+        <div id="register-form" class="form-hidden">
+            <div class="form-title">创建账号</div>
+            <div class="form-group">
+                <label for="reg-username">用户名</label>
+                <div class="input-wrap">
+                    <input type="text" id="reg-username" placeholder="设置用户名" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reg-email">邮箱（可选）</label>
+                <div class="input-wrap">
+                    <input type="email" id="reg-email" placeholder="用于找回密码" autocomplete="email">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">密码</label>
+                <div class="input-wrap">
+                    <input type="password" id="reg-password" placeholder="至少 6 位" autocomplete="new-password">
+                    <button type="button" class="toggle-pw" onclick="togglePassword('reg-password', this)" aria-label="显示密码">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reg-confirm">确认密码</label>
+                <div class="input-wrap">
+                    <input type="password" id="reg-confirm" placeholder="再次输入密码" autocomplete="new-password">
+                    <button type="button" class="toggle-pw" onclick="togglePassword('reg-confirm', this)" aria-label="显示密码">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="btn-primary" id="register-submit" onclick="doRegister()">注册</button>
+            <div class="switch-link">
+                已有账号？<a onclick="showLogin()">返回登录</a>
+            </div>
+        </div>
 
-        {% if google_configured %}
-        <a href="/auth/google" class="login-btn btn-google">
-            <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Google 账号登录
-        </a>
-        {% else %}
-        <button class="login-btn btn-google" disabled>
-            <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Google 账号登录（未配置）
+        <div class="divider">其他方式</div>
+
+        <button type="button" class="btn-wechat" onclick="showToast('微信登录即将上线', 'error')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+            微信登录
         </button>
-        {% endif %}
 
         {% if allow_guest %}
-        <div class="divider">或</div>
-        <a href="/" class="guest-btn">
-            <span style="font-size:18px;"></span>
-            游客访问
-        </a>
-        {% endif %}
-
-        {% if not feishu_configured and not google_configured %}
-        <div class="config-hint show">
-            <strong> 提示：</strong>OAuth 登录需要在环境变量或 <code>config_oauth.json</code> 中配置。当前已开启游客模式，可直接访问。
-        </div>
-        {% elif not feishu_configured or not google_configured %}
-        <div class="config-hint show">
-            {% if not feishu_configured %}<strong>提示：</strong>飞书登录需要在环境变量中配置 <code>FEISHU_APP_ID</code> 和 <code>FEISHU_APP_SECRET</code>。{% endif %}
-            {% if not google_configured %}<strong>提示：</strong>Google 登录需要在环境变量中配置 <code>GOOGLE_CLIENT_ID</code> 和 <code>GOOGLE_CLIENT_SECRET</code>。{% endif %}
+        <div style="margin-top:12px;">
+            <a href="/" class="btn-guest">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                游客访问
+            </a>
         </div>
         {% endif %}
     </div>
@@ -314,10 +334,6 @@
         游客模式下数据仅保存在本地
     </div>
 
-    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-    <script>ToolboxTheme.init();</script>
-<script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <script src="/static/js/login.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

@@ -345,3 +345,90 @@ def logout():
         logger.info(f"用户退出登录: {user.get('name')} (ID: {user.get('id')})")
     session.clear()
     return redirect(url_for('login_page'))
+
+
+# ==================== v9.0 账号密码注册/登录 API ====================
+
+def register():
+    """POST /api/auth/register — 账号密码注册"""
+    data = request.get_json(silent=True) or request.form
+    username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip()
+    password = data.get('password') or ''
+
+    if not username or not password:
+        return jsonify({'error': '用户名和密码不能为空'}), 400
+    if len(password) < 6:
+        return jsonify({'error': '密码长度至少 6 位'}), 400
+
+    # 唯一性校验
+    if db.get_user_by_username(username):
+        return jsonify({'error': '用户名已存在'}), 409
+    if email and db.get_user_by_email(email):
+        return jsonify({'error': '邮箱已被注册'}), 409
+
+    user_id = db.create_user_with_password(username, email, password)
+    if not user_id:
+        return jsonify({'error': '注册失败，请重试'}), 500
+
+    logger.info(f"新用户注册成功: {username} (ID: {user_id})")
+    return jsonify({
+        'status': 'success',
+        'user': {'id': user_id, 'name': username, 'email': email}
+    }), 201
+
+
+def login():
+    """POST /api/auth/login — 账号密码登录"""
+    data = request.get_json(silent=True) or request.form
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    if not username or not password:
+        return jsonify({'error': '用户名和密码不能为空'}), 400
+
+    user = db.verify_user_password(username, password)
+    if not user:
+        # 区分用户不存在和密码错误
+        existing = db.get_user_by_username(username) or (db.get_user_by_email(username) if '@' in username else None)
+        if not existing:
+            return jsonify({'error': '用户不存在'}), 404
+        return jsonify({'error': '密码错误'}), 401
+
+    # 更新最后登录时间
+    try:
+        import time as _time
+        with db.engine.begin() as conn:
+            conn.execute(
+                db.text("UPDATE users SET last_login = :last_login WHERE id = :id"),
+                {'last_login': _time.time(), 'id': user['id']}
+            )
+    except Exception:
+        pass
+
+    _set_session_user(
+        user_id=user['id'],
+        name=user.get('name') or user.get('username') or '',
+        email=user.get('email') or '',
+        avatar=user.get('avatar') or '',
+        provider=user.get('provider') or 'local',
+    )
+    logger.info(f"用户登录成功: {user.get('name') or username} (ID: {user['id']})")
+    return jsonify({
+        'status': 'success',
+        'user': {'id': user['id'], 'name': user.get('name') or username, 'email': user.get('email') or ''}
+    })
+
+
+def logout_api():
+    """POST /api/auth/logout — API 退出登录"""
+    user = get_current_user()
+    if user:
+        logger.info(f"用户退出登录: {user.get('name')} (ID: {user.get('id')})")
+    session.clear()
+    return jsonify({'status': 'success'})
+
+
+def wechat_login():
+    """GET /auth/wechat — 微信登录预留路由"""
+    return jsonify({'status': 'pending', 'message': '微信登录配置中'}), 200

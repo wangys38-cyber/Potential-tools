@@ -378,9 +378,31 @@ def login_page():
     error = request.args.get('error', '')
     return render_template('login.html',
                            error=error,
-                           feishu_configured=auth.is_configured('feishu'),
-                           google_configured=auth.is_configured('google'),
                            allow_guest=auth.ALLOW_GUEST)
+
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_auth_register():
+    """账号密码注册 API"""
+    return auth.register()
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    """账号密码登录 API"""
+    return auth.login()
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_auth_logout():
+    """退出登录 API"""
+    return auth.logout_api()
+
+
+@app.route('/auth/wechat')
+def auth_wechat():
+    """微信登录（预留）"""
+    return auth.wechat_login()
 
 
 @app.route('/auth/feishu')
