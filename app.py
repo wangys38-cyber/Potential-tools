@@ -22,6 +22,7 @@ from routes.sync import create_sync_blueprint
 from routes.collab import create_collab_blueprint
 from routes.collab_v2 import create_collab_v2_blueprint
 from routes.visualization import create_visualization_blueprint
+from routes.translator import bp_translator
 from routes.notes import create_notes_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
@@ -191,6 +192,8 @@ _PUBLIC_PATHS = (
     '/api/excel-analyze-ai-stream', # CR 分析 AI 流式自行检查认证
     '/api/generate-minutes-stream', # 会议纪要 AI 流式自行检查认证
     '/api/weekly-report-stream',    # 周报 AI 流式自行检查认证
+    '/api/translate',         # 翻译器 API 自行检查认证
+    '/api/translate/stream',  # 翻译器流式 SSE 自行检查认证
     '/api/notes/sync',       # 笔记同步API自行检查认证
     '/api/docs',             # 文档仓库API自行检查认证
     '/api/docs/<int:doc_id>', # 文档详情API自行检查认证
@@ -494,6 +497,9 @@ app.register_blueprint(create_collab_v2_blueprint())
 
 # 数据可视化增强（v8.0）
 app.register_blueprint(create_visualization_blueprint())
+
+# IT 技术文档翻译器（v9.0）
+app.register_blueprint(bp_translator)
 
 # 牛马笔记全面重构（v8.0）
 app.register_blueprint(create_notes_blueprint())

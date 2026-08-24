@@ -82,4 +82,8 @@ def create_pages_blueprint(cached_render):
     def settings():
         return cached_render('settings.html')
 
+    @bp.route('/translator')
+    def translator():
+        return cached_render('translator.html', nav_title='IT 翻译器')
+
     return bp
