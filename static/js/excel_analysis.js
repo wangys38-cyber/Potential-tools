@@ -1516,7 +1516,7 @@ let isAnalyzing = false;
         // ===== 推送到飞书 =====
         async function pushToFeishu() {
             if (!currentAnalysisData) {
-                alert('请先分析文件');
+                showToast('请先分析文件', 'warning');
                 return;
             }
 
@@ -1687,7 +1687,7 @@ let isAnalyzing = false;
                         error: err.message
                     });
                 }
-                alert(`推送失败：${err.message}`);
+                showToast(`推送失败：${err.message}`, 'error');
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
@@ -1700,11 +1700,11 @@ let isAnalyzing = false;
             const nameInput = document.getElementById('developerTrendInput');
             const name = nameInput.value.trim();
             if (!name) {
-                alert('请输入研发名字');
+                showToast('请输入研发名字', 'warning');
                 return;
             }
             if (!currentAnalysisData) {
-                alert('请先分析文件');
+                showToast('请先分析文件', 'warning');
                 return;
             }
 

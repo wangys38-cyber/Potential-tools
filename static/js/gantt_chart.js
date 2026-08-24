@@ -1,4 +1,4 @@
-﻿// Task3: 项目计划甘特图
+// Task3: 项目计划甘特图
 (function() {
     var ganttContainer = null;
     var ganttViewMode = 'week'; // week or month
@@ -271,7 +271,7 @@
         var newProgress = prompt('请输入 ' + item.name + ' 的进度（0-100）：', item.progress);
         if (newProgress === null) return;
         newProgress = parseInt(newProgress);
-        if (isNaN(newProgress) || newProgress < 0 || newProgress > 100) { alert('请输入0-100之间的数字'); return; }
+        if (isNaN(newProgress) || newProgress < 0 || newProgress > 100) { showToast('请输入0-100之间的数字', 'warning'); return; }
         // 更新currentPlan
         if (window.currentPlan && window.currentPlan[index]) {
             window.currentPlan[index].progress = newProgress;
@@ -282,7 +282,7 @@
 
     window.exportGanttSVG = function() {
         var wrap = document.getElementById('ganttChartWrap');
-        if (!wrap || !wrap.querySelector('svg')) { alert('请先生成甘特图'); return; }
+        if (!wrap || !wrap.querySelector('svg')) { showToast('请先生成甘特图', 'warning'); return; }
         var svgData = new XMLSerializer().serializeToString(wrap.querySelector('svg'));
         var blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
         var url = URL.createObjectURL(blob);
