@@ -1160,7 +1160,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
                 daily_stats[d] = {'new': 0, 'resolved': 0}
             daily_stats[d]['resolved'] += 1
 
-    daily_stats_list = [{'date': d, **v} for d, v in sorted(daily_stats.items())]
+    daily_stats_list = [{'date': d, 'new_count': v['new'], 'resolved_count': v['resolved']} for d, v in sorted(daily_stats.items())]
 
     if progress_cb:
         progress_cb(90, "正在生成建议和样本...")
