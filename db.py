@@ -90,6 +90,7 @@ def init_db():
                 avatar TEXT,
                 username TEXT DEFAULT '',
                 password_hash TEXT DEFAULT '',
+                is_admin INTEGER DEFAULT 0,
                 created_at REAL DEFAULT 0,
                 last_login REAL DEFAULT 0,
                 UNIQUE(provider, provider_uid)
@@ -103,6 +104,12 @@ def init_db():
             pass  # 列已存在
         try:
             conn.execute(text("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''"))
+        except Exception:
+            pass  # 列已存在
+
+        # v9.1: 添加 is_admin 字段（管理员权限）
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0"))
         except Exception:
             pass  # 列已存在
 
@@ -401,14 +408,17 @@ def upsert_user(provider, provider_uid, name, email, avatar):
             )
             return user_id
         else:
+            # 第一个注册的用户自动成为管理员
+            count_row = conn.execute(text("SELECT COUNT(*) as cnt FROM users")).fetchone()
+            is_admin = 1 if (count_row and count_row[0] == 0) else 0
             result = conn.execute(
                 text("""
-                    INSERT INTO users (provider, provider_uid, name, email, avatar, created_at, last_login)
-                    VALUES (:provider, :provider_uid, :name, :email, :avatar, :created_at, :last_login)
+                    INSERT INTO users (provider, provider_uid, name, email, avatar, created_at, last_login, is_admin)
+                    VALUES (:provider, :provider_uid, :name, :email, :avatar, :created_at, :last_login, :is_admin)
                     RETURNING id
                 """),
                 {'provider': provider, 'provider_uid': provider_uid, 'name': name, 'email': email,
-                 'avatar': avatar, 'created_at': now, 'last_login': now}
+                 'avatar': avatar, 'created_at': now, 'last_login': now, 'is_admin': is_admin}
             )
             return result.scalar()
 
@@ -443,11 +453,14 @@ def create_user_with_password(username, email, password):
         ).fetchone()
         if existing:
             return None
+        # 第一个注册的用户自动成为管理员
+        count_row = conn.execute(text("SELECT COUNT(*) as cnt FROM users")).fetchone()
+        is_admin = 1 if (count_row and count_row[0] == 0) else 0
         pw_hash = generate_password_hash(password)
         result = conn.execute(
             text("""
-                INSERT INTO users (provider, provider_uid, name, email, username, password_hash, created_at, last_login)
-                VALUES ('local', :provider_uid, :name, :email, :username, :password_hash, :created_at, :last_login)
+                INSERT INTO users (provider, provider_uid, name, email, username, password_hash, created_at, last_login, is_admin)
+                VALUES ('local', :provider_uid, :name, :email, :username, :password_hash, :created_at, :last_login, :is_admin)
                 RETURNING id
             """),
             {
@@ -458,6 +471,7 @@ def create_user_with_password(username, email, password):
                 'password_hash': pw_hash,
                 'created_at': now,
                 'last_login': now,
+                'is_admin': is_admin,
             }
         )
         return result.scalar()
@@ -1905,6 +1919,143 @@ def get_note_categories(user_id):
             {'user_id': user_id}
         ).fetchall()
         return [row[0] for row in rows if row[0]]
+
+
+# ==================== v9.1 用户管理：管理员功能 ====================
+
+def get_all_users(page=1, per_page=20, search=''):
+    """分页获取用户列表，支持按用户名/邮箱搜索"""
+    with engine.connect() as conn:
+        offset = (page - 1) * per_page
+        params = {'limit': per_page, 'offset': offset}
+        where = ''
+        if search:
+            where = "WHERE name LIKE :search OR email LIKE :search OR username LIKE :search"
+            params['search'] = f'%{search}%'
+
+        rows = conn.execute(
+            text(f"""
+                SELECT id, provider, provider_uid, name, email, avatar, username,
+                       created_at, last_login, is_admin
+                FROM users {where}
+                ORDER BY created_at DESC
+                LIMIT :limit OFFSET :offset
+            """),
+            params
+        ).fetchall()
+
+        count_params = {'search': f'%{search}%'} if search else {}
+        count_row = conn.execute(
+            text(f"SELECT COUNT(*) as cnt FROM users {where}"),
+            count_params
+        ).fetchone()
+        total = count_row[0] if count_row else 0
+
+        users = [_row_to_dict(r) for r in rows]
+        return {'users': users, 'total': total, 'page': page, 'per_page': per_page}
+
+
+def update_user(user_id, **kwargs):
+    """更新用户信息（name、email、avatar、username、is_admin 等）"""
+    allowed = {'name', 'email', 'avatar', 'username', 'is_admin'}
+    sets = []
+    params = {'id': user_id}
+    for key, value in kwargs.items():
+        if key in allowed:
+            sets.append(f"{key} = :{key}")
+            params[key] = value
+    if not sets:
+        return False
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(f"UPDATE users SET {', '.join(sets)} WHERE id = :id"),
+            params
+        )
+        return result.rowcount > 0
+
+
+def delete_user(user_id):
+    """删除用户及其所有相关数据（笔记、分析记录、偏好、协作数据等）"""
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM notes WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM user_data WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM user_preferences WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM merit_records WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM workspace_members WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM collab_members WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM team_members WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM workspace_comments WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM collab_comments WHERE user_id = :uid"), {'uid': user_id})
+        conn.execute(text("DELETE FROM collab_activity WHERE user_id = :uid"), {'uid': user_id})
+        # 删除用户拥有的工作空间
+        ws_rows = conn.execute(
+            text("SELECT id FROM shared_workspaces WHERE owner_id = :uid"),
+            {'uid': user_id}
+        ).fetchall()
+        for ws_row in ws_rows:
+            ws_id = ws_row[0]
+            conn.execute(text("DELETE FROM workspace_comments WHERE workspace_id = :wid"), {'wid': ws_id})
+            conn.execute(text("DELETE FROM workspace_members WHERE workspace_id = :wid"), {'wid': ws_id})
+            conn.execute(text("DELETE FROM collab_comments WHERE workspace_id = :wid"), {'wid': ws_id})
+            conn.execute(text("DELETE FROM collab_members WHERE workspace_id = :wid"), {'wid': ws_id})
+            conn.execute(text("DELETE FROM collab_activity WHERE workspace_id = :wid"), {'wid': ws_id})
+            conn.execute(text("DELETE FROM shared_workspaces WHERE id = :wid"), {'wid': ws_id})
+        # 删除用户拥有的团队空间
+        team_rows = conn.execute(
+            text("SELECT id FROM team_spaces WHERE owner_id = :uid"),
+            {'uid': user_id}
+        ).fetchall()
+        for team_row in team_rows:
+            team_id = team_row[0]
+            conn.execute(text("DELETE FROM team_members WHERE team_id = :tid"), {'tid': team_id})
+            conn.execute(text("DELETE FROM team_spaces WHERE id = :tid"), {'tid': team_id})
+        result = conn.execute(text("DELETE FROM users WHERE id = :id"), {'id': user_id})
+        return result.rowcount > 0
+
+
+def set_user_admin(user_id, is_admin):
+    """设置/取消管理员权限"""
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("UPDATE users SET is_admin = :is_admin WHERE id = :id"),
+            {'is_admin': 1 if is_admin else 0, 'id': user_id}
+        )
+        return result.rowcount > 0
+
+
+def get_user_stats(user_id):
+    """获取用户数据统计（笔记数、分析记录数、最后登录时间等）"""
+    with engine.connect() as conn:
+        notes_row = conn.execute(
+            text("SELECT COUNT(*) as cnt FROM notes WHERE user_id = :uid"),
+            {'uid': user_id}
+        ).fetchone()
+        data_row = conn.execute(
+            text("SELECT COUNT(*) as cnt FROM user_data WHERE user_id = :uid"),
+            {'uid': user_id}
+        ).fetchone()
+        user_row = conn.execute(
+            text("SELECT last_login, created_at FROM users WHERE id = :uid"),
+            {'uid': user_id}
+        ).fetchone()
+        return {
+            'notes_count': notes_row[0] if notes_row else 0,
+            'data_count': data_row[0] if data_row else 0,
+            'last_login': user_row[0] if user_row else 0,
+            'created_at': user_row[1] if user_row else 0,
+        }
+
+
+def is_admin_user(user_id):
+    """判断用户是否为管理员"""
+    if not user_id:
+        return False
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT is_admin FROM users WHERE id = :id"),
+            {'id': user_id}
+        ).fetchone()
+        return bool(row and row[0] == 1)
 
 
 # ==================== 启动时初始化 ====================

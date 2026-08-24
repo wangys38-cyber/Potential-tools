@@ -24,6 +24,7 @@ from routes.collab_v2 import create_collab_v2_blueprint
 from routes.visualization import create_visualization_blueprint
 from routes.translator import bp_translator
 from routes.notes import create_notes_blueprint
+from routes.admin import create_admin_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -164,6 +165,7 @@ def inject_user():
             'email': session.get('user_email', ''),
             'avatar': session.get('user_avatar', ''),
             'provider': session.get('user_provider', ''),
+            'is_admin': session.get('user_is_admin', False),
         },
         is_logged_in=True,
         STATIC_VERSION=_STATIC_VERSION,
@@ -547,6 +549,9 @@ app.register_blueprint(bp_translator)
 
 # 牛马笔记全面重构（v8.0）
 app.register_blueprint(create_notes_blueprint())
+
+# v9.1 用户管理平台
+app.register_blueprint(create_admin_blueprint())
 
 # HLD 生成器
 try:

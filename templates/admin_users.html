@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - Potential Tools</title>
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/admin_users.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">用户管理</h1>
+        <div class="admin-toolbar">
+            <div class="admin-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="searchInput" placeholder="搜索用户名/邮箱/昵称..." autocomplete="off">
+            </div>
+            <button class="btn btn-secondary" id="refreshBtn" title="刷新">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>刷新</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-stats" id="adminStats">
+        <span class="stat-item">共 <strong id="totalUsers">0</strong> 位用户</span>
+    </div>
+
+    <div class="admin-table-wrap">
+        <table class="admin-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>头像</th>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>注册方式</th>
+                    <th>注册时间</th>
+                    <th>最后登录</th>
+                    <th>管理员</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="usersTbody">
+                <tr class="loading-row"><td colspan="9">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-pagination" id="pagination">
+        <button class="btn btn-secondary page-btn" id="prevPage" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            上一页
+        </button>
+        <span class="page-info" id="pageInfo">第 1 页</span>
+        <button class="btn btn-secondary page-btn" id="nextPage" disabled>
+            下一页
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- 编辑用户弹窗 -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>编辑用户</h3>
+            <button class="modal-close" onclick="AdminUsers.closeModal('editModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>用户名（登录名）</label>
+                <input type="text" id="editUsername" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>昵称 / 显示名</label>
+                <input type="text" id="editName" placeholder="请输入昵称">
+            </div>
+            <div class="form-group">
+                <label>邮箱</label>
+                <input type="email" id="editEmail" placeholder="请输入邮箱">
+            </div>
+            <div class="form-group form-check">
+                <label class="check-label">
+                    <input type="checkbox" id="editIsAdmin">
+                    <span>设为管理员</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminUsers.closeModal('editModal')">取消</button>
+            <button class="btn btn-primary" id="saveEditBtn" onclick="AdminUsers.saveEdit()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 重置密码弹窗 -->
+<div class="modal-overlay" id="resetModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>重置密码</h3>
+            <button class="modal-close" onclick="AdminUsers.closeModal('resetModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc" id="resetDesc">为用户重置密码</p>
+            <div class="form-group">
+                <label>新密码</label>
+                <div class="input-with-btn">
+                    <input type="text" id="resetPassword" placeholder="留空则自动生成随机密码">
+                    <button class="btn btn-secondary btn-sm" onclick="AdminUsers.genRandomPassword()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        生成
+                    </button>
+                </div>
+            </div>
+            <div class="reset-result" id="resetResult" style="display:none;">
+                <label>新密码（请复制保存）</label>
+                <div class="password-display">
+                    <code id="newPasswordDisplay"></code>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminUsers.copyPassword()">复制</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminUsers.closeModal('resetModal')">取消</button>
+            <button class="btn btn-primary" id="confirmResetBtn" onclick="AdminUsers.confirmReset()">确认重置</button>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>确认删除</h3>
+            <button class="modal-close" onclick="AdminUsers.closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="delete-warning" id="deleteWarning">确定删除用户？此操作不可恢复，用户的所有数据（笔记、分析记录、设置等）将被一并删除。</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminUsers.closeModal('deleteModal')">取消</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn" onclick="AdminUsers.confirmDelete()">确认删除</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/static/js/admin_users.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>
