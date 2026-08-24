@@ -170,14 +170,19 @@ body,
 
 .pt-nav-home,
 .pt-nav-login {
-    background: var(--ds-accent) !important;
-    color: var(--ds-accent-text) !important;
-    border-radius: var(--ds-radius-pill) !important;
+    background: transparent !important;
+    color: var(--ds-nav-text) !important;
+    border: 1px solid var(--ds-border-light) !important;
+    border-radius: var(--ds-radius-md) !important;
+    padding: 6px 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .pt-nav-home:hover,
 .pt-nav-login:hover {
-    background: var(--ds-accent-hover) !important;
+    background: var(--ds-bg-secondary) !important;
     transform: none !important;
 }
 
