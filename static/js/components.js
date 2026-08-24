@@ -534,10 +534,12 @@ const ToolboxToast = (function() {
 
 // ==================== 统一文件上传组件 ====================
 // 支持：大文件分片上传、直接上传、拖拽、进度条、多格式、重试、取消
+// v6.0 性能优化：分片5MB、并发4、阈值5MB、上传速度/ETA显示、AbortController取消
 const ToolboxUpload = (function() {
-    var DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
+    var DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
     var DEFAULT_MAX_RETRIES = 3;
-    var DEFAULT_CONCURRENCY = 2;
+    var DEFAULT_CONCURRENCY = 4;
+    var DIRECT_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // <=5MB 直接上传
 
     /**
      * 文件校验
@@ -581,7 +583,8 @@ const ToolboxUpload = (function() {
                 '<span class="tb-upload-progress-pct">0%</span>' +
             '</div>' +
             '<div class="tb-upload-progress-track"><div class="tb-upload-progress-fill" style="width:0%"></div></div>' +
-            '<div class="tb-upload-progress-status">准备上传...</div>';
+            '<div class="tb-upload-progress-status">准备上传...</div>' +
+            '<div class="tb-upload-progress-speed" style="font-size:11px;color:var(--text-secondary,#999);margin-top:4px;display:none;"></div>';
         if (options.showCancel !== false) {
             var cancelBtn = document.createElement('button');
             cancelBtn.className = 'tb-upload-progress-cancel';
@@ -593,6 +596,7 @@ const ToolboxUpload = (function() {
         var fill = wrap.querySelector('.tb-upload-progress-fill');
         var pctEl = wrap.querySelector('.tb-upload-progress-pct');
         var statusEl = wrap.querySelector('.tb-upload-progress-status');
+        var speedEl = wrap.querySelector('.tb-upload-progress-speed');
         var cancelCb = null;
 
         if (cancelBtn) {
@@ -608,6 +612,17 @@ const ToolboxUpload = (function() {
                 pctEl.textContent = Math.round(pct) + '%';
             },
             setStatus: function(text) { statusEl.textContent = text; },
+            setSpeed: function(speedMBps, etaSec) {
+                if (speedEl) {
+                    speedEl.style.display = 'block';
+                    var etaText = '';
+                    if (etaSec !== undefined && etaSec > 0) {
+                        if (etaSec < 60) etaText = '，剩余 ' + Math.ceil(etaSec) + 's';
+                        else etaText = '，剩余 ' + Math.floor(etaSec / 60) + 'm' + Math.ceil(etaSec % 60) + 's';
+                    }
+                    speedEl.textContent = '速度: ' + speedMBps.toFixed(2) + ' MB/s' + etaText;
+                }
+            },
             setError: function(text) {
                 statusEl.textContent = text;
                 statusEl.style.color = '#ef4444';
@@ -646,7 +661,11 @@ const ToolboxUpload = (function() {
             uploadedChunks: 0,
             isUploading: false,
             cancelled: false,
-            progressUI: null
+            progressUI: null,
+            abortController: null,
+            startTime: 0,
+            lastSpeedUpdate: 0,
+            lastUploadedBytes: 0
         };
 
         function _bindDrag() {
@@ -701,6 +720,9 @@ const ToolboxUpload = (function() {
                 state.progressUI.onCancel(function() {
                     state.cancelled = true;
                     state.isUploading = false;
+                    if (state.abortController) {
+                        try { state.abortController.abort(); } catch(e) {}
+                    }
                     if (state.progressUI) { state.progressUI.setStatus('已取消'); state.progressUI.destroy(); }
                     ToolboxToast.info('上传已取消');
                 });
@@ -711,6 +733,10 @@ const ToolboxUpload = (function() {
 
         async function startUpload() {
             state.isUploading = true;
+            state.abortController = new AbortController();
+            state.startTime = Date.now();
+            state.lastSpeedUpdate = Date.now();
+            state.lastUploadedBytes = 0;
             try {
                 if (state.progressUI) state.progressUI.setStatus('初始化上传会话...');
                 var initResp = await fetch('/api/upload-init', {
@@ -787,6 +813,7 @@ const ToolboxUpload = (function() {
             var start = index * chunkSize;
             var end = Math.min(start + chunkSize, state.file.size);
             var chunk = state.file.slice(start, end);
+            var chunkSizeBytes = end - start;
 
             for (var attempt = 0; attempt < maxRetries; attempt++) {
                 if (state.cancelled) return;
@@ -798,18 +825,37 @@ const ToolboxUpload = (function() {
                     formData.append('offset', start);
                     formData.append('chunk', chunk);
 
-                    var resp = await fetch('/api/upload-chunk', { method: 'POST', body: formData });
+                    var resp = await fetch('/api/upload-chunk', {
+                        method: 'POST',
+                        body: formData,
+                        signal: state.abortController ? state.abortController.signal : undefined
+                    });
                     var data = await resp.json();
                     if (data.error || (data.status && data.status !== 'success')) {
                         throw new Error(data.error || ('分块 ' + index + ' 上传失败'));
                     }
 
                     state.uploadedChunks++;
+                    var uploadedBytes = state.uploadedChunks * chunkSize;
                     var pct = state.uploadedChunks / state.totalChunks * 100;
-                    if (state.progressUI) state.progressUI.setProgress(pct);
-                    if (options.onProgress) options.onProgress(state.uploadedChunks, state.totalChunks);
+                    if (state.progressUI) {
+                        state.progressUI.setProgress(pct);
+                        // 计算速度和ETA（每500ms更新一次）
+                        var now = Date.now();
+                        if (now - state.lastSpeedUpdate >= 500) {
+                            var elapsed = (now - state.startTime) / 1000;
+                            var speedMBps = elapsed > 0 ? (uploadedBytes / 1024 / 1024) / elapsed : 0;
+                            var remainingBytes = state.file.size - uploadedBytes;
+                            var etaSec = speedMBps > 0 ? (remainingBytes / 1024 / 1024) / speedMBps : 0;
+                            state.progressUI.setSpeed(speedMBps, etaSec);
+                            state.lastSpeedUpdate = now;
+                        }
+                    }
+                    if (options.onProgress) options.onProgress(state.uploadedChunks, state.totalChunks, uploadedBytes, state.file.size);
                     return;
                 } catch (err) {
+                    if (state.cancelled) return;
+                    if (err.name === 'AbortError') return;
                     if (attempt < maxRetries - 1) {
                         await new Promise(function(r) { setTimeout(r, Math.pow(2, attempt) * 1000); });
                     } else {
@@ -837,7 +883,13 @@ const ToolboxUpload = (function() {
 
         return {
             getState: function() { return state; },
-            cancel: function() { state.cancelled = true; state.isUploading = false; },
+            cancel: function() {
+                state.cancelled = true;
+                state.isUploading = false;
+                if (state.abortController) {
+                    try { state.abortController.abort(); } catch(e) {}
+                }
+            },
             handleFile: handleFile
         };
     }
@@ -939,8 +991,8 @@ const ToolboxUpload = (function() {
                 concurrency: options.concurrency || DEFAULT_CONCURRENCY,
                 maxRetries: options.maxRetries || DEFAULT_MAX_RETRIES,
                 progressContainer: options.progressContainer || null,
-                onProgress: function(uploaded, total) {
-                    if (options.onProgress) options.onProgress(uploaded, total);
+                onProgress: function(uploaded, total, uploadedBytes, totalBytes) {
+                    if (options.onProgress) options.onProgress(uploaded, total, uploadedBytes, totalBytes);
                 },
                 onComplete: function(fileId, filename, resultData) {
                     if (tempZone.parentNode) tempZone.parentNode.removeChild(tempZone);
@@ -961,13 +1013,47 @@ const ToolboxUpload = (function() {
         });
     }
 
+    /**
+     * 检测文件真实类型（通过文件头魔数）
+     * @param {File} file
+     * @returns {Promise<string>} 'xlsx' | 'xls' | 'csv' | 'unknown'
+     */
+    function detectFileType(file) {
+        return new Promise(function(resolve) {
+            var ext = (file.name.split('.').pop() || '').toLowerCase();
+            // 先按扩展名快速判断
+            if (ext === 'csv') { resolve('csv'); return; }
+            if (ext === 'xls') { resolve('xls'); return; }
+            if (ext === 'xlsx') {
+                // xlsx 是 zip 格式，文件头 PK
+                var reader = new FileReader();
+                reader.onloadend = function() {
+                    var arr = new Uint8Array(reader.result);
+                    // ZIP magic: 50 4B 03 04
+                    if (arr.length >= 4 && arr[0] === 0x50 && arr[1] === 0x4B && arr[2] === 0x03 && arr[3] === 0x04) {
+                        resolve('xlsx');
+                    } else {
+                        resolve(ext);
+                    }
+                };
+                reader.onerror = function() { resolve(ext); };
+                reader.readAsArrayBuffer(file.slice(0, 4));
+                return;
+            }
+            resolve(ext || 'unknown');
+        });
+    }
+
     return {
         create: create,
         directUpload: directUpload,
         uploadChunked: uploadChunked,
         validateFile: validateFile,
         renderProgress: renderProgress,
-        DEFAULT_CHUNK_SIZE: DEFAULT_CHUNK_SIZE
+        detectFileType: detectFileType,
+        DEFAULT_CHUNK_SIZE: DEFAULT_CHUNK_SIZE,
+        DEFAULT_CONCURRENCY: DEFAULT_CONCURRENCY,
+        DIRECT_UPLOAD_THRESHOLD: DIRECT_UPLOAD_THRESHOLD
     };
 })();
 
@@ -2349,21 +2435,26 @@ const ToolboxPush = (function() {
     var MAX_PUSH_RECORDS = 20;
 
     function _storageKey() {
-        return (window._USER_PREFIX || '') + 'push_history';
+        if (!window._USER_PREFIX) return null; // 未登录用户不保存推送历史
+        return window._USER_PREFIX + 'push_history';
     }
 
     function getHistory() {
+        var key = _storageKey();
+        if (!key) return [];
         try {
-            return JSON.parse(localStorage.getItem(_storageKey()) || '[]');
+            return JSON.parse(localStorage.getItem(key) || '[]');
         } catch(e) { return []; }
     }
 
     function saveHistory(records) {
+        var key = _storageKey();
+        if (!key) return;
         try {
             if (records.length > MAX_PUSH_RECORDS) {
                 records = records.slice(0, MAX_PUSH_RECORDS);
             }
-            localStorage.setItem(_storageKey(), JSON.stringify(records));
+            localStorage.setItem(key, JSON.stringify(records));
         } catch(e) { console.warn('ToolboxPush save failed:', e); }
     }
 
@@ -2381,7 +2472,9 @@ const ToolboxPush = (function() {
     }
 
     function clear() {
-        try { localStorage.removeItem(_storageKey()); } catch(e) {}
+        var key = _storageKey();
+        if (!key) return;
+        try { localStorage.removeItem(key); } catch(e) {}
     }
 
     /**
