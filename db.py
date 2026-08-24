@@ -20,26 +20,28 @@ from contextlib import contextmanager
 logger = logging.getLogger(__name__)
 
 # ==================== 数据库引擎初始化 ====================
+# 默认使用本地 SQLite，数据持久化存储在 /app/data 目录（Railway Volume 挂载点）
+# 如需使用 PostgreSQL，设置环境变量 USE_POSTGRES=true 和 DATABASE_URL
 
+USE_POSTGRES = os.environ.get('USE_POSTGRES', '').lower() == 'true'
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
-if DATABASE_URL:
-    # PostgreSQL（生产环境 — Railway / Heroku 等）
-    # Railway 提供 postgres:// 前缀，SQLAlchemy 需要 postgresql://
+if USE_POSTGRES and DATABASE_URL:
+    # PostgreSQL（可选，需手动启用）
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True,      # 连接前检查有效性，防止使用已断开的连接
-        pool_size=5,             # 连接池大小
-        max_overflow=10,         # 允许超出连接池的临时连接数
-        pool_recycle=300,        # 5 分钟回收连接，防止数据库端超时断开
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=300,
     )
     DB_TYPE = 'postgresql'
     logger.info("数据库: PostgreSQL (生产模式)")
 else:
-    # SQLite（本地开发）
-    _RUNTIME_DIR = os.environ.get('DB_DIR', '/tmp/toolbox')
+    # SQLite（默认，本地存储）
+    _RUNTIME_DIR = os.environ.get('DB_DIR', '/app/data')
     os.makedirs(_RUNTIME_DIR, exist_ok=True)
     _SQLITE_PATH = os.path.join(_RUNTIME_DIR, 'users.db')
     engine = create_engine(

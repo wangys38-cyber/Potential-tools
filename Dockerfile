@@ -16,7 +16,7 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次构建都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260816-v32-optimize
+ARG CACHE_BUST=20260824-v1-sqlite-local
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 允许访客访问（通过环境变量控制，默认允许）
@@ -41,7 +41,7 @@ COPY railway.toml .
 COPY README.md .
 
 # 创建可写目录
-RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs
+RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs /app/data
 
 EXPOSE 5001
 
