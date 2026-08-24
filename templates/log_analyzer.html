@@ -83,25 +83,25 @@
             </div>
             <div class="upload-zone-text">点击或拖拽上传日志文件</div>
             <div class="upload-zone-hint">支持 .log / .txt / .zip（自动解压zip中的日志文件），自动识别死机、重启、内存、功耗、错误等异常</div>
-            <input type="file" id="fileInput" accept=".log,.txt,.zip" style="display:none" onchange="handleFile(this.files[0])">
+            <input type="file" id="fileInput" accept=".log,.txt,.zip" onchange="handleFile(this.files[0])" class="util-hidden">
         </div>
         <div style="text-align:center;margin:12px 0;color:var(--ds-text-secondary);font-size:13px;">或</div>
         <div class="paste-section">
             <div style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--ds-text);">粘贴日志内容</div>
             <textarea id="pasteArea" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);background:var(--ds-bg);color:var(--ds-text);font-family:monospace;font-size:12px;resize:vertical;" placeholder="在此粘贴设备日志内容，支持多行..."></textarea>
             <div style="margin-top:10px;display:flex;gap:8px;">
-                <button class="btn btn-primary" onclick="analyzePastedLog()" style="flex:1;">分析粘贴内容</button>
+                <button class="btn btn-primary util-flex-1" onclick="analyzePastedLog()">分析粘贴内容</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('pasteArea').value=''" style="flex:0 0 auto;">清空</button>
             </div>
         </div>
-        <div id="fileInfo" style="display:none" class="file-info">
+        <div id="fileInfo" class="file-info util-hidden">
             <span id="fileName" class="file-info-name"></span>
             <span id="fileSize" style="font-size:12px;color:var(--ds-text-secondary)"></span>
             <button class="file-info-btn" onclick="resetUpload()">重新上传</button>
         </div>
-        <div id="analysis" style="display:none">
+        <div id="analysis" class="util-hidden">
             <div class="stats-grid" id="statsGrid"></div>
-            <div class="conclusion-panel" id="conclusionPanel" style="display:none;">
+            <div class="conclusion-panel util-hidden" id="conclusionPanel">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ds-text);">分析结论</h3>
                     <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能分析</button>
@@ -591,7 +591,7 @@
             }
             if (rootCauses.length > 0) {
                 rootCauseHtml = `
-                    <div style="margin-bottom:16px;">
+                    <div class="util-mb-16">
                         <div style="font-weight:600;font-size:15px;margin-bottom:8px;">根因分析：</div>
                         <ul style="margin:0;padding-left:20px;line-height:1.8;">
                             ${rootCauses.map(r => `<li>${r}</li>`).join('')}
@@ -620,14 +620,14 @@
             if (suggestions.length === 0) suggestions.push('当前日志异常较少，建议持续观察，定期检查日志趋势');
 
             content.innerHTML = `
-                <div style="margin-bottom:16px;">
+                <div class="util-mb-16">
                     <strong>总体评估：</strong>共检测到 <strong style="color:${riskColor};font-size:16px;">${total}</strong> 条异常日志，风险等级：<strong style="color:${riskColor};">${riskLevel}</strong>
                     ${counts.crash > 0 ? '，存在<strong style="color:#ff3b30;">死机/崩溃</strong>严重问题' : ''}
                     ${counts.memory > 0 ? '，存在<strong style="color:#007aff;">内存异常</strong>' : ''}
                     ${counts.power > 0 ? '，存在<strong style="color:#007aff;">功耗/电量异常</strong>' : ''}
                 </div>
                 ${rootCauseHtml}
-                <div style="margin-bottom:16px;">
+                <div class="util-mb-16">
                     <div style="font-weight:600;font-size:15px;margin-bottom:8px;">具体问题详情：</div>
                     ${detailedIssuesHtml}
                 </div>

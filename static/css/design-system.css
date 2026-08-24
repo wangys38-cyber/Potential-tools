@@ -1216,3 +1216,32 @@ a:hover {
         font-size: 14px !important;
     }
 }
+
+
+/* ==================== 内联样式提取工具类 (refactor: 优化5) ==================== */
+.util-hidden { display: none !important; }
+.util-mb-16 { margin-bottom: 16px; }
+.util-flex-1 { flex: 1; }
+.util-card-elevated {
+    background: var(--ds-bg-elevated);
+    border-radius: var(--ds-radius-lg);
+    padding: 24px;
+    box-shadow: var(--ds-shadow-sm);
+    border: 1px solid var(--ds-border-light);
+}
+.util-section-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--ds-text);
+}
+.util-form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.util-chart-container {
+    height: 280px;
+    position: relative;
+}

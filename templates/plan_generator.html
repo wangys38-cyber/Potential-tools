@@ -211,9 +211,9 @@
                     <strong>截图识别计划</strong>
                     <span>上传图片 / 拖拽 / Ctrl+V 粘贴截图，自动识别项目名称和节点</span>
                 </div>
-                <input type="file" id="ocrFileInput" accept="image/*" style="display:none" onchange="handleOCRFile(this.files[0])">
+                <input type="file" id="ocrFileInput" accept="image/*" onchange="handleOCRFile(this.files[0])" class="util-hidden">
             </div>
-            <div class="ocr-result" id="ocrResult" style="display:none;">
+            <div class="ocr-result util-hidden" id="ocrResult">
                 <div class="ocr-result-header">
                     <span>识别结果</span>
                     <button class="ocr-close" onclick="clearOCRResult()">×</button>
@@ -224,7 +224,7 @@
                     <button class="action-btn" onclick="clearOCRResult()">重新识别</button>
                 </div>
             </div>
-            <div class="ocr-loading" id="ocrLoading" style="display:none;">
+            <div class="ocr-loading util-hidden" id="ocrLoading">
                 <div class="spinner"></div>
                 <span>正在识别图片内容...</span>
             </div>
@@ -263,8 +263,8 @@
                 <div class="project-info">
                     <div class="project-name-edit">
                         <span id="projectNameDisplay" style="font-size:17px;font-weight:600;">未命名项目</span>
-                        <button class="edit-toggle" id="editNameBtn" onclick="toggleEditName()" style="display:none;">改名</button>
-                        <input type="text" class="project-name-input" id="projectNameInput" style="display:none;" placeholder="输入项目名称" onkeydown="if(event.key==='Enter')saveProjectName()">
+                        <button class="edit-toggle util-hidden" id="editNameBtn" onclick="toggleEditName()">改名</button>
+                        <input type="text" class="project-name-input util-hidden" id="projectNameInput" placeholder="输入项目名称" onkeydown="if(event.key==='Enter')saveProjectName()">
                     </div>
                     <div style="font-size:13px;color:var(--text-tertiary);margin-top:4px;">
                         项目类型：<span id="displayProjectType">未选择</span> | 开始日期：<span id="displayStartDate">未设置</span>
@@ -300,7 +300,7 @@
                 </tbody>
             </table>
 
-            <div class="timeline-section" id="timelineSection" style="display: none;">
+            <div class="timeline-section util-hidden" id="timelineSection">
                 <h3>横向时间线</h3>
                 <div class="timeline-container"><div class="timeline" id="timeline"></div></div>
             </div>
@@ -314,9 +314,9 @@
                     <button class="action-btn" onclick="PlanEnhancement.switchSubTab('baseline')" id="subtab-baseline">基线对比</button>
                 </div>
                 <div id="dependencySection"></div>
-                <div id="resourceSection" style="display:none;"></div>
-                <div id="milestoneSection" style="display:none;"></div>
-                <div id="baselineSection" style="display:none;"></div>
+                <div id="resourceSection" class="util-hidden"></div>
+                <div id="milestoneSection" class="util-hidden"></div>
+                <div id="baselineSection" class="util-hidden"></div>
             </div>
         </div>
         </div><!-- /tab-generator -->
@@ -325,7 +325,7 @@
             <div class="input-section">
                 <h2>我的项目计划</h2>
                 <div id="plansContainer" class="plans-grid"></div>
-                <div id="emptyPlans" class="empty-plans" style="display:none;">
+                <div id="emptyPlans" class="empty-plans util-hidden">
                     <p>还没有保存的计划</p>
                     <p style="font-size:13px;margin-top:8px;opacity:0.7;">生成计划后点击"保存计划"即可收藏</p>
                 </div>
@@ -341,15 +341,15 @@
                 <button onclick="closeQuickEdit()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-secondary);padding:0;">×</button>
             </div>
             <div style="padding:20px 22px;overflow-y:auto;max-height:calc(85vh - 130px);">
-                <div style="margin-bottom:16px;">
+                <div class="util-mb-16">
                     <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">项目名称</label>
                     <input type="text" id="qe_projectName" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;box-sizing:border-box;background:var(--bg-secondary);color:var(--text-primary);">
                 </div>
-                <div style="margin-bottom:16px;">
+                <div class="util-mb-16">
                     <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">开始日期</label>
                     <input type="date" id="qe_startDate" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;box-sizing:border-box;background:var(--bg-secondary);color:var(--text-primary);">
                 </div>
-                <div style="margin-bottom:16px;">
+                <div class="util-mb-16">
                     <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">当前进度节点</label>
                     <select id="qe_currentNode" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;box-sizing:border-box;background:var(--bg-secondary);color:var(--text-primary);">
                         <option value="">— 未开始 —</option>

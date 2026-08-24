@@ -108,7 +108,7 @@
                     </button>
                 </div>
             </div>
-            <div id="severityInfo" style="display:none;"></div>
+            <div id="severityInfo" class="util-hidden"></div>
             <div class="summary-grid" id="summaryGrid"></div>
 
             <div class="tabs">
@@ -224,11 +224,11 @@
             <div class="watermark-config" id="watermarkConfig">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                     <label style="white-space:nowrap;color:var(--ds-text);">报告标题：</label>
-                    <input type="text" id="reportTitleInput" placeholder="自定义报告标题（同时作为文件名）" style="flex:1;">
+                    <input type="text" id="reportTitleInput" placeholder="自定义报告标题（同时作为文件名）" class="util-flex-1">
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
                     <label style="white-space:nowrap;color:var(--ds-text);">水印文字：</label>
-                    <input type="text" id="watermarkInput" placeholder="输入水印文字" style="flex:1;">
+                    <input type="text" id="watermarkInput" placeholder="输入水印文字" class="util-flex-1">
                     <button class="btn btn-secondary" style="padding:8px 16px;font-size:12px;" onclick="resetWatermark()">恢复默认</button>
                 </div>
             </div>
