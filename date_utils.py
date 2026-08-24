@@ -51,16 +51,36 @@ def normalize_date(date_str):
     if m:
         return f'{m.group(1)}-{m.group(2)}-{m.group(3)}'
     
-    # 尝试用 datetime 解析
+    # ISO 格式: 2026-08-24T14:30:00.000+0800 或 2026-08-24T14:30:00Z
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})[T ]', date_str)
+    if m:
+        return f'{m.group(1)}-{m.group(2)}-{m.group(3)}'
+    
+    # 尝试用 datetime 解析（扩展格式列表）
     try:
-        for fmt in ['%Y-%m-%d', '%d/%b/%Y', '%d/%b/%y', '%d/%m/%Y', '%d/%m/%y', '%Y/%m/%d', '%d-%m-%Y', '%d-%b-%Y']:
+        for fmt in [
+            '%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S',
+            '%d/%b/%Y', '%d/%b/%y', '%d/%b/%Y %H:%M', '%d/%b/%Y %I:%M %p',
+            '%d/%m/%Y', '%d/%m/%y', '%d/%m/%Y %H:%M:%S',
+            '%Y/%m/%d', '%Y/%m/%d %H:%M:%S',
+            '%d-%m-%Y', '%d-%b-%Y', '%d-%b-%y',
+            '%b %d, %Y', '%B %d, %Y',  # Aug 24, 2026
+            '%Y.%m.%d', '%Y.%m.%d %H:%M:%S',  # 2026.08.24
+        ]:
             try:
-                dt = datetime.strptime(date_str[:20].strip(), fmt)
+                # 只取前25个字符，避免时区信息干扰
+                dt = datetime.strptime(date_str[:25].strip(), fmt)
                 return dt.strftime('%Y-%m-%d')
             except ValueError:
                 continue
     except Exception:
         pass
+    
+    # 最后兜底：如果前10个字符看起来像 YYYY-MM-DD，直接返回
+    if len(date_str) >= 10:
+        first10 = date_str[:10]
+        if re.match(r'^\d{4}-\d{2}-\d{2}$', first10):
+            return first10
     
     return date_str[:10] if len(date_str) >= 10 else date_str
 # === Excel 文件读取辅助函数 ===

@@ -288,7 +288,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
         
         # 日期统计
         created = issue.get('created_date', '').strip()
-        if created:
+        if created and created.lower() not in ('nan', 'none', 'nat'):
             date_key = normalize_date(created)
             if date_key:
                 if date_key not in daily_stats:
@@ -296,7 +296,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
                 daily_stats[date_key]['new'] += 1
         
         resolved_date = issue.get('resolved_date', '').strip()
-        if resolved_date:
+        if resolved_date and resolved_date.lower() not in ('nan', 'none', 'nat'):
             date_key = normalize_date(resolved_date)
             if date_key:
                 if date_key not in daily_stats:
@@ -1129,23 +1129,36 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
     if progress_cb:
         progress_cb(75, "正在统计日期趋势...")
 
-    # 日期统计（向量化）
+    # 日期统计（向量化）— 增强健壮性
     from date_utils import normalize_date
     daily_stats = {}
 
-    created_dates = col_created[col_created != ''].map(normalize_date)
-    created_dates = created_dates[created_dates != '']
-    for d in created_dates:
-        if d not in daily_stats:
-            daily_stats[d] = {'new': 0, 'resolved': 0}
-        daily_stats[d]['new'] += 1
+    def _safe_normalize(d):
+        """安全日期解析，返回空字符串而非 None"""
+        if not d or str(d).strip() in ('', 'nan', 'None', 'NaT'):
+            return ''
+        result = normalize_date(str(d).strip())
+        return result if result else ''
 
-    resolved_dates = col_resolved[col_resolved != ''].map(normalize_date)
-    resolved_dates = resolved_dates[resolved_dates != '']
-    for d in resolved_dates:
-        if d not in daily_stats:
-            daily_stats[d] = {'new': 0, 'resolved': 0}
-        daily_stats[d]['resolved'] += 1
+    # 创建日期统计
+    created_valid = col_created[col_created != '']
+    if len(created_valid) > 0:
+        created_dates = created_valid.map(_safe_normalize)
+        created_dates = created_dates[created_dates != '']
+        for d in created_dates:
+            if d not in daily_stats:
+                daily_stats[d] = {'new': 0, 'resolved': 0}
+            daily_stats[d]['new'] += 1
+
+    # 解决日期统计
+    resolved_valid = col_resolved[col_resolved != '']
+    if len(resolved_valid) > 0:
+        resolved_dates = resolved_valid.map(_safe_normalize)
+        resolved_dates = resolved_dates[resolved_dates != '']
+        for d in resolved_dates:
+            if d not in daily_stats:
+                daily_stats[d] = {'new': 0, 'resolved': 0}
+            daily_stats[d]['resolved'] += 1
 
     daily_stats_list = [{'date': d, **v} for d, v in sorted(daily_stats.items())]
 
