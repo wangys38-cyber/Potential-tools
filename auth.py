@@ -57,7 +57,8 @@ GUEST_ALLOWED_PATHS = [
     '/',                    # 首页
     '/login',               # 登录页
     '/excel-analysis',      # CR分析页面
-    '/auth/',               # 认证回调（飞书/Google）
+    '/auth/',               # 认证回调（飞书/Google/微信）
+    '/api/auth/',           # 账号密码注册/登录API
     '/static/',             # 静态资源
     '/health',              # 健康检查
     '/api/excel-analyze',   # CR分析API（前缀匹配）
@@ -118,6 +119,7 @@ def get_current_user():
         'email': session.get('user_email', ''),
         'avatar': session.get('user_avatar', ''),
         'provider': session.get('user_provider', ''),
+        'is_admin': session.get('user_is_admin', False),
     }
 
 
@@ -126,7 +128,7 @@ def is_logged_in():
     return session.get('user_id') is not None
 
 
-def _set_session_user(user_id, name, email, avatar, provider):
+def _set_session_user(user_id, name, email, avatar, provider, is_admin=False):
     """将用户信息写入 session（登录成功时调用）"""
     session.permanent = True
     session['user_id'] = user_id
@@ -134,6 +136,7 @@ def _set_session_user(user_id, name, email, avatar, provider):
     session['user_email'] = email
     session['user_avatar'] = avatar
     session['user_provider'] = provider
+    session['user_is_admin'] = bool(is_admin)
 
 
 def login_required(func):
@@ -145,6 +148,27 @@ def login_required(func):
             if ALLOW_GUEST:
                 return func(*args, **kwargs)
             return redirect(url_for('login_page'))
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(func):
+    """管理员权限装饰器：非管理员返回 403，未登录跳转登录页"""
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not is_logged_in():
+            if request.path.startswith('/api/'):
+                return jsonify({'error': '请先登录'}), 401
+            return redirect(url_for('login_page'))
+        is_admin = session.get('user_is_admin', False)
+        if not is_admin:
+            user_id = session.get('user_id')
+            if user_id and db.is_admin_user(user_id):
+                session['user_is_admin'] = True
+                is_admin = True
+        if not is_admin:
+            return jsonify({'error': '需要管理员权限'}), 403
         return func(*args, **kwargs)
     return wrapper
 
@@ -238,7 +262,8 @@ def feishu_callback():
             user_id = int(hashlib.md5(f"feishu:{open_id}".encode()).hexdigest()[:8], 16)
 
         # 用户信息写入 session — 后续不再查数据库
-        _set_session_user(user_id, name, email, avatar, 'feishu')
+        is_admin = db.is_admin_user(user_id)
+        _set_session_user(user_id, name, email, avatar, 'feishu', is_admin)
 
         logger.info(f"飞书用户登录成功: {name} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
@@ -331,7 +356,8 @@ def google_callback():
             import hashlib
             user_id = int(hashlib.md5(f"google:{google_id}".encode()).hexdigest()[:8], 16)
 
-        _set_session_user(user_id, name, email, avatar, 'google')
+        is_admin = db.is_admin_user(user_id)
+        _set_session_user(user_id, name, email, avatar, 'google', is_admin)
 
         logger.info(f"Google用户登录成功: {name} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
@@ -418,6 +444,7 @@ def login():
         email=user.get('email') or '',
         avatar=user.get('avatar') or '',
         provider=user.get('provider') or 'local',
+        is_admin=bool(user.get('is_admin', 0)),
     )
     logger.info(f"用户登录成功: {user.get('name') or username} (ID: {user['id']})")
     return jsonify({
@@ -527,7 +554,8 @@ def wechat_callback():
             user_id = int(hashlib.md5(f"wechat:{provider_uid}".encode()).hexdigest()[:8], 16)
 
         # 用户信息写入 session
-        _set_session_user(user_id, nickname, '', headimgurl, 'wechat')
+        is_admin = db.is_admin_user(user_id)
+        _set_session_user(user_id, nickname, '', headimgurl, 'wechat', is_admin)
 
         logger.info(f"微信用户登录成功: {nickname} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
