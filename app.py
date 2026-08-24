@@ -78,6 +78,13 @@ template_dir = os.path.join(base_dir, 'templates')
 static_dir = os.path.join(base_dir, 'static')
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
+# 初始化数据库（确保 Railway/gunicorn 启动时自动创建表）
+try:
+    db.init_db()
+    logger.info("数据库初始化完成")
+except Exception as e:
+    logger.error(f"数据库初始化失败: {e}")
+
 # 实时语音识别 WebSocket 支持
 sock = Sock(app)
 

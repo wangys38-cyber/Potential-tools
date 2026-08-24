@@ -84,7 +84,15 @@ def create_api_blueprint(base_dir, static_version):
     @bp.route('/health')
     def health():
         """健康检查端点，供 Railway / 负载均衡使用"""
-        return jsonify({'status': 'ok', 'version': static_version, 'pid': os.getpid()})
+        # 数据库健康检查
+        db_status = {'type': getattr(db, 'DB_TYPE', 'unknown'), 'connected': False}
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("SELECT 1"))
+                db_status['connected'] = True
+        except Exception as e:
+            db_status['error'] = str(e)
+        return jsonify({'status': 'ok', 'version': static_version, 'pid': os.getpid(), 'db': db_status})
 
     # ==================== 访问计数 ====================
 
