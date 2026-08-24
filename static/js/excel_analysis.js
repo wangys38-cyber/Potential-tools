@@ -156,13 +156,27 @@ let isAnalyzing = false;
             try {
                 let data;
 
-                // 文件大于 1MB 时使用统一组件分片上传，否则直接上传
-                if (file.size > 1024 * 1024) {
+                // v6.0: 文件大于 5MB 时使用分片上传（5MB分片+4并发），否则直接上传
+                var uploadThreshold = ToolboxUpload.DIRECT_UPLOAD_THRESHOLD || (5 * 1024 * 1024);
+                if (file.size > uploadThreshold) {
                     analyzing.querySelector('p').textContent = '正在上传文件... 0%';
+                    var uploadStartTime = Date.now();
                     data = await ToolboxUpload.uploadChunked(file, {
                         accept: '.xlsx,.xls,.csv',
-                        onProgress: function(uploaded, total) {
-                            analyzing.querySelector('p').textContent = '正在上传文件... ' + Math.round(uploaded / total * 100) + '%';
+                        progressContainer: document.getElementById('uploadProgressContainer') || null,
+                        onProgress: function(uploaded, total, uploadedBytes, totalBytes) {
+                            var pct = Math.round(uploaded / total * 100);
+                            var elapsed = (Date.now() - uploadStartTime) / 1000;
+                            var speedMBps = elapsed > 0 ? (uploadedBytes / 1024 / 1024) / elapsed : 0;
+                            var remainingBytes = totalBytes - uploadedBytes;
+                            var etaSec = speedMBps > 0 ? (remainingBytes / 1024 / 1024) / speedMBps : 0;
+                            var etaText = '';
+                            if (etaSec > 0) {
+                                if (etaSec < 60) etaText = '，剩余 ' + Math.ceil(etaSec) + 's';
+                                else etaText = '，剩余 ' + Math.floor(etaSec / 60) + 'm' + Math.ceil(etaSec % 60) + 's';
+                            }
+                            analyzing.querySelector('p').textContent =
+                                '正在上传文件... ' + pct + '% (' + speedMBps.toFixed(2) + ' MB/s' + etaText + ')';
                         }
                     });
                 } else {
@@ -447,6 +461,8 @@ let isAnalyzing = false;
             if (exportBtn) exportBtn.style.display = 'inline-block';
             const fixPlanBtn = document.getElementById('generateFixPlanBtn');
             if (fixPlanBtn) fixPlanBtn.style.display = 'inline-block';
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+            if (exportCsvBtn) exportCsvBtn.style.display = 'inline-block';
             // 显示导出增强按钮
             if (window.CRDeepAnalysis && window.CRDeepAnalysis.showExportButtons) {
                 window.CRDeepAnalysis.showExportButtons();
@@ -1188,19 +1204,77 @@ let isAnalyzing = false;
                 }
                 
                 if (filteredIssues.length > 0) {
+                    // v6.0: 分页显示，默认每页50条
+                    const PAGE_SIZE = 50;
+                    const totalPages = Math.ceil(filteredIssues.length / PAGE_SIZE);
+                    let currentPage = 1;
+
+                    function renderIssuesPage(page) {
+                        currentPage = Math.max(1, Math.min(page, totalPages));
+                        const start = (currentPage - 1) * PAGE_SIZE;
+                        const end = Math.min(start + PAGE_SIZE, filteredIssues.length);
+                        const displayIssues = filteredIssues.slice(start, end);
+
+                        const severityColors = {
+                            'blocker': '#ff3b30', 'critical': '#ff3b30',
+                            'major': '#ff9500', 'minor': '#ffcc00', 'trivial': '#8e8e93'
+                        };
+
+                        let rowsHtml = '';
+                        displayIssues.forEach((issue, idx) => {
+                            const isOpen = !issue.resolved_date || issue.resolved_date === '-';
+                            const statusColor = isOpen ? '#ff3b30' : '#34c759';
+                            const sev = (issue.severity || '').toLowerCase().trim();
+                            const sevColor = severityColors[sev] || '#8e8e93';
+                            const globalIdx = start + idx;
+
+                            rowsHtml += `
+                                <tr style="border-top:1px solid #f0f0f3;${globalIdx % 2 === 1 ? 'background:#fafafa;' : ''}">
+                                    <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
+                                    <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
+                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
+                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
+                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
+                                    <td style="padding:8px 12px;white-space:nowrap;">
+                                        <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
+                                            ${escapeHtml(issue.severity || '-')}
+                                        </span>
+                                    </td>
+                                    <td style="padding:8px 12px;white-space:nowrap;">
+                                        <span style="background:${statusColor}20;color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
+                                            ${isOpen ? '未解决' : '已解决'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        const body = document.getElementById('stabilityIssuesBody');
+                        if (body) body.innerHTML = rowsHtml;
+
+                        // 更新分页信息
+                        const pageInfo = document.getElementById('stabilityPageInfo');
+                        if (pageInfo) {
+                            pageInfo.textContent = `第 ${currentPage}/${totalPages} 页，显示 ${start + 1}-${end} 条，共 ${filteredIssues.length} 条`;
+                        }
+                        const prevBtn = document.getElementById('stabilityPrevBtn');
+                        const nextBtn = document.getElementById('stabilityNextBtn');
+                        if (prevBtn) prevBtn.disabled = currentPage <= 1;
+                        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+                    }
+
                     let issuesHtml = `
                         <div style="background:linear-gradient(135deg,#fff,#f8f9fa);border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid var(--border);">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                                 <h3 style="margin:0;color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
                                      稳定性问题详情列表
                                 </h3>
-                                <div style="display:flex;gap:8px;">
+                                <div style="display:flex;gap:8px;align-items:center;">
                                     <select id="stabilityStatusFilter" onchange="filterStabilityIssues()" style="padding:6px 12px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;">
                                         <option value="">全部状态</option>
                                         <option value="open">未解决</option>
                                         <option value="resolved">已解决</option>
                                     </select>
-                                    <span style="font-size:12px;color:var(--text-secondary);line-height:32px;">共 ${filteredIssues.length} 条</span>
                                 </div>
                             </div>
                             <div style="max-height:500px;overflow-y:auto;border-radius:12px;border:1px solid #e5e5ea;">
@@ -1216,51 +1290,22 @@ let isAnalyzing = false;
                                             <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">状态</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="stabilityIssuesBody">
+                                    <tbody id="stabilityIssuesBody"></tbody>
+                                </table>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+                                <span id="stabilityPageInfo" style="font-size:12px;color:var(--text-secondary);"></span>
+                                <div style="display:flex;gap:8px;">
+                                    <button id="stabilityPrevBtn" onclick="window._renderStabilityPage(${currentPage - 1})" style="padding:6px 14px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;cursor:pointer;">上一页</button>
+                                    <button id="stabilityNextBtn" onclick="window._renderStabilityPage(${currentPage + 1})" style="padding:6px 14px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;cursor:pointer;">下一页</button>
+                                </div>
+                            </div>
+                        </div>
                     `;
-                    
-                    const displayIssues = filteredIssues.slice(0, 100);
-                    displayIssues.forEach((issue, idx) => {
-                        const isOpen = !issue.resolved_date || issue.resolved_date === '-';
-                        const statusColor = isOpen ? '#ff3b30' : '#34c759';
-                        const severityColors = {
-                            'blocker': '#ff3b30',
-                            'critical': '#ff3b30',
-                            'major': '#ff9500',
-                            'minor': '#ffcc00',
-                            'trivial': '#8e8e93'
-                        };
-                        const sev = (issue.severity || '').toLowerCase().trim();
-                        const sevColor = severityColors[sev] || '#8e8e93';
-                        
-                        issuesHtml += `
-                            <tr style="border-top:1px solid #f0f0f3;${idx % 2 === 1 ? 'background:#fafafa;' : ''}">
-                                <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
-                                <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
-                                <td style="padding:8px 12px;white-space:nowrap;">
-                                    <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                        ${escapeHtml(issue.severity || '-')}
-                                    </span>
-                                </td>
-                                <td style="padding:8px 12px;white-space:nowrap;">
-                                    <span style="background:${statusColor}20;color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                        ${isOpen ? '未解决' : '已解决'}
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    
-                    issuesHtml += '</tbody></table></div>';
-                    if (filteredIssues.length > 100) {
-                        issuesHtml += '<p style="text-align:center;color:var(--text-secondary);margin-top:12px;font-size:12px;">仅显示最近100条，共 ' + filteredIssues.length + ' 条</p>';
-                    }
-                    issuesHtml += '</div>';
                     stabilityIssuesSection.innerHTML = issuesHtml;
                     window._currentStabilityIssues = filteredIssues;
+                    window._renderStabilityPage = renderIssuesPage;
+                    renderIssuesPage(1);
                 } else {
                     stabilityIssuesSection.innerHTML = '';
                 }
@@ -1270,52 +1315,20 @@ let isAnalyzing = false;
         function filterStabilityIssues() {
             const filter = document.getElementById('stabilityStatusFilter');
             const value = filter ? filter.value : '';
-            const body = document.getElementById('stabilityIssuesBody');
-            if (!body || !window._currentStabilityIssues) return;
-            
+            if (!window._currentStabilityIssues) return;
+
             let issues = window._currentStabilityIssues;
             if (value === 'open') {
                 issues = issues.filter(i => !i.resolved_date || i.resolved_date === '-');
             } else if (value === 'resolved') {
                 issues = issues.filter(i => i.resolved_date && i.resolved_date !== '-');
             }
-            
-            const severityColors = {
-                'blocker': '#ff3b30',
-                'critical': '#ff3b30',
-                'major': '#ff9500',
-                'minor': '#ffcc00',
-                'trivial': '#8e8e93'
-            };
-            
-            let html = '';
-            issues.forEach((issue, idx) => {
-                const isOpen = !issue.resolved_date || issue.resolved_date === '-';
-                const statusColor = isOpen ? '#ff3b30' : '#34c759';
-                const sev = (issue.severity || '').toLowerCase().trim();
-                const sevColor = severityColors[sev] || '#8e8e93';
-                
-                html += `
-                    <tr style="border-top:1px solid #f0f0f3;${idx % 2 === 1 ? 'background:#fafafa;' : ''}">
-                        <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
-                        <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
-                        <td style="padding:8px 12px;white-space:nowrap;">
-                            <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                ${escapeHtml(issue.severity || '-')}
-                            </span>
-                        </td>
-                        <td style="padding:8px 12px;white-space:nowrap;">
-                            <span style="background:${statusColor}20;color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                ${isOpen ? '未解决' : '已解决'}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            });
-            body.innerHTML = html;
+
+            // 使用分页渲染
+            if (window._renderStabilityPage) {
+                window._currentStabilityIssues = issues;
+                window._renderStabilityPage(1);
+            }
         }
 
         function renderSuggestionCard(sug) {
@@ -1417,6 +1430,57 @@ let isAnalyzing = false;
                     </div>
                 </div>
             `;
+        }
+
+        // ===== v6.0 导出分析结果为 CSV =====
+        function exportAnalysisToCSV() {
+            if (!currentAnalysisData || !currentAnalysisData.all_issues) {
+                showToast('请先分析文件', 'warning');
+                return;
+            }
+            try {
+                const issues = currentAnalysisData.all_issues || [];
+                if (issues.length === 0) {
+                    showToast('没有可导出的数据', 'warning');
+                    return;
+                }
+
+                // CSV 表头
+                const headers = ['Issue ID', '标题', '模块', '研发', '状态', '严重程度', '创建日期', '解决日期', '关闭日期', 'Fix Version', '解决方式'];
+                const fields = ['issue_id', 'title', 'module', 'developer', 'status', 'severity', 'create_date', 'resolved_date', 'closed_date', 'fix_version', 'resolution'];
+
+                // 构建 CSV 内容
+                let csvContent = '\uFEFF'; // BOM for Excel UTF-8
+                csvContent += headers.join(',') + '\n';
+
+                issues.forEach(issue => {
+                    const row = fields.map(field => {
+                        let value = issue[field] || '';
+                        value = String(value).replace(/"/g, '""');
+                        if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+                            value = '"' + value + '"';
+                        }
+                        return value;
+                    });
+                    csvContent += row.join(',') + '\n';
+                });
+
+                // 下载
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `CR分析结果_${currentFileName || 'export'}_${new Date().toISOString().slice(0,10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast(`已导出 ${issues.length} 条数据`, 'success');
+            } catch (e) {
+                showToast('导出失败: ' + e.message, 'error');
+            }
         }
 
         // ===== 导出到 Bug 趋势看板 =====

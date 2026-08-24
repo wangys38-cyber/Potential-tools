@@ -1,11 +1,58 @@
-"""Excel 分析模块 — 从 app.py 提取"""
+"""Excel 分析模块 — 从 app.py 提取
+
+v6.0 性能优化：
+- openpyxl read_only=True 模式
+- 只加载需要的列（usecols）
+- CSV chunksize 流式处理
+- LRU 解析结果缓存（最多10个）
+"""
 import re
 import time
 import gc
 import logging
+from collections import OrderedDict
 from date_utils import normalize_date
 
 logger = logging.getLogger(__name__)
+
+# ==================== LRU 解析结果缓存 ====================
+# 缓存 key: file_id + sheet_name，value: 解析结果
+# 最多缓存 10 个，超出后淘汰最旧的
+_PARSE_CACHE = OrderedDict()
+_PARSE_CACHE_MAX = 10
+_PARSE_CACHE_LOCK = None  # 延迟导入 threading
+
+def _get_cache_lock():
+    global _PARSE_CACHE_LOCK
+    if _PARSE_CACHE_LOCK is None:
+        import threading
+        _PARSE_CACHE_LOCK = threading.Lock()
+    return _PARSE_CACHE_LOCK
+
+def _cache_get(key):
+    """从缓存获取解析结果"""
+    lock = _get_cache_lock()
+    with lock:
+        if key in _PARSE_CACHE:
+            _PARSE_CACHE.move_to_end(key)
+            return _PARSE_CACHE[key]
+    return None
+
+def _cache_set(key, value):
+    """存入缓存，超出上限淘汰最旧的"""
+    lock = _get_cache_lock()
+    with lock:
+        _PARSE_CACHE[key] = value
+        _PARSE_CACHE.move_to_end(key)
+        while len(_PARSE_CACHE) > _PARSE_CACHE_MAX:
+            _PARSE_CACHE.popitem(last=False)
+
+def _cache_clear():
+    """清空缓存"""
+    lock = _get_cache_lock()
+    with lock:
+        _PARSE_CACHE.clear()
+
 
 def _log_mem(label):
     try:
@@ -693,11 +740,191 @@ def _safe_get(cells, idx):
 
 
 # ============================================================
+# v6.0 优化读取函数 — read_only 模式、只加载需要列、chunksize
+# ============================================================
+
+def _read_excel_headers_only(file_path, sheet_name):
+    """使用 openpyxl read_only 模式只读表头，速度快、内存占用低。
+
+    Returns:
+        list: 表头列表
+    """
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(file_path, read_only=True, data_only=True)
+        if sheet_name not in wb.sheetnames:
+            sheet_name = wb.sheetnames[0]
+        ws = wb[sheet_name]
+        headers = []
+        for row in ws.iter_rows(min_row=1, max_row=1, values_only=True):
+            headers = [str(c).strip() if c is not None else '' for c in row]
+            break
+        wb.close()
+        return headers
+    except Exception as e:
+        logger.warning(f"read_only 读表头失败，回退pandas: {e}")
+        import pandas as pd
+        df = pd.read_excel(file_path, sheet_name=sheet_name, nrows=0, engine='openpyxl')
+        return [str(c).strip() if c else '' for c in df.columns]
+
+
+def _get_required_column_indices(headers, col_map):
+    """根据字段映射获取需要加载的列索引列表。
+
+    Returns:
+        list: 需要加载的列索引（升序、去重）
+    """
+    indices = set()
+    for key in ['id', 'title', 'module', 'severity', 'status', 'developer',
+                'created_date', 'resolved_date', 'closed_date', 'fix_version', 'resolution']:
+        idx = col_map.get(key, -1)
+        if idx >= 0 and idx < len(headers):
+            indices.add(idx)
+    if not indices:
+        return None  # 没有识别到任何字段，加载全部
+    return sorted(indices)
+
+
+def _read_excel_optimized(file_path, sheet_name, usecols=None, file_size=0):
+    """优化的 Excel 读取：只加载需要列，大文件使用 read_only 流式。
+
+    Args:
+        file_path: 文件路径
+        sheet_name: sheet 名
+        usecols: 需要加载的列索引列表，None 表示全部
+        file_size: 文件大小（字节），>50MB 使用流式
+
+    Returns:
+        pandas.DataFrame
+    """
+    import pandas as pd
+
+    # 大文件（>50MB）使用 read_only 流式读取
+    if file_size > 50 * 1024 * 1024 and usecols is not None:
+        try:
+            from openpyxl import load_workbook
+            wb = load_workbook(file_path, read_only=True, data_only=True)
+            if sheet_name not in wb.sheetnames:
+                sheet_name = wb.sheetnames[0]
+            ws = wb[sheet_name]
+
+            rows_data = []
+            usecols_set = set(usecols)
+            for i, row in enumerate(ws.iter_rows(values_only=True)):
+                if i == 0:
+                    # 表头行，只保留需要的列
+                    header_row = [str(row[c]).strip() if c < len(row) and row[c] is not None else ''
+                                  for c in usecols]
+                    continue
+                # 数据行
+                data_row = [str(row[c]).strip() if c < len(row) and row[c] is not None else ''
+                           for c in usecols]
+                # 跳过全空行
+                if any(data_row):
+                    rows_data.append(data_row)
+
+            wb.close()
+            df = pd.DataFrame(rows_data, columns=header_row)
+            del rows_data
+            gc.collect()
+            return df
+        except Exception as e:
+            logger.warning(f"流式读取失败，回退pandas: {e}")
+
+    # 普通读取：使用 usecols 只加载需要的列
+    read_kwargs = {
+        'sheet_name': sheet_name,
+        'engine': 'openpyxl',
+        'dtype': str,
+        'na_filter': False,
+    }
+    if usecols is not None:
+        read_kwargs['usecols'] = usecols
+
+    try:
+        df = pd.read_excel(file_path, **read_kwargs)
+        return df
+    except Exception as e:
+        logger.warning(f"usecols读取失败，回退全量: {e}")
+        del read_kwargs['usecols']
+        return pd.read_excel(file_path, **read_kwargs)
+
+
+def _read_csv_optimized(file_path, usecols=None, file_size=0):
+    """优化的 CSV 读取：usecols 只读取需要列，dtype 指定类型，大文件 chunksize。
+
+    Args:
+        file_path: 文件路径
+        usecols: 需要加载的列索引列表
+        file_size: 文件大小（字节），>50MB 使用 chunksize
+
+    Returns:
+        pandas.DataFrame
+    """
+    import pandas as pd
+
+    read_kwargs = {
+        'dtype': str,
+        'na_filter': False,
+        'encoding': 'utf-8',
+        'on_bad_lines': 'skip',
+    }
+    if usecols is not None:
+        read_kwargs['usecols'] = usecols
+
+    # 尝试不同编码
+    encodings = ['utf-8', 'gbk', 'gb2312', 'latin1']
+
+    # 大文件使用 chunksize 分块读取
+    if file_size > 50 * 1024 * 1024:
+        chunks = []
+        for enc in encodings:
+            try:
+                read_kwargs['encoding'] = enc
+                read_kwargs['chunksize'] = 50000
+                for chunk in pd.read_csv(file_path, **read_kwargs):
+                    chunks.append(chunk)
+                if chunks:
+                    df = pd.concat(chunks, ignore_index=True)
+                    del chunks
+                    gc.collect()
+                    return df
+            except UnicodeDecodeError:
+                chunks = []
+                continue
+            except Exception as e:
+                logger.warning(f"CSV chunksize读取失败({enc}): {e}")
+                chunks = []
+                continue
+        # 全部失败，回退
+        read_kwargs.pop('chunksize', None)
+
+    # 普通读取
+    for enc in encodings:
+        try:
+            read_kwargs['encoding'] = enc
+            return pd.read_csv(file_path, **read_kwargs)
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            logger.warning(f"CSV读取失败({enc}): {e}")
+            continue
+
+    # 最后兜底
+    return pd.read_csv(file_path, dtype=str, na_filter=False, encoding='latin1', on_bad_lines='skip')
+
+
+# ============================================================
 # 高性能分析（pandas 版）— 适用于大文件（>10MB）
 # ============================================================
 
 def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
     """使用 pandas 的高性能分析，适合大文件。
+
+    v6.0 优化：
+    - 先 read_only 读表头，只加载需要的列
+    - 大文件 chunksize 流式读取
+    - LRU 缓存解析结果
 
     Args:
         file_path: Excel 文件路径
@@ -709,26 +936,56 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
     """
     import time
     import gc
+    import os
     import pandas as pd
 
     t0 = time.time()
-    _log_mem("Fast分析开始：pandas读取Excel")
+    file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+    _log_mem(f"Fast分析开始：文件大小 {file_size/1024/1024:.1f}MB")
+
+    # LRU 缓存检查
+    cache_key = f"{file_path}:{sheet_name}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        _log_mem("Fast分析：命中缓存")
+        if progress_cb:
+            progress_cb(100, "缓存命中，分析完成")
+        return cached
 
     if progress_cb:
-        progress_cb(5, "正在读取Excel文件...")
+        progress_cb(5, "正在读取表头...")
 
-    # pandas 读取（dtype=str 避免类型推断，na_filter=False 避免空值被转NaN）
+    # v6.0: 先 read_only 读表头，识别字段，只加载需要的列
     try:
-        df = pd.read_excel(
-            file_path,
-            sheet_name=sheet_name,
-            engine='openpyxl',
-            dtype=str,
-            na_filter=False
-        )
+        headers = _read_excel_headers_only(file_path, sheet_name)
+    except Exception:
+        headers = None
+
+    if headers:
+        col_map = _detect_issue_columns(headers)
+        usecols = _get_required_column_indices(headers, col_map)
+        logger.info(f"Fast优化：识别到 {len(headers)} 列，只加载 {len(usecols) if usecols else '全部'} 列")
+    else:
+        col_map = {}
+        usecols = None
+
+    if progress_cb:
+        progress_cb(10, "正在读取Excel数据...")
+
+    # v6.0: 优化读取（只加载需要列，大文件流式）
+    try:
+        if file_path.lower().endswith('.csv'):
+            df = _read_csv_optimized(file_path, usecols=usecols, file_size=file_size)
+        else:
+            df = _read_excel_optimized(file_path, sheet_name, usecols=usecols, file_size=file_size)
     except Exception as e:
-        logger.error(f"pandas读取失败，回退到openpyxl: {e}")
-        return _analyze_issue_sheet(file_path, sheet_name)
+        logger.error(f"优化读取失败，回退全量: {e}")
+        df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl', dtype=str, na_filter=False)
+
+    # 如果 usecols 加载后列名不对，重新获取 headers 和 col_map
+    headers = [str(c).strip() if c else '' for c in df.columns]
+    if not col_map or len(col_map) == 0:
+        col_map = _detect_issue_columns(headers)
 
     _log_mem(f"pandas读取完成：{len(df)}行 x {len(df.columns)}列")
     if progress_cb:
@@ -996,7 +1253,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
     if progress_cb:
         progress_cb(100, f"分析完成，耗时 {elapsed:.1f}s")
 
-    return {
+    result = {
         'summary': summary,
         'severity_values': sorted(list(severity_values)),
         'severity_detected': col_map.get('severity', -1) >= 0,
@@ -1012,4 +1269,12 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
         'headers': headers,
         'analysis_time': round(elapsed, 1),
     }
+
+    # 存入 LRU 缓存
+    try:
+        _cache_set(cache_key, result)
+    except Exception:
+        pass
+
+    return result
 

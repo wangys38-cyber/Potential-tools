@@ -419,6 +419,46 @@ def create_analysis_blueprint():
             resp['error'] = task['error']
         return jsonify(resp)
 
+    @bp.route('/api/task-cancel', methods=['POST'])
+    def api_task_cancel():
+        """取消正在进行的分析任务
+
+        v6.0 新增：支持取消异步分析任务
+        """
+        data = request.get_json(silent=True) or {}
+        task_id = data.get('task_id', '')
+        if not task_id:
+            return jsonify({'error': '无效的 task_id'}), 400
+
+        task_info = background_tasks.get(task_id)
+        if not task_info:
+            task_info = load_task_meta(task_id)
+            if not task_info:
+                return jsonify({'status': 'error', 'error': '任务不存在或已过期'}), 404
+
+        current_status = task_info.get('status', 'unknown')
+        if current_status in ('done', 'error', 'cancelled'):
+            return jsonify({
+                'status': 'success',
+                'message': f'任务已处于 {current_status} 状态，无需取消',
+                'task_status': current_status
+            })
+
+        # 标记取消
+        task_info['cancelled'] = True
+        task_info['status'] = 'cancelled'
+        task_info['error'] = '用户取消了分析任务'
+        task_info['completed_at'] = time.time()
+        background_tasks[task_id] = task_info
+        save_task_meta(task_id, task_info)
+
+        logger.info(f"任务 {task_id} 被用户取消")
+        return jsonify({
+            'status': 'success',
+            'message': '取消请求已发送',
+            'task_status': 'cancelled'
+        })
+
     @bp.route('/api/excel-analyze-sheet', methods=['POST'])
     def api_excel_analyze_sheet():
         """完整分析接口：启动后台分析，立即返回 task_id"""
@@ -445,6 +485,14 @@ def create_analysis_blueprint():
 
         def _do_full_analysis():
             try:
+                # 检查是否已取消
+                task_meta = background_tasks.get(task_id)
+                if task_meta and task_meta.get('cancelled'):
+                    background_tasks[task_id]['status'] = 'cancelled'
+                    background_tasks[task_id]['error'] = '任务已取消'
+                    save_task_meta(task_id, background_tasks[task_id])
+                    return
+
                 gc.collect()
                 _log_mem("开始分析前")
                 t0 = time.time()
@@ -453,24 +501,40 @@ def create_analysis_blueprint():
                 logger.info(f"分析模式: {'fast(pandas)' if use_fast else 'standard(openpyxl)'}, 文件大小: {file_size/1024/1024:.1f}MB")
                 if use_fast:
                     def progress_cb(percent, message):
+                        # 检查取消
+                        task_meta = background_tasks.get(task_id)
+                        if task_meta and task_meta.get('cancelled'):
+                            return
                         background_tasks[task_id]['progress'] = percent
                         background_tasks[task_id]['progress_msg'] = message
                         save_task_meta(task_id, background_tasks[task_id])
                     result = _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=progress_cb)
                 else:
                     result = _analyze_issue_sheet(file_path, sheet_name)
+
+                # 再次检查取消
+                task_meta = background_tasks.get(task_id)
+                if task_meta and task_meta.get('cancelled'):
+                    background_tasks[task_id]['status'] = 'cancelled'
+                    background_tasks[task_id]['error'] = '任务已取消'
+                    save_task_meta(task_id, background_tasks[task_id])
+                    return
+
                 elapsed = time.time() - t0
                 _log_mem(f"分析完成，耗时 {elapsed:.1f}s")
                 gc.collect()
                 background_tasks[task_id]['result'] = result
                 background_tasks[task_id]['status'] = 'done'
                 background_tasks[task_id]['progress'] = 100
+                background_tasks[task_id]['progress_msg'] = '分析完成'
+                background_tasks[task_id]['completed_at'] = time.time()
                 save_task_meta(task_id, background_tasks[task_id])
             except Exception as e:
                 error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'
                 logger.error(f"分析失败: {traceback.format_exc()}")
                 background_tasks[task_id]['error'] = error_detail
                 background_tasks[task_id]['status'] = 'error'
+                background_tasks[task_id]['completed_at'] = time.time()
                 save_task_meta(task_id, background_tasks[task_id])
 
         thread = threading.Thread(target=_do_full_analysis, daemon=True)
