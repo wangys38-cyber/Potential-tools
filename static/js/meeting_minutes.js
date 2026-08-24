@@ -1,4 +1,4 @@
-﻿// ==================== 全局状态 ====================
+// ==================== 全局状态 ====================
         let currentMode = 'system';
         let transcriptEntries = [];
         let minutesHTML = '';
@@ -1239,16 +1239,6 @@
         }
 
         // ==================== 工具函数 ====================
-        function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-        function showToast(msg, type, duration) {
-            type = type || 'info'; duration = duration || 3000;
-            const c = document.getElementById('toastContainer');
-            const t = document.createElement('div'); t.className = 'toast toast-' + type;
-            const icons = { info:'ℹ', success:'', error:'', warning:'' };
-            t.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${escapeHtml(msg)}</span>`;
-            c.appendChild(t); requestAnimationFrame(() => t.classList.add('show'));
-            setTimeout(() => { t.classList.remove('show'); setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 300); }, duration);
-        }
         function toggleTheme() {
             // no-op：本模板中 #themeBtn 不存在，避免引用空元素
         }

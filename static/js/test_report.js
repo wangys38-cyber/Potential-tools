@@ -1,4 +1,4 @@
-﻿let currentFileId = null;
+let currentFileId = null;
         let currentFileName = null;
         let currentSheetName = null;
         let currentAnalysis = null;
@@ -12,14 +12,6 @@
         const sheetInfo = document.getElementById('sheetInfo');
         const resultSection = document.getElementById('resultSection');
         const loadingIndicator = document.getElementById('loadingIndicator');
-
-        function showToast(msg, type) {
-            if (typeof ToolboxToast !== 'undefined') {
-                ToolboxToast.show(msg, type || 'info');
-            } else {
-                console.log(msg);
-            }
-        }
 
         // 上传区域拖拽
         uploadCard.addEventListener('dragover', (e) => {
@@ -670,12 +662,6 @@
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text || '';
-            return div.innerHTML;
         }
 
         function renderReason(reason, isProblem) {

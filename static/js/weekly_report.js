@@ -1,4 +1,4 @@
-﻿// ==================== 全局状态 ====================
+// ==================== 全局状态 ====================
         let reportHTML = '';
         let isGenerating = false;
 
@@ -20,21 +20,6 @@
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
             return fmt(monday) + ' ~ ' + fmt(sunday);
-        }
-
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str == null ? '' : String(str);
-            return div.innerHTML;
-        }
-
-        function showToast(msg, type, duration) {
-            if (window.ToolboxToast) {
-                ToolboxToast.show(msg, type || 'info', duration || 3000);
-                return;
-            }
-            // 兜底：使用浏览器原生提示
-            alert(msg);
         }
 
         // ==================== 生成周报 ====================

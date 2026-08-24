@@ -16,25 +16,10 @@
         return (window.currentAnalysisData && window.currentAnalysisData.summary) || {};
     }
 
-    function formatDate(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
-        return d.toISOString().split('T')[0];
-    }
-
     function parseDate(dateStr) {
         if (!dateStr) return null;
         const d = new Date(dateStr);
         return isNaN(d.getTime()) ? null : d;
-    }
-
-    function showToast(msg, type) {
-        if (window.showToast) {
-            window.showToast(msg, type || 'success');
-        } else {
-            alert(msg);
-        }
     }
 
     // ============ 功能1：版本对比 ============

@@ -16,26 +16,10 @@
         window.currentPlan = plan;
     }
 
-    function formatDate(date) {
-        if (typeof date === 'string') return date;
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-
     function parseDate(dateStr) {
         if (!dateStr) return null;
         const d = new Date(dateStr);
         return isNaN(d.getTime()) ? null : d;
-    }
-
-    function showToast(msg, type) {
-        if (window.showToast) {
-            window.showToast(msg, type || 'success');
-        } else {
-            alert(msg);
-        }
     }
 
     function getStorageKey(suffix) {

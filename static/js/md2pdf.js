@@ -1,17 +1,4 @@
-﻿function showToast(msg, type) {
-            if (typeof ToolboxToast !== 'undefined') {
-                ToolboxToast.show(msg, type || 'info');
-            } else {
-                console.log(msg);
-            }
-        }
-
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-        }
-
-        const editor = document.getElementById('editor');
+const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
         const convertBtn = document.getElementById('convertBtn');
         const uploadBtn = document.getElementById('uploadBtn');

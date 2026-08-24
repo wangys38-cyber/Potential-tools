@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 工具集 v2.0 统一组件库
  * 提供全站共享的 JavaScript 组件：主题切换、Toast通知、文件上传、通用工具
  *
@@ -22,6 +22,33 @@ function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
+
+// 全局工具函数（供各页面JS调用，避免重复定义）
+function showToast(msg, type) {
+    if (typeof ToolboxToast !== 'undefined') {
+        ToolboxToast.show(msg, type || 'info');
+    } else {
+        console.log('[Toast]', msg);
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toISOString().split('T')[0];
+}
+
+function getCookie(name) {
+    var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+}
+
+// 暴露到全局作用域
+window.showToast = showToast;
+window.formatDate = formatDate;
+window.escapeHtml = escapeHtml;
+window.getCookie = getCookie;
 
 // ==================== 统一 Markdown 渲染器 ====================
 /**

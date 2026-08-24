@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 全局 AI 助手模块
  * 功能：增强命令面板的 AI 能力、自然语言操作、跨工具查询、智能建议
  */
@@ -12,14 +12,6 @@
     const MAX_HISTORY = 20;
 
     // ============ 工具函数 ============
-    function showToast(msg, type) {
-        if (window.showToast) {
-            window.showToast(msg, type || 'success');
-        } else {
-            alert(msg);
-        }
-    }
-
     function getHistory() {
         try {
             return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');

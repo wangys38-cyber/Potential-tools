@@ -1,17 +1,4 @@
-function showToast(msg, type) {
-            if (typeof ToolboxToast !== 'undefined') {
-                ToolboxToast.show(msg, type || 'info');
-            } else {
-                console.log(msg);
-            }
-        }
-
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-        }
-
-        let isAnalyzing = false;
+let isAnalyzing = false;
 
         // 初始化环境
         (function initAppConfig() {
