@@ -275,6 +275,21 @@ def handle_exception(error):
     return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
 
 
+@app.before_request
+def guest_access_control():
+    """游客访问控制：未登录用户只能访问白名单内的路径"""
+    user = auth.get_current_user()
+    if user:
+        return None  # 已登录用户不限制
+    # 未登录用户（游客）检查白名单
+    if not auth.is_guest_allowed(request.path):
+        # API 请求返回 401，页面请求重定向到登录页
+        if request.path.startswith('/api/'):
+            return jsonify({'error': '请先登录', 'need_login': True}), 401
+        return redirect('/login')
+    return None
+
+
 @app.after_request
 def add_cache_headers(response):
     """为静态资源添加缓存头，减少重复下载，并添加安全响应头"""
