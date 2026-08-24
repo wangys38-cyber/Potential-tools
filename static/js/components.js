@@ -536,10 +536,10 @@ const ToolboxToast = (function() {
 // 支持：大文件分片上传、直接上传、拖拽、进度条、多格式、重试、取消
 // v6.0 性能优化：分片5MB、并发4、阈值5MB、上传速度/ETA显示、AbortController取消
 const ToolboxUpload = (function() {
-    var DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+    var DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
     var DEFAULT_MAX_RETRIES = 3;
-    var DEFAULT_CONCURRENCY = 4;
-    var DIRECT_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // <=5MB 直接上传
+    var DEFAULT_CONCURRENCY = 6;
+    var DIRECT_UPLOAD_THRESHOLD = 10 * 1024 * 1024; // <=10MB 直接上传
 
     /**
      * 文件校验
