@@ -21,24 +21,31 @@ logger = logging.getLogger(__name__)
 
 # ==================== 数据库引擎初始化 ====================
 # 默认使用本地 SQLite，数据持久化存储在 /app/data 目录（Railway Volume 挂载点）
-# 如需使用 PostgreSQL，设置环境变量 USE_POSTGRES=true 和 DATABASE_URL
+# 如需使用 PostgreSQL，设置环境变量 DATABASE_URL（以 postgres:// 或 postgresql:// 开头）
+# Railway 平台会自动注入 DATABASE_URL，无需额外设置 USE_POSTGRES
 
-USE_POSTGRES = os.environ.get('USE_POSTGRES', '').lower() == 'true'
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+USE_POSTGRES = os.environ.get('USE_POSTGRES', '').lower() == 'true' or bool(DATABASE_URL)
+
+# 连接池配置（可通过环境变量覆盖）
+PG_POOL_SIZE = int(os.environ.get('PG_POOL_SIZE', '5'))
+PG_MAX_OVERFLOW = int(os.environ.get('PG_MAX_OVERFLOW', '10'))
+PG_POOL_RECYCLE = int(os.environ.get('PG_POOL_RECYCLE', '300'))
 
 if USE_POSTGRES and DATABASE_URL:
-    # PostgreSQL（可选，需手动启用）
+    # PostgreSQL（生产环境，Railway 自动注入 DATABASE_URL）
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10,
-        pool_recycle=300,
+        pool_size=PG_POOL_SIZE,
+        max_overflow=PG_MAX_OVERFLOW,
+        pool_recycle=PG_POOL_RECYCLE,
+        pool_use_lifo=True,
     )
     DB_TYPE = 'postgresql'
-    logger.info("数据库: PostgreSQL (生产模式)")
+    logger.info(f"数据库: PostgreSQL (生产模式) pool_size={PG_POOL_SIZE} max_overflow={PG_MAX_OVERFLOW}")
 else:
     # SQLite（默认，本地存储）
     _RUNTIME_DIR = os.environ.get('DB_DIR', '/app/data')
@@ -403,9 +410,9 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_chart_templates_user ON chart_templates(user_id)"))
 
         # ==================== v8.0 数据可视化：Dashboard 配置表 ====================
-        conn.execute(text("""
+        conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS dashboard_config (
-                id INTEGER PRIMARY KEY,
+                id {_PK_TYPE},
                 user_id TEXT NOT NULL DEFAULT 'guest',
                 config_key TEXT NOT NULL,
                 config_value TEXT NOT NULL,
@@ -812,10 +819,14 @@ def get_user_activity_stats(user_id, days=30):
                     'last_used': row[3],
                 })
 
-            # 每日活动
+            # 每日活动（跨数据库兼容日期格式化）
+            if DB_TYPE == 'postgresql':
+                date_expr = "to_char(to_timestamp(created_at), 'YYYY-MM-DD')"
+            else:
+                date_expr = "DATE(created_at, 'unixepoch', 'localtime')"
             daily = conn.execute(
-                text("""
-                    SELECT DATE(created_at, 'unixepoch', 'localtime') as d, COUNT(*) as cnt
+                text(f"""
+                    SELECT {date_expr} as d, COUNT(*) as cnt
                     FROM user_activity
                     WHERE user_id = :uid AND created_at >= :since
                     GROUP BY d
