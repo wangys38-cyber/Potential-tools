@@ -23,9 +23,6 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Verify Railway CLI
-        run: railway version
-
       - name: Deploy to Railway
         run: railway up --ci
 
