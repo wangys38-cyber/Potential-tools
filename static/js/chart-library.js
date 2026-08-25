@@ -118,6 +118,63 @@
             '<span style="font-size:14px;">' + (message || '数据加载失败') + '</span></div>';
     }
 
+    // ========== 数字格式化工具 ==========
+    function formatNumber(val, decimals) {
+        if (val == null || isNaN(val)) return '-';
+        var d = decimals != null ? decimals : (Math.abs(val) >= 100 ? 0 : 1);
+        return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
+
+    function formatCompact(val) {
+        if (val == null || isNaN(val)) return '-';
+        var abs = Math.abs(val);
+        if (abs >= 1e8) return (val / 1e8).toFixed(1) + '亿';
+        if (abs >= 1e4) return (val / 1e4).toFixed(1) + '万';
+        if (abs >= 1000) return (val / 1000).toFixed(1) + 'k';
+        return String(Math.round(val));
+    }
+
+    // ========== 数据标签插件（不依赖外部库） ==========
+    var _dataLabelPlugin = {
+        id: 'ptDataLabels',
+        afterDatasetsDraw: function(chart) {
+            if (!chart.config.options || !chart.config.options.showDataLabels) return;
+            var ctx = chart.ctx;
+            var fontSize = chart.config.options.dataLabelFontSize || 10;
+            ctx.font = fontSize + 'px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            chart.data.datasets.forEach(function(dataset, i) {
+                var meta = chart.getDatasetMeta(i);
+                if (meta.hidden) return;
+                var color = dataset.borderColor || dataset.backgroundColor || '#1d1d1f';
+                if (Array.isArray(color)) color = color[0] || '#1d1d1f';
+                meta.data.forEach(function(bar, index) {
+                    var val = dataset.data[index];
+                    if (val == null) return;
+                    var displayVal = typeof val === 'object' ? val.y : val;
+                    var x = bar.x;
+                    var y = bar.y - 4;
+                    // 饼图/环形图特殊处理
+                    if (chart.config.type === 'pie' || chart.config.type === 'doughnut') {
+                        var pos = bar.tooltipPosition();
+                        x = pos.x;
+                        y = pos.y;
+                        ctx.textBaseline = 'middle';
+                    }
+                    ctx.fillStyle = isDark() ? '#f0f0f2' : '#1d1d1f';
+                    ctx.fillText(formatCompact(displayVal), x, y);
+                });
+            });
+        }
+    };
+
+    // 注册数据标签插件
+    if (typeof Chart !== 'undefined' && Chart.plugins) {
+        Chart.plugins.register(_dataLabelPlugin);
+    }
+
     // ========== 创建图表（带统一配置） ==========
     function create(canvasId, userConfig) {
         if (typeof Chart === 'undefined') {
@@ -143,6 +200,10 @@
                 if (scale.grid.color === undefined) scale.grid.color = c.grid;
                 if (!scale.ticks) scale.ticks = {};
                 if (scale.ticks.color === undefined) scale.ticks.color = c.textSecondary;
+                // Y 轴数字格式化
+                if (key.toLowerCase().indexOf('y') === 0 && !scale.ticks.callback) {
+                    scale.ticks.callback = function(v) { return formatCompact(v); };
+                }
                 if (scale.title && scale.title.display && scale.title.color === undefined) {
                     scale.title.color = c.textSecondary;
                 }
@@ -155,6 +216,18 @@
             if (config.options.plugins.legend.labels.color === undefined) {
                 config.options.plugins.legend.labels.color = c.textSecondary;
             }
+        }
+
+        // 统一 tooltip 格式化
+        if (!config.options.plugins.tooltip) config.options.plugins.tooltip = {};
+        if (!config.options.plugins.tooltip.callbacks) config.options.plugins.tooltip.callbacks = {};
+        if (!config.options.plugins.tooltip.callbacks.label) {
+            config.options.plugins.tooltip.callbacks.label = function(context) {
+                var label = context.dataset.label || '';
+                var val = context.parsed.y != null ? context.parsed.y : context.parsed;
+                if (typeof val === 'object') val = val.y;
+                return label + ': ' + formatNumber(val);
+            };
         }
 
         try {
@@ -436,6 +509,8 @@
         exportPNG: exportPNG,
         exportSVG: exportSVG,
         exportCSV: exportCSV,
+        formatNumber: formatNumber,
+        formatCompact: formatCompact,
         PALETTE: PALETTE,
         isDark: isDark,
         getThemeColors: getThemeColors,

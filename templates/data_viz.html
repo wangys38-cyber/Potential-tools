@@ -129,14 +129,18 @@
                     </div>
                 </div>
                 <div class="control-group">
-                    <label>双 Y 轴</label>
+                    <label>显示选项</label>
                     <div class="toggle-row">
                         <input type="checkbox" id="dualAxis" onchange="renderChart()">
-                        <label for="dualAxis">启用双 Y 轴（最后一个系列用右轴）</label>
+                        <label for="dualAxis">双 Y 轴（最后一个系列用右轴）</label>
                     </div>
-                    <div class="toggle-row" style="margin-top:8px;">
+                    <div class="toggle-row">
                         <input type="checkbox" id="stacked" onchange="renderChart()">
                         <label for="stacked">堆叠显示</label>
+                    </div>
+                    <div class="toggle-row">
+                        <input type="checkbox" id="showDataLabels" onchange="renderChart()">
+                        <label for="showDataLabels">显示数据标签</label>
                     </div>
                 </div>
             </div>
@@ -403,6 +407,12 @@
             options: options,
             plugins: [annotationPlugin]
         };
+
+        // 数据标签
+        var showLabels = document.getElementById('showDataLabels').checked;
+        if (showLabels) {
+            config.options.showDataLabels = true;
+        }
 
         if (chartType === 'radar') {
             config.options.scales = { r: { beginAtZero: true } };
