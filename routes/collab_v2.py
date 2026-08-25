@@ -3,9 +3,58 @@
 """
 import time
 import json
+import hashlib
+import secrets
 from flask import Blueprint, request, jsonify, session
 
 import db
+
+# 密码哈希前缀，用于区分哈希存储与旧版明文存储
+_HASH_PREFIX = 'sha256:'
+
+
+def _hash_password(password):
+    """对密码进行加盐 SHA-256 哈希
+
+    Returns:
+        str: 格式为 'sha256:<salt_hex>:<hash_hex>'
+    """
+    if not password:
+        return ''
+    salt = secrets.token_hex(16)
+    h = hashlib.sha256(f'{salt}:{password}'.encode('utf-8')).hexdigest()
+    return f'{_HASH_PREFIX}{salt}:{h}'
+
+
+def _verify_password(stored_password, provided_password):
+    """安全地验证密码
+
+    - 哈希存储的密码：使用 secrets.compare_digest 比较，防时序攻击
+    - 旧版明文密码：同样使用 secrets.compare_digest，保持向后兼容
+
+    Args:
+        stored_password: 数据库中存储的密码（可能是哈希或明文）
+        provided_password: 用户输入的密码
+
+    Returns:
+        bool: 密码是否匹配
+    """
+    if not stored_password:
+        return True  # 无密码保护
+    if not provided_password:
+        return False
+
+    if stored_password.startswith(_HASH_PREFIX):
+        # 新版哈希格式: sha256:<salt>:<hash>
+        parts = stored_password[len(_HASH_PREFIX):].split(':', 1)
+        if len(parts) != 2:
+            return False
+        salt, expected_hash = parts
+        actual_hash = hashlib.sha256(f'{salt}:{provided_password}'.encode('utf-8')).hexdigest()
+        return secrets.compare_digest(expected_hash, actual_hash)
+    else:
+        # 旧版明文格式 — 仍用 compare_digest 防时序攻击
+        return secrets.compare_digest(stored_password, provided_password)
 
 
 def create_collab_v2_blueprint():
@@ -28,11 +77,11 @@ def create_collab_v2_blueprint():
         return ws, None
 
     def _check_password(ws, provided_password):
-        """检查分享链接密码"""
+        """检查分享链接密码（使用安全比较）"""
         password = ws.get('password', '') or ''
-        if password and provided_password != password:
-            return False
-        return True
+        if not password:
+            return True  # 无密码保护
+        return _verify_password(password, provided_password or '')
 
     # ==================== 7.1 实时协作状态 ====================
 
@@ -340,7 +389,9 @@ def create_collab_v2_blueprint():
         password = data.get('password', '')
         access_limit = int(data.get('access_limit', 0) or 0)
 
-        db.update_workspace_security(ws['id'], password=password, access_limit=access_limit)
+        # 密码哈希后存储，避免明文落库
+        hashed_password = _hash_password(password) if password else ''
+        db.update_workspace_security(ws['id'], password=hashed_password, access_limit=access_limit)
         db.add_activity(ws['id'], uid, 'security_update',
                         f'更新安全设置：密码={"有" if password else "无"}, 访问限制={access_limit}')
         return jsonify({'status': 'success'})

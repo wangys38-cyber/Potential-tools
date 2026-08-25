@@ -18,6 +18,7 @@ import threading
 from datetime import datetime
 from functools import wraps
 from html import escape as _html_escape
+from collections import OrderedDict
 
 from flask import Blueprint, request, jsonify, Response, stream_with_context, send_file, g, current_app
 
@@ -41,8 +42,80 @@ from excel_analyzers import (
     _log_mem,
 )
 
-# 分析结果缓存
-_analysis_cache = {}
+# 分析结果缓存 — 带 TTL 和大小上限的安全缓存
+_CACHE_TTL = 600       # 缓存存活时间（秒），10 分钟
+_CACHE_MAXSIZE = 50    # 最大缓存条目数
+
+
+class TTLCache:
+    """线程安全的 TTL 缓存
+
+    - 每个条目有独立 TTL，过期自动失效
+    - 超过 maxsize 时按 LRU 策略淘汰最旧条目
+    - 后台线程定期清理过期条目
+    """
+
+    def __init__(self, maxsize=50, ttl=600):
+        self._data = OrderedDict()
+        self._lock = threading.Lock()
+        self._maxsize = maxsize
+        self._ttl = ttl
+        # 启动后台清理线程
+        self._cleaner = threading.Thread(target=self._cleanup_loop, daemon=True)
+        self._cleaner.start()
+
+    def get(self, key, default=None):
+        with self._lock:
+            entry = self._data.get(key)
+            if entry is None:
+                return default
+            ts, value = entry
+            if time.time() - ts > self._ttl:
+                del self._data[key]
+                return default
+            # LRU: 移到末尾
+            self._data.move_to_end(key)
+            return value
+
+    def set(self, key, value):
+        with self._lock:
+            if key in self._data:
+                self._data.move_to_end(key)
+            self._data[key] = (time.time(), value)
+            # 淘汰最旧条目
+            while len(self._data) > self._maxsize:
+                self._data.popitem(last=False)
+
+    def delete(self, key):
+        with self._lock:
+            self._data.pop(key, None)
+
+    def clear(self):
+        with self._lock:
+            self._data.clear()
+
+    def __len__(self):
+        with self._lock:
+            return len(self._data)
+
+    def _cleanup_loop(self):
+        """每 60 秒清理一次过期条目"""
+        while True:
+            try:
+                time.sleep(60)
+                now = time.time()
+                with self._lock:
+                    expired = [k for k, (ts, _) in self._data.items()
+                               if now - ts > self._ttl]
+                    for k in expired:
+                        del self._data[k]
+                    if expired:
+                        logger.debug(f"TTLCache 清理了 {len(expired)} 个过期条目")
+            except Exception as e:
+                logger.error(f"TTLCache 清理线程异常: {e}")
+
+
+_analysis_cache = TTLCache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
 
 
 def _escape_html(text):
