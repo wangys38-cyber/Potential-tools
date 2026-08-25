@@ -6,6 +6,12 @@
 <link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 <link rel="manifest" href="/static/manifest.json">
+<style>
+@keyframes ptSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.pt-sync-icon { display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.pt-sync-dot { position: absolute; top: -2px; right: -2px; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #fff; }
+#ptSyncBtn { position: relative; }
+</style>
 <meta name="theme-color" content="#1d1d1f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,6 +19,16 @@
 <script src="/static/js/performance.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/performance-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/mobile-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}" defer></script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/static/sw.js').catch(function(e) {
+            console.log('SW registration failed:', e);
+        });
+    });
+}
+</script>
 {% if request.path != '/' %}
 <nav class="pt-nav-bar" id="ptNavBar">
     <div class="pt-nav-left">
@@ -31,8 +47,11 @@
         <button class="pt-nav-icon-btn" onclick="AIAssistant.toggleChatPanel()" title="AI 助手">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4h-1v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2H8a4 4 0 0 1-4-4v-1a4 4 0 0 1 4-4V6a4 4 0 0 1 4-4z"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/></svg>
         </button>
-        <button class="pt-nav-icon-btn" onclick="PTNav.triggerSync()" id="ptSyncBtn" title="同步">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        <button class="pt-nav-icon-btn" onclick="PTNav.toggleSyncPanel(event)" id="ptSyncBtn" title="同步状态">
+            <span id="ptSyncIcon" class="pt-sync-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            </span>
+            <span id="ptSyncDot" class="pt-sync-dot" style="display:none"></span>
         </button>
         <button class="pt-nav-icon-btn" onclick="PTNav.toggleTheme()" id="ptThemeBtn" title="切换主题">
             <svg class="pt-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -64,6 +83,32 @@
     </div>
 </nav>
 {% endif %}
+
+<!-- 同步详情面板 -->
+<div id="ptSyncPanel" style="display:none;position:fixed;top:56px;right:16px;width:280px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:99998;overflow:hidden;border:1px solid #f0f0f0;">
+    <div style="padding:16px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:15px;font-weight:600;color:#1d1d1f;">同步状态</span>
+        <span id="ptSyncPanelStatus" style="font-size:12px;color:#86868b;">检查中...</span>
+    </div>
+    <div style="padding:14px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;color:#86868b;">最后同步</span>
+            <span id="ptSyncLastTime" style="font-size:13px;color:#1d1d1f;font-weight:500;">--</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;color:#86868b;">待同步数据</span>
+            <span id="ptSyncPending" style="font-size:13px;color:#1d1d1f;font-weight:500;">0 条</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:#86868b;">网络状态</span>
+            <span id="ptSyncNetwork" style="font-size:13px;color:#34c759;font-weight:500;">在线</span>
+        </div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #f0f0f0;display:flex;gap:8px;">
+        <button onclick="PTNav.manualSync()" id="ptSyncManualBtn" style="flex:1;padding:9px;background:#000;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">立即同步</button>
+        <button onclick="PTNav.closeSyncPanel()" style="padding:9px 14px;background:#f5f5f7;color:#1d1d1f;border:none;border-radius:8px;font-size:13px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#e8e8ed'" onmouseout="this.style.background='#f5f5f7'">关闭</button>
+    </div>
+</div>
 
 <!-- 全局搜索弹窗 -->
 <div id="ptSearchOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99998;justify-content:center;align-items:flex-start;padding-top:15vh;">
@@ -176,21 +221,113 @@ window.PTNav = window.PTNav || {};
     };
 
     // 同步功能
-    PTNav.triggerSync = function() {
-        var btn = document.getElementById('ptSyncBtn');
-        if (btn) {
-            btn.style.opacity = '0.5';
-            btn.style.pointerEvents = 'none';
-        }
-        // 触发页面刷新作为同步动作
-        setTimeout(function() {
-            if (btn) {
-                btn.style.opacity = '';
-                btn.style.pointerEvents = '';
-            }
-            window.location.reload();
-        }, 300);
+    var _syncPanelOpen = false;
+
+    PTNav.toggleSyncPanel = function(e) {
+        if (e) e.stopPropagation();
+        var panel = document.getElementById('ptSyncPanel');
+        if (!panel) return;
+        _syncPanelOpen = !_syncPanelOpen;
+        panel.style.display = _syncPanelOpen ? 'block' : 'none';
+        if (_syncPanelOpen) PTNav.refreshSyncPanel();
     };
+
+    PTNav.closeSyncPanel = function() {
+        var panel = document.getElementById('ptSyncPanel');
+        if (panel) panel.style.display = 'none';
+        _syncPanelOpen = false;
+    };
+
+    PTNav.manualSync = function() {
+        var btn = document.getElementById('ptSyncManualBtn');
+        if (btn) { btn.textContent = '同步中...'; btn.disabled = true; }
+        if (window.V5Sync && typeof window.V5Sync.sync === 'function') {
+            window.V5Sync.sync(true).then(function() {
+                if (btn) { btn.textContent = '立即同步'; btn.disabled = false; }
+                PTNav.refreshSyncPanel();
+            });
+        } else {
+            setTimeout(function() {
+                if (btn) { btn.textContent = '立即同步'; btn.disabled = false; }
+            }, 500);
+        }
+    };
+
+    PTNav.refreshSyncPanel = function() {
+        var st = window.V5Sync ? window.V5Sync.getState() : { status: 'idle', lastSync: 0, online: navigator.onLine, pendingCount: 0 };
+        var statusEl = document.getElementById('ptSyncPanelStatus');
+        var lastEl = document.getElementById('ptSyncLastTime');
+        var pendingEl = document.getElementById('ptSyncPending');
+        var netEl = document.getElementById('ptSyncNetwork');
+        if (statusEl) {
+            var labels = { idle: '未同步', syncing: '同步中...', success: '已同步', error: '同步失败', offline: '离线' };
+            statusEl.textContent = labels[st.status] || st.status;
+            statusEl.style.color = st.status === 'error' ? '#ff3b30' : st.status === 'offline' ? '#ff9500' : st.status === 'success' ? '#34c759' : '#86868b';
+        }
+        if (lastEl) {
+            lastEl.textContent = st.lastSync ? new Date(st.lastSync).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}) : '--';
+        }
+        if (pendingEl) pendingEl.textContent = (st.pendingCount || 0) + ' 条';
+        if (netEl) {
+            netEl.textContent = st.online ? '在线' : '离线';
+            netEl.style.color = st.online ? '#34c759' : '#ff9500';
+        }
+    };
+
+    // 更新同步图标状态
+    PTNav.updateSyncIcon = function(status) {
+        var iconWrap = document.getElementById('ptSyncIcon');
+        var dot = document.getElementById('ptSyncDot');
+        var btn = document.getElementById('ptSyncBtn');
+        if (!iconWrap) return;
+        var cloudSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+        var checkSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M9 12l2 2 4-4" style="stroke:#34c759"/></svg>';
+        var warnSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+        var offlineSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>';
+
+        if (status === 'syncing') {
+            iconWrap.innerHTML = cloudSVG;
+            iconWrap.style.animation = 'ptSpin 1s linear infinite';
+            iconWrap.style.color = '';
+            if (dot) { dot.style.display = 'none'; }
+        } else if (status === 'success') {
+            iconWrap.innerHTML = checkSVG;
+            iconWrap.style.animation = 'none';
+            iconWrap.style.color = '';
+            if (dot) { dot.style.display = 'none'; }
+        } else if (status === 'error') {
+            iconWrap.innerHTML = warnSVG;
+            iconWrap.style.animation = 'none';
+            iconWrap.style.color = '#ff3b30';
+            if (dot) { dot.style.display = 'block'; dot.style.background = '#ff3b30'; }
+        } else if (status === 'offline') {
+            iconWrap.innerHTML = offlineSVG;
+            iconWrap.style.animation = 'none';
+            iconWrap.style.color = '#ff9500';
+            if (dot) { dot.style.display = 'block'; dot.style.background = '#ff9500'; }
+        } else {
+            iconWrap.innerHTML = cloudSVG;
+            iconWrap.style.animation = 'none';
+            iconWrap.style.color = '';
+            if (dot) { dot.style.display = 'none'; }
+        }
+        if (btn) btn.title = '同步状态: ' + (status || 'idle');
+    };
+
+    // 监听同步状态变更
+    window.addEventListener('v5-sync-status', function(e) {
+        PTNav.updateSyncIcon(e.detail.status);
+        if (_syncPanelOpen) PTNav.refreshSyncPanel();
+    });
+
+    // 点击外部关闭同步面板
+    document.addEventListener('click', function(e) {
+        var panel = document.getElementById('ptSyncPanel');
+        var btn = document.getElementById('ptSyncBtn');
+        if (panel && btn && _syncPanelOpen && !panel.contains(e.target) && !btn.contains(e.target)) {
+            PTNav.closeSyncPanel();
+        }
+    });
 
     // 用户信息编辑
     var _tempAvatar = '';
