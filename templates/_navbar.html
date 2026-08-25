@@ -5,6 +5,7 @@
 <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
 <link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+<link rel="stylesheet" href="/static/css/ai_assistant.css?v={{ STATIC_VERSION }}">
 <link rel="manifest" href="/static/manifest.json">
 <style>
 @keyframes ptSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -20,6 +21,7 @@
 <script src="/static/js/performance-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/mobile-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/ai_assistant.js?v={{ STATIC_VERSION }}" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
