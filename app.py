@@ -452,6 +452,13 @@ def auth_logout():
     return auth.logout()
 
 
+# ==================== 健康检查（供 Railway/K8s 使用） ====================
+@app.route('/health')
+def health_check():
+    """健康检查端点 — 无需认证，返回 200"""
+    return jsonify({'status': 'ok', 'service': 'potential-tools'}), 200
+
+
 # ==================== 协作：共享页面 ====================
 @app.route('/share/<share_code>')
 def share_page(share_code):
