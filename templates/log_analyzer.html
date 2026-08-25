@@ -104,7 +104,11 @@
             <div class="conclusion-panel util-hidden" id="conclusionPanel">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ds-text);">分析结论</h3>
-                    <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能根因分析</button>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('patterns')" style="padding:6px 12px;font-size:12px;">异常模式库</button>
+                        <button class="btn btn-secondary" onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('fixes')" style="padding:6px 12px;font-size:12px;">修复方案库</button>
+                        <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能根因分析</button>
+                    </div>
                 </div>
                 <div id="conclusionContent" style="font-size:14px;line-height:1.8;color:var(--ds-text);"></div>
                 <div id="aiResultSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--ds-border-light);">
@@ -115,7 +119,7 @@
                             <button class="btn btn-secondary" onclick="runAiAnalyze()" style="padding:4px 10px;font-size:12px;">重新生成</button>
                         </div>
                     </div>
-                    <div id="aiResultContent" style="font-size:13px;line-height:1.8;color:var(--ds-text);background:var(--ds-bg-secondary);padding:14px;border-radius:var(--ds-radius-md);border:1px solid var(--ds-border-light);white-space:pre-wrap;word-break:break-word;"></div>
+                    <div id="aiResultContent" style="font-size:13px;line-height:1.8;color:var(--ds-text);"></div>
                 </div>
             </div>
             <div class="timeline">
@@ -739,6 +743,11 @@
             resultSection.style.display = 'block';
             resultContent.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ds-text-secondary);">正在进行智能根因分析，请稍候...</div>';
 
+            // 计算统计
+            const counts = {};
+            Object.keys(PATTERNS).forEach(t => counts[t] = 0);
+            allLogs.forEach(l => counts[l.type]++);
+
             try {
                 // 1. 本地分析：异常模式识别
                 const patterns = LogRootCauseAI.analyzeAnomalyPatterns(allLogs);
@@ -746,8 +755,8 @@
                 // 2. 本地分析：错误链分析
                 const errorChains = LogRootCauseAI.buildErrorChain(allLogs);
 
-                // 3. 本地分析：相似历史问题匹配
-                const historicalMatches = LogRootCauseAI.matchHistoricalIssues(allLogs, detailedIssues);
+                // 3. 本地分析：相似历史问题匹配（内置规则库）
+                const historicalMatches = LogRootCauseAI.matchHistoricalIssues(allLogs, []);
 
                 // 4. AI 深度根因分析
                 const stats = {
@@ -762,12 +771,35 @@
 
                 const aiAnalysis = await LogRootCauseAI.aiDeepAnalysis(allLogs, stats, patterns, errorChains, historicalMatches);
 
-                // 5. 渲染完整分析结果
-                LogRootCauseAI.renderAnalysis(resultContent, {
+                // ===== 新增功能集成 =====
+
+                // 功能1: 异常模式自学习 - 匹配知识库中的已知模式
+                const matchedPatterns = LogAIEnhancements.PatternLibrary.matchLogs(allLogs);
+
+                // 功能2: 根因推理链可视化 - 从AI结果提取推理链
+                const reasoningChain = LogAIEnhancements.ReasoningChain.extractChain(aiAnalysis, allLogs);
+
+                // 功能3: 相似问题自动关联 - 从用户历史记录中查找
+                const similarIssues = LogAIEnhancements.SimilarIssues.findSimilar(allLogs, stats);
+                LogAIEnhancements.SimilarIssues.setCache(similarIssues);
+
+                // 功能4: 修复方案知识库 - 推荐匹配的修复方案
+                const recommendedFixes = LogAIEnhancements.FixLibrary.recommend(allLogs, aiAnalysis.rootCauses || []);
+
+                // 保存当前分析到历史记录
+                LogAIEnhancements.SimilarIssues.saveToHistory(allLogs, stats, aiAnalysis);
+
+                // ===== 渲染完整结果 =====
+                renderEnhancedAiResult(resultContent, {
                     aiAnalysis: aiAnalysis,
                     patterns: patterns,
                     errorChains: errorChains,
-                    historicalMatches: historicalMatches
+                    historicalMatches: historicalMatches,
+                    matchedPatterns: matchedPatterns,
+                    reasoningChain: reasoningChain,
+                    similarIssues: similarIssues,
+                    recommendedFixes: recommendedFixes,
+                    allLogs: allLogs
                 });
 
             } catch (e) {
@@ -779,17 +811,229 @@
             }
         }
 
+        /**
+         * 渲染增强版 AI 分析结果（包含4个新功能）
+         */
+        function renderEnhancedAiResult(container, data) {
+            const severityColors = { high: '#ff3b30', medium: '#ff9500', low: '#34c759' };
+            let html = '';
+
+            // === AI 根因分析 ===
+            if (data.aiAnalysis) {
+                const ai = data.aiAnalysis;
+                html += `
+                    <div class="util-mb-16" style="padding:16px;background:var(--ds-bg-secondary);border-radius:12px;">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#6366f1;"></span>
+                            AI 深度根因分析
+                            <span style="font-size:11px;color:var(--ds-text-secondary);font-weight:normal;">置信度: ${ai.confidence || 'medium'}</span>
+                        </div>
+                        ${ai.summary ? `<div style="font-size:13px;color:var(--ds-text);margin-bottom:10px;padding:8px 12px;background:var(--ds-bg);border-radius:8px;border-left:3px solid #6366f1;">${escapeHtml(ai.summary)}</div>` : ''}
+                        ${ai.rootCauses && ai.rootCauses.length > 0 ? `
+                            <div style="margin-bottom:12px;">
+                                <div style="font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ds-text);">根因分析：</div>
+                                <ul style="margin:0;padding-left:20px;line-height:1.8;font-size:13px;color:var(--ds-text);">
+                                    ${ai.rootCauses.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${ai.recommendations && ai.recommendations.length > 0 ? `
+                            <div>
+                                <div style="font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ds-text);">改进建议：</div>
+                                <ol style="margin:0;padding-left:20px;line-height:1.8;font-size:13px;color:var(--ds-text);">
+                                    ${ai.recommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+                                </ol>
+                            </div>
+                        ` : ''}
+                        ${ai.note ? `<div style="margin-top:8px;font-size:11px;color:var(--ds-text-secondary);">${escapeHtml(ai.note)}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            // === 功能2: 根因推理链可视化 ===
+            if (data.reasoningChain) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b30;"></span>
+                            根因推理链
+                        </div>
+                        ${LogAIEnhancements.ReasoningChain.renderHTML(data.reasoningChain, function(nodeId) {
+                            const node = data.reasoningChain.nodes.find(n => n.id === nodeId);
+                            if (node) {
+                                const relatedLogs = data.allLogs.filter(l => {
+                                    const text = (l.text || '').toLowerCase();
+                                    return node.description && text.includes(node.description.substring(0, 10).toLowerCase());
+                                }).slice(0, 10);
+                                LogAIEnhancements.ReasoningChain.showNodeDetail(node, relatedLogs);
+                            }
+                        })}
+                    </div>
+                `;
+            }
+
+            // === 功能1: 异常模式自学习 - 匹配到的已知模式 ===
+            if (data.matchedPatterns && data.matchedPatterns.length > 0) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff9500;"></span>
+                            匹配到已知异常模式（${data.matchedPatterns.length}）
+                            <button onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('patterns')" style="margin-left:auto;padding:3px 10px;font-size:11px;background:var(--ds-bg-secondary);border:1px solid var(--ds-border);border-radius:6px;cursor:pointer;color:var(--ds-text);">管理模式库</button>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            ${data.matchedPatterns.map(p => {
+                                const color = severityColors[p.severity] || '#ff9500';
+                                return `
+                                    <div style="padding:12px 16px;border-radius:10px;border-left:3px solid ${color};background:var(--ds-bg-secondary);">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+                                            <span style="font-weight:600;font-size:13px;color:var(--ds-text);">${escapeHtml(p.name)}</span>
+                                            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${color};color:#fff;">${p.severity === 'high' ? '高风险' : p.severity === 'medium' ? '中风险' : '低风险'}</span>
+                                        </div>
+                                        ${p.rootCause ? `<div style="font-size:12px;color:var(--ds-text);margin-bottom:4px;"><strong>根因：</strong>${escapeHtml(String(p.rootCause).substring(0, 200))}</div>` : ''}
+                                        ${p.solution ? `<div style="font-size:12px;color:var(--ds-text-secondary);line-height:1.5;white-space:pre-wrap;"><strong>方案：</strong>${escapeHtml(String(p.solution).substring(0, 200))}</div>` : ''}
+                                        <div style="margin-top:6px;font-size:10px;color:var(--ds-text-secondary);">匹配关键词: ${p.matchedKeywords.map(k => escapeHtml(k)).join(', ')} | 相关日志: ${p.relatedLogCount}条</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // === 功能3: 相似历史问题 ===
+            if (data.similarIssues && data.similarIssues.length > 0) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34c759;"></span>
+                            相似历史问题（${data.similarIssues.length}）
+                        </div>
+                        ${LogAIEnhancements.SimilarIssues.renderHTML(data.similarIssues)}
+                    </div>
+                `;
+            }
+
+            // === 功能4: 推荐修复方案 ===
+            if (data.recommendedFixes && data.recommendedFixes.length > 0) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#007aff;"></span>
+                            推荐修复方案（${data.recommendedFixes.length}）
+                            <button onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('fixes')" style="margin-left:auto;padding:3px 10px;font-size:11px;background:var(--ds-bg-secondary);border:1px solid var(--ds-border);border-radius:6px;cursor:pointer;color:var(--ds-text);">管理方案库</button>
+                        </div>
+                        ${LogAIEnhancements.FixLibrary.renderRecommendHTML(data.recommendedFixes)}
+                    </div>
+                `;
+            }
+
+            // === 异常模式识别（原有） ===
+            if (data.patterns && data.patterns.length > 0) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;">异常模式识别：</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            ${data.patterns.map(p => `
+                                <div style="padding:12px 16px;border-radius:10px;border-left:3px solid ${severityColors[p.severity] || '#ff9500'};background:var(--ds-bg-secondary);">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                        <span style="font-weight:600;font-size:13px;color:var(--ds-text);">${escapeHtml(p.pattern)}</span>
+                                        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${severityColors[p.severity] || '#ff9500'};color:#fff;">${p.severity === 'high' ? '高风险' : p.severity === 'medium' ? '中风险' : '低风险'}</span>
+                                    </div>
+                                    <div style="font-size:12px;color:var(--ds-text-secondary);line-height:1.5;">${escapeHtml(p.detail)}</div>
+                                    <div style="margin-top:6px;">
+                                        <button onclick="savePatternToLibrary('${escapeHtml(p.pattern)}', '${escapeHtml(p.detail)}')" style="padding:3px 10px;font-size:11px;background:var(--ds-text);color:var(--ds-bg);border:none;border-radius:6px;cursor:pointer;">保存到模式库</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // === 错误链（原有） ===
+            if (data.errorChains && data.errorChains.length > 0) {
+                html += `
+                    <div class="util-mb-16">
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;">错误链分析（${data.errorChains.length}条）：</div>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            ${data.errorChains.map(chain => `
+                                <div style="padding:12px 16px;border-radius:10px;border:1px solid var(--ds-border-light);background:var(--ds-bg-elevated);">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                        <span style="font-weight:600;font-size:13px;color:var(--ds-text);">${escapeHtml(chain.id)}</span>
+                                        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${severityColors[chain.severity] || '#ff9500'};color:#fff;">${chain.severity === 'high' ? '高风险' : chain.severity === 'medium' ? '中风险' : '低风险'}</span>
+                                    </div>
+                                    <div style="font-size:11px;color:var(--ds-text-secondary);margin-bottom:6px;">${escapeHtml(chain.startTime)} → ${escapeHtml(chain.endTime)}（${chain.events.length}个事件）</div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                                        ${chain.events.map((e, i) => `
+                                            <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:6px;background:var(--ds-bg-secondary);color:var(--ds-text);">
+                                                ${i > 0 ? '<span style="color:var(--ds-text-secondary);">→</span>' : ''}
+                                                <span style="font-weight:600;">[${escapeHtml(e.type)}]</span>
+                                                <span style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml((e.content || '').substring(0, 30))}</span>
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // === 相似历史问题匹配（原有内置规则库） ===
+            if (data.historicalMatches && data.historicalMatches.length > 0) {
+                html += `
+                    <div>
+                        <div style="font-weight:600;font-size:15px;margin-bottom:10px;">内置规则库匹配：</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            ${data.historicalMatches.map(m => `
+                                <div style="padding:12px 16px;border-radius:10px;border:1px solid var(--ds-border-light);background:var(--ds-bg-elevated);">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-weight:600;font-size:13px;color:var(--ds-text);">${escapeHtml(m.id)} - ${escapeHtml(m.title)}</span>
+                                        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${severityColors[m.severity] || '#ff9500'};color:#fff;">匹配度: ${m.matchScore}</span>
+                                    </div>
+                                    <div style="font-size:12px;color:var(--ds-text-secondary);margin-bottom:6px;"><strong>根因：</strong>${escapeHtml(m.rootCause)}</div>
+                                    <div style="font-size:12px;color:var(--ds-text);line-height:1.6;white-space:pre-wrap;"><strong>解决方案：</strong>${escapeHtml(m.solution)}</div>
+                                    <div style="margin-top:6px;font-size:10px;color:var(--ds-text-secondary);">匹配关键词: ${m.matchedKeywords.map(k => escapeHtml(k)).join(', ')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        /**
+         * 将AI识别的异常模式保存到模式库
+         */
+        function savePatternToLibrary(name, detail) {
+            LogAIEnhancements.ensureModals();
+            // 预填充表单
+            LogAIEnhancements.AdminPanel.open('patterns');
+            setTimeout(function() {
+                LogAIEnhancements.AdminPanel.newPattern();
+                const nameEl = document.getElementById('pf_name');
+                const detailEl = document.getElementById('pf_rootCause');
+                if (nameEl) nameEl.value = name;
+                if (detailEl) detailEl.value = detail;
+            }, 100);
+        }
+
         function copyAiResult() {
-            const content = document.getElementById('aiResultContent').textContent;
-            if (!content || content.includes('AI 正在分析')) {
+            const content = document.getElementById('aiResultContent');
+            if (!content || !content.textContent || content.textContent.includes('AI 正在分析')) {
                 showToast('暂无分析结果可复制', 'warning');
                 return;
             }
-            navigator.clipboard.writeText(content).then(() => {
+            // 提取纯文本
+            const text = content.innerText || content.textContent;
+            navigator.clipboard.writeText(text).then(() => {
                 showToast('已复制到剪贴板', 'success');
             }).catch(() => {
                 const ta = document.createElement('textarea');
-                ta.value = content;
+                ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
                 document.execCommand('copy');
@@ -804,6 +1048,7 @@
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/log_root_cause_ai.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/log_ai_enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script>
 // v6.0: 日志分析 → Bug趋势看板同步

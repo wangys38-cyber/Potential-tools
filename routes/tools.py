@@ -647,13 +647,28 @@ Please write the reply:"""
     "改进建议3"
   ],
   "confidence": "high/medium/low",
-  "summary": "一句话总结分析结论"
+  "summary": "一句话总结分析结论",
+  "reasoningChain": {{
+    "nodes": [
+      {{"id": "n1", "type": "anomaly", "description": "检测到的异常现象描述", "confidence": 0.95, "relatedLogCount": 15, "details": "详细说明"}},
+      {{"id": "n2", "type": "possible_cause", "description": "可能的直接原因", "confidence": 0.8, "relatedLogCount": 8, "details": "详细说明"}},
+      {{"id": "n3", "type": "intermediate", "description": "中间传导因素", "confidence": 0.7, "relatedLogCount": 5, "details": "详细说明"}},
+      {{"id": "n4", "type": "root_cause", "description": "最终根本原因", "confidence": 0.75, "relatedLogCount": 3, "details": "详细说明"}}
+    ],
+    "edges": [
+      {{"source": "n1", "target": "n2", "label": "可能导致"}},
+      {{"source": "n2", "target": "n3", "label": "引发"}},
+      {{"source": "n3", "target": "n4", "label": "最终导致"}}
+    ]
+  }}
 }}
 
 要求：
 - 根因分析必须结合具体异常数据，不要泛泛而谈
 - 改进建议必须具体可执行，有优先级
 - 置信度根据数据充分性判断
+- reasoningChain 必须包含完整的因果推理链路，节点类型只能是 anomaly/possible_cause/intermediate/root_cause
+- 每个节点的 confidence 为 0-1 之间的浮点数，relatedLogCount 为相关日志条数整数
 - 语言简洁专业，不要AI味
 - 只输出JSON，不要其他文字"""
 
