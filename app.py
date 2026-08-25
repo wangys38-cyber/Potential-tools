@@ -25,6 +25,7 @@ from routes.visualization import create_visualization_blueprint
 from routes.translator import bp_translator
 from routes.notes import create_notes_blueprint
 from routes.admin import create_admin_blueprint
+from routes.knowledge_graph import bp as kg_bp
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -559,6 +560,9 @@ app.register_blueprint(create_notes_blueprint())
 
 # v9.1 用户管理平台
 app.register_blueprint(create_admin_blueprint())
+
+# 研发知识图谱（v10.0）
+app.register_blueprint(kg_bp)
 
 # HLD 生成器
 try:

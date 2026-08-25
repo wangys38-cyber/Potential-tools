@@ -86,4 +86,8 @@ def create_pages_blueprint(cached_render):
     def translator():
         return cached_render('translator.html', nav_title='IT 翻译器')
 
+    @bp.route('/knowledge-graph')
+    def knowledge_graph():
+        return cached_render('knowledge_graph.html', nav_title='研发知识图谱')
+
     return bp
