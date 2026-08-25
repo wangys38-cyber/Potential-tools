@@ -1,33 +1,62 @@
-# 🧰 Potential Tools — 效率工具集
+# Potential Tools — 研发效率工具集
 
-一站式效率工具平台，集成笔记、PDF 转换、测试报告分析、AI 对话、会议纪要等功能，支持本地运行和云端部署。
+一站式研发效率工具平台，面向智能硬件研发团队，集成 CR 分析、日志根因定位、知识图谱、HLD 生成、项目计划、测试报告、会议纪要等 20+ 工具，支持本地运行和云端部署。
 
-## ✨ 功能概览
+## 功能概览
+
+### 研发分析类
 
 | 工具 | 说明 |
 |------|------|
-| 📝 牛马笔记 | Markdown 编辑器，支持双向链接 `[[页面名]]`、关系图谱、标签管理、主题切换 |
-| 📄 PDF 快转 | Markdown / Word 转 PDF，自动添加水印，支持公式渲染 |
-| 📅 软件计划生成器 | 输入项目类型和起始节点，一键生成完整软件计划时间节点表 |
-| 📊 项目信息收集 | 收集和管理软件项目的完整技术规格信息 |
-| 📊 CR 问题分析 | 上传问题清单 Excel，按模块/研发/日期分析，AI 根因分析，生成带水印 PDF 报告 |
-| 📋 测试报告分析 | 上传测试报告 Excel，自动提取测试项、分类风险评估，AI 深度分析，导出高质感 PDF |
-| 🎙️ 会议纪要 | 语音转写 + AI 自动生成结构化会议纪要，支持多模型选择 |
-| 📋 智能周报 | 基于多种工作素材，AI 生成结构化周报 |
-| 🔔 功德+1 | 敲击木鱼积攒功德，自动保存进度 |
-| ⚙️ 系统设置 | AI 配置、主题定制、API 连接测试、系统诊断 |
+| **CR 问题分析** | 上传 Jira 导出 Excel/CSV，按模块/研发/严重度/状态多维分析，AI 根因分析，研发效率排名，模块健康度，Bug 趋势曲线，飞书推送，导出 PDF |
+| **日志智能根因分析** | 上传/粘贴设备日志，自动识别异常模式、构建错误链、匹配相似历史问题、AI 深度根因推理，输出根因+修复建议+风险等级 |
+| **研发知识图谱** | 关联 Bug、需求、模块、人员构建知识网络，力导向可视化，智能问答，CR 分析数据一键导入，核心节点分析 |
+| **测试报告分析** | 上传测试报告 Excel，自动提取测试项、分类风险评估，AI 深度分析，大文件 pandas 优化，导出 PDF |
+| **Bug 趋势看板** | 多版本 Bug 对比，周对比表，模块×周热力图，研发堆叠面积图，每日新增/解决曲线 |
+| **MTTF 可靠性看板** | 设备挂测日志分析，失败事件聚类，MTTF/MTBF 计算，失败分布条形图，事件时间线 |
+| **Dashboard 研发健康度** | Bug 趋势、MTTF 指标、版本进度、个人效能、项目概览，对接后端 API |
 
-### 全局增强功能
+### 文档生成类
 
-- **🤖 全局 AI 对话助手** — 浮窗式 AI 聊天，支持多模型切换、SSE 流式输出
-- **🔍 OCR 图片识别** — 剪贴板粘贴图片即可识别文字
-- **⌘ 命令面板 (Cmd+K)** — VS Code 风格全局命令面板，快速搜索工具和执行命令
-- **📱 PWA 离线支持** — Service Worker 缓存核心资源，笔记和功德+1 离线可用
-- **⭐ 工具收藏夹** — 收藏常用工具，个性化导航
-- **🎨 主题系统** — 浅色/深色/自动三种模式，全站统一切换
-- **📱 响应式设计** — 适配桌面、平板、手机多种设备
+| 工具 | 说明 |
+|------|------|
+| **HLD 生成器** | 基于 OD Excel 需求文档，自动生成每个 Feature 的 HLD（含 LLD 级接口/数据结构/算法细节），GPS/Fitness 增强，Mermaid 时序图/状态机，批量 ZIP 下载 |
+| **软件计划生成器** | 输入项目类型和起始节点，一键生成完整软件计划时间节点表，甘特图展示，AI 调整建议，飞书推送，会议纪要待办自动流转 |
+| **项目信息收集** | 收集和管理软件项目的完整技术规格信息，按账号隔离存储 |
+| **会议纪要** | 语音转写 + AI 自动生成结构化会议纪要，待办事项可流转到项目计划，下载 PDF |
+| **智能周报** | 基于多种工作素材 AI 生成结构化周报，站会助手数据自动流转 |
+| **每日站会助手** | 三段式输入（昨日完成/今日计划/阻塞项），Jira 导入，AI 润色，飞书推送，一键全自动，定时提醒 |
 
-## 🚀 快速开始
+### 工具效率类
+
+| 工具 | 说明 |
+|------|------|
+| **IT 翻译器** | IT 技术文档专用翻译，代码块保护，术语库强制映射，流式输出，Markdown 格式保留，12 种语言 |
+| **邮件助手** | 英文技术邮件模板生成，8 种模板覆盖 Bug 报告/进度同步/问题升级，变量填充，中英切换，AI 智能回复 |
+| **PDF 快转** | Markdown / Word / Excel 转 PDF，公式渲染，Mermaid 图表支持，实时预览 |
+| **数据可视化 Builder** | 上传 Excel 自选 X/Y 轴生成柱状图/折线图/饼图/散点/雷达/热力图，双 Y 轴，标注线，导出 PNG/SVG/CSV，图表模板保存 |
+| **牛马笔记** | Markdown 编辑+实时预览，分类标签，全文搜索，模板，待办勾选，导出，后端同步，快捷键 |
+| **电子木鱼** | 极简风格敲击木鱼，功德计数，自动保存 |
+
+### 系统管理类
+
+| 工具 | 说明 |
+|------|------|
+| **用户管理平台** | 用户列表、搜索、状态管理、角色分配、数据统计，管理员专属 |
+| **系统设置** | AI 配置、飞书机器人配置（含签名校验）、主题定制、API 连接测试、系统诊断、推送历史记录 |
+| **协作功能** | 共享工作空间，8 位分享码，查看/编辑权限，评论系统，实时同步 |
+
+## 全局增强
+
+- **Apple 风格导航栏** — 全站统一白色导航栏，SVG 线条图标，黑色按钮白字，搜索/同步/主题/设置入口
+- **用户数据隔离** — 所有 localStorage 数据按用户 ID 前缀隔离，换设备登录自动同步
+- **飞书推送** — CR 分析、站会、项目计划等支持一键推送到飞书群，签名校验，推送历史记录
+- **大文件处理** — 分块上传突破网关限制，Web Worker 后台线程不阻塞页面，pandas 向量化计算
+- **暗色模式** — 全站统一暗色主题，图表自动适配
+- **响应式设计** — 适配桌面、平板、手机，iOS 安全区域适配
+- **统一组件库** — 上传组件、历史记录组件、Toast、Loading 全局复用
+
+## 快速开始
 
 ### 本地运行
 
@@ -44,133 +73,151 @@ playwright install chromium
 
 # 配置环境变量（可选，默认支持访客模式）
 cp .env.example .env
-# 编辑 .env 填入 AI API Key、OAuth 等配置
+# 编辑 .env 填入 AI API Key 等配置
 
 # 启动服务
 python app.py
-# 默认运行在 http://localhost:5001
+# 默认运行在 http://localhost:5000
 ```
 
 ### Docker 部署
 
 ```bash
 docker build -t potential-tools .
-docker run -p 5001:5001 -e PORT=5001 potential-tools
+docker run -p 5000:5000 -e PORT=5000 -v /path/to/data:/app/data potential-tools
 ```
 
 ### Railway 部署
 
 1. Fork 本仓库到你的 GitHub
-2. 在 [Railway](https://railway.app) 中 New Project → Deploy from GitHub repo
-3. 选择本仓库，Railway 会自动识别 `Dockerfile` 并构建
-4. 在 Railway 中添加 PostgreSQL 插件，`DATABASE_URL` 会自动注入
+2. 在 Railway 中 New Project → Deploy from GitHub repo
+3. 选择本仓库，Railway 会自动识别 Dockerfile 并构建
+4. （推荐）添加 Volume 挂载到 `/app/data`，持久化 SQLite 数据库
 5. 在 Variables 中配置 `AI_API_KEY`、`SESSION_SECRET` 等环境变量
 
-## 📋 技术栈
+## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 后端框架 | Flask + Gunicorn |
-| 数据库 | SQLAlchemy ORM（PostgreSQL / SQLite 自动切换） |
-| 前端 | HTML5 / CSS3 / Vanilla JavaScript |
+| 后端框架 | Flask + Gunicorn + Blueprint 模块化架构 |
+| 数据库 | SQLite（默认）/ PostgreSQL（自动切换） |
+| 前端 | HTML5 / CSS3 / Vanilla JavaScript（无框架依赖） |
+| 图表 | Chart.js + 原生 SVG（甘特图/知识图谱力导向） |
 | PDF 生成 | Playwright (Chromium headless) |
-| Excel 解析 | openpyxl / xlrd / BeautifulSoup4 |
-| 文档处理 | python-docx / markdown |
+| Excel 解析 | openpyxl / pandas / xlrd / BeautifulSoup4 |
+| 文档处理 | python-docx / markdown / Mermaid |
 | AI 集成 | OpenAI 兼容 API（DashScope / 火山引擎 ARK 等） |
-| 认证 | 飞书 OAuth + Google OAuth + 访客模式 |
-| PWA | Service Worker + Web App Manifest |
+| 认证 | 账号密码注册登录 + 微信 OAuth + 访客模式 |
+| 大文件 | 分块上传 + Web Worker + pandas 向量化 |
 | 部署 | Docker / Railway |
 
-## ⚙️ 环境变量配置
+## 环境变量配置
 
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
-| `PORT` | 否 | `5001` | 服务监听端口（Railway 自动注入） |
-| `ALLOW_GUEST` | 否 | `true` | 访客模式，本地开发设为 true，生产环境建议 false |
-| `SESSION_SECRET` | 是 | — | Session 加密密钥，`python -c "import secrets; print(secrets.token_hex(32))"` |
+| `PORT` | 否 | `5000` | 服务监听端口（Railway 自动注入） |
+| `ALLOW_GUEST` | 否 | `true` | 访客模式开关 |
+| `SESSION_SECRET` | 是 | — | Session 加密密钥 |
 | `DATABASE_URL` | 否 | — | PostgreSQL 连接字符串，留空则使用 SQLite |
-| `AI_API_KEY` | 否 | — | AI 服务 API Key（DashScope / ARK 等） |
+| `DATA_DIR` | 否 | `/app/data` | SQLite 数据文件目录 |
+| `AI_API_KEY` | 否 | — | AI 服务 API Key |
 | `AI_BASE_URL` | 否 | — | AI 服务 API 地址 |
 | `AI_MODEL` | 否 | — | 默认 AI 模型 ID |
-| `FEISHU_APP_ID` | 否 | — | 飞书 OAuth 应用 ID |
-| `FEISHU_APP_SECRET` | 否 | — | 飞书 OAuth 应用密钥 |
-| `FEISHU_REDIRECT_URI` | 否 | — | 飞书 OAuth 回调地址 |
-| `GOOGLE_CLIENT_ID` | 否 | — | Google OAuth 客户端 ID |
-| `GOOGLE_CLIENT_SECRET` | 否 | — | Google OAuth 客户端密钥 |
-| `GOOGLE_REDIRECT_URI` | 否 | — | Google OAuth 回调地址 |
-| `DB_DIR` | 否 | `/tmp/toolbox` | SQLite 数据目录（仅 `DATABASE_URL` 为空时生效） |
+| `WECHAT_APP_ID` | 否 | — | 微信开放平台 AppID |
+| `WECHAT_APP_SECRET` | 否 | — | 微信开放平台 AppSecret |
+| `FEISHU_WEBHOOK_URL` | 否 | — | 飞书机器人 Webhook 地址 |
+| `FEISHU_SECRET` | 否 | — | 飞书机器人签名密钥 |
 
 > 完整配置模板见 `.env.example`
 
-## 📁 项目结构
+## 项目结构
 
 ```
 .
-├── app.py                      # Flask 主应用（路由和业务逻辑）
-├── auth.py                     # 认证模块（飞书/Google OAuth + 访客模式）
-├── db.py                       # 数据库模块（SQLAlchemy ORM，PostgreSQL/SQLite）
-├── templates/                  # HTML 模板
-│   ├── index.html              # 首页（工具导航 + 收藏 + 统计）
-│   ├── test_report.html        # 测试报告分析
+├── app.py                      # Flask 主应用入口
+├── auth.py                     # 认证模块（账号密码/微信 OAuth/访客模式）
+├── db.py                       # 数据库模块（SQLite/PostgreSQL，用户/笔记/设置等表）
+├── ai_utils.py                 # AI 调用封装（多模型兼容，流式输出）
+├── feishu_push.py              # 飞书推送模块（卡片模板，签名校验，自动重试）
+├── routes/                     # Blueprint 模块化路由
+│   ├── pages.py                # 页面渲染路由（20+ 工具页面）
+│   ├── api.py                  # 通用 API（上传/下载/设置/健康检查）
+│   ├── tools.py                # 工具类 API（会议纪要/周报/OCR/MD2PDF/日志AI）
+│   ├── analysis.py             # 数据分析 API（CR分析/测试报告/Excel处理）
+│   ├── sync.py                 # 云端同步 API
+│   ├── collab.py               # 协作功能 API（v1）
+│   ├── collab_v2.py            # 协作功能深化 API（v2）
+│   ├── visualization.py        # 数据可视化 API（图表模板存储）
+│   ├── translator.py           # IT 翻译器 API
+│   ├── notes.py                # 牛马笔记 REST API
+│   ├── admin.py                # 用户管理平台 API
+│   ├── knowledge_graph.py      # 研发知识图谱 API
+│   └── hld_generator.py        # HLD 生成器 API
+├── templates/                  # HTML 模板（30+ 页面）
+│   ├── _navbar.html            # 统一 Apple 风格导航栏
+│   ├── index.html              # 首页（工具导航+收藏+统计）
+│   ├── knowledge_graph.html    # 研发知识图谱
+│   ├── log_analyzer.html       # 日志智能根因分析
 │   ├── excel_analysis.html     # CR 问题分析
-│   ├── meeting_minutes.html    # 会议纪要
-│   ├── weekly_report.html      # 智能周报
-│   ├── settings.html           # 系统设置
-│   ├── md2pdf.html             # PDF 快转
+│   ├── hld_generator.html      # HLD 生成器
 │   ├── plan_generator.html     # 软件计划生成器
-│   ├── project_info.html       # 项目信息收集
-│   ├── merit.html              # 功德+1
-│   └── login.html              # 登录页
+│   ├── dashboard.html          # 研发健康度 Dashboard
+│   └── ...                     # 其他 20+ 工具页面
 ├── static/                     # 静态资源
-│   ├── css/theme.css           # 全站主题样式
-│   ├── js/components.js        # 全局组件库（主题、Toast、AI对话、OCR、命令面板）
-│   ├── manifest.json           # PWA Manifest
-│   ├── sw.js                   # Service Worker（离线缓存）
-│   ├── noteNB/                 # 牛马笔记前端（Vue 构建）
-│   └── md2pdf/                 # PDF 转换前端
+│   ├── css/                    # 样式文件（design-system/theme/components/mobile 等）
+│   ├── js/                     # JavaScript（components/knowledge_graph/log_root_cause_ai 等）
+│   │   └── workers/            # Web Worker（日志/Excel 大文件后台处理）
+│   └── manifest.json           # PWA Manifest
 ├── Dockerfile                  # Docker 构建配置
-├── railway.toml                # Railway 部署配置
 ├── requirements.txt            # Python 依赖
 ├── .env.example                # 环境变量模板
-└── start_app.bat               # Windows 本地启动脚本
+└── README.md                   # 项目说明
 ```
 
-## 📌 关键特性
+## 关键特性
 
-### PDF 报告生成
+### 日志智能根因分析
 
-测试报告分析和 CR 问题分析均支持导出高质感 PDF：
-- 深色渐变 Header + Motorola 水印
-- 语义化卡片配色（通过/失败/阻塞/延期）
-- 统计数据、分类分析、关键发现、改进建议完整呈现
-- AI 深度分析内容同步导出
-- 测试项表格按失败优先级排序，分页打印
+- 8 类内置历史问题库（内存/看门狗/崩溃/GPS/蓝牙/功耗/传感器/屏幕）
+- 3 种异常模式自动识别（连续错误爆发/周期性异常/错误级联）
+- 错误链构建（30 秒内错误自动关联因果链）
+- AI 深度根因推理（结合统计+模式+错误链+历史匹配，结构化输出）
+- 相似历史问题匹配（基于关键词匹配度排序）
 
-### AI 集成
+### 研发知识图谱
 
-支持 OpenAI 兼容 API 格式，可对接多种 AI 服务：
-- 全局 AI 对话助手（SSE 流式输出）
-- 测试报告 AI 深度分析（总体评估、风险洞察、质量趋势、改进建议）
-- CR 问题 AI 根因分析
-- 会议纪要 AI 自动生成
-- 智能周报 AI 生成
-- OCR 图片文字识别
+- 7 种节点类型（Bug/需求/模块/人员/版本/测试用例/风险）
+- 8 种关系类型（关联/负责/依赖/阻塞/导致/修复/测试/属于）
+- Canvas 力导向布局可视化，自动计算节点位置
+- 鼠标拖拽平移、滚轮缩放、点击节点查看详情
+- CR 分析数据一键导入，自动创建节点和关联关系
+- 智能问答：自然语言查询图谱数据
+- 核心节点分析：度数最高的节点排名
 
-### 安全与数据库
+### CR 分析大文件优化
 
-- 敏感配置通过环境变量管理，不硬编码
-- SQLAlchemy ORM 抽象层，PostgreSQL / SQLite 无缝切换
-- 飞书 OAuth + Google OAuth 企业级认证
-- Session 持久化（7 天有效期）
+- 分块上传（2MB 分块，并发上传，断点续传）
+- Web Worker 后台线程解析（不阻塞 UI）
+- pandas 向量化计算（替代逐行循环，性能提升 10x+）
+- 自动分隔符检测（逗号/分号/制表符/竖线）
+- 多编码支持（utf-8-sig/utf-8/gbk/gb2312/latin1）
+- 200MB 文件支持，真实进度条展示
 
-### 性能优化
+### 用户数据隔离与同步
 
-- 分块上传大文件，突破代理/网关请求体大小限制
-- Excel 分析采用后台任务 + 轮询机制，避免请求超时
-- HTML 格式 Excel 使用流式正则解析，避免 OOM
-- Service Worker 多级缓存策略（NetworkFirst / StaleWhileRevalidate / CacheFirst）
-- PDF 报告时间统一使用北京时间 (CST, UTC+8)
+- 所有 localStorage 数据按 `u{user_id}_` 前缀隔离
+- 登录用户数据自动同步到后端 SQLite/PostgreSQL
+- 飞书配置、AI 配置、推送历史随账号保存，换设备自动同步
+- 牛马笔记支持后端 REST API，多设备同步
 
-## 📄 License
+### 飞书推送
+
+- 统一卡片模板（标题+正文+按钮+详情链接）
+- HMAC-SHA256 签名校验（解决 sign match fail）
+- 失败自动重试（指数退避）
+- 推送历史记录（最近 20 条，支持重发）
+- CR 分析/站会/项目计划/测试报告均支持推送
+
+## License
 
 MIT
