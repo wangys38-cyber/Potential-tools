@@ -32,6 +32,30 @@ from report_builders import _build_cr_analysis_report_html
 
 logger = logging.getLogger(__name__)
 
+# 阶段五性能优化：CR 分析结果缓存（按 file_id + sheet_name，TTL 1 小时）
+_cr_result_cache = {}
+_CR_CACHE_TTL = 3600
+
+def _get_cached_cr_result(file_id, sheet_name):
+    """获取缓存的 CR 分析结果"""
+    key = f'{file_id}:{sheet_name}'
+    entry = _cr_result_cache.get(key)
+    if entry and (time.time() - entry['time']) < _CR_CACHE_TTL:
+        return entry['result']
+    if entry:
+        del _cr_result_cache[key]
+    return None
+
+def _set_cached_cr_result(file_id, sheet_name, result):
+    """缓存 CR 分析结果"""
+    key = f'{file_id}:{sheet_name}'
+    _cr_result_cache[key] = {'result': result, 'time': time.time()}
+    # 清理过期缓存（防止内存泄漏）
+    now = time.time()
+    expired = [k for k, v in _cr_result_cache.items() if (now - v['time']) > _CR_CACHE_TTL]
+    for k in expired:
+        del _cr_result_cache[k]
+
 get_ai_config = ai_utils.get_ai_config
 _call_ai = ai_utils.call_ai
 _call_ai_stream = ai_utils.call_ai_stream
@@ -514,6 +538,45 @@ def create_analysis_blueprint():
             resp['error'] = task['error']
         return jsonify(resp)
 
+    # 阶段五性能优化：分页获取 Bug 列表（支持虚拟滚动，避免一次性返回大量数据）
+    @bp.route('/api/excel-analyze-bugs', methods=['POST'])
+    def api_excel_analyze_bugs():
+        """分页获取分析结果中的 Bug 列表，支持虚拟滚动。
+        参数: task_id, page (从0开始), page_size (默认100)
+        """
+        data = request.get_json(silent=True) or {}
+        task_id = data.get('task_id', '')
+        page = max(0, int(data.get('page', 0)))
+        page_size = min(500, max(10, int(data.get('page_size', 100))))
+
+        if not task_id:
+            return jsonify({'error': '无效的 task_id'}), 400
+
+        task = background_tasks.get(task_id)
+        if task is None:
+            task = load_task_meta(task_id)
+        if task is None or task.get('status') != 'done':
+            return jsonify({'error': '任务未完成或不存在'}), 400
+
+        result = task.get('result') or {}
+        # 兼容不同的结果结构
+        bugs = result.get('bugs') or result.get('issues') or result.get('bug_list') or []
+        total = len(bugs)
+        start = page * page_size
+        end = start + page_size
+        page_bugs = bugs[start:end]
+
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'bugs': page_bugs,
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'has_more': end < total,
+            }
+        })
+
     @bp.route('/api/task-cancel', methods=['POST'])
     def api_task_cancel():
         """取消正在进行的分析任务
@@ -573,6 +636,24 @@ def create_analysis_blueprint():
                 break
         if not file_path:
             return jsonify({'error': f'文件不存在: {file_id}'}), 404
+
+        # 阶段五：检查缓存 — 同一文件+sheet 已分析过则直接返回缓存结果
+        cached_result = _get_cached_cr_result(file_id, sheet_name)
+        if cached_result is not None:
+            cached_task_id = hashlib.md5(f"cached_{file_id}_{sheet_name}".encode()).hexdigest()[:16]
+            background_tasks[cached_task_id] = {
+                'status': 'done',
+                'result': cached_result,
+                'error': None,
+                'created_at': time.time(),
+                'completed_at': time.time(),
+                'progress': 100,
+                'progress_msg': '分析完成（缓存）',
+                'from_cache': True,
+            }
+            logger.info(f"CR 分析命中缓存: file_id={file_id}, sheet={sheet_name}")
+            return jsonify({'status': 'success', 'data': {'task_id': cached_task_id, 'from_cache': True}})
+
         task_id = hashlib.md5(f"sheet_{file_id}_{sheet_name}_{time.time()}".encode()).hexdigest()[:16]
         task_data = {'status': 'processing', 'result': None, 'error': None, 'created_at': time.time()}
         background_tasks[task_id] = task_data
@@ -624,6 +705,8 @@ def create_analysis_blueprint():
                 background_tasks[task_id]['progress_msg'] = '分析完成'
                 background_tasks[task_id]['completed_at'] = time.time()
                 save_task_meta(task_id, background_tasks[task_id])
+                # 阶段五：缓存分析结果，避免重复分析同一文件
+                _set_cached_cr_result(file_id, sheet_name, result)
             except Exception as e:
                 error_detail = str(e) if str(e) else f'{type(e).__name__} (无详细错误信息)'
                 logger.error(f"分析失败: {traceback.format_exc()}")

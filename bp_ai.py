@@ -9,6 +9,7 @@ import logging
 import auth
 import db
 import ai_utils
+from ttl_cache import ttl_cache, invalidate as ttl_invalidate
 
 bp = Blueprint('ai', __name__)
 logger = logging.getLogger(__name__)
@@ -51,36 +52,40 @@ def api_ai_chat():
 
 
 # ==================== 模型列表 ====================
+@ttl_cache(ttl_seconds=120, key_prefix='ai_models_list')
+def _get_models_list(base_url):
+    """根据 base_url 返回模型列表（缓存 120 秒，配置变更时主动失效）"""
+    is_openai = 'dashscope' not in base_url
+    if is_openai:
+        return [
+            {'id': 'doubao-seed-1-6-250615', 'name': 'Doubao Seed 1.6', 'desc': '旗舰模型，支持图文视频，深度思考可关闭'},
+            {'id': 'doubao-seed-1-6-flash-250828', 'name': 'Doubao Seed 1.6 Flash', 'desc': '极速响应，支持图文，日常使用'},
+            {'id': 'doubao-seed-1-6-lite-251015', 'name': 'Doubao Seed 1.6 Lite', 'desc': '轻量版，性价比高'},
+            {'id': 'deepseek-v3-1-terminus', 'name': 'DeepSeek V3.1', 'desc': '深度思考，强推理能力'},
+        ], 'doubao-seed-1-6-250615'
+    else:
+        return [
+            {'id': 'qwen-turbo', 'name': '通义千问 Turbo', 'desc': '快速响应，日常使用'},
+            {'id': 'qwen-plus', 'name': '通义千问 Plus', 'desc': '均衡质量与速度'},
+            {'id': 'qwen-max', 'name': '通义千问 Max', 'desc': '最强推理能力'},
+        ], 'qwen-turbo'
+
+
 @bp.route('/api/ai-models', methods=['GET'])
 def api_ai_models():
-    """获取可用模型列表（根据 API 提供商自动适配）"""
+    """获取可用模型列表（根据 API 提供商自动适配，TTL 缓存 120 秒）"""
     user = auth.get_current_user()
     if not user and not auth.ALLOW_GUEST:
         return jsonify({'error': '请先登录'}), 401
 
     ai_config = ai_utils.get_ai_config()
     base_url = ai_config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1')
-    is_openai = 'dashscope' not in base_url
-
-    if is_openai:
-        models = [
-            {'id': 'doubao-seed-1-6-250615', 'name': 'Doubao Seed 1.6', 'desc': '旗舰模型，支持图文视频，深度思考可关闭'},
-            {'id': 'doubao-seed-1-6-flash-250828', 'name': 'Doubao Seed 1.6 Flash', 'desc': '极速响应，支持图文，日常使用'},
-            {'id': 'doubao-seed-1-6-lite-251015', 'name': 'Doubao Seed 1.6 Lite', 'desc': '轻量版，性价比高'},
-            {'id': 'deepseek-v3-1-terminus', 'name': 'DeepSeek V3.1', 'desc': '深度思考，强推理能力'},
-        ]
-        default_model = ai_config.get('model', 'doubao-seed-1-6-250615')
-    else:
-        models = [
-            {'id': 'qwen-turbo', 'name': '通义千问 Turbo', 'desc': '快速响应，日常使用'},
-            {'id': 'qwen-plus', 'name': '通义千问 Plus', 'desc': '均衡质量与速度'},
-            {'id': 'qwen-max', 'name': '通义千问 Max', 'desc': '最强推理能力'},
-        ]
-        default_model = ai_config.get('model', 'qwen-turbo')
+    models, default_model = _get_models_list(base_url)
+    current = ai_config.get('model', default_model)
 
     return jsonify({
         'models': models,
-        'current': default_model
+        'current': current
     })
 
 
@@ -150,6 +155,8 @@ def api_save_ai_config():
         config['api_key'] = crypto_utils.encrypt(config['api_key'])
     try:
         db.set_user_ai_config(user['id'], config)
+        # 阶段五：配置变更后主动失效模型列表缓存
+        ttl_invalidate('ai_models_list')
         return jsonify({'status': 'success'})
     except Exception as e:
         logger.error(f"保存 AI 配置失败: {e}")

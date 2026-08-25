@@ -569,6 +569,32 @@ def init_db():
         except Exception:
             pass
 
+        # ==================== 阶段五性能优化：补充复合索引 ====================
+        # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))
+        # notes: 按用户+创建时间排序（首页最近笔记、笔记列表分页）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(user_id, created_at)"))
+        # notes: 按用户+置顶+更新时间（笔记列表排序）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(user_id, pinned, updated_at DESC)"))
+        # document_versions: 按用户+创建时间排序（版本历史列表）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_doc_versions_user_created ON document_versions(user_id, created_at DESC)"))
+        # user_activity: 按用户+工具+时间（活动统计）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_activity_user_tool ON user_activity(user_id, tool_id, created_at)"))
+        # collab_activity: 按工作空间+时间排序（活动流）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_collab_activity_ws_time ON collab_activity(workspace_id, created_at DESC)"))
+        # notifications: 按用户+已读+时间（通知列表）— 已有复合索引，补充纯时间索引用于管理员查询
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at)"))
+        # audit_logs: 按用户+时间（已有），补充按目标类型查询
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_audit_target ON audit_logs(target_type, created_at)"))
+        # background_tasks: 按状态+创建时间（任务队列轮询）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_tasks_status_created ON background_tasks(status, created_at)"))
+        # login_attempts: 按IP+时间（已有），补充按成功状态
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_login_attempts_success ON login_attempts(success, created_at)"))
+        # team_data: 按团队+类型+时间（团队数据列表）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_team_data_created ON team_data(team_id, data_type, created_at)"))
+        # shared_workspaces: 按所有者+时间（我的共享列表）
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workspace_owner_created ON shared_workspaces(owner_id, created_at DESC)"))
+
     logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 

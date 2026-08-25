@@ -3,11 +3,31 @@
    依赖：design-system.css（设计系统）、polish.css（打磨样式）
    页面标题通过模板变量 nav_title 传入，默认显示当前页面路径 #}
 <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
+{# 阶段五性能优化：预加载关键 CSS，避免渲染阻塞 #}
+<link rel="preload" href="/static/css/design-system.css?v={{ STATIC_VERSION }}" as="style">
+<link rel="preload" href="/static/css/polish.css?v={{ STATIC_VERSION }}" as="style">
 <link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ai_assistant.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/v12-features.css?v={{ STATIC_VERSION }}">
 <link rel="manifest" href="/static/manifest.json">
+{# 阶段五：内联导航栏关键布局 CSS，防止 FOUC 和布局偏移 #}
+<style>
+.pt-nav-bar{position:sticky;top:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px;background:#fff;border-bottom:1px solid #e5e5e7;}
+.pt-nav-left,.pt-nav-right{display:flex;align-items:center;gap:8px;}
+.pt-nav-icon-btn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid #e5e5e7;border-radius:8px;color:#1d1d1f;cursor:pointer;transition:background .15s;}
+.pt-nav-icon-btn:hover{background:#f5f5f7;}
+.pt-nav-avatar{width:28px;height:28px;border-radius:50%;background:#1d1d1f;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;}
+.pt-nav-avatar-img{width:100%;height:100%;object-fit:cover;}
+.pt-nav-avatar-letter{color:#fff;font-size:13px;font-weight:600;}
+.pt-nav-user{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.pt-nav-user-name{font-size:13px;color:#1d1d1f;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pt-nav-logout{font-size:11px;padding:3px 10px;border:1px solid #e5e5e7;border-radius:12px;color:#86868b;text-decoration:none;}
+.pt-nav-title{font-size:15px;font-weight:600;color:#1d1d1f;}
+.pt-nav-sep{width:1px;height:20px;background:#e5e5e7;}
+.pt-nav-home{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #e5e5e7;border-radius:8px;color:#1d1d1f;text-decoration:none;}
+@media(prefers-color-scheme:dark){.pt-nav-bar{background:#1d1d1f;border-color:#333;}.pt-nav-icon-btn{color:#f5f5f7;border-color:#333;}.pt-nav-icon-btn:hover{background:#2c2c2e;}.pt-nav-title,.pt-nav-user-name{color:#f5f5f7;}.pt-nav-sep{background:#333;}.pt-nav-home{color:#f5f5f7;border-color:#333;}.pt-nav-logout{color:#98989d;border-color:#333;}}
+</style>
 <style>
 @keyframes ptSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .pt-sync-icon { display: inline-flex; align-items: center; justify-content: center; position: relative; }
@@ -60,6 +80,10 @@
 <script src="/static/js/notifications.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/version-history.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/ai_assistant.js?v={{ STATIC_VERSION }}" defer></script>
+{# 阶段五性能优化：动态脚本加载器、虚拟滚动、前端性能监控 #}
+<script src="/static/js/pt-loader.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/virtual-scroll.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/perf-monitor.js?v={{ STATIC_VERSION }}" defer></script>
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
