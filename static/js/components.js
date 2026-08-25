@@ -2542,30 +2542,18 @@ window.ToolboxPush = ToolboxPush;
     earlyInit();
 
     // 用户隔离前缀：优先使用模板/服务端注入的值（同步），否则异步 fetch
-    function _migrateRecentTools(prefix) {
-        var oldKey = 'toolbox_recent_tools';
-        var newKey = prefix + oldKey;
-        if(localStorage.getItem(oldKey) !== null){
-            if(localStorage.getItem(newKey) === null){
-                localStorage.setItem(newKey, localStorage.getItem(oldKey));
-            }
-            localStorage.removeItem(oldKey);
-        }
-    }
+    // 注意：不再执行全局数据迁移，避免把其他用户的数据迁移到当前账号
 
     if (window._USER_PREFIX) {
-        // 模板已通过 Jinja2 注入前缀，同步迁移
-        _migrateRecentTools(window._USER_PREFIX);
+        // 模板已通过 Jinja2 注入前缀
     } else if (window._SERVER_USER_ID) {
         // noteNB 等静态页面通过服务端注入用户 ID
         window._USER_PREFIX = 'u' + window._SERVER_USER_ID + '_';
-        _migrateRecentTools(window._USER_PREFIX);
     } else {
         // 回退：异步 fetch
         fetch('/api/user/info').then(function(r){return r.json();}).then(function(data){
             if(data.logged_in && data.user && data.user.id){
                 window._USER_PREFIX = 'u' + data.user.id + '_';
-                _migrateRecentTools(window._USER_PREFIX);
                 // 异步完成后通知页面重新渲染最近使用
                 document.dispatchEvent(new CustomEvent('userprefix-ready'));
             }
