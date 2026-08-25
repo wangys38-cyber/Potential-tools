@@ -185,12 +185,31 @@
         return result;
     }
 
+    // ===== AI 配置检查 =====
+    async function checkAIConfig() {
+        try {
+            const resp = await fetch('/api/ai-config');
+            const data = await resp.json();
+            return data.enabled && data.api_key;
+        } catch (e) {
+            return false;
+        }
+    }
+
     // ===== 翻译主逻辑 =====
-    function doTranslate() {
+    async function doTranslate() {
         const text = sourceText.value.trim();
         if (!text) {
             showToast('请输入要翻译的文本');
             sourceText.focus();
+            return;
+        }
+
+        // 检查 AI 配置
+        const aiEnabled = await checkAIConfig();
+        if (!aiEnabled) {
+            setStatus('AI 未配置，请先在设置页面配置 API Key', 'error');
+            showToast('请先在设置页面配置 AI API Key');
             return;
         }
 
@@ -345,11 +364,22 @@
 
     function handleError(err) {
         targetText.classList.remove('streaming');
-        if (!targetText.textContent.trim()) {
+        let errorMsg = err.message || '翻译失败';
+        // 优化常见错误提示
+        if (errorMsg.includes('AI功能未配置') || errorMsg.includes('未配置')) {
+            errorMsg = 'AI 未配置，请先在设置页面配置 API Key';
+        } else if (errorMsg.includes('429') || errorMsg.includes('过于频繁')) {
+            errorMsg = '请求过于频繁，请稍后重试（AI API 限流 20 次/分钟）';
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('超时')) {
+            errorMsg = '请求超时，请检查网络或稍后重试';
+        } else if (errorMsg.includes('CSRF')) {
+            errorMsg = '会话已过期，请刷新页面后重试';
+        }
+        if (!targetText.textContent.trim() || targetText.textContent === '译文将显示在这里') {
             targetText.innerHTML = '<span class="output-placeholder">翻译失败</span>';
         }
-        setStatus(err.message || '翻译失败', 'error');
-        showToast(err.message || '翻译失败');
+        setStatus(errorMsg, 'error');
+        showToast(errorMsg);
         resetTranslateBtn();
     }
 

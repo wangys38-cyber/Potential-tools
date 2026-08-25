@@ -109,7 +109,7 @@
                     <button class="btn btn-secondary" id="exportCsvBtn" onclick="exportAnalysisToCSV()" style="display:none;padding:8px 16px;font-size:13px;">
                         导出CSV
                     </button>
-                    <button class="btn btn-secondary" onclick="window.location.href='/knowledge-graph'" style="display:none;padding:8px 16px;font-size:13px;" id="extractKgBtn">
+                    <button class="btn btn-secondary" onclick="extractToKnowledgeGraph()" style="display:none;padding:8px 16px;font-size:13px;" id="extractKgBtn">
                         抽取到知识图谱
                     </button>
                 </div>
@@ -305,6 +305,140 @@
         var resultCard = document.getElementById('resultCard');
         if (resultCard) observer.observe(resultCard, { attributes: true, childList: true, subtree: true });
     });
+
+    // ===== 知识图谱抽取 =====
+    var kgExtractResult = null;
+
+    function extractToKnowledgeGraph() {
+        if (typeof currentAnalysisData === 'undefined' || !currentAnalysisData) {
+            alert('请先完成 CR 分析');
+            return;
+        }
+        var modal = document.getElementById('kgExtractModal');
+        var body = document.getElementById('kgExtractModalBody');
+        var confirmBtn = document.getElementById('kgExtractConfirmBtn');
+        modal.style.display = 'flex';
+        body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#86868b;">AI 正在抽取实体和关系...</div>';
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.5';
+
+        // 从分析数据中提取文本
+        var text = '';
+        if (currentAnalysisData.summary) {
+            text += 'CR分析总结：' + JSON.stringify(currentAnalysisData.summary) + '\n';
+        }
+        if (currentAnalysisData.all_issues && currentAnalysisData.all_issues.length > 0) {
+            text += 'Bug列表：\n';
+            currentAnalysisData.all_issues.slice(0, 50).forEach(function(issue) {
+                text += '- ' + (issue.summary || issue.title || '') + ' [' + (issue.status || '') + '] [' + (issue.module || '') + ']\n';
+            });
+        }
+        if (currentAnalysisData.module_stats) {
+            text += '模块统计：' + JSON.stringify(currentAnalysisData.module_stats) + '\n';
+        }
+
+        fetch('/api/kg/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text, source_type: 'cr_analysis' })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                body.innerHTML = '<div style="color:#ff3b30;text-align:center;padding:20px;">抽取失败: ' + data.error + '</div>';
+                return;
+            }
+            kgExtractResult = { nodes: data.nodes || [], relations: data.relations || [] };
+            renderKgExtractPreview();
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        })
+        .catch(function(e) {
+            body.innerHTML = '<div style="color:#ff3b30;text-align:center;padding:20px;">请求失败: ' + e.message + '</div>';
+        });
+    }
+
+    function renderKgExtractPreview() {
+        var body = document.getElementById('kgExtractModalBody');
+        var html = '<div style="margin-bottom:12px;font-size:14px;font-weight:600;color:#1d1d1f;">抽取到 ' + kgExtractResult.nodes.length + ' 个节点, ' + kgExtractResult.relations.length + ' 个关系</div>';
+        html += '<div style="margin-bottom:12px;font-size:13px;font-weight:600;color:#1d1d1f;">节点</div>';
+        html += '<div style="max-height:200px;overflow-y:auto;margin-bottom:16px;">';
+        kgExtractResult.nodes.forEach(function(n, i) {
+            html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;">';
+            html += '<input type="checkbox" id="kg-node-' + i + '" checked data-index="' + i + '" class="kg-node-check">';
+            html += '<span style="font-size:12px;background:#e8e8ed;padding:2px 8px;border-radius:4px;color:#1d1d1f;">' + (n.type || 'unknown') + '</span>';
+            html += '<span style="font-size:13px;color:#1d1d1f;">' + (n.name || '') + '</span>';
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '<div style="margin-bottom:12px;font-size:13px;font-weight:600;color:#1d1d1f;">关系</div>';
+        html += '<div style="max-height:200px;overflow-y:auto;">';
+        kgExtractResult.relations.forEach(function(r, i) {
+            html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;">';
+            html += '<input type="checkbox" id="kg-rel-' + i + '" checked data-index="' + i + '" class="kg-rel-check">';
+            html += '<span style="font-size:13px;color:#1d1d1f;">' + (r.source || '') + ' --[' + (r.type || '') + ']--> ' + (r.target || '') + '</span>';
+            html += '</div>';
+        });
+        html += '</div>';
+        body.innerHTML = html;
+    }
+
+    function confirmKgExtract() {
+        var nodeChecks = document.querySelectorAll('.kg-node-check:checked');
+        var relChecks = document.querySelectorAll('.kg-rel-check:checked');
+        var selectedNodes = Array.from(nodeChecks).map(function(c) { return kgExtractResult.nodes[parseInt(c.dataset.index)]; });
+        var selectedRels = Array.from(relChecks).map(function(c) { return kgExtractResult.relations[parseInt(c.dataset.index)]; });
+        if (selectedNodes.length === 0) {
+            alert('请至少选择一个节点');
+            return;
+        }
+        var confirmBtn = document.getElementById('kgExtractConfirmBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '添加中...';
+        fetch('/api/kg/extract/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nodes: selectedNodes, relations: selectedRels })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                alert('添加失败: ' + data.error);
+            } else {
+                alert('添加成功：' + data.createdNodes + ' 节点，' + data.createdRelations + ' 关系');
+                closeKgExtractModal();
+            }
+        })
+        .catch(function(e) {
+            alert('添加失败: ' + e.message);
+        })
+        .finally(function() {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '确认添加';
+        });
+    }
+
+    function closeKgExtractModal() {
+        document.getElementById('kgExtractModal').style.display = 'none';
+        kgExtractResult = null;
+    }
     </script>
+
+    <!-- 知识图谱抽取模态框 -->
+    <div id="kgExtractModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="font-size:18px;font-weight:600;margin:0;color:#1d1d1f;">抽取到知识图谱</h3>
+                <button onclick="closeKgExtractModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#86868b;">&times;</button>
+            </div>
+            <div id="kgExtractModalBody" style="margin-bottom:16px;">
+                <div style="text-align:center;padding:40px 0;color:#86868b;">准备抽取...</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button onclick="closeKgExtractModal()" style="padding:10px 20px;background:#f5f5f7;color:#1d1d1f;border:none;border-radius:10px;font-size:14px;cursor:pointer;">取消</button>
+                <button id="kgExtractConfirmBtn" onclick="confirmKgExtract()" disabled style="padding:10px 20px;background:#1d1d1f;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;opacity:0.5;">确认添加</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
