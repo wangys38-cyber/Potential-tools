@@ -3,6 +3,31 @@
  * 所有页面通过 _navbar.html 自动引入
  */
 
+/* ==================== 跳过导航链接（可访问性） ==================== */
+.skip-link {
+    position: absolute;
+    top: -100px;
+    left: 16px;
+    z-index: 100000;
+    padding: 10px 20px;
+    background: #1a1a1a;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 0 0 8px 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: top 0.2s ease;
+}
+.skip-link:focus {
+    top: 0;
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+[data-theme="dark"] .skip-link {
+    background: #f0f0f2;
+    color: #1a1a1a;
+}
+
 /* ==================== 自定义滚动条 ==================== */
 ::-webkit-scrollbar {
     width: 8px;
@@ -80,6 +105,23 @@ textarea:focus-visible,
 a:focus:not(:focus-visible),
 button:focus:not(:focus-visible) {
     outline: none;
+}
+
+/* ==================== 减少动画偏好（可访问性） ==================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .page-wrap,
+    .container,
+    .tb-container {
+        animation: none !important;
+    }
 }
 
 /* ==================== 页面入场动画 ==================== */
