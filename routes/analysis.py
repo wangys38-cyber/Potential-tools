@@ -1330,6 +1330,205 @@ def create_analysis_blueprint():
             logger.error(f"CR分析PDF生成失败: {traceback.format_exc()}")
             return jsonify({'error': str(e)}), 500
 
+    # ==================== v7.0 Bug 根因自动归类 ====================
+
+    @bp.route('/api/cr/root-cause-classify', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_root_cause_classify():
+        """AI 对未解决 Bug 进行根因自动归类"""
+        ai_config = get_ai_config()
+        if not ai_config.get('enabled'):
+            return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+        data = request.get_json(silent=True) or {}
+        issues = data.get('issues', [])
+        if not issues:
+            return jsonify({'error': '缺少问题数据'}), 400
+
+        # 筛选未解决 Bug
+        unresolved = []
+        for issue in issues:
+            status = (issue.get('status') or '').lower()
+            if not any(k in status for k in ('resolved', 'closed', 'done', '已解决', '已关闭')):
+                unresolved.append(issue)
+        if not unresolved:
+            return jsonify({'status': 'success', 'categories': [], 'total': 0, 'message': '没有未解决的 Bug'})
+
+        # 限制发送数量，避免 prompt 过长
+        max_send = min(len(unresolved), 80)
+        sample = unresolved[:max_send]
+        issues_text = ''
+        for idx, issue in enumerate(sample, 1):
+            key = issue.get('key') or issue.get('id') or f'BUG-{idx}'
+            summary = (issue.get('summary') or issue.get('标题') or '')[:120]
+            module = issue.get('module') or issue.get('模块') or ''
+            severity = issue.get('severity') or issue.get('严重性') or ''
+            issues_text += f"{idx}. [{key}] {summary} (模块:{module}, 严重度:{severity})\n"
+
+        categories_def = """根因类别定义：
+- code_defect: 代码缺陷（逻辑错误、空指针、边界条件、并发问题等编码层面问题）
+- requirement_change: 需求变更（需求不明确、需求频繁变更、需求理解偏差）
+- environment: 环境问题（测试环境、设备环境、操作系统、网络、依赖版本不兼容）
+- test_missing: 测试遗漏（测试用例覆盖不足、回归测试缺失、场景未覆盖）
+- third_party: 第三方依赖（SDK、库、驱动、硬件、外部服务问题）
+- design_flaw: 设计缺陷（架构设计、接口设计、数据结构设计不合理）
+- documentation: 文档/配置问题（文档缺失、配置错误、参数设置问题）
+- other: 其他"""
+
+        prompt = f"""你是一位资深智能硬件质量分析专家。请对以下未解决 Bug 进行根因归类。
+
+{categories_def}
+
+## 待归类 Bug 列表（共 {len(sample)} 条）：
+{issues_text}
+
+请以严格 JSON 格式返回，不要包含任何其他文字或 markdown 代码块标记。格式如下：
+{{
+  "categories": [
+    {{
+      "category": "code_defect",
+      "category_name": "代码缺陷",
+      "count": 5,
+      "percentage": 25.0,
+      "typical_issues": ["BUG-1 标题摘要", "BUG-2 标题摘要"],
+      "description": "该类根因的共性描述"
+    }}
+  ]
+}}
+
+要求：
+1. 每个 Bug 必须归入且仅归入一个类别
+2. percentage 为该类别占未解决 Bug 总数的百分比，保留1位小数
+3. typical_issues 列出该类别下 2-3 个典型 Bug 的 key+标题摘要
+4. 只返回有 Bug 的类别，按 count 降序排列
+5. 必须是合法 JSON，不要有注释或多余文字"""
+
+        try:
+            messages = [{'role': 'user', 'content': prompt}]
+            reply = _call_ai(messages, max_tokens=2000, temperature=0.2, timeout=90)
+            # 尝试解析 JSON
+            reply_clean = reply.strip()
+            if reply_clean.startswith('```'):
+                reply_clean = reply_clean.replace('```json', '').replace('```', '').strip()
+            # 找到第一个 { 和最后一个 }
+            start = reply_clean.find('{')
+            end = reply_clean.rfind('}')
+            if start >= 0 and end > start:
+                reply_clean = reply_clean[start:end + 1]
+            result = json.loads(reply_clean)
+            categories = result.get('categories', [])
+            # 补全百分比计算（基于实际未解决总数）
+            for cat in categories:
+                cat['percentage'] = round(cat.get('count', 0) / len(unresolved) * 100, 1)
+            return jsonify({
+                'status': 'success',
+                'categories': categories,
+                'total': len(unresolved),
+                'analyzed': len(sample)
+            })
+        except json.JSONDecodeError as je:
+            logger.error(f'根因归类 JSON 解析失败: {je}, reply: {reply[:500]}')
+            return jsonify({'error': 'AI 返回格式解析失败，请重试'}), 502
+        except Exception as e:
+            logger.error(f'根因归类失败: {e}')
+            return jsonify({'error': f'根因归类失败: {str(e)}'}), 502
+
+    # ==================== v7.0 智能修复建议增强 ====================
+
+    @bp.route('/api/cr/smart-fix-suggestions', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_smart_fix_suggestions():
+        """针对高风险模块或高频 Bug 类型生成具体修复建议"""
+        ai_config = get_ai_config()
+        if not ai_config.get('enabled'):
+            return jsonify({'error': 'AI功能未配置，请在设置页面配置 API Key'}), 503
+        data = request.get_json(silent=True) or {}
+        target_type = data.get('target_type', 'module')  # module 或 bug_type
+        target_name = data.get('target_name', '')
+        issues = data.get('issues', [])
+        module_stats = data.get('module_stats', {})
+
+        if not issues:
+            return jsonify({'error': '缺少问题数据'}), 400
+
+        # 构建目标相关的 Bug 列表
+        target_issues = []
+        if target_type == 'module' and target_name:
+            for issue in issues:
+                mod = issue.get('module') or issue.get('模块') or ''
+                if mod == target_name:
+                    target_issues.append(issue)
+        else:
+            target_issues = issues[:30]
+
+        if not target_issues:
+            return jsonify({'error': f'未找到 {target_name} 相关的 Bug'}), 404
+
+        max_send = min(len(target_issues), 30)
+        issues_text = ''
+        for idx, issue in enumerate(target_issues[:max_send], 1):
+            key = issue.get('key') or issue.get('id') or f'BUG-{idx}'
+            summary = (issue.get('summary') or '')[:100]
+            severity = issue.get('severity') or ''
+            status = issue.get('status') or ''
+            assignee = issue.get('assignee') or issue.get('研发') or ''
+            issues_text += f"{idx}. [{key}] {summary} (严重度:{severity}, 状态:{status}, 研发:{assignee})\n"
+
+        # 模块统计信息
+        mod_info = ''
+        if target_type == 'module' and target_name and isinstance(module_stats, dict):
+            stats = module_stats.get(target_name, {})
+            if stats:
+                mod_info = f"\n模块统计：总数{stats.get('total',0)}，未解决{stats.get('unresolved',0)}，已解决{stats.get('resolved',0)}"
+
+        prompt = f"""你是一位资深智能硬件研发技术专家。请针对以下{('模块「' + target_name + '」') if target_type == 'module' else '高频 Bug 类型'}生成具体、可执行的修复建议。
+
+{mod_info}
+
+## 相关 Bug 列表（共 {len(target_issues)} 条，展示前 {max_send} 条）：
+{issues_text}
+
+请以严格 JSON 格式返回，不要包含任何其他文字或 markdown 代码块标记。格式如下：
+{{
+  "summary": "对该模块/Bug类型问题的整体分析（2-3句话）",
+  "suggestions": [
+    {{
+      "title": "建议标题",
+      "priority": "高",
+      "estimated_time": "2-3人天",
+      "resources": "需要的资源（如：后端研发1人、测试1人）",
+      "solution": "具体的修复方案描述",
+      "reference": "参考方案或技术要点"
+    }}
+  ],
+  "risk_assessment": "如果不修复的风险评估"
+}}
+
+要求：
+1. priority 只能是"高"、"中"、"低"
+2. estimated_time 给出具体的人天估算
+3. solution 必须具体可执行，不要泛泛而谈
+4. suggestions 数量 3-5 条，按 priority 降序
+5. 必须是合法 JSON"""
+
+        try:
+            messages = [{'role': 'user', 'content': prompt}]
+            reply = _call_ai(messages, max_tokens=2000, temperature=0.3, timeout=90)
+            reply_clean = reply.strip()
+            if reply_clean.startswith('```'):
+                reply_clean = reply_clean.replace('```json', '').replace('```', '').strip()
+            start = reply_clean.find('{')
+            end = reply_clean.rfind('}')
+            if start >= 0 and end > start:
+                reply_clean = reply_clean[start:end + 1]
+            result = json.loads(reply_clean)
+            return jsonify({'status': 'success', 'data': result})
+        except json.JSONDecodeError as je:
+            logger.error(f'修复建议 JSON 解析失败: {je}, reply: {reply[:500]}')
+            return jsonify({'error': 'AI 返回格式解析失败，请重试'}), 502
+        except Exception as e:
+            logger.error(f'修复建议生成失败: {e}')
+            return jsonify({'error': f'修复建议生成失败: {str(e)}'}), 502
+
     return bp
 
 
