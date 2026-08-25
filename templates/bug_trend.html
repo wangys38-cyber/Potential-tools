@@ -570,14 +570,14 @@
 
     // 加载 Jira 配置
     try {
-        var cfg = JSON.parse(localStorage.getItem('jira_config') || '{}');
+        var cfg = JSON.parse(localStorage.getItem(window._USER_PREFIX + 'jira_config') || '{}');
         if (cfg.domain) document.getElementById('jiraDomain').value = cfg.domain;
         if (cfg.email) document.getElementById('jiraEmail').value = cfg.email;
         if (cfg.token) document.getElementById('jiraToken').value = cfg.token;
     } catch(e) {}
     ['jiraDomain','jiraEmail','jiraToken'].forEach(function(id) {
         document.getElementById(id).addEventListener('change', function() {
-            localStorage.setItem('jira_config', JSON.stringify({
+            localStorage.setItem(window._USER_PREFIX + 'jira_config', JSON.stringify({
                 domain: document.getElementById('jiraDomain').value,
                 email: document.getElementById('jiraEmail').value,
                 token: document.getElementById('jiraToken').value

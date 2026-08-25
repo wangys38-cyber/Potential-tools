@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -817,7 +817,8 @@ function syncToBugTrend() {
     };
     // 存储到localStorage供Bug趋势页面读取
     try {
-        localStorage.setItem('log_bug_trend_data', JSON.stringify(bugTrendData));
+        var _prefix = window._USER_PREFIX || '';
+        localStorage.setItem(_prefix + 'log_bug_trend_data', JSON.stringify(bugTrendData));
         if (window.ToolboxToast) window.ToolboxToast.show('已同步' + bugTrendData.days.length + '天Bug趋势数据', 'success');
     } catch(e) {
         if (window.ToolboxToast) window.ToolboxToast.show('同步失败: ' + e.message, 'error');

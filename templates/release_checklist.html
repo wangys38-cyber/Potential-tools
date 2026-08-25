@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -116,12 +116,16 @@
             ]},
         ];
 
+        // 按用户隔离存储 key
+        const _USER_PREFIX = {% if current_user %}'u{{ current_user.id }}_'{% else %}''{% endif %};
+        const STORAGE_KEY = _USER_PREFIX + 'release_checklist_state';
+
         let currentStage = 'bringup';
         let state = {};
 
         function loadState() {
             try {
-                const saved = localStorage.getItem('release_checklist_state');
+                const saved = localStorage.getItem(STORAGE_KEY);
                 state = saved ? JSON.parse(saved) : {};
             } catch(e) { state = {}; }
             if (!state.checks) state.checks = {};
@@ -131,7 +135,7 @@
 
         function saveState() {
             state.version = document.getElementById('versionInput').value;
-            try { localStorage.setItem('release_checklist_state', JSON.stringify(state)); } catch(e) {}
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
             updateProgress();
         }
 

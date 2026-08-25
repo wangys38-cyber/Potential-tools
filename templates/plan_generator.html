@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -516,8 +516,11 @@
 
         document.getElementById('firstNode').valueAsDate = new Date();
 
+        // ==================== 用户数据隔离 ====================
+        const _USER_PREFIX = {% if current_user %}'u{{ current_user.id }}_'{% else %}''{% endif %};
+
         // ==================== 计划管理 ====================
-        const PLANS_STORAGE_KEY = (typeof _USER_PREFIX !== 'undefined' ? _USER_PREFIX : '') + 'saved_plans';
+        const PLANS_STORAGE_KEY = _USER_PREFIX + 'saved_plans';
         let savedPlans = [];
         let currentPlanId = null;
         let currentProjectName = '未命名项目';
