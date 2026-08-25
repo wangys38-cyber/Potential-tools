@@ -391,6 +391,30 @@ def init_db():
         """))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id)"))
 
+        # v11.0: 团队设置列（兼容旧表）
+        try:
+            conn.execute(text("ALTER TABLE team_spaces ADD COLUMN settings TEXT DEFAULT '{}'"))
+        except Exception:
+            pass
+
+        # ==================== v11.0 团队数据共享表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS team_data (
+                id {_PK_TYPE},
+                team_id INTEGER NOT NULL,
+                data_type TEXT NOT NULL,
+                data_ref TEXT DEFAULT '',
+                title TEXT DEFAULT '',
+                shared_by INTEGER NOT NULL,
+                permissions TEXT DEFAULT '{{}}',
+                created_at REAL DEFAULT 0,
+                FOREIGN KEY (team_id) REFERENCES team_spaces(id),
+                FOREIGN KEY (shared_by) REFERENCES users(id)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_team_data_team ON team_data(team_id, data_type)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_team_data_shared_by ON team_data(shared_by)"))
+
         # ==================== v8.0 牛马笔记：独立笔记表 ====================
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS notes (
@@ -2152,6 +2176,7 @@ def update_team_space(team_id, name=None, description=None, config=None):
 def delete_team_space(team_id, owner_id):
     """删除团队（仅所有者）"""
     with engine.begin() as conn:
+        conn.execute(text("DELETE FROM team_data WHERE team_id = :id"), {'id': team_id})
         conn.execute(text("DELETE FROM team_members WHERE team_id = :id"), {'id': team_id})
         result = conn.execute(
             text("DELETE FROM team_spaces WHERE id = :id AND owner_id = :owner_id"),
@@ -2209,6 +2234,184 @@ def remove_team_member(team_id, user_id):
             {'team_id': team_id, 'user_id': user_id}
         )
         return result.rowcount > 0
+
+
+def get_team_member_count(team_id):
+    """获取团队成员数量"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT COUNT(*) FROM team_members WHERE team_id = :team_id"),
+            {'team_id': team_id}
+        ).fetchone()
+        return row[0] if row else 0
+
+
+def get_team_data_count(team_id):
+    """获取团队共享数据数量"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT COUNT(*) FROM team_data WHERE team_id = :team_id"),
+            {'team_id': team_id}
+        ).fetchone()
+        return row[0] if row else 0
+
+
+def get_user_team_role(team_id, user_id):
+    """获取用户在团队中的角色"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT role FROM team_members WHERE team_id = :team_id AND user_id = :user_id"),
+            {'team_id': team_id, 'user_id': user_id}
+        ).fetchone()
+        return row[0] if row else None
+
+
+def find_user_by_email(email):
+    """根据邮箱查找用户"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT id, name, email, avatar FROM users WHERE email = :email LIMIT 1"),
+            {'email': email}
+        ).fetchone()
+        return _row_to_dict(row) if row else None
+
+
+def add_team_member(team_id, user_id, role='member'):
+    """添加团队成员（邀请）"""
+    with engine.begin() as conn:
+        now = time.time()
+        result = conn.execute(
+            text("""
+                INSERT INTO team_members (team_id, user_id, role, joined_at)
+                VALUES (:team_id, :user_id, :role, :joined_at)
+                ON CONFLICT(team_id, user_id) DO NOTHING
+            """),
+            {'team_id': team_id, 'user_id': user_id, 'role': role, 'joined_at': now}
+        )
+        if result.rowcount > 0:
+            conn.execute(
+                text("UPDATE team_spaces SET updated_at = :now WHERE id = :id"),
+                {'now': now, 'id': team_id}
+            )
+        return True
+
+
+def update_team_settings(team_id, settings):
+    """更新团队设置"""
+    with engine.begin() as conn:
+        now = time.time()
+        result = conn.execute(
+            text("UPDATE team_spaces SET settings = :settings, updated_at = :now WHERE id = :id"),
+            {'settings': json.dumps(settings, ensure_ascii=False), 'now': now, 'id': team_id}
+        )
+        return result.rowcount > 0
+
+
+# ==================== v11.0 团队数据共享 ====================
+
+def share_data_to_team(team_id, data_type, data_ref, title, shared_by, permissions=None):
+    """分享数据到团队"""
+    with engine.begin() as conn:
+        now = time.time()
+        perm_json = json.dumps(permissions or {'access': 'view'}, ensure_ascii=False)
+        result = conn.execute(
+            text("""
+                INSERT INTO team_data (team_id, data_type, data_ref, title, shared_by, permissions, created_at)
+                VALUES (:team_id, :data_type, :data_ref, :title, :shared_by, :permissions, :created_at)
+                RETURNING id
+            """),
+            {'team_id': team_id, 'data_type': data_type, 'data_ref': data_ref or '',
+             'title': title or '', 'shared_by': shared_by, 'permissions': perm_json, 'created_at': now}
+        )
+        return result.scalar()
+
+
+def get_team_data_list(team_id, data_type=None, limit=100):
+    """获取团队共享数据列表，支持按类型筛选"""
+    with engine.connect() as conn:
+        if data_type:
+            rows = conn.execute(
+                text("""
+                    SELECT d.*, u.name as shared_by_name, u.avatar as shared_by_avatar
+                    FROM team_data d
+                    LEFT JOIN users u ON d.shared_by = u.id
+                    WHERE d.team_id = :team_id AND d.data_type = :data_type
+                    ORDER BY d.created_at DESC LIMIT :limit
+                """),
+                {'team_id': team_id, 'data_type': data_type, 'limit': limit}
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                text("""
+                    SELECT d.*, u.name as shared_by_name, u.avatar as shared_by_avatar
+                    FROM team_data d
+                    LEFT JOIN users u ON d.shared_by = u.id
+                    WHERE d.team_id = :team_id
+                    ORDER BY d.created_at DESC LIMIT :limit
+                """),
+                {'team_id': team_id, 'limit': limit}
+            ).fetchall()
+        result = []
+        for row in rows:
+            item = _row_to_dict(row)
+            try:
+                item['permissions'] = json.loads(item.get('permissions', '{}') or '{}')
+            except (json.JSONDecodeError, TypeError):
+                item['permissions'] = {}
+            result.append(item)
+        return result
+
+
+def get_team_data_by_id(data_id):
+    """根据 ID 获取共享数据详情"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                SELECT d.*, u.name as shared_by_name, u.avatar as shared_by_avatar
+                FROM team_data d
+                LEFT JOIN users u ON d.shared_by = u.id
+                WHERE d.id = :id
+            """),
+            {'id': data_id}
+        ).fetchone()
+        if not row:
+            return None
+        item = _row_to_dict(row)
+        try:
+            item['permissions'] = json.loads(item.get('permissions', '{}') or '{}')
+        except (json.JSONDecodeError, TypeError):
+            item['permissions'] = {}
+        return item
+
+
+def delete_team_data(data_id, team_id=None):
+    """取消分享（删除共享数据）"""
+    with engine.begin() as conn:
+        if team_id:
+            result = conn.execute(
+                text("DELETE FROM team_data WHERE id = :id AND team_id = :team_id"),
+                {'id': data_id, 'team_id': team_id}
+            )
+        else:
+            result = conn.execute(
+                text("DELETE FROM team_data WHERE id = :id"),
+                {'id': data_id}
+            )
+        return result.rowcount > 0
+
+
+def is_data_shared_to_team(team_id, data_type, data_ref):
+    """检查某数据是否已分享到团队"""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                SELECT id FROM team_data
+                WHERE team_id = :team_id AND data_type = :data_type AND data_ref = :data_ref
+                LIMIT 1
+            """),
+            {'team_id': team_id, 'data_type': data_type, 'data_ref': data_ref}
+        ).fetchone()
+        return row[0] if row else None
 
 
 # ==================== v8.0 牛马笔记：独立笔记 CRUD ====================
@@ -2408,8 +2611,11 @@ def delete_user(user_id):
         ).fetchall()
         for team_row in team_rows:
             team_id = team_row[0]
+            conn.execute(text("DELETE FROM team_data WHERE team_id = :tid"), {'tid': team_id})
             conn.execute(text("DELETE FROM team_members WHERE team_id = :tid"), {'tid': team_id})
             conn.execute(text("DELETE FROM team_spaces WHERE id = :tid"), {'tid': team_id})
+        # 删除用户分享到其他团队的数据
+        conn.execute(text("DELETE FROM team_data WHERE shared_by = :uid"), {'uid': user_id})
         result = conn.execute(text("DELETE FROM users WHERE id = :id"), {'id': user_id})
         return result.rowcount > 0
 

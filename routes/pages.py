@@ -94,4 +94,12 @@ def create_pages_blueprint(cached_render):
     def my_activity():
         return cached_render('my_activity.html', nav_title='我的活动')
 
+    @bp.route('/teams')
+    def teams_list():
+        return cached_render('teams.html', nav_title='团队')
+
+    @bp.route('/teams/<team_code>')
+    def team_detail(team_code):
+        return cached_render('team_detail.html', nav_title='团队详情', team_code=team_code)
+
     return bp
