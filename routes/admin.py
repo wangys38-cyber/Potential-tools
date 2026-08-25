@@ -156,7 +156,7 @@ def create_admin_blueprint():
     _BACKUP_TABLES = [
         'users', 'user_preferences', 'user_data', 'notes',
         'merit_records', 'chart_templates', 'dashboard_config',
-        'app_config',
+        'app_config', 'audit_logs', 'login_attempts', 'user_sessions',
     ]
 
     @bp.route('/api/admin/backup', methods=['GET'])
@@ -219,4 +219,133 @@ def create_admin_blueprint():
             logger.error(f"数据恢复失败: {e}")
             return jsonify({'status': 'error', 'error': str(e)}), 500
 
+    # ==================== 阶段四 安全加固：审计日志 ====================
+
+    @bp.route('/api/admin/audit-logs', methods=['GET'])
+    @auth.admin_required
+    def api_audit_logs():
+        """获取审计日志（分页、筛选）"""
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 50))
+            user_id = request.args.get('user_id', '').strip()
+            action = request.args.get('action', '').strip()
+            search = request.args.get('search', '').strip()
+            page = max(1, page)
+            per_page = max(1, min(200, per_page))
+            uid = int(user_id) if user_id.isdigit() else None
+            result = db.get_audit_logs(page=page, per_page=per_page,
+                                       user_id=uid, action=action or None,
+                                       search=search)
+            return jsonify({'status': 'success', **result})
+        except Exception as e:
+            logger.error(f"获取审计日志失败: {e}")
+            return jsonify({'status': 'error', 'error': '获取审计日志失败'}), 500
+
+    # ==================== 阶段四 安全加固：自动备份 ====================
+
+    @bp.route('/api/admin/auto-backup', methods=['POST'])
+    @auth.admin_required
+    def api_auto_backup():
+        """触发自动备份（管理员手动触发，返回备份文件信息）"""
+        import os as _os
+        import json as _json
+        import time as _time
+        try:
+            backup_dir = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), 'backups')
+            _os.makedirs(backup_dir, exist_ok=True)
+
+            # 恢复前自动快照
+            backup = {
+                'version': 1,
+                'exported_at': _time.time(),
+                'db_type': db.DB_TYPE,
+                'tables': {},
+            }
+            with db.engine.connect() as conn:
+                for table in _BACKUP_TABLES:
+                    try:
+                        rows = conn.execute(db.text(f"SELECT * FROM {table}")).fetchall()
+                        backup['tables'][table] = [dict(r._mapping) for r in rows]
+                    except Exception:
+                        backup['tables'][table] = []
+
+            timestamp = _time.strftime('%Y%m%d_%H%M%S')
+            filename = f'backup_{timestamp}.json'
+            filepath = _os.path.join(backup_dir, filename)
+
+            # 加密备份（使用 crypto_utils）
+            try:
+                import crypto_utils
+                backup_str = _json.dumps(backup, ensure_ascii=False)
+                encrypted = crypto_utils.encrypt(backup_str)
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(encrypted)
+            except Exception:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    _json.dump(backup, f, ensure_ascii=False)
+
+            # 清理旧备份（保留7天每日 + 4周每周）
+            _cleanup_old_backups(backup_dir)
+
+            current = auth.get_current_user()
+            db.add_audit_log(
+                current['id'] if current else None, 'backup_create',
+                target_type='system', target_id=filename,
+                ip=request.remote_addr or '',
+                user_agent=request.headers.get('User-Agent', ''),
+                details=f'管理员创建备份: {filename}'
+            )
+
+            return jsonify({'status': 'success', 'filename': filename, 'records': sum(len(v) for v in backup['tables'].values())})
+        except Exception as e:
+            logger.error(f"自动备份失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
     return bp
+
+
+def _cleanup_old_backups(backup_dir):
+    """清理旧备份文件：保留最近7天每日 + 最近4周每周"""
+    import os as _os
+    import time as _time
+    import re as _re
+    try:
+        if not _os.path.isdir(backup_dir):
+            return
+        now = _time.time()
+        files = []
+        for f in _os.listdir(backup_dir):
+            if f.startswith('backup_') and f.endswith('.json'):
+                filepath = _os.path.join(backup_dir, f)
+                mtime = _os.path.getmtime(filepath)
+                files.append((filepath, mtime, f))
+
+        # 按时间倒序
+        files.sort(key=lambda x: x[1], reverse=True)
+
+        keep = set()
+        daily_cutoff = now - 7 * 86400
+        weekly_cutoff = now - 28 * 86400
+        seen_weeks = set()
+
+        for filepath, mtime, fname in files:
+            age_days = (now - mtime) / 86400
+            if age_days <= 7:
+                keep.add(filepath)  # 7天内全部保留
+            elif age_days <= 28:
+                # 28天内每周保留一个
+                week_num = int((now - mtime) / (7 * 86400))
+                if week_num not in seen_weeks:
+                    seen_weeks.add(week_num)
+                    keep.add(filepath)
+
+        # 删除不在保留列表中的
+        for filepath, _, _ in files:
+            if filepath not in keep:
+                try:
+                    _os.remove(filepath)
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.debug(f"清理旧备份失败: {e}")

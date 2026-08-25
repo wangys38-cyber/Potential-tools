@@ -273,24 +273,172 @@
         searchTimer = setTimeout(function() { state.search = val; state.page = 1; loadUsers(); }, 300);
     }
 
+    // ==================== 阶段四：操作日志 Tab ====================
+
+    var auditState = {
+        page: 1,
+        perPage: 50,
+        search: '',
+        action: '',
+        total: 0,
+        totalPages: 1,
+        logs: []
+    };
+
+    var ACTION_LABELS = {
+        login: '登录', logout: '登出', register: '注册',
+        password_change: '修改密码', account_delete: '删除账号',
+        data_export: '数据导出', session_timeout: '会话超时',
+        login_failed: '登录失败', backup_create: '创建备份',
+        user_update: '更新用户', user_delete: '删除用户',
+        admin_toggle: '管理员变更', password_reset: '重置密码'
+    };
+
+    function switchTab(tab) {
+        var tabUsers = document.getElementById('tabUsers');
+        var tabAudit = document.getElementById('tabAudit');
+        var usersWrap = document.getElementById('usersTableWrap');
+        var auditWrap = document.getElementById('auditTableWrap');
+        var userStats = document.getElementById('adminStats');
+        var auditStats = document.getElementById('auditStats');
+        var userSearch = document.getElementById('userSearchWrap');
+        var auditSearch = document.getElementById('auditSearchWrap');
+
+        if (tab === 'audit') {
+            tabUsers.classList.remove('active');
+            tabAudit.classList.add('active');
+            tabUsers.style.color = '#86868b';
+            tabAudit.style.color = '#1d1d1f';
+            tabAudit.style.borderBottomColor = '#1d1d1f';
+            tabUsers.style.borderBottomColor = 'transparent';
+            usersWrap.style.display = 'none';
+            auditWrap.style.display = 'block';
+            userStats.style.display = 'none';
+            auditStats.style.display = 'block';
+            userSearch.style.display = 'none';
+            auditSearch.style.display = 'flex';
+            if (auditState.logs.length === 0) loadAuditLogs(1);
+        } else {
+            tabAudit.classList.remove('active');
+            tabUsers.classList.add('active');
+            tabUsers.style.color = '#1d1d1f';
+            tabUsers.style.borderBottomColor = '#1d1d1f';
+            tabAudit.style.color = '#86868b';
+            tabAudit.style.borderBottomColor = 'transparent';
+            usersWrap.style.display = 'block';
+            auditWrap.style.display = 'none';
+            userStats.style.display = 'block';
+            auditStats.style.display = 'none';
+            userSearch.style.display = 'flex';
+            auditSearch.style.display = 'none';
+        }
+    }
+
+    function loadAuditLogs(page) {
+        auditState.page = page || auditState.page;
+        var tbody = document.getElementById('auditTbody');
+        tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载中...</td></tr>';
+        var url = '/api/admin/audit-logs?page=' + auditState.page + '&per_page=' + auditState.perPage;
+        if (auditState.search) url += '&search=' + encodeURIComponent(auditState.search);
+        if (auditState.action) url += '&action=' + encodeURIComponent(auditState.action);
+        fetch(url, { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.status === 'success') {
+                    auditState.logs = res.logs || [];
+                    auditState.total = res.total || 0;
+                    auditState.totalPages = Math.ceil(auditState.total / auditState.perPage) || 1;
+                    renderAuditTable();
+                    renderAuditPagination();
+                    document.getElementById('totalAudit').textContent = auditState.total;
+                } else {
+                    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">加载失败</td></tr>';
+                }
+            })
+            .catch(function() {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">网络错误，请重试</td></tr>';
+            });
+    }
+
+    function renderAuditTable() {
+        var tbody = document.getElementById('auditTbody');
+        if (!auditState.logs.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6">暂无操作记录</td></tr>';
+            return;
+        }
+        var html = '';
+        auditState.logs.forEach(function(log) {
+            var userName = log.user_name || log.user_email || '系统';
+            var actionLabel = ACTION_LABELS[log.action] || log.action;
+            var target = log.target_type ? (log.target_type + (log.target_id ? ':' + log.target_id : '')) : '—';
+            html += '<tr>' +
+                '<td>' + formatDate(log.created_at) + '</td>' +
+                '<td>' + escapeHtml(userName) + '</td>' +
+                '<td><span class="badge badge-provider">' + escapeHtml(actionLabel) + '</span></td>' +
+                '<td>' + escapeHtml(target) + '</td>' +
+                '<td style="font-size:12px;color:#86868b;">' + escapeHtml(log.ip || '—') + '</td>' +
+                '<td style="font-size:12px;color:#424245;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(log.details || '') + '">' + escapeHtml(log.details || '—') + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    function renderAuditPagination() {
+        document.getElementById('prevPage').disabled = auditState.page <= 1;
+        document.getElementById('nextPage').disabled = auditState.page >= auditState.totalPages;
+        document.getElementById('pageInfo').textContent = '第 ' + auditState.page + ' / ' + auditState.totalPages + ' 页（共 ' + auditState.total + ' 条）';
+    }
+
+    var auditSearchTimer = null;
+    function onAuditSearchInput() {
+        var val = document.getElementById('auditSearchInput').value.trim();
+        clearTimeout(auditSearchTimer);
+        auditSearchTimer = setTimeout(function() { auditState.search = val; auditState.page = 1; loadAuditLogs(1); }, 300);
+    }
+
     function init() {
         document.getElementById('searchInput').addEventListener('input', onSearchInput);
-        document.getElementById('refreshBtn').addEventListener('click', function() { loadUsers(); showToast('已刷新', 'success'); });
-        document.getElementById('prevPage').addEventListener('click', function() { if (state.page > 1) { state.page--; loadUsers(); } });
-        document.getElementById('nextPage').addEventListener('click', function() { if (state.page < state.totalPages) { state.page++; loadUsers(); } });
+        var auditSearchEl = document.getElementById('auditSearchInput');
+        if (auditSearchEl) auditSearchEl.addEventListener('input', onAuditSearchInput);
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            if (document.getElementById('auditTableWrap').style.display !== 'none') {
+                loadAuditLogs(auditState.page);
+            } else {
+                loadUsers();
+            }
+            showToast('已刷新', 'success');
+        });
+        document.getElementById('prevPage').addEventListener('click', function() {
+            if (document.getElementById('auditTableWrap').style.display !== 'none') {
+                if (auditState.page > 1) { auditState.page--; loadAuditLogs(auditState.page); }
+            } else {
+                if (state.page > 1) { state.page--; loadUsers(); }
+            }
+        });
+        document.getElementById('nextPage').addEventListener('click', function() {
+            if (document.getElementById('auditTableWrap').style.display !== 'none') {
+                if (auditState.page < auditState.totalPages) { auditState.page++; loadAuditLogs(auditState.page); }
+            } else {
+                if (state.page < state.totalPages) { state.page++; loadUsers(); }
+            }
+        });
         document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
             overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.style.display = 'none'; });
         });
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(function(m) { m.style.display = 'none'; });
         });
+        // 初始化 Tab 样式
+        var tabUsers = document.getElementById('tabUsers');
+        if (tabUsers) { tabUsers.style.color = '#1d1d1f'; tabUsers.style.borderBottomColor = '#1d1d1f'; }
         loadUsers();
     }
 
     window.AdminUsers = {
         openEdit: openEdit, saveEdit: saveEdit,
         openReset: openReset, genRandomPassword: genRandomPassword, confirmReset: confirmReset, copyPassword: copyPassword,
-        toggleAdmin: toggleAdmin, openDelete: openDelete, confirmDelete: confirmDelete, closeModal: closeModal
+        toggleAdmin: toggleAdmin, openDelete: openDelete, confirmDelete: confirmDelete, closeModal: closeModal,
+        switchTab: switchTab, loadAuditLogs: loadAuditLogs
     };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

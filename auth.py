@@ -1,22 +1,33 @@
 """
-认证模块 - 飞书OAuth + Google OAuth
+认证模块 - 飞书OAuth + Google OAuth + 账号密码
 
 设计原则：
 1. 用户信息（name/email/avatar/provider）直接存入 session，避免每次请求都查数据库
 2. session 持久化（7天有效期），关闭浏览器不丢失
 3. 数据库仅在登录/退出时操作，不影响日常请求性能
+4. 阶段四安全加固：密码强度校验、登录失败锁定、Session管理、CSRF
 """
 import os
 import json
 import secrets
 import logging
+import time
 import requests
 from functools import wraps
 from urllib.parse import urlencode
 from flask import session, redirect, request, url_for, jsonify, g
 import db
+import security
 
 logger = logging.getLogger(__name__)
+
+# ==================== 安全加固配置 ====================
+MAX_LOGIN_ATTEMPTS = 5          # 连续失败次数阈值
+LOGIN_LOCKOUT_SECONDS = 900     # 锁定时长（15分钟）
+SESSION_IDLE_TIMEOUT = 1800     # 空闲超时（30分钟）
+MAX_ACTIVE_SESSIONS = 3         # 同账号最大活跃会话数
+REMEMBER_ME_DAYS = 7            # 记住登录天数
+DEFAULT_SESSION_HOURS = 24      # 默认会话时长（24小时）
 
 # ==================== 配置加载 ====================
 
@@ -140,10 +151,37 @@ def is_logged_in():
     return session.get('user_id') is not None
 
 
+def _get_client_ip():
+    """获取客户端真实 IP（兼容反向代理）"""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or ''
+
+
 def _set_session_user(user_id, name, email, avatar, provider, is_admin=False,
-                      nickname='', department='', role='member', skills=None):
-    """将用户信息写入 session（登录成功时调用）"""
+                      nickname='', department='', role='member', skills=None,
+                      remember_me=False):
+    """将用户信息写入 session（登录成功时调用）
+
+    阶段四安全加固：
+    - 生成 session_token 用于活跃会话追踪
+    - 同账号最多 MAX_ACTIVE_SESSIONS 个活跃会话，超出踢最早
+    - remember_me=True 时会话 7 天，否则 24 小时
+    """
+    # 生成会话令牌
+    session_token = secrets.token_urlsafe(32)
     session.permanent = True
+
+    # 设置会话有效期
+    from datetime import timedelta
+    if remember_me:
+        session.permanent_lifetime = timedelta(days=REMEMBER_ME_DAYS)
+        expires_at = time.time() + REMEMBER_ME_DAYS * 86400
+    else:
+        session.permanent_lifetime = timedelta(hours=DEFAULT_SESSION_HOURS)
+        expires_at = time.time() + DEFAULT_SESSION_HOURS * 3600
+
     session['user_id'] = user_id
     session['user_name'] = name
     session['user_email'] = email
@@ -154,6 +192,49 @@ def _set_session_user(user_id, name, email, avatar, provider, is_admin=False,
     session['user_department'] = department or ''
     session['user_role'] = role or 'member'
     session['user_skills'] = skills if isinstance(skills, list) else []
+    session['session_token'] = session_token
+    session['last_activity'] = time.time()
+    session['remember_me'] = bool(remember_me)
+
+    # 记录活跃会话
+    ip = _get_client_ip()
+    user_agent = request.headers.get('User-Agent', '')
+    db.create_user_session(user_id, session_token, ip=ip, user_agent=user_agent, expires_at=expires_at)
+
+    # 超出最大会话数时踢掉最早的
+    removed_tokens = db.remove_oldest_sessions(user_id, keep_count=MAX_ACTIVE_SESSIONS)
+    if removed_tokens:
+        logger.info(f"用户 {user_id} 超出最大会话数，已踢出 {len(removed_tokens)} 个旧会话")
+
+    # 生成 CSRF Token
+    security.generate_csrf_token()
+
+
+def check_session_timeout():
+    """检查会话空闲超时（30分钟无操作自动登出）
+
+    Returns:
+        True 表示会话已超时，False 表示正常
+    """
+    user_id = session.get('user_id')
+    if not user_id:
+        return False
+
+    # remember_me 用户不强制空闲超时
+    if session.get('remember_me'):
+        session['last_activity'] = time.time()
+        return False
+
+    last_activity = session.get('last_activity', 0)
+    if last_activity and (time.time() - last_activity) > SESSION_IDLE_TIMEOUT:
+        return True
+
+    session['last_activity'] = time.time()
+    # 更新数据库会话活跃时间
+    token = session.get('session_token')
+    if token:
+        db.update_session_activity(token)
+    return False
 
 
 def _refresh_session_profile(user_id):
@@ -417,6 +498,14 @@ def logout():
     """退出登录 — 清除所有 session 数据"""
     user = get_current_user()
     if user:
+        ip = _get_client_ip()
+        db.add_audit_log(user['id'], 'logout', target_type='user', target_id=user['id'],
+                         ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                         details='用户退出登录')
+        # 删除会话记录
+        token = session.get('session_token')
+        if token:
+            db.delete_user_session(token)
         logger.info(f"用户退出登录: {user.get('name')} (ID: {user.get('id')})")
     session.clear()
     return redirect(url_for('login_page'))
@@ -425,16 +514,37 @@ def logout():
 # ==================== v9.0 账号密码注册/登录 API ====================
 
 def register():
-    """POST /api/auth/register — 账号密码注册"""
+    """POST /api/auth/register — 账号密码注册
+
+    阶段四安全加固：
+    - 密码强度校验（至少8位含字母数字）
+    - 用户名/邮箱格式校验
+    - 注册时需勾选同意隐私政策
+    """
     data = request.get_json(silent=True) or request.form
     username = (data.get('username') or '').strip()
     email = (data.get('email') or '').strip()
     password = data.get('password') or ''
+    agree_privacy = data.get('agree_privacy', False)
 
-    if not username or not password:
-        return jsonify({'error': '用户名和密码不能为空'}), 400
-    if len(password) < 6:
-        return jsonify({'error': '密码长度至少 6 位'}), 400
+    # 隐私政策同意校验
+    if not agree_privacy:
+        return jsonify({'error': '请先阅读并同意隐私政策'}), 400
+
+    # 用户名校验
+    valid, msg = security.validate_username(username)
+    if not valid:
+        return jsonify({'error': msg}), 400
+
+    # 邮箱校验（可选）
+    valid, msg = security.validate_email(email)
+    if not valid:
+        return jsonify({'error': msg}), 400
+
+    # 密码强度校验
+    valid, strength, msg = security.validate_password_strength(password)
+    if not valid:
+        return jsonify({'error': msg, 'strength': strength}), 400
 
     # 唯一性校验
     if db.get_user_by_username(username):
@@ -446,6 +556,12 @@ def register():
     if not user_id:
         return jsonify({'error': '注册失败，请重试'}), 500
 
+    # 记录审计日志
+    ip = _get_client_ip()
+    db.add_audit_log(user_id, 'register', target_type='user', target_id=user_id,
+                     ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                     details=f'用户注册: {username}')
+
     logger.info(f"新用户注册成功: {username} (ID: {user_id})")
     return jsonify({
         'status': 'success',
@@ -454,29 +570,76 @@ def register():
 
 
 def login():
-    """POST /api/auth/login — 账号密码登录"""
+    """POST /api/auth/login — 账号密码登录
+
+    阶段四安全加固：
+    - 连续5次失败锁定15分钟（按IP+用户ID）
+    - 支持 remember_me（7天 vs 24小时）
+    - 记录登录审计日志
+    """
     data = request.get_json(silent=True) or request.form
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
+    remember_me = bool(data.get('remember_me', False))
+    ip = _get_client_ip()
 
     if not username or not password:
         return jsonify({'error': '用户名和密码不能为空'}), 400
 
+    # 检查是否已被锁定（按IP）
+    failed_count = db.count_recent_failed_attempts(ip=ip, window_seconds=LOGIN_LOCKOUT_SECONDS)
+    if failed_count >= MAX_LOGIN_ATTEMPTS:
+        return jsonify({
+            'error': f'登录失败次数过多，请 {LOGIN_LOCKOUT_SECONDS // 60} 分钟后重试',
+            'locked': True
+        }), 429
+
+    # 检查用户是否存在（用于按用户ID锁定）
+    existing_user = db.get_user_by_username(username)
+    if not existing_user and '@' in username:
+        existing_user = db.get_user_by_email(username)
+
+    if existing_user:
+        user_failed = db.count_recent_failed_attempts(user_id=existing_user['id'], window_seconds=LOGIN_LOCKOUT_SECONDS)
+        if user_failed >= MAX_LOGIN_ATTEMPTS:
+            return jsonify({
+                'error': f'账号已被临时锁定，请 {LOGIN_LOCKOUT_SECONDS // 60} 分钟后重试',
+                'locked': True
+            }), 429
+
     user = db.verify_user_password(username, password)
     if not user:
-        # 区分用户不存在和密码错误
-        existing = db.get_user_by_username(username) or (db.get_user_by_email(username) if '@' in username else None)
-        if not existing:
-            return jsonify({'error': '用户不存在'}), 404
-        return jsonify({'error': '密码错误'}), 401
+        # 记录失败尝试
+        user_id = existing_user['id'] if existing_user else None
+        db.record_login_attempt(user_id=user_id, ip=ip, success=False)
+
+        # 区分用户不存在和密码错误（不泄露具体信息，但记录审计）
+        if not existing_user:
+            db.add_audit_log(None, 'login_failed', target_type='user', target_id=username,
+                             ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                             details=f'用户不存在: {username}')
+            return jsonify({'error': '用户名或密码错误'}), 401
+
+        remaining = MAX_LOGIN_ATTEMPTS - failed_count - 1
+        db.add_audit_log(existing_user['id'], 'login_failed', target_type='user',
+                         target_id=existing_user['id'], ip=ip,
+                         user_agent=request.headers.get('User-Agent', ''),
+                         details=f'密码错误，剩余尝试次数: {max(0, remaining)}')
+        return jsonify({'error': '用户名或密码错误', 'remaining_attempts': max(0, remaining)}), 401
+
+    # 检查用户是否被软删除
+    if db.is_user_deleted(user['id']):
+        return jsonify({'error': '账号已被注销，如需恢复请联系管理员'}), 403
+
+    # 登录成功
+    db.record_login_attempt(user_id=user['id'], ip=ip, success=True)
 
     # 更新最后登录时间
     try:
-        import time as _time
         with db.engine.begin() as conn:
             conn.execute(
                 db.text("UPDATE users SET last_login = :last_login WHERE id = :id"),
-                {'last_login': _time.time(), 'id': user['id']}
+                {'last_login': time.time(), 'id': user['id']}
             )
     except Exception:
         pass
@@ -488,8 +651,15 @@ def login():
         avatar=user.get('avatar') or '',
         provider=user.get('provider') or 'local',
         is_admin=bool(user.get('is_admin', 0)),
+        remember_me=remember_me,
     )
     _refresh_session_profile(user['id'])
+
+    # 记录登录审计日志
+    db.add_audit_log(user['id'], 'login', target_type='user', target_id=user['id'],
+                     ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                     details=f'用户登录，remember_me={remember_me}')
+
     logger.info(f"用户登录成功: {user.get('name') or username} (ID: {user['id']})")
     return jsonify({
         'status': 'success',
@@ -501,6 +671,13 @@ def logout_api():
     """POST /api/auth/logout — API 退出登录"""
     user = get_current_user()
     if user:
+        ip = _get_client_ip()
+        db.add_audit_log(user['id'], 'logout', target_type='user', target_id=user['id'],
+                         ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                         details='API退出登录')
+        token = session.get('session_token')
+        if token:
+            db.delete_user_session(token)
         logger.info(f"用户退出登录: {user.get('name')} (ID: {user.get('id')})")
     session.clear()
     return jsonify({'status': 'success'})

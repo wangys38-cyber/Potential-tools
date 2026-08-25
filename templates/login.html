@@ -244,6 +244,56 @@
             line-height: 1.6;
         }
 
+        /* 密码强度指示器 */
+        .pw-strength {
+            margin-top: 8px;
+            display: flex;
+            gap: 4px;
+        }
+        .pw-bar {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: #e5e5ea;
+            transition: background 0.2s;
+        }
+        .pw-bar.weak { background: #ff3b30; }
+        .pw-bar.medium { background: #ff9500; }
+        .pw-bar.strong { background: #34c759; }
+        .pw-label {
+            font-size: 12px;
+            color: #86868b;
+            margin-top: 4px;
+        }
+        .pw-label.weak { color: #ff3b30; }
+        .pw-label.medium { color: #ff9500; }
+        .pw-label.strong { color: #34c759; }
+
+        /* 记住我 & 隐私协议 */
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+        .checkbox-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: #424245;
+        }
+        .checkbox-wrap input { width: 16px; height: 16px; cursor: pointer; }
+        .privacy-agree {
+            font-size: 12px;
+            color: #86868b;
+            margin: 12px 0;
+            line-height: 1.5;
+        }
+        .privacy-agree a { color: #0071e3; text-decoration: none; }
+        .privacy-agree a:hover { text-decoration: underline; }
+
         @media (max-width: 400px) {
             .auth-card { padding: 24px 20px; }
         }
@@ -282,6 +332,11 @@
                     </button>
                 </div>
             </div>
+            <div class="form-options">
+                <label class="checkbox-wrap">
+                    <input type="checkbox" id="login-remember"> 记住我（7天）
+                </label>
+            </div>
             <button type="button" class="btn-primary" id="login-submit" onclick="doLogin()">登录</button>
             <div class="switch-link">
                 没有账号？<a onclick="showRegister()">立即注册</a>
@@ -306,11 +361,17 @@
             <div class="form-group">
                 <label for="reg-password">密码</label>
                 <div class="input-wrap">
-                    <input type="password" id="reg-password" placeholder="至少 6 位" autocomplete="new-password">
+                    <input type="password" id="reg-password" placeholder="至少 8 位，含字母和数字" autocomplete="new-password" oninput="checkPasswordStrength()">
                     <button type="button" class="toggle-pw" onclick="togglePassword('reg-password', this)" aria-label="显示密码">
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                 </div>
+                <div class="pw-strength">
+                    <div class="pw-bar" id="pw-bar-1"></div>
+                    <div class="pw-bar" id="pw-bar-2"></div>
+                    <div class="pw-bar" id="pw-bar-3"></div>
+                </div>
+                <div class="pw-label" id="pw-label">密码强度：未输入</div>
             </div>
             <div class="form-group">
                 <label for="reg-confirm">确认密码</label>
@@ -320,6 +381,11 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                 </div>
+            </div>
+            <div class="privacy-agree">
+                <label class="checkbox-wrap">
+                    <input type="checkbox" id="reg-agree"> 我已阅读并同意 <a href="/privacy" target="_blank">隐私政策</a>
+                </label>
             </div>
             <button type="button" class="btn-primary" id="register-submit" onclick="doRegister()">注册</button>
             <div class="switch-link">
@@ -356,7 +422,8 @@
 
     <div class="login-footer">
         登录后可保存分析记录和个人设置<br>
-        游客模式下数据仅保存在本地
+        游客模式下数据仅保存在本地<br>
+        <a href="/privacy" style="color:#0071e3;text-decoration:none;">隐私政策</a>
     </div>
 
     <script src="/static/js/login.js?v={{ STATIC_VERSION }}"></script>

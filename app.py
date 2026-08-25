@@ -14,6 +14,7 @@ import auth
 import db
 import rate_limiter
 import request_logger
+import security
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
@@ -169,8 +170,10 @@ os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 @app.context_processor
 def inject_user():
     # 快速检查 session，避免无谓的字典构造
+    csrf_token = security.get_csrf_token()
     if not session.get('user_id'):
-        return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION, APP_VERSION=APP_VERSION)
+        return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION,
+                    APP_VERSION=APP_VERSION, csrf_token=csrf_token)
     return dict(
         current_user={
             'id': session.get('user_id'),
@@ -187,6 +190,7 @@ def inject_user():
         is_logged_in=True,
         STATIC_VERSION=_STATIC_VERSION,
         APP_VERSION=APP_VERSION,
+        csrf_token=csrf_token,
     )
 
 
@@ -221,6 +225,7 @@ _PUBLIC_PATHS = (
     '/api/upload-complete',  # 同上
     '/ws/',                  # WebSocket端点自行检查认证
     '/share/',               # v5.3: 共享工作空间允许匿名查看
+    '/privacy',               # 隐私政策页（公开访问）
 )
 
 @app.before_request
@@ -270,7 +275,12 @@ def _maybe_cleanup():
     try:
         db.cleanup_old_tasks(max_age_hours=6)
         db.cleanup_old_activity(max_age_days=90)
-        logger.info("清理过期任务和活动记录完成")
+        # 阶段四安全加固：清理登录尝试（24h）、审计日志（90天）、过期会话、软删除用户（30天）
+        db.cleanup_old_login_attempts(max_age_hours=24)
+        db.cleanup_old_audit_logs(max_age_days=90)
+        db.cleanup_expired_sessions()
+        db.purge_expired_deleted_users(grace_days=30)
+        logger.info("清理过期任务、活动记录和安全数据完成")
     except Exception as e:
         logger.error(f"清理过期任务失败: {e}")
 
@@ -326,6 +336,34 @@ def api_rate_limit():
 def log_request_start():
     """记录请求开始时间（用于结构化请求日志）"""
     request_logger.before_request_log()
+
+
+@app.before_request
+def security_middleware():
+    """阶段四安全加固：CSRF 防护 + 会话空闲超时"""
+    # 1. 会话空闲超时检查
+    if session.get('user_id'):
+        if auth.check_session_timeout():
+            # 会话超时，清理并跳转登录
+            token = session.get('session_token')
+            if token:
+                db.delete_user_session(token)
+            user_id = session.get('user_id')
+            db.add_audit_log(user_id, 'session_timeout', target_type='user',
+                             target_id=user_id, ip=request.remote_addr or '',
+                             user_agent=request.headers.get('User-Agent', ''),
+                             details='会话空闲超时自动登出')
+            session.clear()
+            if request.path.startswith('/api/'):
+                return jsonify({'error': '会话已超时，请重新登录', 'need_login': True}), 401
+            return redirect(url_for('login_page'))
+
+    # 2. CSRF 防护（仅对非 GET 请求，已登录用户）
+    csrf_result = security.csrf_protect()
+    if csrf_result is not None:
+        return csrf_result
+
+    return None
 
 
 @app.after_request
@@ -475,6 +513,13 @@ def auth_logout():
 def health_check():
     """健康检查端点 — 无需认证，返回 200"""
     return jsonify({'status': 'ok', 'service': 'potential-tools'}), 200
+
+
+# ==================== 隐私政策页 ====================
+@app.route('/privacy')
+def privacy_page():
+    """隐私政策页面 — 公开访问"""
+    return render_template('privacy.html', nav_title='隐私政策')
 
 
 # ==================== 协作：共享页面 ====================

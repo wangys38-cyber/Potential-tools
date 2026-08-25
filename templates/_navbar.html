@@ -18,6 +18,40 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="工具集">
+<meta name="csrf-token" content="{{ csrf_token }}">
+<script>
+// 阶段四安全加固：全局 fetch 拦截器，自动添加 CSRF Token + 401 处理
+(function() {
+    var _origFetch = window.fetch;
+    if (!_origFetch) return;
+    window.fetch = function(url, opts) {
+        opts = opts || {};
+        var method = (opts.method || 'GET').toUpperCase();
+        if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            var token = meta ? meta.getAttribute('content') : '';
+            if (token) {
+                opts.headers = opts.headers || {};
+                if (opts.headers instanceof Headers) {
+                    opts.headers.set('X-CSRF-Token', token);
+                } else {
+                    opts.headers['X-CSRF-Token'] = token;
+                }
+            }
+        }
+        return _origFetch.call(this, url, opts).then(function(resp) {
+            if (resp.status === 401 && !url.includes('/api/auth/')) {
+                resp.json().then(function(data) {
+                    if (data && data.need_login) {
+                        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    }
+                }).catch(function() {});
+            }
+            return resp;
+        });
+    };
+})();
+</script>
 <script src="/static/js/performance.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/performance-enhanced.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/mobile-enhanced.js?v={{ STATIC_VERSION }}" defer></script>

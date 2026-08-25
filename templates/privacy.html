@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐私政策 - 工具集</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #fff;
+            color: #1d1d1f;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+        .back-link {
+            display: inline-block;
+            color: #0071e3;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .updated {
+            font-size: 13px;
+            color: #86868b;
+            margin-bottom: 40px;
+        }
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 36px 0 12px;
+        }
+        p { font-size: 15px; color: #424245; margin-bottom: 12px; }
+        ul { margin: 8px 0 16px 24px; }
+        li { font-size: 15px; color: #424245; margin-bottom: 6px; }
+        .contact-box {
+            background: #f5f5f7;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 32px;
+        }
+        .contact-box p { margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">返回首页</a>
+        <h1>隐私政策</h1>
+        <p class="updated">最后更新：2026年8月25日</p>
+
+        <h2>1. 我们收集的信息</h2>
+        <p>为了向您提供服务，我们可能收集以下信息：</p>
+        <ul>
+            <li><strong>账号信息</strong>：用户名、邮箱、密码（加密存储）、头像</li>
+            <li><strong>使用数据</strong>：您创建的笔记、分析记录、文档、偏好设置</li>
+            <li><strong>登录信息</strong>：登录时间、IP地址、浏览器User-Agent（用于安全审计）</li>
+            <li><strong>OAuth信息</strong>：通过飞书/Google/微信登录时，获取您的昵称、邮箱、头像</li>
+        </ul>
+
+        <h2>2. 信息的使用</h2>
+        <p>我们收集的信息仅用于：</p>
+        <ul>
+            <li>提供和维护工具集的各项功能</li>
+            <li>保存您的分析记录和个人设置</li>
+            <li>账号安全防护（登录异常检测、操作审计）</li>
+            <li>改进产品体验（匿名统计分析）</li>
+        </ul>
+
+        <h2>3. 数据存储与安全</h2>
+        <ul>
+            <li>密码使用 Werkzeug PBKDF2 算法加盐哈希存储，不可逆</li>
+            <li>API Key、Webhook Secret 等敏感数据使用 Fernet (AES-128) 加密存储</li>
+            <li>所有数据库查询使用参数化查询，防止 SQL 注入</li>
+            <li>用户数据按用户 ID 隔离存储，互不可见</li>
+            <li>登录失败5次自动锁定15分钟，防止暴力破解</li>
+            <li>操作日志保留90天，用于安全审计</li>
+        </ul>
+
+        <h2>4. 您的权利</h2>
+        <p>您对个人数据享有以下权利：</p>
+        <ul>
+            <li><strong>数据导出</strong>：可通过设置页面导出您的全部数据为 JSON 格式</li>
+            <li><strong>账号删除</strong>：可申请删除账号，数据将在30天内彻底清除（期间可恢复）</li>
+            <li><strong>数据更正</strong>：可随时修改个人资料和偏好设置</li>
+            <li><strong>访问控制</strong>：可查看您的登录记录和操作审计</li>
+        </ul>
+
+        <h2>5. 第三方服务</h2>
+        <p>我们使用以下第三方服务，其隐私政策另行适用：</p>
+        <ul>
+            <li>飞书 OAuth 登录（获取昵称、邮箱、头像）</li>
+            <li>Google OAuth 登录（获取昵称、邮箱、头像）</li>
+            <li>微信 OAuth 登录（获取昵称、头像）</li>
+            <li>AI 服务提供商（您主动配置的 API Key，数据传输至对应服务商）</li>
+        </ul>
+
+        <h2>6. Cookie 使用</h2>
+        <p>我们使用 Session Cookie 维持您的登录状态。Cookie 仅包含会话标识，不包含个人信息。登录状态默认保留24小时，勾选"记住我"可延长至7天。</p>
+
+        <h2>7. 数据保留</h2>
+        <ul>
+            <li>账号数据：账号存续期间保留，删除后30天彻底清除</li>
+            <li>登录尝试记录：保留24小时</li>
+            <li>审计日志：保留90天</li>
+            <li>活动记录：保留90天</li>
+            <li>数据备份：保留7天每日备份 + 4周每周备份</li>
+        </ul>
+
+        <h2>8. 政策更新</h2>
+        <p>我们可能适时更新本隐私政策。重大变更将通过站内通知或邮件告知您。继续使用服务即表示您同意更新后的政策。</p>
+
+        <div class="contact-box">
+            <h2 style="margin-top:0;">联系我们</h2>
+            <p>如对本隐私政策有任何疑问或请求行使您的数据权利，请通过以下方式联系：</p>
+            <p>邮箱：support@potential-tools.local</p>
+            <p>您也可以在「设置」页面中直接导出数据或申请账号删除。</p>
+        </div>
+    </div>
+</body>
+</html>

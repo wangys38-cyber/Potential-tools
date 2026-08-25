@@ -1,7 +1,8 @@
 """用户数据、功德、笔记同步 Blueprint"""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 import logging
 import json
+import time
 from datetime import datetime, timezone, timedelta
 
 bp = Blueprint('user', __name__)
@@ -360,3 +361,215 @@ def docs_delete(doc_id):
     except Exception as e:
         logger.error(f"删除文档失败: {e}")
         return jsonify({'error': '服务器内部错误'}), 500
+
+
+# ==================== 阶段四 安全加固：用户数据导出 ====================
+
+@bp.route('/api/user/export', methods=['GET'])
+def api_user_export():
+    """导出用户全部数据为 JSON（GDPR 合规）
+
+    包含：用户信息、笔记、分析记录、设置、偏好、活动记录
+    """
+    import auth
+    import db
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
+    try:
+        uid = user['id']
+        export_data = {
+            'exported_at': time.time(),
+            'version': 1,
+            'user': {
+                'id': uid,
+                'name': user.get('name', ''),
+                'email': user.get('email', ''),
+                'username': user.get('name', ''),
+                'provider': user.get('provider', ''),
+                'created_at': 0,
+            },
+            'notes': [],
+            'analysis_records': [],
+            'documents': [],
+            'preferences': {},
+            'activity_summary': {},
+        }
+
+        # 用户基本信息
+        user_profile = db.get_user_profile(uid)
+        if user_profile:
+            export_data['user']['created_at'] = user_profile.get('created_at', 0)
+            export_data['user']['nickname'] = user_profile.get('nickname', '')
+            export_data['user']['department'] = user_profile.get('department', '')
+            export_data['user']['role'] = user_profile.get('role', '')
+
+        # 笔记
+        notes = db.get_notes(uid)
+        export_data['notes'] = [{
+            'note_uid': n.get('note_uid', ''),
+            'title': n.get('title', ''),
+            'content': n.get('content', ''),
+            'category': n.get('category', ''),
+            'tags': n.get('tags', []),
+            'is_todo': n.get('is_todo', False),
+            'pinned': n.get('pinned', False),
+            'created_at': n.get('created_at', 0),
+            'updated_at': n.get('updated_at', 0),
+        } for n in notes]
+
+        # 分析记录（user_data 表中除文档外的所有数据）
+        all_data = db.get_user_data_list(uid, limit=500)
+        for item in all_data:
+            dtype = item.get('data_type', '')
+            entry = {
+                'id': item.get('id'),
+                'data_type': dtype,
+                'title': item.get('title', ''),
+                'content': item.get('content', ''),
+                'created_at': item.get('created_at', 0),
+            }
+            if dtype == 'document':
+                export_data['documents'].append(entry)
+            else:
+                export_data['analysis_records'].append(entry)
+
+        # 偏好设置
+        prefs = db.get_user_preferences(uid)
+        export_data['preferences'] = prefs
+
+        # 活动统计
+        stats = db.get_user_activity_stats(uid, days=30)
+        export_data['activity_summary'] = {
+            'total_requests_30d': stats.get('total_requests', 0),
+            'top_tools': stats.get('top_tools', []),
+        }
+
+        # 记录审计日志
+        ip = request.remote_addr or ''
+        db.add_audit_log(uid, 'data_export', target_type='user', target_id=uid,
+                         ip=ip, user_agent=request.headers.get('User-Agent', ''),
+                         details=f'用户导出个人数据，笔记{len(notes)}条，分析记录{len(export_data["analysis_records"])}条')
+
+        return jsonify({'status': 'success', 'data': export_data})
+    except Exception as e:
+        logger.error(f"用户数据导出失败: {e}")
+        return jsonify({'error': '数据导出失败，请稍后重试'}), 500
+
+
+# ==================== 阶段四 安全加固：用户账号删除 ====================
+
+@bp.route('/api/user/delete', methods=['POST'])
+def api_user_delete():
+    """软删除用户账号（30天内可恢复）
+
+    请求体需包含 confirm: true 和 password（本地账号需验证密码）
+    """
+    import auth
+    import db
+    import security
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
+    try:
+        data = request.get_json(silent=True) or {}
+        confirm = data.get('confirm', False)
+        if not confirm:
+            return jsonify({'error': '请确认删除操作'}), 400
+
+        uid = user['id']
+        ip = request.remote_addr or ''
+        user_agent = request.headers.get('User-Agent', '')
+
+        # 本地账号需验证密码
+        if user.get('provider') == 'local':
+            password = data.get('password', '')
+            if not password:
+                return jsonify({'error': '请输入密码确认'}), 400
+            username = user.get('name', '')
+            verified = db.verify_user_password(username, password)
+            if not verified:
+                return jsonify({'error': '密码错误'}), 401
+
+        # 软删除
+        success = db.soft_delete_user(uid)
+        if not success:
+            return jsonify({'error': '账号删除失败或已被删除'}), 400
+
+        # 记录审计日志
+        db.add_audit_log(uid, 'account_delete', target_type='user', target_id=uid,
+                         ip=ip, user_agent=user_agent,
+                         details='用户申请删除账号（软删除，30天内可恢复）')
+
+        # 清除所有会话
+        db.delete_all_user_sessions(uid)
+
+        # 清除当前 session
+        session.clear()
+
+        return jsonify({'status': 'success', 'message': '账号已标记删除，30天内可联系管理员恢复'})
+    except Exception as e:
+        logger.error(f"用户账号删除失败: {e}")
+        return jsonify({'error': '账号删除失败，请稍后重试'}), 500
+
+
+# ==================== 阶段四 安全加固：修改密码 ====================
+
+@bp.route('/api/user/change-password', methods=['POST'])
+def api_change_password():
+    """修改用户密码（需验证旧密码）"""
+    import auth
+    import db
+    import security
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({'error': '请先登录', 'need_login': True}), 401
+
+    # 仅本地账号支持改密
+    if user.get('provider') != 'local':
+        return jsonify({'error': '第三方登录账号请通过对应平台修改密码'}), 400
+
+    try:
+        data = request.get_json(silent=True) or {}
+        old_password = data.get('old_password', '')
+        new_password = data.get('new_password', '')
+
+        if not old_password or not new_password:
+            return jsonify({'error': '请输入旧密码和新密码'}), 400
+
+        # 验证旧密码
+        username = user.get('name', '')
+        verified = db.verify_user_password(username, old_password)
+        if not verified:
+            return jsonify({'error': '旧密码错误'}), 401
+
+        # 新密码强度校验
+        valid, strength, msg = security.validate_password_strength(new_password)
+        if not valid:
+            return jsonify({'error': msg, 'strength': strength}), 400
+
+        # 更新密码
+        success = db.update_user_password(user['id'], new_password)
+        if not success:
+            return jsonify({'error': '密码更新失败'}), 500
+
+        # 记录审计日志
+        ip = request.remote_addr or ''
+        db.add_audit_log(user['id'], 'password_change', target_type='user',
+                         target_id=user['id'], ip=ip,
+                         user_agent=request.headers.get('User-Agent', ''),
+                         details='用户修改密码')
+
+        # 清除其他会话（保留当前）
+        current_token = session.get('session_token')
+        all_sessions = db.get_active_sessions(user['id'])
+        for s in all_sessions:
+            if s['session_token'] != current_token:
+                db.delete_user_session(s['session_token'])
+
+        return jsonify({'status': 'success', 'message': '密码已更新，其他设备已下线'})
+    except Exception as e:
+        logger.error(f"修改密码失败: {e}")
+        return jsonify({'error': '密码修改失败，请稍后重试'}), 500

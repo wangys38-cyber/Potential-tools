@@ -19,9 +19,13 @@
     <div class="admin-header">
         <h1 class="admin-title">用户管理</h1>
         <div class="admin-toolbar">
-            <div class="admin-search">
+            <div class="admin-search" id="userSearchWrap">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" id="searchInput" placeholder="搜索用户名/邮箱/昵称..." autocomplete="off">
+            </div>
+            <div class="admin-search" id="auditSearchWrap" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="auditSearchInput" placeholder="搜索操作详情..." autocomplete="off">
             </div>
             <button class="btn btn-secondary" id="refreshBtn" title="刷新">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -30,11 +34,32 @@
         </div>
     </div>
 
+    <!-- Tab 切换 -->
+    <div class="admin-tabs" style="display:flex;gap:0;border-bottom:1px solid #e5e5ea;margin-bottom:16px;">
+        <button class="admin-tab active" id="tabUsers" onclick="AdminUsers.switchTab('users')" style="padding:10px 20px;background:none;border:none;font-size:14px;font-weight:500;cursor:pointer;color:#86868b;border-bottom:2px solid transparent;margin-bottom:-1px;">用户列表</button>
+        <button class="admin-tab" id="tabAudit" onclick="AdminUsers.switchTab('audit')" style="padding:10px 20px;background:none;border:none;font-size:14px;font-weight:500;cursor:pointer;color:#86868b;border-bottom:2px solid transparent;margin-bottom:-1px;">操作日志</button>
+    </div>
+
     <div class="admin-stats" id="adminStats">
         <span class="stat-item">共 <strong id="totalUsers">0</strong> 位用户</span>
     </div>
+    <div class="admin-stats" id="auditStats" style="display:none;">
+        <span class="stat-item">共 <strong id="totalAudit">0</strong> 条记录</span>
+        <select id="auditActionFilter" style="margin-left:12px;padding:6px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;background:#fff;" onchange="AdminUsers.loadAuditLogs(1)">
+            <option value="">全部操作</option>
+            <option value="login">登录</option>
+            <option value="logout">登出</option>
+            <option value="register">注册</option>
+            <option value="password_change">改密</option>
+            <option value="account_delete">删除账号</option>
+            <option value="data_export">数据导出</option>
+            <option value="session_timeout">会话超时</option>
+            <option value="login_failed">登录失败</option>
+            <option value="backup_create">创建备份</option>
+        </select>
+    </div>
 
-    <div class="admin-table-wrap">
+    <div class="admin-table-wrap" id="usersTableWrap">
         <table class="admin-table" id="usersTable">
             <thead>
                 <tr>
@@ -51,6 +76,25 @@
             </thead>
             <tbody id="usersTbody">
                 <tr class="loading-row"><td colspan="9">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 操作日志表格 -->
+    <div class="admin-table-wrap" id="auditTableWrap" style="display:none;">
+        <table class="admin-table" id="auditTable">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>用户</th>
+                    <th>操作</th>
+                    <th>目标</th>
+                    <th>IP</th>
+                    <th>详情</th>
+                </tr>
+            </thead>
+            <tbody id="auditTbody">
+                <tr class="loading-row"><td colspan="6">加载中...</td></tr>
             </tbody>
         </table>
     </div>
