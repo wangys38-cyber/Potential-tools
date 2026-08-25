@@ -291,6 +291,8 @@
 </head>
 <body>
 
+    {% include '_navbar.html' %}
+
     <div class="nav">
         <div class="nav-left">
         </div>
@@ -327,14 +329,14 @@
                 <svg class="theme-icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 <svg class="theme-icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 1v2M12 21v2M4.22 4.22l1.41 1.42M18.36 18.36l1.41 1.42M1 12h2M21 12h2M4.22 19.78l1.41-1.42M18.36 5.64l1.42-1.42"/></svg>
             </button>
-            <div class="user-info">
+            <div class="user-info" onclick="PTNav.openUserModal()" style="cursor:pointer;" title="点击编辑个人信息">
                 {% if current_user %}
                     {% if current_user.avatar %}
                         <img src="{{ current_user.avatar }}" class="avatar" alt="avatar">
                     {% else %}
-                        <div class="avatar-placeholder">{{ current_user.name[:1] if current_user.name else '?' }}</div>
+                        <div class="avatar-placeholder">{{ (current_user.nickname or current_user.name or '?')[:1] }}</div>
                     {% endif %}
-                    <a href="/auth/logout" class="logout-btn">退出</a>
+                    <a href="/auth/logout" class="logout-btn" onclick="event.stopPropagation();">退出</a>
                 {% else %}
                     <a href="/login" class="login-btn">登录</a>
                 {% endif %}
