@@ -45,10 +45,21 @@ def get_ai_config(user_id=None):
             config['api_key'] = crypto_utils.decrypt(config['api_key'])
     if not isinstance(config, dict):
         config = {}
-    # 2. 环境变量覆盖（最高优先级，主要用于部署时全局配置）
-    config['api_key'] = os.environ.get('AI_API_KEY', config.get('api_key', ''))
-    config['base_url'] = os.environ.get('AI_BASE_URL', config.get('base_url', 'https://dashscope.aliyuncs.com/api/v1'))
-    config['model'] = os.environ.get('AI_MODEL', config.get('model', 'qwen-turbo'))
+    # 2. 环境变量覆盖（最高优先级，仅在环境变量非空时生效）
+    env_api_key = os.environ.get('AI_API_KEY', '').strip()
+    env_base_url = os.environ.get('AI_BASE_URL', '').strip()
+    env_model = os.environ.get('AI_MODEL', '').strip()
+    if env_api_key:
+        config['api_key'] = env_api_key
+    if env_base_url:
+        config['base_url'] = env_base_url
+    if env_model:
+        config['model'] = env_model
+    # 设置默认值（仅在未配置时）
+    if not config.get('base_url'):
+        config['base_url'] = 'https://dashscope.aliyuncs.com/api/v1'
+    if not config.get('model'):
+        config['model'] = 'qwen-turbo'
     config['enabled'] = bool(config.get('api_key', '').strip())
     return config
 

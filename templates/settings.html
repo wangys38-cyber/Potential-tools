@@ -838,6 +838,9 @@
 
         // ===== 系统信息 =====
         async function loadSysInfo() {
+            try {
+                const resp = await fetch('/api/sys-info');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 const data = await resp.json();
 
                 if (data.status === 'ok') {
