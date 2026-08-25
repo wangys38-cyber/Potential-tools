@@ -47,15 +47,15 @@
         </a>
         {% endif %}
         {% if current_user %}
-        <div class="pt-nav-user" onclick="PTNav.openUserModal()" style="cursor:pointer;" title="点击编辑用户信息">
+        <div class="pt-nav-user" onclick="PTNav.openUserModal()" style="cursor:pointer;" title="{{ current_user.nickname or current_user.name }}">
             <div class="pt-nav-avatar">
                 {% if current_user.avatar %}
-                <img src="{{ current_user.avatar }}" alt="{{ current_user.name }}" class="pt-nav-avatar-img" id="ptNavAvatar">
+                <img src="{{ current_user.avatar }}" alt="{{ current_user.nickname or current_user.name }}" class="pt-nav-avatar-img" id="ptNavAvatar">
                 {% else %}
-                <span class="pt-nav-avatar-letter" id="ptNavAvatarLetter">{{ current_user.name[:1] if current_user.name else '?' }}</span>
+                <span class="pt-nav-avatar-letter" id="ptNavAvatarLetter">{{ (current_user.nickname or current_user.name or '?')[:1] }}</span>
                 {% endif %}
             </div>
-            <span class="pt-nav-user-name" id="ptNavUserName">{{ current_user.name }}</span>
+            <span class="pt-nav-user-name" id="ptNavUserName">{{ current_user.nickname or current_user.name }}</span>
             <a href="/auth/logout" class="pt-nav-logout" title="退出登录" onclick="event.stopPropagation();">退出</a>
         </div>
         {% else %}
@@ -80,25 +80,58 @@
 
 <!-- 用户信息编辑弹窗 -->
 <div id="ptUserModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;justify-content:center;align-items:center;">
-    <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h3 style="font-size:18px;font-weight:600;margin:0;">编辑个人信息</h3>
             <button onclick="PTNav.closeUserModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">×</button>
         </div>
         <div style="text-align:center;margin-bottom:20px;">
-            <div id="ptModalAvatarPreview" style="width:80px;height:80px;border-radius:50%;background:#1a1a1a;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px;color:#fff;font-weight:600;"></div>
-            <label style="display:inline-block;padding:6px 16px;background:#f5f5f7;border-radius:20px;cursor:pointer;font-size:13px;color:#333;transition:background 0.2s;" onmouseover="this.style.background='#e8e8ed'" onmouseout="this.style.background='#f5f5f7'">
-                更换头像
-                <input type="file" id="ptAvatarInput" accept="image/*" style="display:none;" onchange="PTNav.handleAvatarChange(event)">
-            </label>
+            <div id="ptModalAvatarPreview" style="width:72px;height:72px;border-radius:50%;background:#1a1a1a;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px;color:#fff;font-weight:600;"></div>
+            <div style="display:flex;gap:8px;justify-content:center;align-items:center;">
+                <label style="display:inline-block;padding:5px 14px;background:#f5f5f7;border-radius:20px;cursor:pointer;font-size:12px;color:#333;transition:background 0.2s;" onmouseover="this.style.background='#e8e8ed'" onmouseout="this.style.background='#f5f5f7'">
+                    上传头像
+                    <input type="file" id="ptAvatarInput" accept="image/*" style="display:none;" onchange="PTNav.handleAvatarChange(event)">
+                </label>
+                <button onclick="PTNav.showAvatarUrlInput()" style="padding:5px 14px;background:#f5f5f7;border:none;border-radius:20px;cursor:pointer;font-size:12px;color:#333;transition:background 0.2s;" onmouseover="this.style.background='#e8e8ed'" onmouseout="this.style.background='#f5f5f7'">输入URL</button>
+            </div>
+            <div id="ptAvatarUrlRow" style="display:none;margin-top:8px;">
+                <input type="text" id="ptAvatarUrlInput" placeholder="粘贴头像图片URL" style="width:100%;padding:8px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
+            </div>
         </div>
-        <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;font-weight:500;">用户名</label>
-            <input type="text" id="ptModalName" style="width:100%;padding:10px 14px;border:1px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="请输入用户名">
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">昵称</label>
+            <input type="text" id="ptModalNickname" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="显示在导航栏的昵称">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">用户名</label>
+            <input type="text" id="ptModalName" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="请输入用户名">
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+            <div style="flex:1;">
+                <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">部门</label>
+                <input type="text" id="ptModalDepartment" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="如：研发部">
+            </div>
+            <div style="flex:1;">
+                <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">角色</label>
+                <select id="ptModalRole" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
+                    <option value="member">普通成员</option>
+                    <option value="leader">团队负责人</option>
+                    <option value="admin">管理员</option>
+                    <option value="guest">访客</option>
+                </select>
+            </div>
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">邮箱</label>
+            <input type="email" id="ptModalEmail" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f9f9f9;color:#999;" readonly placeholder="邮箱不可修改">
         </div>
         <div style="margin-bottom:20px;">
-            <label style="display:block;font-size:13px;color:#666;margin-bottom:6px;font-weight:500;">邮箱</label>
-            <input type="email" id="ptModalEmail" style="width:100%;padding:10px 14px;border:1px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:#f9f9f9;" readonly placeholder="邮箱不可修改">
+            <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">技能标签</label>
+            <div id="ptSkillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid #e0e0e0;border-radius:8px;min-height:42px;"></div>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+                <input type="text" id="ptSkillInput" placeholder="输入技能后回车添加，如：Python" style="flex:1;padding:7px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
+                <button onclick="PTNav.addSkill()" style="padding:7px 14px;background:#000;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">添加</button>
+            </div>
         </div>
         <div style="display:flex;gap:10px;">
             <button onclick="PTNav.closeUserModal()" style="flex:1;padding:10px;border:1px solid #e0e0e0;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#f5f5f7'" onmouseout="this.style.background='#fff'">取消</button>
@@ -160,24 +193,101 @@ window.PTNav = window.PTNav || {};
 
     // 用户信息编辑
     var _tempAvatar = '';
+    var _skills = [];
+
+    PTNav.showAvatarUrlInput = function() {
+        var row = document.getElementById('ptAvatarUrlRow');
+        if (row) row.style.display = row.style.display === 'none' ? 'block' : 'none';
+    };
+
+    PTNav.renderSkills = function() {
+        var container = document.getElementById('ptSkillsContainer');
+        if (!container) return;
+        if (_skills.length === 0) {
+            container.innerHTML = '<span style="color:#bbb;font-size:12px;padding:4px;">暂无技能标签，在下方输入添加</span>';
+            return;
+        }
+        container.innerHTML = _skills.map(function(s, i) {
+            return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0f0f2;border-radius:12px;font-size:12px;color:#333;">' +
+                escapeHtml(s) +
+                '<span onclick="PTNav.removeSkill(' + i + ')" style="cursor:pointer;color:#999;font-weight:bold;margin-left:2px;" onmouseover="this.style.color=\'#ff3b30\'" onmouseout="this.style.color=\'#999\'">×</span>' +
+                '</span>';
+        }).join('');
+    };
+
+    PTNav.addSkill = function() {
+        var input = document.getElementById('ptSkillInput');
+        if (!input) return;
+        var val = input.value.trim();
+        if (!val) return;
+        if (_skills.indexOf(val) === -1) {
+            _skills.push(val);
+            PTNav.renderSkills();
+        }
+        input.value = '';
+        input.focus();
+    };
+
+    PTNav.removeSkill = function(index) {
+        _skills.splice(index, 1);
+        PTNav.renderSkills();
+    };
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+
     PTNav.openUserModal = function() {
         var modal = document.getElementById('ptUserModal');
         if (!modal) return;
-        // 加载当前用户信息
-        var nameEl = document.getElementById('ptNavUserName');
-        var avatarImg = document.getElementById('ptNavAvatar');
-        var avatarLetter = document.getElementById('ptNavAvatarLetter');
-        document.getElementById('ptModalName').value = nameEl ? nameEl.textContent : '';
-        document.getElementById('ptModalEmail').value = '{{ current_user.email if current_user else "" }}';
-        _tempAvatar = '';
-        // 预览头像
-        var preview = document.getElementById('ptModalAvatarPreview');
-        if (avatarImg && avatarImg.src) {
-            preview.innerHTML = '<img src="' + avatarImg.src + '" style="width:100%;height:100%;object-fit:cover;">';
-        } else if (avatarLetter) {
-            preview.textContent = avatarLetter.textContent;
-        }
-        modal.style.display = 'flex';
+        // 从 API 加载最新用户资料
+        fetch('/api/user/profile').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status === 'success') {
+                document.getElementById('ptModalName').value = res.name || '';
+                document.getElementById('ptModalNickname').value = res.nickname || '';
+                document.getElementById('ptModalEmail').value = res.email || '';
+                document.getElementById('ptModalDepartment').value = res.department || '';
+                document.getElementById('ptModalRole').value = res.role || 'member';
+                _skills = Array.isArray(res.skills) ? res.skills.slice() : [];
+                PTNav.renderSkills();
+                _tempAvatar = '';
+                // 预览头像
+                var preview = document.getElementById('ptModalAvatarPreview');
+                if (res.avatar) {
+                    preview.innerHTML = '<img src="' + res.avatar + '" style="width:100%;height:100%;object-fit:cover;">';
+                } else {
+                    var letter = (res.nickname || res.name || '?').charAt(0).toUpperCase();
+                    preview.textContent = letter;
+                }
+                var urlRow = document.getElementById('ptAvatarUrlRow');
+                if (urlRow) urlRow.style.display = 'none';
+                var urlInput = document.getElementById('ptAvatarUrlInput');
+                if (urlInput) urlInput.value = '';
+            }
+            modal.style.display = 'flex';
+        }).catch(function() {
+            // 降级：从导航栏读取
+            var nameEl = document.getElementById('ptNavUserName');
+            var avatarImg = document.getElementById('ptNavAvatar');
+            var avatarLetter = document.getElementById('ptNavAvatarLetter');
+            document.getElementById('ptModalName').value = nameEl ? nameEl.textContent : '';
+            document.getElementById('ptModalNickname').value = '';
+            document.getElementById('ptModalEmail').value = '{{ current_user.email if current_user else "" }}';
+            document.getElementById('ptModalDepartment').value = '';
+            document.getElementById('ptModalRole').value = 'member';
+            _skills = [];
+            PTNav.renderSkills();
+            _tempAvatar = '';
+            var preview = document.getElementById('ptModalAvatarPreview');
+            if (avatarImg && avatarImg.src) {
+                preview.innerHTML = '<img src="' + avatarImg.src + '" style="width:100%;height:100%;object-fit:cover;">';
+            } else if (avatarLetter) {
+                preview.textContent = avatarLetter.textContent;
+            }
+            modal.style.display = 'flex';
+        });
     };
     PTNav.closeUserModal = function() {
         var modal = document.getElementById('ptUserModal');
@@ -201,24 +311,39 @@ window.PTNav = window.PTNav || {};
     };
     PTNav.saveUserProfile = function() {
         var name = document.getElementById('ptModalName').value.trim();
+        var nickname = document.getElementById('ptModalNickname').value.trim();
+        var department = document.getElementById('ptModalDepartment').value.trim();
+        var role = document.getElementById('ptModalRole').value;
         var btn = document.getElementById('ptSaveProfileBtn');
-        if (!name) {
-            alert('请输入用户名');
+        if (!name && !nickname) {
+            alert('请输入用户名或昵称');
             return;
         }
+        // 检查 URL 输入
+        var urlInput = document.getElementById('ptAvatarUrlInput');
+        var avatarUrl = urlInput ? urlInput.value.trim() : '';
+        var avatar = _tempAvatar || avatarUrl || '';
+
         btn.textContent = '保存中...';
         btn.disabled = true;
-        var data = { name: name };
-        if (_tempAvatar) data.avatar = _tempAvatar;
+        var data = {
+            name: name,
+            nickname: nickname,
+            department: department,
+            role: role,
+            skills: _skills
+        };
+        if (avatar) data.avatar = avatar;
         fetch('/api/user/profile', {
-            method: 'POST',
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         }).then(function(r) { return r.json(); }).then(function(res) {
             if (res.status === 'success') {
                 // 更新导航栏显示
+                var displayName = res.nickname || res.name || '';
                 var nameEl = document.getElementById('ptNavUserName');
-                if (nameEl) nameEl.textContent = res.name;
+                if (nameEl) nameEl.textContent = displayName;
                 if (res.avatar) {
                     var avatarImg = document.getElementById('ptNavAvatar');
                     var avatarLetter = document.getElementById('ptNavAvatarLetter');
@@ -229,7 +354,6 @@ window.PTNav = window.PTNav || {};
                     if (avatarLetter) avatarLetter.style.display = 'none';
                 }
                 PTNav.closeUserModal();
-                alert('保存成功');
             } else {
                 alert(res.error || '保存失败');
             }
@@ -240,6 +364,13 @@ window.PTNav = window.PTNav || {};
             btn.disabled = false;
         });
     };
+    // 技能标签回车添加
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target && e.target.id === 'ptSkillInput') {
+            e.preventDefault();
+            PTNav.addSkill();
+        }
+    });
     // 点击弹窗外部关闭
     document.addEventListener('click', function(e) {
         var modal = document.getElementById('ptUserModal');

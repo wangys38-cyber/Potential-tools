@@ -258,74 +258,149 @@ def create_api_blueprint(base_dir, static_version):
 
     @bp.route('/api/user/profile', methods=['GET'])
     def api_get_user_profile():
-        """获取当前用户信息"""
+        """获取当前用户完整资料"""
         user = auth.get_current_user()
         if not user:
             return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        # 从数据库获取完整资料（含新字段）
+        profile = db.get_user_profile(user['id'])
+        if not profile:
+            return jsonify({'status': 'error', 'error': '用户不存在'}), 404
         return jsonify({
             'status': 'success',
-            'id': user['id'],
-            'name': user.get('name', ''),
-            'email': user.get('email', ''),
-            'avatar': user.get('avatar', ''),
-            'provider': user.get('provider', ''),
-            'created_at': user.get('created_at', 0)
+            'id': profile.get('id'),
+            'name': profile.get('name', ''),
+            'nickname': profile.get('nickname', ''),
+            'email': profile.get('email', ''),
+            'avatar': profile.get('avatar', ''),
+            'department': profile.get('department', ''),
+            'role': profile.get('role', 'member'),
+            'skills': profile.get('skills', []),
+            'provider': profile.get('provider', ''),
         })
 
-    @bp.route('/api/user/profile', methods=['POST'])
+    @bp.route('/api/user/profile', methods=['POST', 'PUT'])
     def api_update_user_profile():
-        """更新用户信息（姓名、头像）"""
+        """更新用户资料（昵称、头像、部门、角色、技能标签、姓名）"""
         user = auth.get_current_user()
         if not user:
             return jsonify({'status': 'error', 'error': '请先登录'}), 401
         data = request.get_json(silent=True) or {}
-        name = (data.get('name') or '').strip()
-        avatar = (data.get('avatar') or '').strip()
 
-        # 验证姓名
-        if name and len(name) > 50:
-            return jsonify({'status': 'error', 'error': '姓名不能超过50个字符'}), 400
+        profile_data = {}
+        # 姓名
+        if 'name' in data and data['name'] is not None:
+            name = str(data['name']).strip()
+            if len(name) > 50:
+                return jsonify({'status': 'error', 'error': '姓名不能超过50个字符'}), 400
+            profile_data['name'] = name
+        # 昵称
+        if 'nickname' in data and data['nickname'] is not None:
+            nickname = str(data['nickname']).strip()
+            if len(nickname) > 50:
+                return jsonify({'status': 'error', 'error': '昵称不能超过50个字符'}), 400
+            profile_data['nickname'] = nickname
+        # 头像（支持 URL 或 base64）
+        if 'avatar' in data and data['avatar'] is not None:
+            avatar = str(data['avatar']).strip()
+            if avatar:
+                if avatar.startswith('data:image/'):
+                    if len(avatar) > 700000:
+                        return jsonify({'status': 'error', 'error': '头像图片过大，请压缩后再上传'}), 400
+                elif not avatar.startswith('http://') and not avatar.startswith('https://'):
+                    return jsonify({'status': 'error', 'error': '头像URL格式不正确'}), 400
+            profile_data['avatar'] = avatar
+        # 部门
+        if 'department' in data and data['department'] is not None:
+            profile_data['department'] = str(data['department']).strip()[:100]
+        # 角色
+        if 'role' in data and data['role'] is not None:
+            role = str(data['role']).strip()
+            if role not in ('admin', 'leader', 'member', 'guest'):
+                return jsonify({'status': 'error', 'error': '角色值无效'}), 400
+            profile_data['role'] = role
+        # 技能标签
+        if 'skills' in data and data['skills'] is not None:
+            skills = data['skills']
+            if isinstance(skills, str):
+                try:
+                    skills = json.loads(skills)
+                except (json.JSONDecodeError, TypeError):
+                    skills = []
+            if not isinstance(skills, list):
+                skills = []
+            # 去重并限制长度
+            skills = list(dict.fromkeys(str(s).strip() for s in skills if str(s).strip()))[:20]
+            profile_data['skills'] = skills
 
-        # 验证头像（支持URL或base64）
-        if avatar:
-            if avatar.startswith('data:image/'):
-                # base64头像，限制大小（约500KB）
-                if len(avatar) > 700000:
-                    return jsonify({'status': 'error', 'error': '头像图片过大，请压缩后再上传'}), 400
-            elif not avatar.startswith('http://') and not avatar.startswith('https://'):
-                return jsonify({'status': 'error', 'error': '头像URL格式不正确'}), 400
+        if not profile_data:
+            return jsonify({'status': 'error', 'error': '没有需要更新的字段'}), 400
 
         # 更新数据库
         try:
-            with db.engine.begin() as conn:
-                updates = []
-                params = {}
-                if name:
-                    updates.append('name = :name')
-                    params['name'] = name
-                if avatar:
-                    updates.append('avatar = :avatar')
-                    params['avatar'] = avatar
-                if updates:
-                    params['id'] = user['id']
-                    conn.execute(db.text(f"UPDATE users SET {', '.join(updates)} WHERE id = :id"), params)
+            success = db.update_user_profile(user['id'], profile_data)
+            if not success:
+                return jsonify({'status': 'error', 'error': '更新失败，用户不存在'}), 404
         except Exception as e:
-            logger.error(f"更新用户信息失败: {e}")
+            logger.error(f"更新用户资料失败: {e}")
             return jsonify({'status': 'error', 'error': '更新失败，请重试'}), 500
 
-        # 更新session中的用户信息
+        # 刷新 session 中的用户资料
+        auth._refresh_session_profile(user['id'])
+        # 同步更新 session 中的 name / avatar（用于导航栏即时显示）
         try:
-            from flask import session
-            if 'user' in session:
-                if name:
-                    session['user']['name'] = name
-                if avatar:
-                    session['user']['avatar'] = avatar
-                session.modified = True
+            from flask import session as flask_session
+            if 'name' in profile_data:
+                flask_session['user_name'] = profile_data['name']
+            if 'avatar' in profile_data:
+                flask_session['user_avatar'] = profile_data['avatar']
+            if 'nickname' in profile_data:
+                flask_session['user_nickname'] = profile_data['nickname']
+            flask_session.modified = True
         except Exception:
             pass
 
-        return jsonify({'status': 'success', 'message': '更新成功', 'name': name or user.get('name'), 'avatar': avatar or user.get('avatar')})
+        # 返回更新后的完整资料
+        updated = db.get_user_profile(user['id']) or {}
+        return jsonify({
+            'status': 'success',
+            'message': '更新成功',
+            'name': updated.get('name', ''),
+            'nickname': updated.get('nickname', ''),
+            'avatar': updated.get('avatar', ''),
+            'department': updated.get('department', ''),
+            'role': updated.get('role', 'member'),
+            'skills': updated.get('skills', []),
+        })
+
+    @bp.route('/api/user/avatar', methods=['POST'])
+    def api_upload_avatar():
+        """上传头像文件，返回头像 URL（base64 data URL）"""
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        if 'avatar' not in request.files:
+            return jsonify({'status': 'error', 'error': '未找到上传文件'}), 400
+        file = request.files['avatar']
+        if not file.filename:
+            return jsonify({'status': 'error', 'error': '文件名为空'}), 400
+        # 读取并转 base64
+        try:
+            file_data = file.read()
+            if len(file_data) > 2 * 1024 * 1024:
+                return jsonify({'status': 'error', 'error': '图片不能超过2MB'}), 400
+            import base64
+            mime = file.mimetype or 'image/png'
+            if not mime.startswith('image/'):
+                return jsonify({'status': 'error', 'error': '仅支持图片文件'}), 400
+            b64 = base64.b64encode(file_data).decode('utf-8')
+            data_url = f"data:{mime};base64,{b64}"
+            if len(data_url) > 700000:
+                return jsonify({'status': 'error', 'error': '头像图片过大，请压缩后再上传'}), 400
+            return jsonify({'status': 'success', 'avatar': data_url})
+        except Exception as e:
+            logger.error(f"头像上传失败: {e}")
+            return jsonify({'status': 'error', 'error': '上传失败，请重试'}), 500
 
     @bp.route('/api/feishu/push', methods=['POST'])
     def api_feishu_push():

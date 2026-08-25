@@ -122,6 +122,24 @@ def init_db():
         except Exception:
             pass  # 列已存在
 
+        # v10.0: 用户系统增强 — 新增昵称、部门、角色、技能标签
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN nickname TEXT DEFAULT ''"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN department TEXT DEFAULT ''"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN skills TEXT DEFAULT '[]'"))
+        except Exception:
+            pass
+
         # ==================== 用户数据表 ====================
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS user_data (
@@ -485,6 +503,55 @@ def get_user_by_id(user_id):
             {'id': user_id}
         ).fetchone()
         return _row_to_dict(row)
+
+
+def get_user_profile(user_id):
+    """获取用户完整资料（含昵称、部门、角色、技能标签）"""
+    user = get_user_by_id(user_id)
+    if not user:
+        return None
+    # 解析 skills JSON
+    skills_raw = user.get('skills') or '[]'
+    try:
+        user['skills'] = json.loads(skills_raw) if isinstance(skills_raw, str) else skills_raw
+    except (json.JSONDecodeError, TypeError):
+        user['skills'] = []
+    return user
+
+
+def update_user_profile(user_id, profile_data):
+    """更新用户资料，返回是否成功。
+    profile_data 可包含: name, nickname, avatar, department, role, skills(list)
+    """
+    if not profile_data:
+        return False
+    allowed_fields = {'name', 'nickname', 'avatar', 'department', 'role'}
+    sets = []
+    params = {'id': user_id}
+    for key, value in profile_data.items():
+        if key in allowed_fields and value is not None:
+            sets.append(f"{key} = :{key}")
+            params[key] = str(value)
+    # skills 单独处理（JSON 序列化）
+    if 'skills' in profile_data and profile_data['skills'] is not None:
+        skills_val = profile_data['skills']
+        if isinstance(skills_val, str):
+            try:
+                json.loads(skills_val)  # 验证是合法 JSON
+                params['skills'] = skills_val
+            except (json.JSONDecodeError, TypeError):
+                params['skills'] = json.dumps([], ensure_ascii=False)
+        else:
+            params['skills'] = json.dumps(skills_val, ensure_ascii=False)
+        sets.append("skills = :skills")
+    if not sets:
+        return False
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(f"UPDATE users SET {', '.join(sets)} WHERE id = :id"),
+            params
+        )
+        return result.rowcount > 0
 
 
 # ==================== v9.0 账号密码登录 ====================

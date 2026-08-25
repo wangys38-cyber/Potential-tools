@@ -128,6 +128,10 @@ def get_current_user():
         'avatar': session.get('user_avatar', ''),
         'provider': session.get('user_provider', ''),
         'is_admin': session.get('user_is_admin', False),
+        'nickname': session.get('user_nickname', ''),
+        'department': session.get('user_department', ''),
+        'role': session.get('user_role', 'member'),
+        'skills': session.get('user_skills', []),
     }
 
 
@@ -136,7 +140,8 @@ def is_logged_in():
     return session.get('user_id') is not None
 
 
-def _set_session_user(user_id, name, email, avatar, provider, is_admin=False):
+def _set_session_user(user_id, name, email, avatar, provider, is_admin=False,
+                      nickname='', department='', role='member', skills=None):
     """将用户信息写入 session（登录成功时调用）"""
     session.permanent = True
     session['user_id'] = user_id
@@ -145,6 +150,24 @@ def _set_session_user(user_id, name, email, avatar, provider, is_admin=False):
     session['user_avatar'] = avatar
     session['user_provider'] = provider
     session['user_is_admin'] = bool(is_admin)
+    session['user_nickname'] = nickname or ''
+    session['user_department'] = department or ''
+    session['user_role'] = role or 'member'
+    session['user_skills'] = skills if isinstance(skills, list) else []
+
+
+def _refresh_session_profile(user_id):
+    """从数据库重新加载用户资料到 session（登录后或资料更新后调用）"""
+    try:
+        profile = db.get_user_profile(user_id)
+        if profile:
+            session['user_nickname'] = profile.get('nickname') or ''
+            session['user_department'] = profile.get('department') or ''
+            session['user_role'] = profile.get('role') or 'member'
+            session['user_skills'] = profile.get('skills') or []
+            session.modified = True
+    except Exception as e:
+        logger.warning(f"刷新用户资料到 session 失败: {e}")
 
 
 def login_required(func):
@@ -282,6 +305,7 @@ def feishu_callback():
         # 用户信息写入 session — 后续不再查数据库
         is_admin = db.is_admin_user(user_id)
         _set_session_user(user_id, name, email, avatar, 'feishu', is_admin)
+        _refresh_session_profile(user_id)
 
         logger.info(f"飞书用户登录成功: {name} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
@@ -376,6 +400,7 @@ def google_callback():
 
         is_admin = db.is_admin_user(user_id)
         _set_session_user(user_id, name, email, avatar, 'google', is_admin)
+        _refresh_session_profile(user_id)
 
         logger.info(f"Google用户登录成功: {name} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
@@ -464,6 +489,7 @@ def login():
         provider=user.get('provider') or 'local',
         is_admin=bool(user.get('is_admin', 0)),
     )
+    _refresh_session_profile(user['id'])
     logger.info(f"用户登录成功: {user.get('name') or username} (ID: {user['id']})")
     return jsonify({
         'status': 'success',
@@ -574,6 +600,7 @@ def wechat_callback():
         # 用户信息写入 session
         is_admin = db.is_admin_user(user_id)
         _set_session_user(user_id, nickname, '', headimgurl, 'wechat', is_admin)
+        _refresh_session_profile(user_id)
 
         logger.info(f"微信用户登录成功: {nickname} (ID: {user_id})")
         next_url = session.pop('next_url', None) or '/'
