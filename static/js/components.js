@@ -2580,10 +2580,10 @@ window.ToolboxPush = ToolboxPush;
         // if (!isHome && !isLogin && !document.getElementById('tb-nav-bar')) {
         //     ToolboxNav.init();
         // }
-        // v3.0: 初始化 AI 对话助手（全部页面）
-        if (typeof ToolboxAIChat !== 'undefined' && !document.querySelector('.tb-aichat-fab')) {
-            ToolboxAIChat.init();
-        }
+        // v3.0: 初始化 AI 对话助手（已禁用 - 用户要求移除蜡笔小新悬浮按钮）
+        // if (typeof ToolboxAIChat !== 'undefined' && !document.querySelector('.tb-aichat-fab')) {
+        //     ToolboxAIChat.init();
+        // }
         // v3.0: 初始化 OCR 粘贴识别（全部页面）
         if (typeof ToolboxOCR !== 'undefined') {
             ToolboxOCR.init();
