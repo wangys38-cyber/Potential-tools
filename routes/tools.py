@@ -605,6 +605,110 @@ Please write the reply:"""
             logger.error(f'日志AI分析失败: {e}')
             return jsonify({'error': f'AI 分析失败: {str(e)}'}), 500
 
+    # ==================== 日志 AI 深度根因分析（增强版） ====================
+
+    @bp.route('/api/log-ai-root-cause', methods=['POST'])
+    def api_log_ai_root_cause():
+        """日志 AI 深度根因分析 — 结合异常模式、错误链、历史匹配，输出结构化根因和建议"""
+        data = request.json or {}
+        stats = data.get('stats') or {}
+        top_issues = data.get('topIssues') or []
+        patterns = data.get('patterns') or []
+        error_chains = data.get('errorChains') or []
+        historical_matches = data.get('historicalMatches') or []
+
+        if not stats and not top_issues:
+            return jsonify({'error': '分析数据不能为空'}), 400
+
+        # 构建分析摘要
+        stats_text = f"总日志数: {stats.get('total', 0)}\n"
+        stats_text += f"崩溃: {stats.get('crash', 0)}, 重启: {stats.get('reboot', 0)}\n"
+        stats_text += f"内存异常: {stats.get('memory', 0)}, 功耗异常: {stats.get('power', 0)}\n"
+        stats_text += f"错误: {stats.get('error', 0)}, 警告: {stats.get('warning', 0)}"
+
+        issues_text = '\n'.join([f"- {i.get('type', '')}: {i.get('content', '')[:150]}" for i in top_issues[:20]])
+
+        patterns_text = '\n'.join([f"- {p.get('pattern', '')}: {p.get('detail', '')}" for p in patterns]) if patterns else "无特殊异常模式"
+
+        chains_text = '\n'.join([f"- {c.get('id', '')}: {c.get('events', [{}])[0].get('type', '')} 引发 {len(c.get('events', []))} 个级联事件" for c in error_chains]) if error_chains else "无错误链"
+
+        history_text = '\n'.join([f"- {h.get('id', '')} {h.get('title', '')}: {h.get('rootCause', '')}" for h in historical_matches]) if historical_matches else "无相似历史问题"
+
+        prompt = f"""你是一位资深嵌入式设备日志根因分析专家。请根据以下多维度数据进行深度根因分析。
+
+【日志统计摘要】
+{stats_text}
+
+【关键异常日志（前20条）】
+{issues_text}
+
+【异常模式识别】
+{patterns_text}
+
+【错误链分析】
+{chains_text}
+
+【相似历史问题匹配】
+{history_text}
+
+请输出结构化的分析结果（JSON格式）：
+
+{{
+  "rootCauses": [
+    "根因1（具体、有针对性，结合异常数据推断）",
+    "根因2",
+    "根因3"
+  ],
+  "recommendations": [
+    "改进建议1（具体可执行，标注优先级）",
+    "改进建议2",
+    "改进建议3"
+  ],
+  "confidence": "high/medium/low",
+  "summary": "一句话总结分析结论"
+}}
+
+要求：
+- 根因分析必须结合具体异常数据，不要泛泛而谈
+- 改进建议必须具体可执行，有优先级
+- 置信度根据数据充分性判断
+- 语言简洁专业，不要AI味
+- 只输出JSON，不要其他文字"""
+
+        messages = [
+            {'role': 'system', 'content': '你是一位资深嵌入式设备日志根因分析专家，擅长从多维度数据中定位根本原因并给出精准修复方案。输出严格JSON格式。'},
+            {'role': 'user', 'content': prompt}
+        ]
+
+        try:
+            ai_config = get_ai_config()
+            result = _call_ai(messages, model=ai_config.get('model'), max_tokens=2000, temperature=0.3, timeout=90)
+
+            # 尝试解析 JSON
+            try:
+                # 提取 JSON 部分（可能包含在 markdown 代码块中）
+                json_str = result
+                if '```json' in result:
+                    json_str = result.split('```json')[1].split('```')[0].strip()
+                elif '```' in result:
+                    json_str = result.split('```')[1].split('```')[0].strip()
+
+                parsed = json.loads(json_str)
+                return jsonify(parsed)
+            except (json.JSONDecodeError, IndexError):
+                # JSON 解析失败，返回纯文本结果
+                return jsonify({
+                    'rootCauses': [result[:500] if result else 'AI分析结果解析失败'],
+                    'recommendations': ['请查看原始分析结果'],
+                    'confidence': 'medium',
+                    'summary': 'AI分析结果非标准JSON格式，已降级为纯文本',
+                    'rawResult': result
+                })
+
+        except Exception as e:
+            logger.error(f'日志AI深度根因分析失败: {e}')
+            return jsonify({'error': f'AI 分析失败: {str(e)}'}), 500
+
     # ==================== MD2PDF ====================
 
     @bp.route('/api/md2pdf', methods=['POST'])

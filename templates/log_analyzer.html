@@ -104,12 +104,12 @@
             <div class="conclusion-panel util-hidden" id="conclusionPanel">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ds-text);">分析结论</h3>
-                    <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能分析</button>
+                    <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能根因分析</button>
                 </div>
                 <div id="conclusionContent" style="font-size:14px;line-height:1.8;color:var(--ds-text);"></div>
                 <div id="aiResultSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--ds-border-light);">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-                        <h4 style="font-size:15px;font-weight:600;color:var(--ds-text);">AI 深度分析</h4>
+                        <h4 style="font-size:15px;font-weight:600;color:var(--ds-text);">智能根因分析结果</h4>
                         <div style="display:flex;gap:6px;">
                             <button class="btn btn-primary" onclick="copyAiResult()" style="padding:4px 10px;font-size:12px;">复制</button>
                             <button class="btn btn-secondary" onclick="runAiAnalyze()" style="padding:4px 10px;font-size:12px;">重新生成</button>
@@ -737,26 +737,44 @@
             btn.textContent = 'AI 正在分析...';
             btn.style.opacity = '0.7';
             resultSection.style.display = 'block';
-            resultContent.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ds-text-secondary);">AI 正在分析，请稍候...</div>';
+            resultContent.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ds-text-secondary);">正在进行智能根因分析，请稍候...</div>';
 
-            const payload = buildLogAiPayload();
             try {
-                const resp = await fetch('/api/log-ai-analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                // 1. 本地分析：异常模式识别
+                const patterns = LogRootCauseAI.analyzeAnomalyPatterns(allLogs);
+
+                // 2. 本地分析：错误链分析
+                const errorChains = LogRootCauseAI.buildErrorChain(allLogs);
+
+                // 3. 本地分析：相似历史问题匹配
+                const historicalMatches = LogRootCauseAI.matchHistoricalIssues(allLogs, detailedIssues);
+
+                // 4. AI 深度根因分析
+                const stats = {
+                    total: allLogs.length,
+                    crash: counts.crash || 0,
+                    reboot: counts.reboot || 0,
+                    memory: counts.memory || 0,
+                    power: counts.power || 0,
+                    error: counts.error || 0,
+                    warning: counts.warning || 0
+                };
+
+                const aiAnalysis = await LogRootCauseAI.aiDeepAnalysis(allLogs, stats, patterns, errorChains, historicalMatches);
+
+                // 5. 渲染完整分析结果
+                LogRootCauseAI.renderAnalysis(resultContent, {
+                    aiAnalysis: aiAnalysis,
+                    patterns: patterns,
+                    errorChains: errorChains,
+                    historicalMatches: historicalMatches
                 });
-                const data = await resp.json();
-                if (data.error) {
-                    resultContent.innerHTML = `<div style="color:var(--ds-danger);padding:12px;">${escapeHtml(data.error)}</div>`;
-                } else {
-                    resultContent.textContent = data.result || '（无分析结果）';
-                }
+
             } catch (e) {
-                resultContent.innerHTML = `<div style="color:var(--ds-danger);padding:12px;">请求失败: ${escapeHtml(e.message)}</div>`;
+                resultContent.innerHTML = `<div style="color:var(--ds-danger);padding:12px;">分析失败: ${escapeHtml(e.message)}</div>`;
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'AI 智能分析';
+                btn.textContent = 'AI 智能根因分析';
                 btn.style.opacity = '1';
             }
         }
@@ -785,6 +803,7 @@
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
+<script src="/static/js/log_root_cause_ai.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script>
 // v6.0: 日志分析 → Bug趋势看板同步
