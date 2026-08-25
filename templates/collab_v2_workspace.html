@@ -269,6 +269,18 @@
                     发送
                 </button>
             </div>
+            <div class="comment-filter-bar" id="cv2CommentFilterBar">
+                <button class="comment-filter-btn active" data-filter="all" onclick="PTCollabV2._filterComments(this,'all')">全部</button>
+                <button class="comment-filter-btn" data-filter="unresolved" onclick="PTCollabV2._filterComments(this,'unresolved')">未解决</button>
+                <button class="comment-filter-btn" data-filter="resolved" onclick="PTCollabV2._filterComments(this,'resolved')">已解决</button>
+                <button class="comment-filter-btn" data-filter="mine" onclick="PTCollabV2._filterComments(this,'mine')">我的</button>
+                <button class="comment-filter-btn" data-filter="mentioned" onclick="PTCollabV2._filterComments(this,'mentioned')">@我的</button>
+                <select class="comment-sort-select" id="cv2CommentSort" onchange="PTCollabV2._sortComments(this.value)">
+                    <option value="asc">时间正序</option>
+                    <option value="desc">时间倒序</option>
+                    <option value="unresolved_first">未解决优先</option>
+                </select>
+            </div>
             <div id="ptCommentsListV2">
                 <div class="cv2-empty">加载中...</div>
             </div>

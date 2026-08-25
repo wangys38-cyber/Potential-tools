@@ -14,6 +14,8 @@ window.PTCollabV2 = (function() {
     var _onlineMembers = [];
     var _allMembers = [];
     var _currentUser = null;
+    var _commentFilter = 'all';
+    var _commentSort = 'asc';
 
     // ==================== 工具函数 ====================
     function _api(url, options) {
@@ -208,14 +210,38 @@ window.PTCollabV2 = (function() {
     function _renderCommentsV2() {
         var list = document.getElementById('ptCommentsListV2');
         if (!list) return;
-        if (_comments.length === 0) {
-            list.innerHTML = '<div style="text-align:center;padding:32px;color:#86868b;font-size:13px;">暂无评论，来发表第一条吧</div>';
+        // 应用筛选
+        var filtered = _comments.filter(function(c) {
+            if (_commentFilter === 'unresolved' && c.is_resolved) return false;
+            if (_commentFilter === 'resolved' && !c.is_resolved) return false;
+            if (_commentFilter === 'mine' && _currentUser && c.user_id !== _currentUser.id) return false;
+            if (_commentFilter === 'mentioned' && _currentUser) {
+                var mentions = c.mentions || [];
+                var mentioned = mentions.some(function(m) { return (m.id || m) === _currentUser.id; });
+                if (!mentioned) return false;
+            }
+            return true;
+        });
+        // 应用排序
+        if (_commentSort === 'desc') {
+            filtered.sort(function(a, b) { return b.created_at - a.created_at; });
+        } else if (_commentSort === 'unresolved_first') {
+            filtered.sort(function(a, b) {
+                if (a.is_resolved !== b.is_resolved) return a.is_resolved ? 1 : -1;
+                return a.created_at - b.created_at;
+            });
+        } else {
+            filtered.sort(function(a, b) { return a.created_at - b.created_at; });
+        }
+
+        if (filtered.length === 0) {
+            list.innerHTML = '<div style="text-align:center;padding:32px;color:#86868b;font-size:13px;">暂无评论</div>';
             return;
         }
         // 构建线程：parent_id=0 为顶级评论
-        var topLevel = _comments.filter(function(c) { return !c.parent_id; });
+        var topLevel = filtered.filter(function(c) { return !c.parent_id; });
         var replies = {};
-        _comments.forEach(function(c) {
+        filtered.forEach(function(c) {
             if (c.parent_id) {
                 if (!replies[c.parent_id]) replies[c.parent_id] = [];
                 replies[c.parent_id].push(c);
@@ -225,6 +251,21 @@ window.PTCollabV2 = (function() {
         list.innerHTML = topLevel.map(function(c) {
             return _renderCommentItem(c, replies[c.id] || []);
         }).join('');
+    }
+
+    function _filterComments(btn, filter) {
+        _commentFilter = filter;
+        var bar = document.getElementById('cv2CommentFilterBar');
+        if (bar) {
+            bar.querySelectorAll('.comment-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+        }
+        _renderCommentsV2();
+    }
+
+    function _sortComments(sort) {
+        _commentSort = sort;
+        _renderCommentsV2();
     }
 
     function _renderCommentItem(c, replyList) {
@@ -679,6 +720,8 @@ window.PTCollabV2 = (function() {
         _startEditComment: _startEditComment,
         _submitEdit: _submitEdit,
         _cancelEdit: _cancelEdit,
+        _filterComments: _filterComments,
+        _sortComments: _sortComments,
         // 权限
         loadMembersV2: loadMembersV2,
         changeMemberRole: changeMemberRole,

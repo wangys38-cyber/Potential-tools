@@ -278,6 +278,8 @@
                     <button class="action-btn" onclick="copyPlan()">复制</button>
                     <button class="action-btn" onclick="downloadPlan()">CSV</button>
                     <button class="action-btn" onclick="printPlan()">打印</button>
+                    <button class="action-btn" onclick="V12.saveVersion('plan','default',document.getElementById('planTable').outerHTML)">保存版本</button>
+                    <button class="action-btn" onclick="V12.openHistory('plan','default',function(c){var t=document.getElementById('planTable');if(t){t.outerHTML=c;}})">历史版本</button>
                 </div>
                 <!-- AI 调整建议面板 -->
                 <div id="aiSuggestionPanel" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border);width:100%;">

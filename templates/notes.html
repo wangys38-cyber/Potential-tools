@@ -85,6 +85,9 @@
                     <button class="nb-icon-btn" onclick="NB.exportMarkdown()" title="导出 Markdown">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </button>
+                    <button class="nb-icon-btn" onclick="NB.openVersionHistory()" title="历史版本">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                    </button>
                     <button class="nb-icon-btn nb-danger-btn" onclick="NB.deleteCurrentNote()" title="删除">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
@@ -179,5 +182,27 @@ window.NB_CONFIG = {
 };
 </script>
 <script src="/static/noteNB/app.js?v={{ STATIC_VERSION }}"></script>
+<script>
+// v12.0 笔记版本历史集成
+NB.openVersionHistory = function() {
+    var note = NB.currentNote || (NB.state && NB.state.currentNote);
+    if (!note) { alert('请先选择一篇笔记'); return; }
+    var docId = note.id || note.note_uid || note.uid;
+    if (!docId) { alert('无法获取笔记ID'); return; }
+    VersionHistory.open('note', String(docId), function(content) {
+        // 回滚：更新编辑器内容
+        var editor = document.getElementById('nbContentInput') || document.querySelector('.nb-content-input') || document.querySelector('[contenteditable]');
+        if (editor) {
+            if (editor.tagName === 'TEXTAREA' || editor.tagName === 'INPUT') {
+                editor.value = content;
+            } else {
+                editor.innerHTML = content;
+            }
+            if (typeof NB.onContentInput === 'function') NB.onContentInput(content);
+        }
+        alert('已回滚到该版本，请点击保存同步');
+    });
+};
+</script>
 </body>
 </html>

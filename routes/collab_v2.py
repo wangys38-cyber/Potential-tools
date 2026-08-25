@@ -134,12 +134,43 @@ def create_collab_v2_blueprint():
 
     @bp.route('/workspace/<share_code>/comments', methods=['GET'])
     def get_comments_v2(share_code):
-        """获取评论列表（含回复线程、解决状态）"""
+        """获取评论列表（含回复线程、解决状态，支持筛选排序）"""
         ws, err = _get_workspace(share_code)
         if err:
             return err
 
-        comments = db.get_collab_comments(ws['id'], limit=300)
+        uid = _current_user_id()
+        status = request.args.get('status', '').strip()  # unresolved / resolved
+        sort = request.args.get('sort', 'asc').strip()  # asc / desc / unresolved_first
+        mentioned_me = request.args.get('mentioned_me', '').lower() == 'true'
+        my_comments = request.args.get('my_comments', '').lower() == 'true'
+        limit = int(request.args.get('limit', 300) or 300)
+
+        comments = db.get_collab_comments(ws['id'], limit=limit)
+
+        # 筛选
+        filtered = []
+        for c in comments:
+            if status == 'unresolved' and c.get('is_resolved'):
+                continue
+            if status == 'resolved' and not c.get('is_resolved'):
+                continue
+            if my_comments and uid and c['user_id'] != uid:
+                continue
+            if mentioned_me and uid:
+                mentions = c.get('mentions', []) or []
+                if uid not in mentions:
+                    continue
+            filtered.append(c)
+
+        # 排序
+        if sort == 'desc':
+            filtered.sort(key=lambda x: x['created_at'], reverse=True)
+        elif sort == 'unresolved_first':
+            filtered.sort(key=lambda x: (1 if x.get('is_resolved') else 0, x['created_at']))
+        else:
+            filtered.sort(key=lambda x: x['created_at'])
+
         return jsonify({
             'status': 'success',
             'comments': [{
@@ -155,7 +186,8 @@ def create_collab_v2_blueprint():
                 'resolved_at': c.get('resolved_at', 0),
                 'edited_at': c.get('edited_at', 0),
                 'created_at': c['created_at'],
-            } for c in comments]
+            } for c in filtered],
+            'total': len(filtered)
         })
 
     @bp.route('/workspace/<share_code>/comments', methods=['POST'])
@@ -184,6 +216,37 @@ def create_collab_v2_blueprint():
 
         comment_id = db.add_collab_comment(ws['id'], uid, content, parent_id, mentions)
         user = db.get_user_by_id(uid)
+
+        # 通知：@提及用户
+        mentioned_users = mentions or []
+        for mentioned_uid in mentioned_users:
+            if mentioned_uid and mentioned_uid != uid:
+                try:
+                    db.create_notification(
+                        user_id=mentioned_uid,
+                        notif_type='mention',
+                        title=f'{user.get("name", "有人")} 在评论中 @了你',
+                        content=content[:100],
+                        link=f'/share/{share_code}#comment-{comment_id}'
+                    )
+                except Exception:
+                    pass
+
+        # 通知：回复评论时通知原评论作者
+        if parent_id and parent_id > 0:
+            parent_comment = db.get_collab_comment_by_id(parent_id)
+            if parent_comment and parent_comment['user_id'] != uid and parent_comment['user_id'] not in mentioned_users:
+                try:
+                    db.create_notification(
+                        user_id=parent_comment['user_id'],
+                        notif_type='reply',
+                        title=f'{user.get("name", "有人")} 回复了你的评论',
+                        content=content[:100],
+                        link=f'/share/{share_code}#comment-{comment_id}'
+                    )
+                except Exception:
+                    pass
+
         return jsonify({
             'status': 'success',
             'comment': {
@@ -270,7 +333,136 @@ def create_collab_v2_blueprint():
         count = db.get_unread_comment_count(ws['id'], uid, last_read)
         return jsonify({'status': 'success', 'unread_count': count})
 
-    # ==================== 7.3 权限管理细化 ====================
+    # ==================== v12.0 评论 REST API 对齐 ====================
+
+    @bp.route('/comments/<int:comment_id>/reply', methods=['POST'])
+    def reply_comment(comment_id):
+        """回复评论（REST 风格，等价于带 parent_id 的新增评论）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        parent = db.get_collab_comment_by_id(comment_id)
+        if not parent:
+            return jsonify({'error': '评论不存在'}), 404
+
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '').strip()
+        mentions = data.get('mentions', []) or []
+
+        if not content:
+            return jsonify({'error': '评论内容不能为空'}), 400
+        if len(content) > 2000:
+            return jsonify({'error': '评论内容过长（最多2000字）'}), 400
+
+        ws_id = parent['workspace_id']
+        db.upsert_collab_member(ws_id, uid)
+        new_id = db.add_collab_comment(ws_id, uid, content, parent_id=comment_id, mentions=mentions)
+        user = db.get_user_by_id(uid)
+
+        # 通知原评论作者
+        if parent['user_id'] != uid:
+            try:
+                db.create_notification(
+                    user_id=parent['user_id'],
+                    notif_type='reply',
+                    title=f'{user.get("name", "有人")} 回复了你的评论',
+                    content=content[:100],
+                    link=f'#comment-{new_id}'
+                )
+            except Exception:
+                pass
+
+        return jsonify({
+            'status': 'success',
+            'comment': {
+                'id': new_id, 'user_id': uid,
+                'user_name': user.get('name', '匿名用户') if user else '匿名用户',
+                'user_avatar': user.get('avatar', '') if user else '',
+                'content': content, 'parent_id': comment_id,
+                'mentions': mentions, 'is_resolved': False,
+                'edited_at': 0, 'created_at': time.time(),
+            }
+        })
+
+    @bp.route('/comments/<int:comment_id>/resolve', methods=['PUT'])
+    def resolve_comment_rest(comment_id):
+        """标记评论解决/未解决（REST PUT）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        data = request.get_json(silent=True) or {}
+        resolved = bool(data.get('resolved', True))
+
+        if resolved:
+            success = db.resolve_collab_comment(comment_id, uid)
+        else:
+            success = db.unresolve_collab_comment(comment_id, uid)
+
+        if not success:
+            return jsonify({'error': '操作失败'}), 400
+        return jsonify({'status': 'success', 'is_resolved': resolved, 'resolved_at': time.time() if resolved else 0})
+
+    @bp.route('/comments/<int:comment_id>', methods=['PUT'])
+    def edit_comment_rest(comment_id):
+        """编辑评论（REST PUT）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '').strip()
+        if not content:
+            return jsonify({'error': '评论内容不能为空'}), 400
+        if len(content) > 2000:
+            return jsonify({'error': '评论内容过长（最多2000字）'}), 400
+
+        success = db.edit_collab_comment(comment_id, uid, content)
+        if not success:
+            return jsonify({'error': '编辑失败或无权限'}), 403
+        return jsonify({'status': 'success', 'edited_at': time.time()})
+
+    @bp.route('/comments/<int:comment_id>', methods=['DELETE'])
+    def delete_comment_rest(comment_id):
+        """删除评论（REST DELETE）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        success = db.delete_collab_comment(comment_id, uid)
+        if not success:
+            return jsonify({'error': '删除失败或无权限'}), 403
+        return jsonify({'status': 'success'})
+
+    # ==================== v12.0 用户搜索（@提及自动补全） ====================
+
+    @bp.route('/users/search', methods=['GET'])
+    def search_users():
+        """搜索用户（用于 @提及自动补全）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        query = request.args.get('q', '').strip()
+        if not query or len(query) < 1:
+            return jsonify({'status': 'success', 'users': []})
+
+        with db.engine.connect() as conn:
+            rows = conn.execute(
+                db.text("""
+                    SELECT id, name, nickname, email, avatar, department, role
+                    FROM users
+                    WHERE name LIKE :q OR nickname LIKE :q OR email LIKE :q OR username LIKE :q
+                    ORDER BY name ASC LIMIT 10
+                """),
+                {'q': f'%{query}%'}
+            ).fetchall()
+            users = [dict(r._mapping) for r in rows]
+
+        return jsonify({'status': 'success', 'users': users})
+
+    return bp
 
     @bp.route('/workspace/<share_code>/members', methods=['GET'])
     def get_members_v2(share_code):

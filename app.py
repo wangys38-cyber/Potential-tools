@@ -29,6 +29,8 @@ from routes.notes import create_notes_blueprint
 from routes.admin import create_admin_blueprint
 from routes.knowledge_graph import bp as kg_bp
 from routes.teams import create_teams_blueprint
+from routes.versions import create_versions_blueprint
+from routes.notifications import create_notifications_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -589,6 +591,12 @@ app.register_blueprint(kg_bp)
 
 # 团队管理与数据共享（v11.0）
 app.register_blueprint(create_teams_blueprint())
+
+# 文档版本历史（v12.0）
+app.register_blueprint(create_versions_blueprint())
+
+# 通知系统（v12.0）
+app.register_blueprint(create_notifications_blueprint())
 
 # HLD 生成器
 try:

@@ -72,6 +72,19 @@ def create_notes_blueprint():
             return jsonify({'error': '请先登录', 'need_login': True}), 401
         try:
             data = request.get_json(force=True, silent=True) or {}
+
+            # v12.0 自动保存版本快照（内容变更时）
+            try:
+                existing = db.get_note_by_uid(user_id, note_uid)
+                new_content = data.get('content')
+                if existing and new_content is not None and new_content != existing.get('content', ''):
+                    db.create_document_version(
+                        user_id=user_id, doc_type='note', doc_id=note_uid,
+                        content=new_content, name='', note='自动保存', created_by=user_id
+                    )
+            except Exception:
+                pass
+
             success = db.update_note(
                 user_id=user_id,
                 note_uid=note_uid,
