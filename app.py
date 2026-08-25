@@ -15,6 +15,7 @@ import db
 import rate_limiter
 import request_logger
 import security
+import performance_middleware
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
@@ -152,6 +153,9 @@ class _ShmBytecodeCache(BytecodeCache):
 
 app.jinja_env.bytecode_cache = _ShmBytecodeCache(_jinja_cache_dir)
 
+# 阶段五性能优化：注册 API 响应时间统计 + 慢查询日志中间件
+performance_middleware.register_performance_middleware(app)
+
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
     _runtime_dir = '/tmp/toolbox'
@@ -170,7 +174,7 @@ os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)
 @app.context_processor
 def inject_user():
     # 快速检查 session，避免无谓的字典构造
-    csrf_token = security.get_csrf_token()
+    csrf_token = security.generate_csrf_token()
     if not session.get('user_id'):
         return dict(current_user=None, is_logged_in=False, STATIC_VERSION=_STATIC_VERSION,
                     APP_VERSION=APP_VERSION, csrf_token=csrf_token)
