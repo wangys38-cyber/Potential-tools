@@ -766,7 +766,7 @@ def create_analysis_blueprint():
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], f"word_{file_id}.docx")
             file.save(file_path)
             from docx2pdf import convert
-            pdf_filename = f"{orig_name}_{int(time.time())}.pdf"
+            pdf_filename = f"{orig_name}.pdf"
             pdf_path = os.path.join(current_app.config['PDF_FOLDER'], pdf_filename)
             convert(file_path, pdf_path)
             return jsonify({'filename': pdf_filename, 'original_name': orig_name})
@@ -792,7 +792,7 @@ def create_analysis_blueprint():
                 with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
                     f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>body {{ font-family: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 40px; line-height: 1.8; }} table {{ border-collapse: collapse; width: 100%; margin: 1em 0; }} td {{ border: 1px solid #ddd; padding: 8px 12px; }}</style></head><body>{html_content}{watermark_html}</body></html>''')
                     html_path = f.name
-                pdf_filename = f"{orig_name}_{int(time.time())}.pdf"
+                pdf_filename = f"{orig_name}.pdf"
                 pdf_path = os.path.join(current_app.config['PDF_FOLDER'], pdf_filename)
                 render_pdf(html_path, pdf_path)
                 return jsonify({'filename': pdf_filename, 'original_name': orig_name})
