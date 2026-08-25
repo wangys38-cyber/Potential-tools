@@ -788,7 +788,6 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
 }
 
 .nb-modal.show {
