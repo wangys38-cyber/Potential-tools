@@ -248,7 +248,6 @@ window.PTNav = window.PTNav || {};
 {# v5.3 协作功能：自动注入分享按钮到工具页面 #}
 {% if current_user and request.path not in ['/', '/login', '/settings'] %}
 <script src="/static/js/collab.js?v={{ STATIC_VERSION }}" defer></script>
-<script src="/static/js/ai_assistant.js?v={{ STATIC_VERSION }}" defer></script>
 <script>
 // 页面加载完成后自动注入分享按钮
 document.addEventListener('DOMContentLoaded', function() {
