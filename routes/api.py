@@ -657,4 +657,158 @@ def create_api_blueprint(base_dir, static_version):
             }
         })
 
+    # ==================== 用户活动统计 ====================
+
+    @bp.route('/api/workflows')
+    @login_required_or_guest
+    def api_workflows():
+        """获取可用的工作流定义"""
+        workflows = [
+            {
+                'id': 'cr-to-plan',
+                'name': 'CR 分析 → 修复计划',
+                'description': '将 CR 问题分析结果导入计划生成器，自动生成修复排期',
+                'steps': [
+                    {'tool': 'excel-analysis', 'name': 'CR 问题分析', 'action': '上传 Jira Excel 进行分析'},
+                    {'tool': 'plan-generator', 'name': '计划生成器', 'action': '导入 CR 数据生成修复计划'},
+                ],
+                'pipeline_key': 'cr_to_plan',
+            },
+            {
+                'id': 'log-to-bug',
+                'name': '日志分析 → Bug 趋势',
+                'description': '将日志根因分析结果推送到 Bug 趋势看板进行跟踪',
+                'steps': [
+                    {'tool': 'log-analyzer', 'name': '日志根因分析', 'action': '上传设备日志定位根因'},
+                    {'tool': 'bug-trend', 'name': 'Bug 趋势看板', 'action': '查看问题趋势和分布'},
+                ],
+                'pipeline_key': 'log_to_bug',
+            },
+            {
+                'id': 'meeting-to-plan',
+                'name': '会议纪要 → 计划节点',
+                'description': '将会议纪要中的待办事项自动流转到项目计划',
+                'steps': [
+                    {'tool': 'meeting-minutes', 'name': '会议纪要', 'action': '语音转写 + AI 生成纪要'},
+                    {'tool': 'plan-generator', 'name': '计划生成器', 'action': '待办事项自动转入计划节点'},
+                ],
+                'pipeline_key': 'meeting-minutes_to_plan',
+            },
+            {
+                'id': 'standup-to-weekly',
+                'name': '站会 → 周报',
+                'description': '站会数据自动汇总到智能周报',
+                'steps': [
+                    {'tool': 'daily-standup', 'name': '每日站会', 'action': '输入昨日/今日/阻塞'},
+                    {'tool': 'weekly-report', 'name': '智能周报', 'action': '自动汇总站会数据生成周报'},
+                ],
+                'pipeline_key': 'weekly_sources',
+            },
+            {
+                'id': 'cr-to-kg',
+                'name': 'CR 分析 → 知识图谱',
+                'description': '将 CR 分析数据一键导入研发知识图谱',
+                'steps': [
+                    {'tool': 'excel-analysis', 'name': 'CR 问题分析', 'action': '上传分析 CR 数据'},
+                    {'tool': 'knowledge-graph', 'name': '研发知识图谱', 'action': '一键导入构建知识网络'},
+                ],
+                'pipeline_key': None,
+            },
+        ]
+        return jsonify({'status': 'success', 'data': workflows})
+
+    @bp.route('/api/search')
+    @login_required
+    def api_search():
+        """全局搜索：跨笔记、用户数据、图表模板"""
+        query = request.args.get('q', '').strip()
+        if not query:
+            return jsonify({'status': 'success', 'data': {'notes': [], 'user_data': [], 'charts': [], 'total': 0}})
+        results = db.global_search(g.user['id'], query, limit=20)
+        return jsonify({'status': 'success', 'data': results, 'query': query})
+
+    @bp.route('/api/my-activity')
+    @login_required
+    def api_my_activity():
+        """获取当前用户的活动统计"""
+        days = int(request.args.get('days', 30))
+        days = max(1, min(days, 365))
+        stats = db.get_user_activity_stats(g.user['id'], days=days)
+        return jsonify({'status': 'success', 'data': stats})
+
+    # ==================== 用户数据导出 ====================
+
+    @bp.route('/api/export-my-data')
+    @login_required
+    def api_export_my_data():
+        """导出用户数据（JSON / CSV）"""
+        import json as _json
+        import csv as _csv
+        import io as _io
+
+        user_id = g.user['id']
+        fmt = request.args.get('format', 'json').lower()
+
+        # 收集用户数据
+        user_info = db.get_user_by_id(user_id) or {}
+        user_data_list = db.get_user_data_list(user_id, limit=1000)
+        notes = db.get_notes(user_id, limit=1000) if hasattr(db, 'get_notes') else []
+        activity_stats = db.get_user_activity_stats(user_id, days=90)
+        ai_config = db.get_user_ai_config(user_id) if hasattr(db, 'get_user_ai_config') else {}
+        chart_templates = []
+        try:
+            with db.engine.connect() as conn:
+                rows = conn.execute(
+                    db.text("SELECT name, chart_type, config, created_at FROM chart_templates WHERE user_id = :uid"),
+                    {'uid': user_id}
+                ).fetchall()
+                chart_templates = [{'name': r[0], 'chart_type': r[1], 'config': r[2], 'created_at': r[3]} for r in rows]
+        except Exception:
+            pass
+
+        export_data = {
+            'user': {
+                'id': user_info.get('id'),
+                'name': user_info.get('name', ''),
+                'email': user_info.get('email', ''),
+                'provider': user_info.get('provider', ''),
+            },
+            'user_data': user_data_list,
+            'notes': notes,
+            'chart_templates': chart_templates,
+            'activity_stats': activity_stats,
+            'ai_config': {k: '***' if k == 'api_key' else v for k, v in (ai_config or {}).items()},
+            'exported_at': int(time.time()),
+        }
+
+        if fmt == 'csv':
+            # CSV 格式：将 user_data 和 notes 扁平化
+            output = _io.StringIO()
+            writer = _csv.writer(output)
+            writer.writerow(['类型', '标题', '内容', '创建时间'])
+            for item in user_data_list:
+                writer.writerow([
+                    item.get('data_type', ''),
+                    item.get('title', ''),
+                    str(item.get('content', ''))[:500],
+                    item.get('created_at', ''),
+                ])
+            for note in notes:
+                writer.writerow([
+                    'note',
+                    note.get('title', ''),
+                    str(note.get('content', ''))[:500],
+                    note.get('created_at', ''),
+                ])
+            resp = make_response(output.getvalue())
+            resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+            resp.headers['Content-Disposition'] = f'attachment; filename="my-data-{int(time.time())}.csv"'
+            return resp
+
+        # 默认 JSON 格式
+        resp = make_response(_json.dumps(export_data, ensure_ascii=False, default=str, indent=2))
+        resp.headers['Content-Type'] = 'application/json; charset=utf-8'
+        resp.headers['Content-Disposition'] = f'attachment; filename="my-data-{int(time.time())}.json"'
+        return resp
+
     return bp

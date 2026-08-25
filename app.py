@@ -12,6 +12,8 @@ from jinja2 import BytecodeCache
 # 认证模块
 import auth
 import db
+import rate_limiter
+import request_logger
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
@@ -260,7 +262,8 @@ def _maybe_cleanup():
     _last_cleanup_time = now
     try:
         db.cleanup_old_tasks(max_age_hours=6)
-        logger.info("清理过期任务完成")
+        db.cleanup_old_activity(max_age_days=90)
+        logger.info("清理过期任务和活动记录完成")
     except Exception as e:
         logger.error(f"清理过期任务失败: {e}")
 
@@ -270,6 +273,11 @@ def _maybe_cleanup():
 def request_entity_too_large(error):
     """文件超过 MAX_CONTENT_LENGTH 时返回 JSON 而非默认 HTML 页面"""
     return jsonify({'error': f'文件过大，最大支持 {app.config["MAX_CONTENT_LENGTH"] // 1024 // 1024}MB'}), 413
+
+@app.errorhandler(429)
+def too_many_requests(error):
+    """速率限制触发时返回 JSON"""
+    return jsonify({'error': '请求过于频繁，请稍后重试'}), 429
 
 @app.errorhandler(500)
 def internal_server_error(error):
@@ -290,6 +298,7 @@ def guest_access_control():
     """游客访问控制：未登录用户只能访问白名单内的路径"""
     user = auth.get_current_user()
     if user:
+        g.user = user  # 存入 g 供后续中间件使用
         return None  # 已登录用户不限制
     # 未登录用户（游客）检查白名单
     if not auth.is_guest_allowed(request.path):
@@ -298,6 +307,30 @@ def guest_access_control():
             return jsonify({'error': '请先登录', 'need_login': True}), 401
         return redirect('/login')
     return None
+
+
+@app.before_request
+def api_rate_limit():
+    """API 速率限制检查"""
+    return rate_limiter.check_rate_limit()
+
+
+@app.before_request
+def log_request_start():
+    """记录请求开始时间（用于结构化请求日志）"""
+    request_logger.before_request_log()
+
+
+@app.after_request
+def apply_rate_limit_headers(response):
+    """添加限流响应头"""
+    return rate_limiter.add_rate_limit_headers(response)
+
+
+@app.after_request
+def log_request_end(response):
+    """记录结构化请求日志"""
+    return request_logger.after_request_log(response)
 
 
 @app.after_request

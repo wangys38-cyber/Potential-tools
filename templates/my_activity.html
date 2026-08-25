@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的活动</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--ds-bg-secondary); min-height: 100vh; color: var(--ds-text); -webkit-font-smoothing: antialiased; }
+        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+        .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        .page-header .meta { font-size: 12px; color: var(--ds-text-secondary); }
+
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .stat-card {
+            background: var(--ds-bg-elevated); border: 1px solid var(--ds-border-light);
+            border-radius: var(--ds-radius-xl); padding: 20px;
+            box-shadow: var(--ds-shadow-sm); transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .stat-card:hover { box-shadow: var(--ds-shadow-md); transform: translateY(-2px); }
+        .stat-card .icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .stat-card .icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .stat-card .value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .stat-card .label { font-size: 12px; color: var(--ds-text-secondary); margin-top: 4px; }
+
+        .icon-blue { background: rgba(0,122,255,0.1); color: #007aff; }
+        .icon-green { background: rgba(52,199,89,0.1); color: #34c759; }
+        .icon-orange { background: rgba(255,149,0,0.1); color: #ff9500; }
+        .icon-purple { background: rgba(175,82,222,0.1); color: #af52de; }
+
+        .card {
+            background: var(--ds-bg-elevated); border: 1px solid var(--ds-border-light);
+            border-radius: var(--ds-radius-xl); padding: 20px;
+            box-shadow: var(--ds-shadow-sm); margin-bottom: 24px;
+        }
+        .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        .chart-container { position: relative; height: 280px; }
+
+        .tool-table { width: 100%; border-collapse: collapse; }
+        .tool-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--ds-text-secondary); padding: 8px 12px; border-bottom: 1px solid var(--ds-border-light); text-transform: uppercase; letter-spacing: 0.5px; }
+        .tool-table td { padding: 10px 12px; border-bottom: 1px solid var(--ds-border-light); font-size: 14px; }
+        .tool-table tr:last-child td { border-bottom: none; }
+        .tool-table .bar-cell { position: relative; min-width: 200px; }
+        .tool-table .bar-bg { height: 6px; background: var(--ds-bg-secondary); border-radius: 3px; overflow: hidden; }
+        .tool-table .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .tool-table .pct { font-size: 12px; color: var(--ds-text-secondary); margin-left: 8px; }
+
+        .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--ds-border-light); background: var(--ds-bg-elevated); color: var(--ds-text); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-family: inherit; text-decoration: none; }
+        .btn:hover { background: var(--ds-bg-secondary); border-color: var(--ds-border); }
+        .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        .period-tabs { display: flex; gap: 4px; background: var(--ds-bg-secondary); padding: 3px; border-radius: 10px; margin-bottom: 20px; width: fit-content; }
+        .period-tab { padding: 6px 14px; border-radius: 8px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--ds-text-secondary); font-family: inherit; transition: all 0.15s; }
+        .period-tab.active { background: var(--ds-bg-elevated); color: var(--ds-text); font-weight: 600; box-shadow: var(--ds-shadow-sm); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--ds-text-secondary); }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+        .loading { text-align: center; padding: 40px; color: var(--ds-text-secondary); font-size: 14px; }
+        .loading .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--ds-border-light); border-top-color: var(--ds-accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .color-1 { background: #007aff; }
+        .color-2 { background: #34c759; }
+        .color-3 { background: #ff9500; }
+        .color-4 { background: #af52de; }
+        .color-5 { background: #ff3b30; }
+        .color-6 { background: #5856d6; }
+        .color-7 { background: #00c7be; }
+        .color-8 { background: #ff2d55; }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="page-wrap">
+        <div class="page-header">
+            <div>
+                <h1>我的活动</h1>
+                <div class="meta">工具使用统计与个人效能分析</div>
+            </div>
+            <div class="toolbar">
+                <a href="/api/export-my-data?format=json" class="btn" id="btn-export-json">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    导出 JSON
+                </a>
+                <a href="/api/export-my-data?format=csv" class="btn" id="btn-export-csv">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    导出 CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="period-tabs">
+            <button class="period-tab active" data-days="7">近 7 天</button>
+            <button class="period-tab" data-days="30">近 30 天</button>
+            <button class="period-tab" data-days="90">近 90 天</button>
+        </div>
+
+        <div id="stats-grid" class="grid">
+            <div class="loading"><span class="spinner"></span> 加载中...</div>
+        </div>
+
+        <div id="charts-section" style="display:none">
+            <div class="card">
+                <div class="card-title">每日活动趋势</div>
+                <div class="chart-container"><canvas id="dailyChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">工具使用分布</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center">
+                    <div class="chart-container"><canvas id="pieChart"></canvas></div>
+                    <div id="pie-legend"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">工具使用详情</div>
+                <table class="tool-table">
+                    <thead>
+                        <tr>
+                            <th>工具</th>
+                            <th>使用次数</th>
+                            <th>占比</th>
+                            <th>最后使用</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tool-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="empty-state" class="card empty-state" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg>
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px">暂无活动数据</div>
+            <div style="font-size:13px">使用工具后，这里会显示你的使用统计</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        let dailyChart = null;
+        let pieChart = null;
+        let currentDays = 7;
+
+        const COLORS = ['#007aff', '#34c759', '#ff9500', '#af52de', '#ff3b30', '#5856d6', '#00c7be', '#ff2d55'];
+
+        function fmtTime(ts) {
+            if (!ts) return '-';
+            const d = new Date(ts * 1000);
+            const now = new Date();
+            const diff = (now - d) / 1000;
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+            if (diff < 86400 * 7) return Math.floor(diff / 86400) + ' 天前';
+            return d.toLocaleDateString('zh-CN');
+        }
+
+        async function loadData(days) {
+            currentDays = days;
+            document.getElementById('stats-grid').innerHTML = '<div class="loading"><span class="spinner"></span> 加载中...</div>';
+            document.getElementById('charts-section').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'none';
+
+            try {
+                const resp = await fetch(`/api/my-activity?days=${days}`);
+                if (!resp.ok) throw new Error('加载失败');
+                const result = await resp.json();
+                const data = result.data;
+
+                if (data.total_requests === 0) {
+                    document.getElementById('stats-grid').innerHTML = '';
+                    document.getElementById('empty-state').style.display = 'block';
+                    return;
+                }
+
+                renderStats(data);
+                renderDailyChart(data.daily_activity);
+                renderPieChart(data.tools_used);
+                renderToolTable(data.tools_used, data.total_requests);
+                document.getElementById('charts-section').style.display = 'block';
+            } catch (e) {
+                document.getElementById('stats-grid').innerHTML = `<div class="loading" style="color:#ff3b30">加载失败：${e.message}</div>`;
+            }
+        }
+
+        function renderStats(data) {
+            const topTool = data.top_tools[0] || {};
+            const avgDaily = data.daily_activity.length > 0
+                ? Math.round(data.total_requests / data.daily_activity.length)
+                : 0;
+
+            const grid = document.getElementById('stats-grid');
+            grid.innerHTML = `
+                <div class="stat-card">
+                    <div class="icon icon-blue"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg></div>
+                    <div class="value">${data.total_requests}</div>
+                    <div class="label">总请求数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-green"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+                    <div class="value">${data.tools_used.length}</div>
+                    <div class="label">使用工具数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div class="value">${avgDaily}</div>
+                    <div class="label">日均请求</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon icon-purple"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+                    <div class="value" style="font-size:18px">${topTool.tool_name || '-'}</div>
+                    <div class="label">最常用工具</div>
+                </div>
+            `;
+        }
+
+        function renderDailyChart(daily) {
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            if (dailyChart) dailyChart.destroy();
+
+            const labels = daily.map(d => d.date);
+            const counts = daily.map(d => d.count);
+
+            dailyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '请求数',
+                        data: counts,
+                        backgroundColor: 'rgba(0,122,255,0.6)',
+                        borderColor: '#007aff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPieChart(tools) {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+
+            const top = tools.slice(0, 7);
+            const otherCount = tools.slice(7).reduce((s, t) => s + t.count, 0);
+            if (otherCount > 0) top.push({ tool_id: 'other', tool_name: '其他', count: otherCount });
+
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: top.map(t => t.tool_name),
+                    datasets: [{
+                        data: top.map(t => t.count),
+                        backgroundColor: COLORS.slice(0, top.length),
+                        borderWidth: 2,
+                        borderColor: 'var(--ds-bg-elevated)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const legend = document.getElementById('pie-legend');
+            const total = top.reduce((s, t) => s + t.count, 0);
+            legend.innerHTML = top.map((t, i) => `
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px">
+                    <span style="width:10px;height:10px;border-radius:3px;background:${COLORS[i]};flex-shrink:0"></span>
+                    <span style="flex:1">${t.tool_name}</span>
+                    <span style="color:var(--ds-text-secondary)">${t.count}</span>
+                    <span style="color:var(--ds-text-secondary);font-size:11px;width:40px;text-align:right">${(t.count * 100 / total).toFixed(1)}%</span>
+                </div>
+            `).join('');
+        }
+
+        function renderToolTable(tools, total) {
+            const tbody = document.getElementById('tool-tbody');
+            tbody.innerHTML = tools.map((t, i) => {
+                const pct = (t.count * 100 / total).toFixed(1);
+                const colorIdx = i % 8;
+                return `
+                    <tr>
+                        <td><span style="display:inline-flex;align-items:center;gap:8px">
+                            <span style="width:8px;height:8px;border-radius:2px;background:${COLORS[colorIdx]}"></span>
+                            ${t.tool_name}
+                        </span></td>
+                        <td><strong>${t.count}</strong></td>
+                        <td class="bar-cell">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div class="bar-bg" style="flex:1"><div class="bar-fill color-${colorIdx + 1}" style="width:${pct}%"></div></div>
+                                <span class="pct">${pct}%</span>
+                            </div>
+                        </td>
+                        <td style="color:var(--ds-text-secondary);font-size:12px">${fmtTime(t.last_used)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 时间段切换
+        document.querySelectorAll('.period-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                loadData(parseInt(tab.dataset.days));
+            });
+        });
+
+        // 初始加载
+        loadData(7);
+    </script>
+</body>
+</html>

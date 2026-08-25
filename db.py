@@ -414,6 +414,25 @@ def init_db():
             )
         """))
 
+        # ==================== v9.2 用户活动追踪表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS user_activity (
+                id {_PK_TYPE},
+                user_id INTEGER,
+                tool_id TEXT NOT NULL,
+                tool_name TEXT,
+                action TEXT DEFAULT 'view',
+                path TEXT,
+                method TEXT DEFAULT 'GET',
+                status_code INTEGER DEFAULT 200,
+                duration_ms REAL DEFAULT 0,
+                ip TEXT,
+                created_at REAL DEFAULT 0
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_activity_user ON user_activity(user_id, created_at)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_activity_tool ON user_activity(tool_id, created_at)"))
+
     logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 
@@ -666,6 +685,282 @@ def count_user_data(user_id, data_type=None):
                 {'user_id': user_id}
             ).fetchone()
         return row.cnt if row else 0
+
+
+# ==================== 用户活动追踪 ====================
+
+# 工具路径映射：URL 路径 -> tool_id
+_TOOL_PATH_MAP = {
+    '/': ('home', '首页'),
+    '/excel-analysis': ('cr-analysis', 'CR问题分析'),
+    '/log-analyzer': ('log-analyzer', '日志根因分析'),
+    '/knowledge-graph': ('knowledge-graph', '知识图谱'),
+    '/test-report': ('test-report', '测试报告分析'),
+    '/bug-trend': ('bug-trend', 'Bug趋势看板'),
+    '/mttf-dashboard': ('mttf-dashboard', 'MTTF可靠性看板'),
+    '/dashboard': ('dashboard', '研发健康度'),
+    '/hld': ('hld-generator', 'HLD生成器'),
+    '/plan-generator': ('plan-generator', '计划生成器'),
+    '/project-info': ('project-info', '项目信息收集'),
+    '/meeting-minutes': ('meeting-minutes', '会议纪要'),
+    '/weekly-report': ('weekly-report', '智能周报'),
+    '/daily-standup': ('daily-standup', '每日站会'),
+    '/translator': ('translator', 'IT翻译器'),
+    '/email-assistant': ('email-assistant', '邮件助手'),
+    '/md2pdf': ('md2pdf', 'PDF快转'),
+    '/data-viz': ('data-viz', '数据可视化'),
+    '/notes': ('notes', '牛马笔记'),
+    '/merit': ('merit', '电子木鱼'),
+    '/settings': ('settings', '系统设置'),
+    '/my-activity': ('my-activity', '我的活动'),
+    '/admin/users': ('admin-users', '用户管理'),
+    '/teams': ('teams', '团队空间'),
+}
+
+
+def resolve_tool_id(path):
+    """从请求路径解析工具 ID 和名称"""
+    # 精确匹配
+    if path in _TOOL_PATH_MAP:
+        return _TOOL_PATH_MAP[path]
+    # 前缀匹配（如 /hld/api/generate -> hld-generator）
+    for prefix, (tool_id, tool_name) in _TOOL_PATH_MAP.items():
+        if path.startswith(prefix + '/') or path.startswith(prefix + '?'):
+            return tool_id, tool_name
+    # API 路径映射
+    if path.startswith('/api/excel-analyze'):
+        return 'cr-analysis', 'CR问题分析'
+    if path.startswith('/api/translate'):
+        return 'translator', 'IT翻译器'
+    if path.startswith('/hld/'):
+        return 'hld-generator', 'HLD生成器'
+    if path.startswith('/api/notes'):
+        return 'notes', '牛马笔记'
+    if path.startswith('/api/jira-search'):
+        return 'cr-analysis', 'CR问题分析'
+    return None, None
+
+
+def log_user_activity(user_id, tool_id, tool_name=None, action='view',
+                      path=None, method='GET', status_code=200, duration_ms=0, ip=None):
+    """记录用户活动（非阻塞，失败不影响请求）"""
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO user_activity
+                        (user_id, tool_id, tool_name, action, path, method, status_code, duration_ms, ip, created_at)
+                    VALUES
+                        (:user_id, :tool_id, :tool_name, :action, :path, :method, :status_code, :duration_ms, :ip, :created_at)
+                """),
+                {
+                    'user_id': user_id,
+                    'tool_id': tool_id,
+                    'tool_name': tool_name or '',
+                    'action': action,
+                    'path': path or '',
+                    'method': method,
+                    'status_code': status_code,
+                    'duration_ms': duration_ms,
+                    'ip': ip or '',
+                    'created_at': time.time(),
+                }
+            )
+    except Exception as e:
+        logger.debug(f"记录用户活动失败（不影响请求）: {e}")
+
+
+def get_user_activity_stats(user_id, days=30):
+    """获取用户活动统计
+
+    Returns:
+        {
+            'total_requests': int,
+            'tools_used': [{tool_id, tool_name, count, last_used}],
+            'daily_activity': [{date, count}],
+            'top_tools': [{tool_id, tool_name, count, percentage}],
+        }
+    """
+    now = time.time()
+    since = now - days * 86400
+    try:
+        with engine.connect() as conn:
+            # 总请求数
+            total = conn.execute(
+                text("SELECT COUNT(*) FROM user_activity WHERE user_id = :uid AND created_at >= :since"),
+                {'uid': user_id, 'since': since}
+            ).scalar() or 0
+
+            # 工具使用统计
+            tools = conn.execute(
+                text("""
+                    SELECT tool_id, tool_name, COUNT(*) as cnt, MAX(created_at) as last_used
+                    FROM user_activity
+                    WHERE user_id = :uid AND created_at >= :since AND tool_id IS NOT NULL
+                    GROUP BY tool_id, tool_name
+                    ORDER BY cnt DESC
+                """),
+                {'uid': user_id, 'since': since}
+            ).fetchall()
+
+            tools_used = []
+            for row in tools:
+                tools_used.append({
+                    'tool_id': row[0],
+                    'tool_name': row[1] or row[0],
+                    'count': row[2],
+                    'last_used': row[3],
+                })
+
+            # 每日活动
+            daily = conn.execute(
+                text("""
+                    SELECT DATE(created_at, 'unixepoch', 'localtime') as d, COUNT(*) as cnt
+                    FROM user_activity
+                    WHERE user_id = :uid AND created_at >= :since
+                    GROUP BY d
+                    ORDER BY d
+                """),
+                {'uid': user_id, 'since': since}
+            ).fetchall()
+
+            daily_activity = [{'date': row[0], 'count': row[1]} for row in daily]
+
+            # Top 工具（百分比）
+            top_tools = []
+            if total > 0:
+                for t in tools_used[:5]:
+                    top_tools.append({
+                        'tool_id': t['tool_id'],
+                        'tool_name': t['tool_name'],
+                        'count': t['count'],
+                        'percentage': round(t['count'] * 100 / total, 1),
+                    })
+
+            return {
+                'total_requests': total,
+                'tools_used': tools_used,
+                'daily_activity': daily_activity,
+                'top_tools': top_tools,
+                'days': days,
+            }
+    except Exception as e:
+        logger.error(f"获取用户活动统计失败: {e}")
+        return {
+            'total_requests': 0,
+            'tools_used': [],
+            'daily_activity': [],
+            'top_tools': [],
+            'days': days,
+        }
+
+
+def cleanup_old_activity(max_age_days=90):
+    """清理过期的活动记录"""
+    try:
+        cutoff = time.time() - max_age_days * 86400
+        with engine.begin() as conn:
+            conn.execute(
+                text("DELETE FROM user_activity WHERE created_at < :cutoff"),
+                {'cutoff': cutoff}
+            )
+    except Exception as e:
+        logger.error(f"清理活动记录失败: {e}")
+
+
+def global_search(user_id, query, limit=20):
+    """全局搜索：跨笔记、用户数据、图表模板搜索
+
+    Args:
+        user_id: 用户 ID
+        query: 搜索关键词
+        limit: 每类最大结果数
+
+    Returns:
+        {
+            'notes': [{id, title, content_preview, category, created_at}],
+            'user_data': [{id, data_type, title, content_preview, created_at}],
+            'charts': [{id, name, chart_type, created_at}],
+            'total': int,
+        }
+    """
+    if not query or len(query.strip()) < 1:
+        return {'notes': [], 'user_data': [], 'charts': [], 'total': 0}
+
+    q = f"%{query.strip()}%"
+    results = {'notes': [], 'user_data': [], 'charts': [], 'total': 0}
+
+    try:
+        with engine.connect() as conn:
+            # 搜索笔记
+            note_rows = conn.execute(
+                text("""
+                    SELECT id, title, content, category, tags, created_at
+                    FROM notes
+                    WHERE user_id = :uid
+                      AND (title LIKE :q OR content LIKE :q OR tags LIKE :q)
+                    ORDER BY created_at DESC
+                    LIMIT :limit
+                """),
+                {'uid': user_id, 'q': q, 'limit': limit}
+            ).fetchall()
+            for row in note_rows:
+                content = row[2] or ''
+                results['notes'].append({
+                    'id': row[0],
+                    'title': row[1] or '无标题',
+                    'content_preview': content[:200] + ('...' if len(content) > 200 else ''),
+                    'category': row[3] or '',
+                    'created_at': row[5],
+                })
+
+            # 搜索用户数据（CR分析、HLD等）
+            data_rows = conn.execute(
+                text("""
+                    SELECT id, data_type, title, content, created_at
+                    FROM user_data
+                    WHERE user_id = :uid
+                      AND (title LIKE :q OR content LIKE :q)
+                    ORDER BY created_at DESC
+                    LIMIT :limit
+                """),
+                {'uid': user_id, 'q': q, 'limit': limit}
+            ).fetchall()
+            for row in data_rows:
+                content_str = str(row[3] or '')
+                results['user_data'].append({
+                    'id': row[0],
+                    'data_type': row[1] or '',
+                    'title': row[2] or '无标题',
+                    'content_preview': content_str[:200] + ('...' if len(content_str) > 200 else ''),
+                    'created_at': row[4],
+                })
+
+            # 搜索图表模板
+            chart_rows = conn.execute(
+                text("""
+                    SELECT id, name, chart_type, created_at
+                    FROM chart_templates
+                    WHERE user_id = :uid AND name LIKE :q
+                    ORDER BY created_at DESC
+                    LIMIT :limit
+                """),
+                {'uid': str(user_id), 'q': q, 'limit': limit}
+            ).fetchall()
+            for row in chart_rows:
+                results['charts'].append({
+                    'id': row[0],
+                    'name': row[1],
+                    'chart_type': row[2],
+                    'created_at': row[3],
+                })
+
+            results['total'] = len(results['notes']) + len(results['user_data']) + len(results['charts'])
+            return results
+
+    except Exception as e:
+        logger.error(f"全局搜索失败: {e}")
+        return results
 
 
 # ==================== 应用配置 ====================
