@@ -385,62 +385,7 @@ def import_cr_analysis():
 
 
 # ==================== 智能问答 ====================
-
-@bp.route('/api/kg/query', methods=['POST'])
-def intelligent_query():
-    """智能问答"""
-    user_id = getattr(g, 'user_id', None)
-    data = request.json or {}
-    question = data.get('question', '')
-    if not question:
-        return jsonify({'error': '问题不能为空'}), 400
-
-    graph = load_graph(user_id)
-
-    # 构建图谱摘要
-    nodes_summary = '\n'.join([f"- [{n['type']}] {n['name']}: {n.get('description', '')[:100]}" for n in graph['nodes'][:100]])
-    relations_summary = '\n'.join([
-        f"- {next((n['name'] for n in graph['nodes'] if n['id'] == r['source']), r['source'])} "
-        f"--[{r['type']}]--> "
-        f"{next((n['name'] for n in graph['nodes'] if n['id'] == r['target']), r['target'])}"
-        for r in graph['relations'][:100]
-    ])
-
-    prompt = f"""你是一位研发知识图谱智能助手。请根据以下知识图谱数据回答用户问题。
-
-【图谱统计】
-- 总节点数: {len(graph['nodes'])}
-- 总关系数: {len(graph['relations'])}
-- 节点类型分布: {', '.join([f'{t}:{len([n for n in graph["nodes"] if n["type"] == t])}' for t in NODE_TYPES])}
-
-【节点列表（前100个）】
-{nodes_summary if nodes_summary else '无节点数据'}
-
-【关系列表（前100个）】
-{relations_summary if relations_summary else '无关系数据'}
-
-【用户问题】
-{question}
-
-请根据图谱数据回答用户问题，要求：
-1. 基于图谱中的真实数据回答，不要编造不存在的信息
-2. 如果图谱中没有相关数据，明确告知用户
-3. 回答简洁专业，突出关键信息
-4. 可以给出相关节点和关系的引用
-5. 语言简洁，不要AI味"""
-
-    messages = [
-        {'role': 'system', 'content': '你是一位研发知识图谱智能助手，擅长从图谱数据中提取信息并回答用户问题。'},
-        {'role': 'user', 'content': prompt}
-    ]
-
-    try:
-        ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=2000, temperature=0.3, timeout=60)
-        return jsonify({'answer': result or '（无回答）'})
-    except Exception as e:
-        logger.error(f'知识图谱智能问答失败: {e}')
-        return jsonify({'error': f'AI 问答失败: {str(e)}'}), 500
+# 注意：intelligent_query 的增强版定义在文件后部（支持多跳推理和答案溯源）
 
 
 # ==================== 图谱统计 ====================
