@@ -320,6 +320,11 @@
         display: none;
     }
 
+    /* 移动端隐藏不常用的团队按钮，避免导航栏溢出 */
+    .pt-nav-right a[href="/teams"] {
+        display: none;
+    }
+
     .pt-nav-avatar {
         width: 28px;
         height: 28px;
@@ -519,6 +524,11 @@
     }
 
     .pt-nav-logout {
+        display: none;
+    }
+
+    /* 小屏隐藏同步状态按钮，避免导航栏溢出 */
+    #ptSyncBtn {
         display: none;
     }
 
