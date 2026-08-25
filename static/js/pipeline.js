@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Potential-tools v6.0 - 跨工具数据流转管道
  * 负责工具间的数据传递、同步和联动
  *
@@ -262,8 +262,8 @@
             const logResult = JSON.parse(localStorage.getItem('log_analysis_result') || 'null');
             if (logResult) {
                 sources.logAnalysis = {
-                    totalErrors: logData.errors?.length || 0,
-                    categories: logData.categories || {}
+                    totalErrors: logResult.errors?.length || 0,
+                    categories: logResult.categories || {}
                 };
             }
         } catch(e) { sources.logAnalysis = null; }

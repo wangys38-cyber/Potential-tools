@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -132,7 +132,7 @@
             // 显示导入提示
             var banner = document.createElement('div');
             banner.style.cssText = 'margin:0 0 16px;padding:12px 16px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:13px;color:#059669;';
-            banner.textContent = '✓已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生?;
+            banner.textContent = '已从站会助手导入 ' + data.standup_count + ' 天站会记录，自动填充周报素材，可编辑后生成周报';
             var page = document.querySelector('.page');
             if (page) page.insertBefore(banner, page.firstChild);
         } catch(e) { console.warn('Weekly report import error:', e); }
