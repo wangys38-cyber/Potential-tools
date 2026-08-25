@@ -1302,3 +1302,347 @@
         padding: 20px;
     }
 }
+
+/* ==================== v7.0 移动端体验增强 ==================== */
+
+/* --- 图表容器自适应 --- */
+@media (max-width: 768px) {
+    .chart-wrap, .chart-container canvas, .chart-mini, .chart-sm, .chart-md {
+        height: 240px !important;
+    }
+    .chart-container {
+        padding: 14px !important;
+    }
+    .chart-header {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .chart-title-input {
+        min-width: 0 !important;
+        width: 100%;
+    }
+    .chart-actions {
+        width: 100%;
+    }
+    .chart-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    /* Chart.js 图例在移动端换行 */
+    .chart-container ul {
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-wrap, .chart-container canvas, .chart-mini, .chart-sm, .chart-md {
+        height: 200px !important;
+    }
+}
+
+/* --- 表单多列变单列 --- */
+@media (max-width: 768px) {
+    .controls-grid, .form-grid, .form-row, .input-group-row {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .control-group, .form-group {
+        width: 100%;
+    }
+    /* 两列布局变单列 */
+    .two-col, .split-view, .side-by-side {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+    }
+}
+
+/* --- 固定宽度面板全宽化 --- */
+@media (max-width: 768px) {
+    #historyPanel, .history-panel, .side-panel, .detail-panel {
+        width: calc(100vw - 24px) !important;
+        right: 12px !important;
+        left: 12px !important;
+        max-height: 80vh !important;
+    }
+    /* 同步面板、搜索弹窗等 */
+    #ptSyncPanel {
+        width: calc(100vw - 32px) !important;
+        right: 16px !important;
+        left: 16px !important;
+    }
+}
+
+/* --- 首页导航栏移动端适配 --- */
+@media (max-width: 768px) {
+    .nav {
+        padding: 0 12px !important;
+        height: 48px !important;
+    }
+    .nav-center {
+        position: static !important;
+        transform: none !important;
+        flex: 1;
+        justify-content: flex-start;
+        padding: 0 8px;
+    }
+    .nav-logo {
+        font-size: 15px !important;
+    }
+    .nav-logo span {
+        display: none;
+    }
+    .nav-category {
+        font-size: 12px !important;
+        padding: 4px 8px !important;
+    }
+    .nav-search-box input {
+        width: 120px !important;
+    }
+    .user-info .logout-btn {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-search-btn {
+        display: none;
+    }
+}
+
+/* --- 标签页/选项卡横向滚动 --- */
+@media (max-width: 768px) {
+    .tabs, .tab-bar, .nav-tabs, .segmented-control {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .tabs::-webkit-scrollbar, .tab-bar::-webkit-scrollbar, .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .tab, .tab-item, .nav-tabs .nav-link {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* --- 代码块/预格式化文本 --- */
+@media (max-width: 768px) {
+    pre, code, .code-block, .log-output {
+        font-size: 12px !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        word-break: break-all;
+    }
+}
+
+/* --- 按钮组换行与等宽 --- */
+@media (max-width: 768px) {
+    .btn-group, .button-row, .action-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .btn-group .btn, .button-row .btn {
+        flex: 1;
+        min-width: calc(50% - 4px);
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-group .btn, .button-row .btn {
+        min-width: 100%;
+    }
+}
+
+/* --- 上传区域优化 --- */
+@media (max-width: 768px) {
+    .upload-zone, .upload-area, .tb-dropzone, .dropzone {
+        padding: 24px 16px !important;
+    }
+    .upload-zone-text, .upload-area h3 {
+        font-size: 14px !important;
+    }
+    .upload-zone-hint, .upload-area p {
+        font-size: 12px !important;
+    }
+}
+
+/* --- 数据表格优化 --- */
+@media (max-width: 768px) {
+    .data-table-wrap, .table-wrap, .table-container {
+        max-height: 300px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .data-table th, .data-table td, table th, table td {
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+    }
+    /* 表格首列固定 */
+    .data-table.sticky-first-col td:first-child,
+    .data-table.sticky-first-col th:first-child {
+        position: sticky;
+        left: 0;
+        background: inherit;
+        z-index: 1;
+    }
+}
+
+/* --- 侧边栏适配 --- */
+@media (max-width: 768px) {
+    .sidebar, .left-panel, .side-nav {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        width: 260px;
+        z-index: 10001;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+    .sidebar.open, .left-panel.open, .side-nav.open {
+        left: 0;
+    }
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 10000;
+    }
+    .sidebar-overlay.show {
+        display: block;
+    }
+    .main-content.with-sidebar {
+        margin-left: 0 !important;
+    }
+}
+
+/* --- 步骤指示器 --- */
+@media (max-width: 768px) {
+    .steps, .stepper, .progress-steps {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        padding-bottom: 8px;
+        scrollbar-width: none;
+    }
+    .steps::-webkit-scrollbar, .stepper::-webkit-scrollbar {
+        display: none;
+    }
+    .step, .step-item {
+        flex-shrink: 0 !important;
+        min-width: 80px;
+    }
+    .step-label {
+        font-size: 11px !important;
+    }
+}
+
+/* --- 触摸反馈优化 --- */
+@media (hover: none) and (pointer: coarse) {
+    .pt-nav-icon-btn:active,
+    .btn:active, button:active, .tool-card:active,
+    .nav-category:active, .chart-type-btn:active {
+        transform: scale(0.96);
+        opacity: 0.8;
+    }
+    /* 移除 hover 效果，避免触摸后残留 */
+    .pt-nav-icon-btn:hover,
+    .btn:hover, button:hover, .tool-card:hover {
+        background: inherit;
+        transform: none;
+    }
+}
+
+/* --- 底部安全区域 --- */
+@supports (padding: env(safe-area-inset-bottom)) {
+    .page-wrap, .container, .tb-container {
+        padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+    }
+    .btn-group.fixed-bottom, .action-bar.fixed-bottom, .fab-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* --- 输入框聚焦时防止缩放（iOS） --- */
+@media (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* --- 甘特图/时间线横向滚动 --- */
+@media (max-width: 768px) {
+    .gantt-wrap, .timeline-wrap, .roadmap-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+    }
+    .gantt-wrap svg, .timeline-wrap svg {
+        min-width: 600px;
+    }
+}
+
+/* --- 知识图谱 Canvas 适配 --- */
+@media (max-width: 768px) {
+    #graphCanvas, .kg-canvas, .knowledge-graph-container {
+        height: 60vh !important;
+        min-height: 300px;
+    }
+    .graph-controls, .kg-toolbar {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+}
+
+/* --- 日志分析器 --- */
+@media (max-width: 768px) {
+    .log-viewer, .log-container, .log-output {
+        font-size: 11px !important;
+        line-height: 1.5 !important;
+    }
+    .log-line {
+        padding: 4px 8px !important;
+    }
+}
+
+/* --- 统计卡片网格 --- */
+@media (max-width: 768px) {
+    .stats-grid, .metric-cards, .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    .stat-card, .metric-card, .kpi-card {
+        padding: 14px !important;
+    }
+    .stat-value, .metric-value, .kpi-value {
+        font-size: 20px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .stats-grid, .metric-cards, .kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* --- 头像/用户信息 --- */
+@media (max-width: 768px) {
+    .user-info .user-name, .pt-nav-user-name {
+        display: none !important;
+    }
+}
+
+/* --- 打印时隐藏导航栏 --- */
+@media print {
+    .pt-nav-bar, .nav, .no-print {
+        display: none !important;
+    }
+    .page-wrap, .container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+}
