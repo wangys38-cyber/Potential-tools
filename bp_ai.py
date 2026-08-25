@@ -98,6 +98,10 @@ def api_get_ai_config():
     if not has_user_config:
         global_config = db.get_config('ai_config', {}) or {}
         if isinstance(global_config, dict) and global_config.get('api_key', '').strip():
+            # 迁移时加密 API Key
+            import crypto_utils
+            if not crypto_utils.is_encrypted(global_config['api_key']):
+                global_config['api_key'] = crypto_utils.encrypt(global_config['api_key'])
             db.set_user_ai_config(user['id'], global_config)
             user_config = global_config
             has_user_config = True
@@ -140,11 +144,16 @@ def api_save_ai_config():
     # api_key 为空视为删除用户配置
     if not config.get('api_key', '').strip():
         config = {}
+    else:
+        # 加密 API Key 后存储
+        import crypto_utils
+        config['api_key'] = crypto_utils.encrypt(config['api_key'])
     try:
         db.set_user_ai_config(user['id'], config)
         return jsonify({'status': 'success'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"保存 AI 配置失败: {e}")
+        return jsonify({'error': '保存配置失败，请稍后重试'}), 500
 
 
 # ==================== AI 连接测试 ====================

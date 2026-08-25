@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 
 import auth
 import db
+from error_utils import safe_error
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def create_sync_blueprint():
             return jsonify({'status': 'success', 'data': data, 'server_time': time.time()})
         except Exception as e:
             logger.error(f'同步拉取异常: {e}')
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     @bp.route('/api/sync/push', methods=['POST'])
     def api_sync_push():
@@ -44,7 +45,7 @@ def create_sync_blueprint():
                     ts = db.set_sync_state(user['id'], dtype, content)
                     results[dtype] = {'status': 'success', 'updated_at': ts}
                 except Exception as e:
-                    results[dtype] = {'status': 'error', 'error': str(e)}
+                    results[dtype] = {'status': 'error', 'error': '同步失败'}
             else:
                 results[dtype] = {'status': 'error', 'error': '不支持的同步类型'}
         return jsonify({'status': 'success', 'results': results, 'server_time': time.time()})
@@ -59,6 +60,7 @@ def create_sync_blueprint():
             status = db.get_sync_status(user['id'])
             return jsonify({'status': 'success', 'sync_status': status, 'server_time': time.time()})
         except Exception as e:
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            logger.error(f'同步状态查询异常: {e}')
+            return jsonify(safe_error(e)), 500
 
     return bp

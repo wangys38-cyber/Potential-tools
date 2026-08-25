@@ -6,7 +6,16 @@ v6.0 性能优化：
 - 任务取消支持
 - 结果缓存（1小时）
 - 进度回调
+
+⚠️ 重要限制：
+- 任务状态存储在进程内存中，多进程部署（如 gunicorn --workers > 1）时状态不共享。
+- 提交任务到 worker A，查询状态到 worker B 会返回空。
+- 解决方案：
+  1. 确保生产环境使用单进程（gunicorn --workers 1），或
+  2. 使用粘性会话（sticky session），确保同一用户请求路由到同一 worker，或
+  3. 迁移到 Redis/RabbitMQ + Celery 实现跨进程任务队列。
 """
+import os
 import time
 import logging
 import threading
@@ -234,10 +243,26 @@ _task_queue_lock = threading.Lock()
 
 
 def get_task_queue():
-    """获取全局任务队列单例"""
+    """获取全局任务队列单例
+
+    ⚠️ 首次调用时检查多进程部署环境并发出警告
+    """
     global _task_queue_instance
     if _task_queue_instance is None:
         with _task_queue_lock:
             if _task_queue_instance is None:
+                # 检查是否在多进程环境中运行
+                _workers_env = os.environ.get('WEB_CONCURRENCY', '')
+                if _workers_env:
+                    try:
+                        _w = int(_workers_env)
+                        if _w > 1:
+                            logger.warning(
+                                f"⚠️ 检测到多进程部署 (WEB_CONCURRENCY={_w})，"
+                                f"TaskQueue 状态不共享，可能导致任务状态查询失败。"
+                                f"建议设置 gunicorn --workers 1 或使用粘性会话。"
+                            )
+                    except ValueError:
+                        pass
                 _task_queue_instance = TaskQueue(max_workers=4, result_ttl=3600)
     return _task_queue_instance

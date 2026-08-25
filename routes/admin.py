@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify, render_template, session
 
 import db
 import auth
+from error_utils import safe_error
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def create_admin_blueprint():
             return jsonify({'status': 'success', **result})
         except Exception as e:
             logger.error(f"获取用户列表失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify({'status': 'error', 'error': '获取用户列表失败'}), 500
 
     @bp.route('/api/admin/users/<int:user_id>', methods=['PUT'])
     @auth.admin_required
@@ -70,7 +71,7 @@ def create_admin_blueprint():
             return jsonify({'status': 'error', 'error': '用户不存在'}), 404
         except Exception as e:
             logger.error(f"更新用户失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     @bp.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
     @auth.admin_required
@@ -86,7 +87,7 @@ def create_admin_blueprint():
             return jsonify({'status': 'error', 'error': '用户不存在'}), 404
         except Exception as e:
             logger.error(f"删除用户失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     @bp.route('/api/admin/users/<int:user_id>/reset-password', methods=['POST'])
     @auth.admin_required
@@ -109,7 +110,7 @@ def create_admin_blueprint():
             return jsonify({'status': 'error', 'error': '用户不存在'}), 404
         except Exception as e:
             logger.error(f"重置密码失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     @bp.route('/api/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
     @auth.admin_required
@@ -136,7 +137,7 @@ def create_admin_blueprint():
             return jsonify({'status': 'error', 'error': '操作失败'}), 500
         except Exception as e:
             logger.error(f"切换管理员权限失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     @bp.route('/api/admin/users/<int:user_id>/stats', methods=['GET'])
     @auth.admin_required
@@ -147,6 +148,6 @@ def create_admin_blueprint():
             return jsonify({'status': 'success', **stats})
         except Exception as e:
             logger.error(f"获取用户统计失败: {e}")
-            return jsonify({'status': 'error', 'error': str(e)}), 500
+            return jsonify(safe_error(e)), 500
 
     return bp

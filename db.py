@@ -388,6 +388,32 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(user_id, updated_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(user_id, category)"))
 
+        # ==================== v8.0 数据可视化：图表模板表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS chart_templates (
+                id {_PK_TYPE},
+                user_id TEXT NOT NULL DEFAULT 'guest',
+                name TEXT NOT NULL,
+                chart_type TEXT NOT NULL,
+                config TEXT NOT NULL,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_chart_templates_user ON chart_templates(user_id)"))
+
+        # ==================== v8.0 数据可视化：Dashboard 配置表 ====================
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS dashboard_config (
+                id INTEGER PRIMARY KEY,
+                user_id TEXT NOT NULL DEFAULT 'guest',
+                config_key TEXT NOT NULL,
+                config_value TEXT NOT NULL,
+                updated_at REAL DEFAULT 0,
+                UNIQUE(user_id, config_key)
+            )
+        """))
+
     logger.info(f"数据库 v3.0 初始化完成 ({DB_TYPE})")
 
 

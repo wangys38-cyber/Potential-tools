@@ -6,12 +6,16 @@ import os
 import json
 import logging
 import requests
+import crypto_utils
 
 logger = logging.getLogger(__name__)
 
 
 def get_ai_config(user_id=None):
-    """获取 AI 配置 — 优先读取用户级配置，其次全局配置，最后环境变量"""
+    """获取 AI 配置 — 优先读取用户级配置，其次全局配置，最后环境变量
+
+    API Key 在数据库中加密存储，读取时自动解密
+    """
     import auth
     import db
 
@@ -27,11 +31,18 @@ def get_ai_config(user_id=None):
     if user_id:
         user_config = db.get_user_ai_config(user_id)
         if user_config and user_config.get('api_key', '').strip():
+            # 解密存储的 API Key
+            user_config['api_key'] = crypto_utils.decrypt(user_config['api_key'])
             config = user_config
         else:
             config = db.get_config('ai_config', {}) or {}
+            # 全局配置也需解密
+            if isinstance(config, dict) and config.get('api_key'):
+                config['api_key'] = crypto_utils.decrypt(config['api_key'])
     else:
         config = db.get_config('ai_config', {}) or {}
+        if isinstance(config, dict) and config.get('api_key'):
+            config['api_key'] = crypto_utils.decrypt(config['api_key'])
     if not isinstance(config, dict):
         config = {}
     # 2. 环境变量覆盖（最高优先级，主要用于部署时全局配置）
