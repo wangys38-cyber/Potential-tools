@@ -24,30 +24,8 @@ logger = logging.getLogger(__name__)
 get_ai_config = ai_utils.get_ai_config
 
 
-# ==================== 认证装饰器 ====================
-
-def login_required(f):
-    """严格登录装饰器：未登录返回401，登录用户存入 g.user"""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
-
-
-def login_required_or_guest(f):
-    """登录或访客装饰器：ALLOW_GUEST=true 时允许访客访问，否则要求登录"""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user and not auth.ALLOW_GUEST:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
+# 认证装饰器统一从 auth 模块导入
+from auth import login_required, login_required_or_guest
 
 
 def _is_production_env():

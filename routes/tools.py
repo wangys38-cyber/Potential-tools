@@ -28,28 +28,8 @@ except ImportError:
     _ws_client = None
 
 
-# ==================== 认证装饰器 ====================
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
-
-
-def login_required_or_guest(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user and not auth.ALLOW_GUEST:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
+# 认证装饰器统一从 auth 模块导入
+from auth import login_required, login_required_or_guest
 
 
 def create_tools_blueprint(sock=None):
@@ -65,7 +45,9 @@ def create_tools_blueprint(sock=None):
     @bp.route('/api/jira-search', methods=['POST'])
     def api_jira_search():
         """Jira 搜索代理 — 通过 JQL 或 Jira 链接获取 CR 数据"""
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=True) or {}
+        if not data:
+            return jsonify({'error': '请求体不是有效的 JSON'}), 400
         domain = data.get('domain', '').strip().rstrip('/')
         email = data.get('email', '').strip()
         api_token = data.get('api_token', '').strip()

@@ -7,6 +7,7 @@ IT 技术文档翻译器 Blueprint
 - 术语命中位置标注（前端高亮）
 """
 import re
+import os
 import json
 import csv
 import io
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 bp_translator = Blueprint('translator', __name__, url_prefix='/api/translate')
 
-# ==================== 预置 IT 术语库 ====================
-IT_GLOSSARY = {
+# ==================== 预置 IT 术语库（内置默认，可被外部 JSON 覆盖） ====================
+_DEFAULT_IT_GLOSSARY = {
     'Cloud Native': '云原生',
     'Container': '容器',
     'Orchestration': '编排',
@@ -545,7 +546,27 @@ IT_GLOSSARY = {
     'Unblocked': '已解除阻塞',
 }
 
-# 去重（字典键唯一，无需额外处理）
+# 运行时加载术语库：优先运行时目录 → bundled glossaries/ → 内置默认
+_BUNDLED_GLOSSARY_DIR = os.path.join(os.path.dirname(__file__), '..', 'glossaries')
+_RUNTIME_GLOSSARY_DIR = os.path.join(os.environ.get('DB_DIR', '/tmp/toolbox'), 'glossaries')
+
+
+def _load_glossary():
+    """加载 IT 术语库 JSON，支持运行时覆盖"""
+    for d in [_RUNTIME_GLOSSARY_DIR, _BUNDLED_GLOSSARY_DIR]:
+        path = os.path.join(d, 'it_glossary.json')
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    loaded = json.load(f)
+                    logger.info(f'术语库已从外部加载: {path} ({len(loaded)} 条)')
+                    return loaded
+            except Exception as e:
+                logger.warning(f'加载术语库失败 {path}: {e}')
+    return dict(_DEFAULT_IT_GLOSSARY)
+
+
+IT_GLOSSARY = _load_glossary()
 
 # ==================== 代码块保护 ====================
 # 匹配模式：fenced code block, inline code, HTML tag, ${var}, {{placeholder}}

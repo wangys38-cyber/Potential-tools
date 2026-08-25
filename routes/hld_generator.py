@@ -4,10 +4,15 @@ HLD 生成器蓝图
 支持 GPS/Fitness 增强分支、Mermaid 时序图/状态机、批量 ZIP 下载
 """
 import io
+import os
+import json
 import zipfile
 import re
+import logging
 from flask import Blueprint, request, jsonify, send_file
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 bp_hld = Blueprint('hld', __name__, url_prefix='/hld')
 
@@ -23,8 +28,8 @@ GPS_FITNESS_KEYWORDS = [
     '健康', 'health', 'wellness', 'recovery', '恢复',
 ]
 
-# 术语库（自动收集相关术语）
-TERM_DATABASE = {
+# 术语库（内置默认，可被外部 JSON 覆盖）
+_DEFAULT_TERM_DATABASE = {
     'RTOS': '实时操作系统（Real-Time Operating System）',
     'HAL': '硬件抽象层（Hardware Abstraction Layer）',
     'BLE': '低功耗蓝牙（Bluetooth Low Energy）',
@@ -60,6 +65,28 @@ TERM_DATABASE = {
     'JSON': 'JavaScript 对象表示法（JavaScript Object Notation）',
     'CSV': '逗号分隔值（Comma-Separated Values）',
 }
+
+# 运行时加载术语库：优先运行时目录 → bundled glossaries/ → 内置默认
+_BUNDLED_TERM_DIR = os.path.join(os.path.dirname(__file__), '..', 'glossaries')
+_RUNTIME_TERM_DIR = os.path.join(os.environ.get('DB_DIR', '/tmp/toolbox'), 'glossaries')
+
+
+def _load_term_database():
+    """加载术语库 JSON，支持运行时覆盖"""
+    for d in [_RUNTIME_TERM_DIR, _BUNDLED_TERM_DIR]:
+        path = os.path.join(d, 'term_database.json')
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    loaded = json.load(f)
+                    logger.info(f'术语库已从外部加载: {path} ({len(loaded)} 条)')
+                    return loaded
+            except Exception as e:
+                logger.warning(f'加载术语库失败 {path}: {e}')
+    return dict(_DEFAULT_TERM_DATABASE)
+
+
+TERM_DATABASE = _load_term_database()
 
 # ==================== OD 解析 ====================
 
@@ -1079,7 +1106,7 @@ def parse_od():
 @bp_hld.route('/api/generate', methods=['POST'])
 def generate_all():
     """生成所有 HLD 并打包 ZIP 下载"""
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data or 'features' not in data:
         return jsonify({'error': '缺少 Feature 数据'}), 400
 
@@ -1113,7 +1140,7 @@ def generate_all():
 @bp_hld.route('/api/preview', methods=['POST'])
 def preview_single():
     """预览单个 Feature 的 HLD"""
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data or 'feature' not in data:
         return jsonify({'error': '缺少 Feature 数据'}), 400
 

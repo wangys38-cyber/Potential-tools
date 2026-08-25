@@ -125,28 +125,8 @@ def _escape_html(text):
     return _html_escape(str(text))
 
 
-# ==================== 认证装饰器 ====================
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
-
-
-def login_required_or_guest(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = auth.get_current_user()
-        if not user and not auth.ALLOW_GUEST:
-            return jsonify({'error': '请先登录'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated
+# 认证装饰器统一从 auth 模块导入
+from auth import login_required, login_required_or_guest
 
 
 def create_analysis_blueprint():

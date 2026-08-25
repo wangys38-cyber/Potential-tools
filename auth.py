@@ -11,8 +11,9 @@ import json
 import secrets
 import logging
 import requests
+from functools import wraps
 from urllib.parse import urlencode
-from flask import session, redirect, request, url_for, jsonify
+from flask import session, redirect, request, url_for, jsonify, g
 import db
 
 logger = logging.getLogger(__name__)
@@ -147,21 +148,31 @@ def _set_session_user(user_id, name, email, avatar, provider, is_admin=False):
 
 
 def login_required(func):
-    """登录验证装饰器（已废弃，保留兼容）"""
-    from functools import wraps
+    """严格登录装饰器：未登录返回401，登录用户存入 g.user"""
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not is_logged_in():
-            if ALLOW_GUEST:
-                return func(*args, **kwargs)
-            return redirect(url_for('login_page'))
+    def decorated(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': '请先登录'}), 401
+        g.user = user
         return func(*args, **kwargs)
-    return wrapper
+    return decorated
+
+
+def login_required_or_guest(func):
+    """登录或访客装饰器：ALLOW_GUEST=true 时允许访客访问，否则要求登录"""
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        user = get_current_user()
+        if not user and not ALLOW_GUEST:
+            return jsonify({'error': '请先登录'}), 401
+        g.user = user
+        return func(*args, **kwargs)
+    return decorated
 
 
 def admin_required(func):
     """管理员权限装饰器：非管理员返回 403，未登录跳转登录页"""
-    from functools import wraps
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not is_logged_in():

@@ -1,15 +1,39 @@
-"""协作功能 Blueprint — v5.3
+"""[已废弃] 协作功能 Blueprint — v5.3
 共享工作空间、评论、实时协作
+
+⚠️ 此模块已废弃，请使用 routes/collab_v2.py（v7.0）。
+   新功能（团队、权限管理、评论编辑/解决、活动历史）仅在 v2 中提供。
+   前端 static/js/collab.js 仍引用此模块的 API，迁移完成后可移除。
 """
 import time
 import json
+import logging
+import warnings
 from flask import Blueprint, request, jsonify, session, g
 import auth
 import db
 
+logger = logging.getLogger(__name__)
+
+# 模块加载时发出弃用警告
+warnings.warn(
+    "routes.collab (v5.3) 已废弃，请迁移至 routes.collab_v2 (v7.0)。",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+_DEPRECATION_HEADER = 'true; version="v2"'
+
 
 def create_collab_blueprint():
     bp = Blueprint('collab', __name__, url_prefix='/api/collab')
+
+    @bp.after_request
+    def _add_deprecation_headers(response):
+        """为所有响应添加弃用提示头"""
+        response.headers['Deprecation'] = _DEPRECATION_HEADER
+        response.headers['Sunset'] = 'Sun, 31 Dec 2026 23:59:59 GMT'
+        return response
 
     def _current_user_id():
         return session.get('user_id')

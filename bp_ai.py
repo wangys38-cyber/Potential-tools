@@ -128,7 +128,7 @@ def api_save_ai_config():
     if not user:
         return jsonify({'error': '请先登录', 'need_login': True}), 401
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': '无效的配置数据'}), 400
 

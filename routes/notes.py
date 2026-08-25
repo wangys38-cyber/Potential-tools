@@ -43,7 +43,7 @@ def create_notes_blueprint():
         if not user_id:
             return jsonify({'error': '请先登录', 'need_login': True}), 401
         try:
-            data = request.get_json(force=True) or {}
+            data = request.get_json(force=True, silent=True) or {}
             note_uid = data.get('id') or data.get('note_uid')
             if not note_uid:
                 return jsonify({'error': '缺少笔记 ID'}), 400
@@ -71,7 +71,7 @@ def create_notes_blueprint():
         if not user_id:
             return jsonify({'error': '请先登录', 'need_login': True}), 401
         try:
-            data = request.get_json(force=True) or {}
+            data = request.get_json(force=True, silent=True) or {}
             success = db.update_note(
                 user_id=user_id,
                 note_uid=note_uid,
