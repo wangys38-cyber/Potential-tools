@@ -1,11 +1,16 @@
-"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入"""
+"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入、知识抽取、推理、导出"""
 import os
+import re
+import csv
+import io
 import json
 import time
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime
+from collections import defaultdict, deque
 
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, Response
 
 import db
 import ai_utils
@@ -468,3 +473,597 @@ def get_graph_stats():
         'coreNodes': core_nodes,
         'isolatedNodes': len([n for n in graph['nodes'] if node_degrees.get(n['id'], 0) == 0])
     })
+
+
+# ==================== 自动知识抽取 ====================
+
+@bp.route('/api/kg/extract', methods=['POST'])
+def extract_knowledge():
+    """从文本中自动抽取实体和关系，返回预览结果供用户确认"""
+    user_id = getattr(g, 'user_id', None)
+    data = request.json or {}
+    text = data.get('text', '')
+    source_type = data.get('source_type', 'general')  # cr_analysis / log / meeting / general
+
+    if not text or len(text.strip()) < 10:
+        return jsonify({'error': '文本内容不能为空或过短'}), 400
+
+    # 根据来源类型构建抽取提示
+    type_instructions = {
+        'cr_analysis': """抽取以下类型实体和关系：
+- Bug节点：问题编号、标题、严重程度、状态
+- 模块节点：所属模块/组件
+- 人员节点：负责人/开发/测试人员
+- 版本节点：涉及版本号
+- 关系：负责(assigned)、属于(part_of)、阻塞(blocks)、依赖(depends)""",
+        'log': """抽取以下类型实体和关系：
+- 异常事件节点：错误/异常描述
+- 模块节点：出错模块/服务
+- 错误类型节点：错误分类（如空指针、超时、越界等）
+- 关系：导致(caused)、属于(part_of)、关联(related)""",
+        'meeting': """抽取以下类型实体和关系：
+- 待办事项节点：行动项/任务描述
+- 负责人节点：任务负责人
+- 项目节点：所属项目/模块
+- 关系：负责(assigned)、属于(part_of)、关联(related)、阻塞(blocks)""",
+        'general': """抽取研发相关的实体和关系：
+- 节点类型：bug、requirement、module、person、version、testcase、risk
+- 关系类型：assigned、part_of、blocks、depends、caused、fixed、tested、related"""
+    }
+
+    prompt = f"""你是一位研发知识图谱抽取专家。请从以下文本中抽取实体和关系，构建知识图谱。
+
+{type_instructions.get(source_type, type_instructions['general'])}
+
+【输入文本】
+{text[:8000]}
+
+【输出要求】
+严格输出JSON格式，不要包含任何其他文字或markdown标记：
+{{
+  "nodes": [
+    {{"type": "bug", "name": "节点名称", "description": "描述", "properties": {{"key": "value"}}}}
+  ],
+  "relations": [
+    {{"source": "源节点名称", "target": "目标节点名称", "type": "关系类型", "description": "关系描述"}}
+  ]
+}}
+
+注意：
+1. relations中的source和target必须是nodes中已有的节点name
+2. 只抽取文本中明确提到的实体和关系，不要编造
+3. 节点名称要简洁准确
+4. 如果文本中没有可抽取的内容，返回空的nodes和relations数组"""
+
+    messages = [
+        {'role': 'system', 'content': '你是一位专业的知识图谱抽取引擎，只输出JSON格式的抽取结果。'},
+        {'role': 'user', 'content': prompt}
+    ]
+
+    try:
+        ai_config = get_ai_config()
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=3000, temperature=0.2, timeout=90)
+
+        # 解析JSON结果
+        result = result.strip()
+        # 去除可能的markdown代码块标记
+        if result.startswith('```'):
+            result = re.sub(r'^```(?:json)?\s*', '', result)
+            result = re.sub(r'\s*```$', '', result)
+
+        extracted = json.loads(result)
+        nodes = extracted.get('nodes', [])
+        relations = extracted.get('relations', [])
+
+        # 校验关系引用的节点是否存在
+        node_names = {n['name'] for n in nodes}
+        valid_relations = [r for r in relations if r.get('source') in node_names and r.get('target') in node_names]
+
+        return jsonify({
+            'nodes': nodes,
+            'relations': valid_relations,
+            'totalNodes': len(nodes),
+            'totalRelations': len(valid_relations),
+            'source_type': source_type
+        })
+    except json.JSONDecodeError as e:
+        logger.error(f'抽取结果JSON解析失败: {e}, result: {result[:500]}')
+        return jsonify({'error': 'AI返回结果格式异常，请重试'}), 500
+    except Exception as e:
+        logger.error(f'知识抽取失败: {e}')
+        return jsonify({'error': f'知识抽取失败: {str(e)}'}), 500
+
+
+@bp.route('/api/kg/extract/confirm', methods=['POST'])
+def confirm_extraction():
+    """确认抽取结果并添加到图谱"""
+    user_id = getattr(g, 'user_id', None)
+    data = request.json or {}
+    nodes = data.get('nodes', [])
+    relations = data.get('relations', [])
+
+    if not nodes:
+        return jsonify({'error': '没有要添加的节点'}), 400
+
+    graph = load_graph()
+    created_nodes = []
+    name_to_id = {}
+
+    # 创建节点（去重：同类型同名节点复用）
+    for n in nodes:
+        node_type = n.get('type')
+        name = n.get('name')
+        if not node_type or not name or node_type not in NODE_TYPES:
+            continue
+
+        # 检查是否已存在同类型同名节点
+        existing = next((x for x in graph['nodes']
+                         if x.get('type') == node_type and x.get('name') == name
+                         and (x.get('user_id') == user_id or not x.get('user_id'))), None)
+        if existing:
+            name_to_id[name] = existing['id']
+            continue
+
+        node = {
+            'id': generate_node_id(),
+            'type': node_type,
+            'name': name,
+            'description': n.get('description', ''),
+            'properties': n.get('properties', {}),
+            'user_id': user_id,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        graph['nodes'].append(node)
+        created_nodes.append(node)
+        name_to_id[name] = node['id']
+
+    # 创建关系
+    created_relations = []
+    for r in relations:
+        source_name = r.get('source')
+        target_name = r.get('target')
+        rel_type = r.get('type')
+        if not source_name or not target_name or not rel_type:
+            continue
+        if rel_type not in RELATION_TYPES:
+            continue
+        source_id = name_to_id.get(source_name)
+        target_id = name_to_id.get(target_name)
+        if not source_id or not target_id or source_id == target_id:
+            continue
+
+        # 检查重复关系
+        exists = any(x['source'] == source_id and x['target'] == target_id and x['type'] == rel_type
+                     for x in graph['relations'])
+        if exists:
+            continue
+
+        relation = {
+            'id': generate_relation_id(),
+            'source': source_id,
+            'target': target_id,
+            'type': rel_type,
+            'description': r.get('description', ''),
+            'user_id': user_id,
+            'created_at': datetime.now().isoformat()
+        }
+        graph['relations'].append(relation)
+        created_relations.append(relation)
+
+    save_graph(graph)
+    return jsonify({
+        'message': f'成功添加 {len(created_nodes)} 个节点，{len(created_relations)} 个关系',
+        'createdNodes': len(created_nodes),
+        'createdRelations': len(created_relations)
+    })
+
+
+# ==================== 多跳推理问答 ====================
+
+def _build_adjacency(graph):
+    """构建邻接表（无向）"""
+    adj = defaultdict(set)
+    for rel in graph['relations']:
+        adj[rel['source']].add(rel['target'])
+        adj[rel['target']].add(rel['source'])
+    return adj
+
+
+def _bfs_paths(adj, start, end, max_depth=5):
+    """BFS查找两节点间所有路径"""
+    if start == end:
+        return [[start]]
+    paths = []
+    queue = deque([(start, [start])])
+    visited_paths = set()
+    while queue:
+        current, path = queue.popleft()
+        if len(path) > max_depth:
+            continue
+        for neighbor in adj.get(current, set()):
+            if neighbor in path:
+                continue
+            new_path = path + [neighbor]
+            path_key = tuple(new_path)
+            if path_key in visited_paths:
+                continue
+            visited_paths.add(path_key)
+            if neighbor == end:
+                paths.append(new_path)
+                if len(paths) >= 10:
+                    return paths
+            else:
+                queue.append((neighbor, new_path))
+    return paths
+
+
+def _multi_hop_reasoning(graph, question):
+    """基于图谱的多跳推理，返回推理路径和依据"""
+    node_map = {n['id']: n for n in graph['nodes']}
+    adj = _build_adjacency(graph)
+
+    # 识别问题中的实体关键词
+    q_lower = question.lower()
+    matched_nodes = []
+    for node in graph['nodes']:
+        name = node['name'].lower()
+        if name and (name in q_lower or q_lower in name):
+            matched_nodes.append(node)
+
+    # 关键词匹配（更宽松）
+    if not matched_nodes:
+        keywords = re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]+', question)
+        for kw in keywords:
+            if len(kw) < 2:
+                continue
+            for node in graph['nodes']:
+                if kw.lower() in node['name'].lower() and node not in matched_nodes:
+                    matched_nodes.append(node)
+
+    reasoning_steps = []
+    evidence_nodes = set()
+    evidence_relations = []
+
+    # 分析问题类型
+    is_count = any(w in question for w in ['多少', '几个', '最多', '统计', '数量', 'count'])
+    is_who = any(w in question for w in ['谁', '哪个', '哪位', 'who'])
+    is_relation = any(w in question for w in ['关系', '关联', '路径', '联系', '怎么到'])
+    is_module = any(w in question for w in ['模块', 'module', '组件'])
+    is_bug = any(w in question for w in ['bug', '问题', '缺陷', '故障'])
+
+    # 对匹配到的节点进行多跳扩展
+    for mn in matched_nodes[:3]:
+        evidence_nodes.add(mn['id'])
+        reasoning_steps.append(f"识别到实体: [{mn['type']}] {mn['name']}")
+
+        # 一跳邻居
+        one_hop = adj.get(mn['id'], set())
+        for nid in one_hop:
+            evidence_nodes.add(nid)
+            for rel in graph['relations']:
+                if (rel['source'] == mn['id'] and rel['target'] == nid) or \
+                   (rel['target'] == mn['id'] and rel['source'] == nid):
+                    evidence_relations.append(rel)
+
+        # 二跳扩展（如果问题涉及多跳）
+        if is_count or is_who or is_module:
+            for nid in list(one_hop)[:10]:
+                two_hop = adj.get(nid, set()) - one_hop - {mn['id']}
+                for tid in list(two_hop)[:5]:
+                    evidence_nodes.add(tid)
+                    for rel in graph['relations']:
+                        if (rel['source'] == nid and rel['target'] == tid) or \
+                           (rel['target'] == nid and rel['source'] == tid):
+                            evidence_relations.append(rel)
+            reasoning_steps.append(f"执行二跳推理，扩展到 {len(evidence_nodes)} 个相关节点")
+
+    # 统计分析
+    analysis_result = {}
+    if is_count and evidence_nodes:
+        # 按类型统计
+        type_count = defaultdict(int)
+        for nid in evidence_nodes:
+            node = node_map.get(nid)
+            if node:
+                type_count[node['type']] += 1
+        analysis_result['typeDistribution'] = dict(type_count)
+
+        # 人员-Bug统计
+        if is_bug or is_who:
+            person_bugs = defaultdict(list)
+            for rel in graph['relations']:
+                if rel['type'] == 'assigned':
+                    person = node_map.get(rel['source'])
+                    bug = node_map.get(rel['target'])
+                    if person and bug and bug['type'] == 'bug':
+                        person_bugs[person['name']].append(bug['name'])
+            if person_bugs:
+                sorted_persons = sorted(person_bugs.items(), key=lambda x: len(x[1]), reverse=True)
+                analysis_result['personBugCount'] = [
+                    {'person': p, 'count': len(bugs), 'bugs': bugs[:5]}
+                    for p, bugs in sorted_persons[:10]
+                ]
+
+        # 模块-Bug统计
+        if is_module:
+            module_bugs = defaultdict(list)
+            for rel in graph['relations']:
+                if rel['type'] == 'part_of':
+                    bug = node_map.get(rel['source'])
+                    module = node_map.get(rel['target'])
+                    if bug and module and bug['type'] == 'bug' and module['type'] == 'module':
+                        module_bugs[module['name']].append(bug['name'])
+            if module_bugs:
+                sorted_modules = sorted(module_bugs.items(), key=lambda x: len(x[1]), reverse=True)
+                analysis_result['moduleBugCount'] = [
+                    {'module': m, 'count': len(bugs), 'bugs': bugs[:5]}
+                    for m, bugs in sorted_modules[:10]
+                ]
+
+    # 路径分析
+    if is_relation and len(matched_nodes) >= 2:
+        paths = _bfs_paths(adj, matched_nodes[0]['id'], matched_nodes[1]['id'])
+        if paths:
+            path_names = []
+            for p in paths[:3]:
+                path_names.append([node_map.get(nid, {}).get('name', nid) for nid in p])
+            analysis_result['paths'] = path_names
+            reasoning_steps.append(f"找到 {len(paths)} 条连接路径")
+
+    return {
+        'matchedNodes': [{'id': n['id'], 'name': n['name'], 'type': n['type']} for n in matched_nodes[:5]],
+        'reasoningSteps': reasoning_steps,
+        'evidenceNodes': [{'id': nid, 'name': node_map.get(nid, {}).get('name', ''),
+                           'type': node_map.get(nid, {}).get('type', '')} for nid in list(evidence_nodes)[:30]],
+        'evidenceRelations': [{'source': node_map.get(r['source'], {}).get('name', r['source']),
+                               'target': node_map.get(r['target'], {}).get('name', r['target']),
+                               'type': r['type']} for r in evidence_relations[:30]],
+        'analysis': analysis_result
+    }
+
+
+@bp.route('/api/kg/query', methods=['POST'])
+def intelligent_query():
+    """智能问答 - 支持多跳推理和答案溯源"""
+    user_id = getattr(g, 'user_id', None)
+    data = request.json or {}
+    question = data.get('question', '')
+    if not question:
+        return jsonify({'error': '问题不能为空'}), 400
+
+    graph = load_graph(user_id)
+
+    if not graph['nodes']:
+        return jsonify({'answer': '当前知识图谱为空，请先导入或添加节点数据。', 'reasoning': None})
+
+    # 执行多跳推理
+    reasoning = _multi_hop_reasoning(graph, question)
+
+    # 构建图谱摘要（限制长度）
+    nodes_summary = '\n'.join([
+        f"- [{n['type']}] {n['name']}: {n.get('description', '')[:80]}"
+        for n in graph['nodes'][:80]
+    ])
+    relations_summary = '\n'.join([
+        f"- {next((n['name'] for n in graph['nodes'] if n['id'] == r['source']), r['source'])} "
+        f"--[{r['type']}]--> "
+        f"{next((n['name'] for n in graph['nodes'] if n['id'] == r['target']), r['target'])}"
+        for r in graph['relations'][:80]
+    ])
+
+    # 构建推理分析摘要
+    analysis_text = ''
+    if reasoning.get('analysis'):
+        a = reasoning['analysis']
+        if 'personBugCount' in a:
+            analysis_text += '\n【人员Bug统计】\n'
+            for item in a['personBugCount'][:5]:
+                analysis_text += f"- {item['person']}: {item['count']}个Bug\n"
+        if 'moduleBugCount' in a:
+            analysis_text += '\n【模块Bug统计】\n'
+            for item in a['moduleBugCount'][:5]:
+                analysis_text += f"- {item['module']}: {item['count']}个Bug\n"
+        if 'paths' in a:
+            analysis_text += '\n【路径分析】\n'
+            for i, p in enumerate(a['paths'][:3]):
+                analysis_text += f"路径{i+1}: {' -> '.join(p)}\n"
+        if 'typeDistribution' in a:
+            analysis_text += f"\n【相关节点类型分布】{json.dumps(a['typeDistribution'], ensure_ascii=False)}\n"
+
+    prompt = f"""你是一位研发知识图谱智能助手。请根据以下知识图谱数据和推理分析结果回答用户问题。
+
+【图谱统计】
+- 总节点数: {len(graph['nodes'])}
+- 总关系数: {len(graph['relations'])}
+- 节点类型分布: {', '.join([f'{t}:{len([n for n in graph["nodes"] if n["type"] == t])}' for t in NODE_TYPES])}
+
+【推理分析结果】
+匹配实体: {', '.join([f"[{n['type']}]{n['name']}" for n in reasoning.get('matchedNodes', [])]) or '无'}
+推理步骤: {'; '.join(reasoning.get('reasoningSteps', [])) or '无'}
+{analysis_text}
+
+【节点列表（前80个）】
+{nodes_summary if nodes_summary else '无节点数据'}
+
+【关系列表（前80个）】
+{relations_summary if relations_summary else '无关系数据'}
+
+【用户问题】
+{question}
+
+请根据图谱数据和推理分析回答用户问题，要求：
+1. 基于图谱中的真实数据回答，不要编造不存在的信息
+2. 如果图谱中没有相关数据，明确告知用户
+3. 回答简洁专业，突出关键信息和数据
+4. 可以引用具体的节点名称和关系
+5. 语言简洁，不要AI味，不要客套话"""
+
+    messages = [
+        {'role': 'system', 'content': '你是一位研发知识图谱智能助手，擅长从图谱数据中提取信息并回答用户问题。'},
+        {'role': 'user', 'content': prompt}
+    ]
+
+    try:
+        ai_config = get_ai_config()
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=2000, temperature=0.3, timeout=60)
+        return jsonify({
+            'answer': result or '（无回答）',
+            'reasoning': reasoning
+        })
+    except Exception as e:
+        logger.error(f'知识图谱智能问答失败: {e}')
+        # 降级：仅返回推理分析结果
+        fallback = 'AI问答服务暂不可用。基于图谱推理分析：\n'
+        if reasoning.get('analysis', {}).get('personBugCount'):
+            for item in reasoning['analysis']['personBugCount'][:5]:
+                fallback += f"- {item['person']}: {item['count']}个Bug\n"
+        if reasoning.get('analysis', {}).get('moduleBugCount'):
+            for item in reasoning['analysis']['moduleBugCount'][:5]:
+                fallback += f"- {item['module']}: {item['count']}个Bug\n"
+        return jsonify({'answer': fallback, 'reasoning': reasoning})
+
+
+# ==================== 知识导出 ====================
+
+@bp.route('/api/kg/export', methods=['POST'])
+def export_graph():
+    """导出知识图谱数据，支持JSON/GraphML/CSV格式"""
+    user_id = getattr(g, 'user_id', None)
+    data = request.json or {}
+    fmt = data.get('format', 'json').lower()
+    scope = data.get('scope', 'all')  # all / selected / subgraph
+    selected_ids = data.get('selectedIds', [])
+    center_node_id = data.get('centerNodeId')
+    depth = int(data.get('depth', 2))
+
+    graph = load_graph(user_id)
+
+    # 根据范围筛选
+    if scope == 'selected' and selected_ids:
+        selected_set = set(selected_ids)
+        nodes = [n for n in graph['nodes'] if n['id'] in selected_set]
+        relations = [r for r in graph['relations']
+                     if r['source'] in selected_set and r['target'] in selected_set]
+    elif scope == 'subgraph' and center_node_id:
+        # BFS获取子图
+        adj = _build_adjacency(graph)
+        visited = {center_node_id}
+        current = {center_node_id}
+        for _ in range(depth):
+            next_level = set()
+            for nid in current:
+                for neighbor in adj.get(nid, set()):
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        next_level.add(neighbor)
+            current = next_level
+            if not current:
+                break
+        nodes = [n for n in graph['nodes'] if n['id'] in visited]
+        relations = [r for r in graph['relations']
+                     if r['source'] in visited and r['target'] in visited]
+    else:
+        nodes = graph['nodes']
+        relations = graph['relations']
+
+    node_map = {n['id']: n for n in nodes}
+
+    if fmt == 'json':
+        export_data = {
+            'metadata': {
+                'exportedAt': datetime.now().isoformat(),
+                'totalNodes': len(nodes),
+                'totalRelations': len(relations),
+                'scope': scope
+            },
+            'nodes': nodes,
+            'relations': relations,
+            'nodeTypes': NODE_TYPES,
+            'relationTypes': RELATION_TYPES
+        }
+        return jsonify(export_data)
+
+    elif fmt == 'graphml':
+        # 构建GraphML XML
+        root = ET.Element('graphml')
+        root.set('xmlns', 'http://graphml.graphdrawing.org/xmlns')
+
+        # 定义键
+        keys = [
+            ('d0', 'node', 'name', 'string'),
+            ('d1', 'node', 'type', 'string'),
+            ('d2', 'node', 'description', 'string'),
+            ('d3', 'edge', 'type', 'string'),
+            ('d4', 'edge', 'description', 'string'),
+        ]
+        for kid, domain, attr_name, attr_type in keys:
+            key_elem = ET.SubElement(root, 'key')
+            key_elem.set('id', kid)
+            key_elem.set('for', domain)
+            key_elem.set('attr.name', attr_name)
+            key_elem.set('attr.type', attr_type)
+
+        graph_elem = ET.SubElement(root, 'graph')
+        graph_elem.set('id', 'knowledge_graph')
+        graph_elem.set('edgedefault', 'directed')
+
+        for node in nodes:
+            node_elem = ET.SubElement(graph_elem, 'node')
+            node_elem.set('id', node['id'])
+            ET.SubElement(node_elem, 'data', key='d0').text = node.get('name', '')
+            ET.SubElement(node_elem, 'data', key='d1').text = node.get('type', '')
+            ET.SubElement(node_elem, 'data', key='d2').text = node.get('description', '')
+
+        for rel in relations:
+            edge_elem = ET.SubElement(graph_elem, 'edge')
+            edge_elem.set('id', rel['id'])
+            edge_elem.set('source', rel['source'])
+            edge_elem.set('target', rel['target'])
+            ET.SubElement(edge_elem, 'data', key='d3').text = rel.get('type', '')
+            ET.SubElement(edge_elem, 'data', key='d4').text = rel.get('description', '')
+
+        xml_str = ET.tostring(root, encoding='unicode', xml_declaration=True)
+        return Response(xml_str, mimetype='application/xml',
+                        headers={'Content-Disposition': 'attachment; filename=knowledge_graph.graphml'})
+
+    elif fmt == 'csv':
+        # 节点CSV
+        node_buf = io.StringIO()
+        node_writer = csv.writer(node_buf)
+        node_writer.writerow(['id', 'name', 'type', 'description', 'properties', 'created_at'])
+        for node in nodes:
+            node_writer.writerow([
+                node['id'],
+                node.get('name', ''),
+                node.get('type', ''),
+                node.get('description', ''),
+                json.dumps(node.get('properties', {}), ensure_ascii=False),
+                node.get('created_at', '')
+            ])
+
+        # 关系CSV
+        rel_buf = io.StringIO()
+        rel_writer = csv.writer(rel_buf)
+        rel_writer.writerow(['id', 'source', 'source_name', 'target', 'target_name', 'type', 'description', 'created_at'])
+        for rel in relations:
+            rel_writer.writerow([
+                rel['id'],
+                rel['source'],
+                node_map.get(rel['source'], {}).get('name', ''),
+                rel['target'],
+                node_map.get(rel['target'], {}).get('name', ''),
+                rel.get('type', ''),
+                rel.get('description', ''),
+                rel.get('created_at', '')
+            ])
+
+        return jsonify({
+            'nodes_csv': node_buf.getvalue(),
+            'relations_csv': rel_buf.getvalue(),
+            'totalNodes': len(nodes),
+            'totalRelations': len(relations)
+        })
+
+    else:
+        return jsonify({'error': f'不支持的导出格式: {fmt}'}), 400

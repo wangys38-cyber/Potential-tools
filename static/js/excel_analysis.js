@@ -463,6 +463,8 @@ let isAnalyzing = false;
             if (fixPlanBtn) fixPlanBtn.style.display = 'inline-block';
             const exportCsvBtn = document.getElementById('exportCsvBtn');
             if (exportCsvBtn) exportCsvBtn.style.display = 'inline-block';
+            const extractKgBtn = document.getElementById('extractKgBtn');
+            if (extractKgBtn) extractKgBtn.style.display = 'inline-block';
             // 显示导出增强按钮
             if (window.CRDeepAnalysis && window.CRDeepAnalysis.showExportButtons) {
                 window.CRDeepAnalysis.showExportButtons();

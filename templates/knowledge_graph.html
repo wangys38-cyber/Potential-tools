@@ -41,7 +41,7 @@
         .stat-label { font-size: 12px; color: var(--ds-text-secondary); margin-top: 4px; }
         .main-layout {
             display: grid;
-            grid-template-columns: 1fr 320px;
+            grid-template-columns: 1fr 340px;
             gap: 16px;
             margin-bottom: 20px;
         }
@@ -68,7 +68,7 @@
         .graph-controls { display: flex; gap: 8px; flex-wrap: wrap; }
         .graph-container {
             position: relative;
-            height: 500px;
+            height: 520px;
             overflow: hidden;
             background: var(--ds-bg);
         }
@@ -87,16 +87,8 @@
             font-size: 12px;
             color: var(--ds-text-secondary);
         }
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        .side-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .side-panel { display: flex; flex-direction: column; gap: 16px; }
         .panel-card {
             background: var(--ds-bg-elevated);
             border-radius: var(--ds-radius-lg);
@@ -140,12 +132,36 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+        .reasoning-trace {
+            margin-top: 8px;
+            padding: 10px;
+            background: var(--ds-bg);
+            border-radius: var(--ds-radius-sm);
+            font-size: 11px;
+            color: var(--ds-text-secondary);
+            line-height: 1.6;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .reasoning-trace-title { font-weight: 600; margin-bottom: 4px; color: var(--ds-text); }
+        .qa-history { margin-top: 10px; }
+        .qa-history-item {
+            padding: 6px 10px;
+            background: var(--ds-bg);
+            border-radius: var(--ds-radius-sm);
+            font-size: 12px;
+            color: var(--ds-text-secondary);
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.15s;
+        }
+        .qa-history-item:hover { background: var(--ds-bg-secondary); }
         .import-section { margin-bottom: 16px; }
         .import-btn {
             width: 100%;
             padding: 10px;
-            background: var(--ds-accent);
-            color: var(--ds-accent-text);
+            background: #1d1d1f;
+            color: #fff;
             border: none;
             border-radius: var(--ds-radius-md);
             font-size: 13px;
@@ -154,7 +170,7 @@
             transition: all 0.15s;
             margin-bottom: 8px;
         }
-        .import-btn:hover { opacity: 0.9; }
+        .import-btn:hover { opacity: 0.85; }
         .import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .core-nodes-list { display: flex; flex-direction: column; gap: 8px; }
         .core-node-item {
@@ -168,7 +184,7 @@
         }
         .core-node-name { font-weight: 500; color: var(--ds-text); }
         .core-node-type { font-size: 10px; color: var(--ds-text-secondary); }
-        .core-node-degree { font-weight: 600; color: var(--ds-accent); }
+        .core-node-degree { font-weight: 600; color: #007aff; }
         .node-detail {
             position: absolute;
             background: var(--ds-bg-elevated);
@@ -183,12 +199,6 @@
         .node-detail-title { font-size: 14px; font-weight: 600; color: var(--ds-text); margin-bottom: 6px; }
         .node-detail-type { font-size: 11px; color: var(--ds-text-secondary); margin-bottom: 8px; }
         .node-detail-desc { font-size: 12px; color: var(--ds-text); line-height: 1.5; }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--ds-text-secondary);
-        }
-        .empty-state-icon { margin-bottom: 16px; opacity: 0.5; }
         .btn-group { display: flex; gap: 8px; }
         .btn-sm {
             padding: 6px 12px;
@@ -201,8 +211,163 @@
             transition: all 0.15s;
         }
         .btn-sm:hover { background: var(--ds-bg-secondary); }
-        .btn-sm.primary { background: var(--ds-accent); color: var(--ds-accent-text); border-color: var(--ds-accent); }
+        .btn-sm.primary { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+        .btn-sm.primary:hover { opacity: 0.85; }
         .loading { text-align: center; padding: 20px; color: var(--ds-text-secondary); }
+
+        /* 推理面板 */
+        .reasoning-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--ds-border-light);
+        }
+        .reasoning-tab {
+            padding: 6px 10px;
+            font-size: 12px;
+            color: var(--ds-text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .reasoning-tab.active { color: var(--ds-text); border-bottom-color: #1d1d1f; font-weight: 600; }
+        .reasoning-content { display: none; }
+        .reasoning-content.active { display: block; }
+        .reasoning-form { margin-bottom: 10px; }
+        .reasoning-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--ds-border);
+            border-radius: var(--ds-radius-sm);
+            background: var(--ds-bg);
+            color: var(--ds-text);
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .reasoning-result {
+            padding: 10px;
+            background: var(--ds-bg-secondary);
+            border-radius: var(--ds-radius-sm);
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .cluster-item {
+            padding: 6px 10px;
+            background: var(--ds-bg);
+            border-radius: var(--ds-radius-sm);
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+        .cluster-label { font-weight: 600; color: var(--ds-text); }
+
+        /* 导出面板 */
+        .export-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .export-row label { font-size: 12px; color: var(--ds-text-secondary); min-width: 50px; }
+        .export-select {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid var(--ds-border);
+            border-radius: var(--ds-radius-sm);
+            background: var(--ds-bg);
+            color: var(--ds-text);
+            font-size: 12px;
+        }
+
+        /* 抽取预览弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--ds-bg-elevated);
+            border-radius: var(--ds-radius-xl);
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--ds-border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 16px; font-weight: 600; }
+        .modal-close {
+            width: 28px; height: 28px;
+            border: none; background: var(--ds-bg-secondary);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--ds-text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--ds-border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .extract-preview-section { margin-bottom: 16px; }
+        .extract-preview-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+        .extract-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: var(--ds-bg);
+            border-radius: var(--ds-radius-sm);
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .extract-item input[type="checkbox"] { cursor: pointer; }
+        .extract-type-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #fff;
+            font-weight: 500;
+        }
+        .extract-name { flex: 1; color: var(--ds-text); }
+        .extract-rel { color: var(--ds-text-secondary); font-size: 11px; }
+
+        .highlight-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(29,29,31,0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: var(--ds-radius-sm);
+            font-size: 11px;
+            z-index: 50;
+            display: none;
+        }
+        .highlight-info.active { display: block; }
     </style>
 </head>
 <body>
@@ -211,7 +376,7 @@
 <div class="container">
     <div class="page-header">
         <h1 class="page-title">研发知识图谱</h1>
-        <p class="page-desc">关联 Bug、需求、模块、人员，构建研发知识网络，支持智能问答和数据导入</p>
+        <p class="page-desc">关联 Bug、需求、模块、人员，构建研发知识网络，支持智能抽取、推理、问答和导出</p>
     </div>
 
     <div class="stats-grid" id="statsGrid">
@@ -242,41 +407,140 @@
             <div class="graph-header">
                 <div class="graph-title">知识图谱可视化</div>
                 <div class="graph-controls">
-                    <button class="btn-sm" onclick="refreshGraph()">刷新</button>
-                    <button class="btn-sm" onclick="zoomIn()">放大</button>
-                    <button class="btn-sm" onclick="zoomOut()">缩小</button>
-                    <button class="btn-sm" onclick="resetView()">重置</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.refreshGraph()">刷新</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.zoomIn()">放大</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.zoomOut()">缩小</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.resetView()">重置</button>
+                    <button class="btn-sm primary" onclick="KnowledgeGraph.exportPNG()">导出PNG</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.clearHighlight()">清除高亮</button>
                 </div>
             </div>
             <div class="graph-container" id="graphContainer">
                 <canvas id="graphCanvas"></canvas>
                 <div class="node-detail" id="nodeDetail"></div>
+                <div class="highlight-info" id="highlightInfo"></div>
             </div>
             <div class="graph-legend" id="graphLegend"></div>
         </div>
 
         <div class="side-panel">
+            <!-- 智能问答 -->
             <div class="panel-card">
-                <div class="panel-title">智能问答</div>
-                <textarea class="query-input" id="queryInput" placeholder="输入问题，例如：哪些模块Bug最多？谁负责的Bug最多？"></textarea>
-                <button class="import-btn" onclick="askQuestion()" id="askBtn">提问</button>
+                <div class="panel-title">智能问答（多跳推理）</div>
+                <textarea class="query-input" id="queryInput" placeholder="输入问题，例如：谁负责的Bug最多，这些Bug主要在哪些模块？"></textarea>
+                <button class="import-btn" onclick="KnowledgeGraph.askQuestion()" id="askBtn">提问</button>
                 <div class="query-result" id="queryResult" style="display:none;"></div>
-            </div>
-
-            <div class="panel-card">
-                <div class="panel-title">数据导入</div>
-                <div class="import-section">
-                    <button class="import-btn" onclick="importFromCRAnalysis()" id="importBtn">从 CR 分析导入</button>
-                    <p style="font-size:11px;color:var(--ds-text-secondary);line-height:1.5;">导入最近的 CR 分析结果，自动创建 Bug、模块、人员节点及关联关系</p>
+                <div class="reasoning-trace" id="reasoningTrace" style="display:none;">
+                    <div class="reasoning-trace-title">推理溯源</div>
+                    <div id="reasoningContent"></div>
+                </div>
+                <div class="qa-history" id="qaHistory">
+                    <div style="font-size:11px;color:var(--ds-text-secondary);margin-bottom:4px;">历史提问</div>
+                    <div id="historyList"></div>
                 </div>
             </div>
 
+            <!-- 知识推理 -->
+            <div class="panel-card">
+                <div class="panel-title">知识推理</div>
+                <div class="reasoning-tabs">
+                    <div class="reasoning-tab active" onclick="KnowledgeGraph.switchReasoningTab('association')">关联推理</div>
+                    <div class="reasoning-tab" onclick="KnowledgeGraph.switchReasoningTab('path')">路径分析</div>
+                    <div class="reasoning-tab" onclick="KnowledgeGraph.switchReasoningTab('cluster')">聚类分析</div>
+                    <div class="reasoning-tab" onclick="KnowledgeGraph.switchReasoningTab('impact')">影响分析</div>
+                </div>
+                <div class="reasoning-content active" id="tab-association">
+                    <div class="reasoning-form">
+                        <select class="reasoning-select" id="assocNodeSelect"></select>
+                        <select class="reasoning-select" id="assocDepthSelect">
+                            <option value="1">1跳（直接关联）</option>
+                            <option value="2">2跳（间接关联）</option>
+                            <option value="3">3跳</option>
+                        </select>
+                        <button class="import-btn" onclick="KnowledgeGraph.associationReasoning()">开始推理</button>
+                    </div>
+                    <div class="reasoning-result" id="assocResult" style="display:none;"></div>
+                </div>
+                <div class="reasoning-content" id="tab-path">
+                    <div class="reasoning-form">
+                        <select class="reasoning-select" id="pathStartSelect"></select>
+                        <select class="reasoning-select" id="pathEndSelect"></select>
+                        <button class="import-btn" onclick="KnowledgeGraph.pathAnalysis()">查找路径</button>
+                    </div>
+                    <div class="reasoning-result" id="pathResult" style="display:none;"></div>
+                </div>
+                <div class="reasoning-content" id="tab-cluster">
+                    <div class="reasoning-form">
+                        <button class="import-btn" onclick="KnowledgeGraph.clusterAnalysis()">自动聚类</button>
+                    </div>
+                    <div class="reasoning-result" id="clusterResult" style="display:none;"></div>
+                </div>
+                <div class="reasoning-content" id="tab-impact">
+                    <div class="reasoning-form">
+                        <select class="reasoning-select" id="impactNodeSelect"></select>
+                        <button class="import-btn" onclick="KnowledgeGraph.impactAnalysis()">分析影响</button>
+                    </div>
+                    <div class="reasoning-result" id="impactResult" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 数据导入与抽取 -->
+            <div class="panel-card">
+                <div class="panel-title">数据导入与抽取</div>
+                <div class="import-section">
+                    <button class="import-btn" onclick="KnowledgeGraph.importFromCRAnalysis()" id="importBtn">从 CR 分析导入</button>
+                    <button class="import-btn" onclick="KnowledgeGraph.openExtractModal('cr_analysis')">AI抽取（CR分析）</button>
+                    <button class="import-btn" onclick="KnowledgeGraph.openExtractModal('log')">AI抽取（日志）</button>
+                    <button class="import-btn" onclick="KnowledgeGraph.openExtractModal('meeting')">AI抽取（会议纪要）</button>
+                    <p style="font-size:11px;color:var(--ds-text-secondary);line-height:1.5;">AI自动从文本中抽取实体和关系，预览确认后添加到图谱</p>
+                </div>
+            </div>
+
+            <!-- 导出 -->
+            <div class="panel-card">
+                <div class="panel-title">知识导出</div>
+                <div class="export-row">
+                    <label>格式</label>
+                    <select class="export-select" id="exportFormat">
+                        <option value="json">JSON</option>
+                        <option value="graphml">GraphML (Gephi/yEd)</option>
+                        <option value="csv">CSV (节点+关系)</option>
+                    </select>
+                </div>
+                <div class="export-row">
+                    <label>范围</label>
+                    <select class="export-select" id="exportScope">
+                        <option value="all">全部图谱</option>
+                        <option value="subgraph">选中节点子图</option>
+                    </select>
+                </div>
+                <button class="import-btn" onclick="KnowledgeGraph.exportGraph()">导出数据</button>
+            </div>
+
+            <!-- 核心节点 -->
             <div class="panel-card">
                 <div class="panel-title">核心节点（度数最高）</div>
                 <div class="core-nodes-list" id="coreNodesList">
                     <div style="text-align:center;color:var(--ds-text-secondary);font-size:12px;">暂无数据</div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 抽取预览弹窗 -->
+<div class="modal-overlay" id="extractModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">知识抽取预览</div>
+            <button class="modal-close" onclick="KnowledgeGraph.closeExtractModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="extractModalBody">
+            <div class="loading">AI正在抽取实体和关系...</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sm" onclick="KnowledgeGraph.closeExtractModal()">取消</button>
+            <button class="btn-sm primary" onclick="KnowledgeGraph.confirmExtraction()" id="confirmExtractBtn">确认添加</button>
         </div>
     </div>
 </div>
