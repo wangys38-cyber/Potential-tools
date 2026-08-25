@@ -16,7 +16,7 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次构建都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260825-v2-add-security-module
+ARG CACHE_BUST=20260825-v3-add-perf-cache-modules
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 允许访客访问（通过环境变量控制，默认允许）
@@ -39,6 +39,8 @@ COPY error_utils.py .
 COPY rate_limiter.py .
 COPY request_logger.py .
 COPY security.py .
+COPY ttl_cache.py .
+COPY performance_middleware.py .
 COPY routes/ ./routes/
 COPY templates/ ./templates/
 COPY static/ ./static/
