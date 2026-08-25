@@ -130,9 +130,7 @@ th, td {
 
 /* 导航栏：白色背景 */
 .nav, .navbar, .top-bar, .header-bar, .tb-nav-bar {
-    background: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: saturate(180%) blur(20px) !important;
-    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+    background: #ffffff !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: none !important;
     color: #1a1a1a !important;

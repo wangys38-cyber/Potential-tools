@@ -171,8 +171,8 @@
     display: inline-block;
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(124,58,237,0.2);
-    border-top-color: #7c3aed;
+    border: 2px solid rgba(0,0,0,0.1);
+    border-top-color: #000000;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     vertical-align: middle;
@@ -228,7 +228,7 @@
     font-size: 14px;
     animation: toastIn 0.3s ease;
     max-width: 360px;
-    border-left: 4px solid #7c3aed;
+    border-left: 4px solid #000000;
 }
 
 .toast.success { border-left-color: #34c759; }
@@ -254,9 +254,9 @@
 
 /* ===== 拖拽上传高亮 ===== */
 .drag-over {
-    outline: 2px dashed #7c3aed !important;
+    outline: 2px dashed #000000 !important;
     outline-offset: -8px !important;
-    background: rgba(124,58,237,0.05) !important;
+    background: rgba(0,0,0,0.05) !important;
 }
 
 /* ===== 空状态 ===== */

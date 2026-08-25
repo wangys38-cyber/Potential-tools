@@ -543,7 +543,7 @@
                     return `<a href="/${s.tool}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit;font-size:12px;font-weight:500;white-space:nowrap;padding:4px 8px;border-radius:6px;background:#f5f5f7;transition:background 0.15s" onmouseover="this.style.background='#e8e8ed'" onmouseout="this.style.background='#f5f5f7'">${s.name}</a>${arrow}`;
                 }).join('');
 
-                return `<div style="flex-shrink:0;background:#fff;border:1px solid #f0f0f2;border-radius:14px;padding:14px 16px;min-width:300px;max-width:380px;cursor:pointer;transition:box-shadow 0.2s,transform 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform=''" onclick="window.open('/${w.steps[0].tool}','_blank')">
+                return `<div style="flex-shrink:0;background:var(--tb-bg-card);border:1px solid var(--tb-border);border-radius:14px;padding:14px 16px;min-width:300px;max-width:380px;cursor:pointer;transition:box-shadow 0.2s,transform 0.2s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform=''" onclick="window.open('/${w.steps[0].tool}','_blank')">
                     <div style="font-size:13px;font-weight:600;margin-bottom:6px">${w.name}</div>
                     <div style="font-size:11px;color:#86868b;margin-bottom:10px;line-height:1.4">${w.description}</div>
                     <div style="display:flex;align-items:center;flex-wrap:wrap">${stepsHtml}</div>

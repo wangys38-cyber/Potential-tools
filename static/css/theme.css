@@ -26,11 +26,11 @@
     --tb-text-tertiary: #aeaeae;
     --tb-text-inverse: #ffffff;
 
-    /* 主题色 */
-    --tb-accent: #7c3aed;
-    --tb-accent-hover: #8b5cf6;
-    --tb-accent-pressed: #6d28d9;
-    --tb-accent-light: rgba(124, 58, 237, 0.1);
+    /* 主题色：黑色系 */
+    --tb-accent: #000000;
+    --tb-accent-hover: #333333;
+    --tb-accent-pressed: #1a1a1a;
+    --tb-accent-light: rgba(0, 0, 0, 0.08);
 
     /* 语义色 */
     --tb-success: #34c759;
@@ -123,11 +123,11 @@
     --tb-text-tertiary: #6b6b73;
     --tb-text-inverse: #1d1d1f;
 
-    /* 主题色 */
-    --tb-accent: #a78bfa;
-    --tb-accent-hover: #c4b5fd;
-    --tb-accent-pressed: #8b5cf6;
-    --tb-accent-light: rgba(167, 139, 250, 0.15);
+    /* 主题色：暗色下用白色系 */
+    --tb-accent: #f0f0f2;
+    --tb-accent-hover: #ffffff;
+    --tb-accent-pressed: #d1d1d6;
+    --tb-accent-light: rgba(240, 240, 242, 0.15);
 
     /* 语义色 */
     --tb-success: #30d158;
@@ -219,9 +219,7 @@
 
 /* ==================== 通用 Header ==================== */
 .tb-header {
-    background: var(--tb-bg-overlay);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: var(--tb-bg-card);
     border-radius: var(--tb-radius-lg);
     padding: 20px 28px;
     margin-bottom: 20px;
@@ -639,9 +637,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
-    background: var(--tb-bg-overlay);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: var(--tb-bg-card);
     border-bottom: 1px solid var(--tb-border);
     font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     min-height: 48px;

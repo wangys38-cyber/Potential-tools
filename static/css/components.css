@@ -500,7 +500,7 @@
     flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .tb-upload-progress-pct {
-    font-size: 12px; font-weight: 700; color: #667eea; min-width: 36px; text-align: right;
+    font-size: 12px; font-weight: 700; color: var(--tb-accent); min-width: 36px; text-align: right;
 }
 .tb-upload-progress-cancel {
     background: none; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px;
@@ -513,7 +513,7 @@
 }
 .tb-upload-progress-fill {
     height: 100%; border-radius: 3px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: #000000;
     transition: width 0.3s ease;
 }
 .tb-upload-progress-status {
@@ -547,7 +547,7 @@
 }
 .tb-history-item-time { font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .tb-history-item-action {
-    font-size: 11px; color: #667eea; font-weight: 600; flex-shrink: 0;
+    font-size: 11px; color: var(--tb-accent); font-weight: 600; flex-shrink: 0;
 }
 .tb-history-footer { margin-top: 10px; text-align: center; }
 .tb-history-clear-btn {
@@ -591,7 +591,7 @@
 .tb-history-modal-section { margin-bottom: 18px; }
 .tb-history-modal-section:last-child { margin-bottom: 0; }
 .tb-history-modal-section-title {
-    font-size: 12px; font-weight: 600; color: #667eea;
+    font-size: 12px; font-weight: 600; color: var(--tb-accent);
     text-transform: uppercase; letter-spacing: 0.5px;
     margin-bottom: 8px;
 }

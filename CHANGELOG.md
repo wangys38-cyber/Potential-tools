@@ -1,5 +1,26 @@
 # Potential-tools 更新日志
 
+## v6.0.0 — 2026-08-25
+
+### 阶段六：最终打磨与发布
+
+#### UI/UX 统一
+- 为全部 18 个工具页面补全导航栏标题（nav_title），导航栏不再空白
+- 全站清除紫色/靛色主题残留，统一为黑色系强调色（符合黑色按钮白字规范）
+- 移除所有装饰性玻璃拟态效果：theme.css 的 .tb-header / .tb-nav-bar、mobile.css 导航栏、excel_analysis.css / md2pdf.css / de-ai.css 的 header
+- 上传进度条紫蓝渐变改为纯黑色
+- test_report.css 独立紫/靛主题整体改为黑色系
+- 修复首页 JS 动态生成卡片的硬编码白色背景，改用 CSS 变量自动适配暗黑模式
+
+#### Bug 修复与验证
+- 验证 localStorage 数据隔离：所有 key 均带 `u{user_id}_` 前缀，无遗漏
+- 验证暗黑模式覆盖：14 个 CSS 文件完整覆盖 [data-theme="dark"]，暗色模式链接色调整为蓝色以提升可读性
+- 修复 ux-enhancements.css 中 toast 默认边框色和拖拽高亮色的紫色残留
+
+#### 技术统计
+- 修改文件：12 个（1 路由 + 1 模板 + 9 CSS + 1 app.py）
+- 版本号：5.4.0 → 6.0.0
+
 ## v5.3.0 — 2026-08-21
 
 ### 迭代3：移动端 + 协作

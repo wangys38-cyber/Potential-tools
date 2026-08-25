@@ -68,7 +68,7 @@ def _get_static_version():
 _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
-APP_VERSION = '5.4.0'
+APP_VERSION = '6.0.0'
 
 logging.basicConfig(
     level=logging.INFO,
