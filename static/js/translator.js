@@ -32,7 +32,10 @@
     let userGlossary = null;
     let isTranslating = false;
     let currentAbortController = null;
-    const HISTORY_KEY = 'translator_history';
+    const _USER_PREFIX = window._USER_PREFIX || '';
+    const HISTORY_KEY = _USER_PREFIX + 'translator_history';
+    const TARGET_LANG_KEY = _USER_PREFIX + 'translator_target_lang';
+    const IT_MODE_KEY = _USER_PREFIX + 'translator_it_mode';
     const MAX_HISTORY = 10;
 
     // ===== 工具函数 =====
@@ -528,18 +531,18 @@
 
     // 从 localStorage 恢复设置
     try {
-        const savedTarget = localStorage.getItem('translator_target_lang');
+        const savedTarget = localStorage.getItem(TARGET_LANG_KEY);
         if (savedTarget) targetLang.value = savedTarget;
-        const savedItMode = localStorage.getItem('translator_it_mode');
+        const savedItMode = localStorage.getItem(IT_MODE_KEY);
         if (savedItMode !== null) itMode.checked = savedItMode === 'true';
     } catch (e) {}
 
     targetLang.addEventListener('change', function() {
-        try { localStorage.setItem('translator_target_lang', targetLang.value); } catch (e) {}
+        try { localStorage.setItem(TARGET_LANG_KEY, targetLang.value); } catch (e) {}
     });
 
     itMode.addEventListener('change', function() {
-        try { localStorage.setItem('translator_it_mode', itMode.checked); } catch (e) {}
+        try { localStorage.setItem(IT_MODE_KEY, itMode.checked); } catch (e) {}
     });
 
 })();

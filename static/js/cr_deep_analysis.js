@@ -606,8 +606,9 @@
 
         // 存储到 localStorage，跳转到 PDF 转换页面
         try {
-            localStorage.setItem('pdf_convert_content', md);
-            localStorage.setItem('pdf_convert_title', (window.currentFileName || 'CR分析') + '_报告');
+            const _prefix = window._USER_PREFIX || '';
+            localStorage.setItem(_prefix + 'pdf_convert_content', md);
+            localStorage.setItem(_prefix + 'pdf_convert_title', (window.currentFileName || 'CR分析') + '_报告');
             window.location.href = '/md2pdf?autoconvert=1';
         } catch (e) {
             showToast('PDF 导出失败：' + e.message, 'error');
