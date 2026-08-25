@@ -150,4 +150,73 @@ def create_admin_blueprint():
             logger.error(f"获取用户统计失败: {e}")
             return jsonify(safe_error(e)), 500
 
+    # ==================== 数据备份 / 恢复 ====================
+
+    # 需要备份的用户相关表（按依赖顺序排列，恢复时按此顺序清空+重建）
+    _BACKUP_TABLES = [
+        'users', 'user_preferences', 'user_data', 'notes',
+        'merit_records', 'chart_templates', 'dashboard_config',
+        'app_config',
+    ]
+
+    @bp.route('/api/admin/backup', methods=['GET'])
+    @auth.admin_required
+    def api_backup():
+        """导出全量数据为 JSON（管理员）"""
+        import time as _time
+        try:
+            backup = {
+                'version': 1,
+                'exported_at': _time.time(),
+                'db_type': db.DB_TYPE,
+                'tables': {},
+            }
+            with db.engine.connect() as conn:
+                for table in _BACKUP_TABLES:
+                    rows = conn.execute(db.text(f"SELECT * FROM {table}")).fetchall()
+                    backup['tables'][table] = [dict(r._mapping) for r in rows]
+            return jsonify({'status': 'success', 'backup': backup})
+        except Exception as e:
+            logger.error(f"数据备份失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    @bp.route('/api/admin/restore', methods=['POST'])
+    @auth.admin_required
+    def api_restore():
+        """从 JSON 恢复全量数据（管理员，覆盖式）"""
+        import time as _time
+        try:
+            data = request.get_json(silent=True) or {}
+            backup = data.get('backup')
+            if not backup or not isinstance(backup, dict) or 'tables' not in backup:
+                return jsonify({'status': 'error', 'error': '无效的备份数据格式'}), 400
+
+            tables = backup.get('tables', {})
+            restored = {}
+            with db.engine.begin() as conn:
+                # 按逆序清空（先清子表再清父表，避免外键约束）
+                for table in reversed(_BACKUP_TABLES):
+                    if table in tables:
+                        conn.execute(db.text(f"DELETE FROM {table}"))
+                # 按正序恢复
+                for table in _BACKUP_TABLES:
+                    rows = tables.get(table, [])
+                    if not rows:
+                        restored[table] = 0
+                        continue
+                    # 获取列名
+                    cols = list(rows[0].keys())
+                    placeholders = ', '.join([f':{c}' for c in cols])
+                    col_list = ', '.join(cols)
+                    for row in rows:
+                        conn.execute(
+                            db.text(f"INSERT INTO {table} ({col_list}) VALUES ({placeholders})"),
+                            row
+                        )
+                    restored[table] = len(rows)
+            return jsonify({'status': 'success', 'restored': restored, 'message': '数据恢复成功'})
+        except Exception as e:
+            logger.error(f"数据恢复失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
     return bp

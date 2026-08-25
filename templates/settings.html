@@ -227,6 +227,29 @@
             <div id="syncStatusDetail" style="display:none; margin-top: 16px; padding: 14px; border-radius: 10px; background: var(--bg-primary); font-size: 13px; border: 1px solid var(--border);"></div>
         </div>
 
+        {% if current_user and current_user.is_admin %}
+        <!-- 数据备份与恢复（管理员） -->
+        <div class="section" id="backup-section">
+            <div class="section-header">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
+                </span>
+                <div>
+                    <div class="section-title">数据备份与恢复</div>
+                    <div class="section-desc">导出全量数据库为 JSON，或从备份文件恢复（覆盖式，仅管理员）</div>
+                </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="exportBackup()">导出数据</button>
+                <label class="btn btn-secondary" style="cursor:pointer;">
+                    导入数据
+                    <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackup(event)">
+                </label>
+            </div>
+            <div class="test-result" id="backupResult" style="display:none;"></div>
+        </div>
+        {% endif %}
+
         <!-- 外观设置 -->
         <div class="section">
             <div class="section-header">
@@ -815,8 +838,6 @@
 
         // ===== 系统信息 =====
         async function loadSysInfo() {
-            try {
-                const resp = await fetch('/api/system-info');
                 const data = await resp.json();
 
                 if (data.status === 'ok') {
