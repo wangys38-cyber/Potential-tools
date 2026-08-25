@@ -1337,18 +1337,6 @@
         const _USER_PREFIX = {% if current_user %}'u{{ current_user.id }}_'{% else %}''{% endif %};
         const PROJECT_STORAGE_KEY = _USER_PREFIX + 'projectInfoData';
 
-        // 登录用户：迁移旧数据到用户专属 key，并删除旧 key
-        {% if current_user %}
-        (function(){
-          if(localStorage.getItem('projectInfoData') !== null){
-            if(localStorage.getItem(PROJECT_STORAGE_KEY) === null){
-              localStorage.setItem(PROJECT_STORAGE_KEY, localStorage.getItem('projectInfoData'));
-            }
-            localStorage.removeItem('projectInfoData');
-          }
-        })();
-        {% endif %}
-
         let projects = [];
         let currentProjectId = null;
         let selectedColors = [];

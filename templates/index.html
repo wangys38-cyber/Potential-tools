@@ -508,16 +508,6 @@
 
     // ===== Favorites =====
     const FAV_KEY = (window._USER_PREFIX || '') + 'toolbox_favorites';
-    {% if current_user %}
-    (function(){
-        if(localStorage.getItem('toolbox_favorites') !== null){
-            if(localStorage.getItem(FAV_KEY) === null){
-                localStorage.setItem(FAV_KEY, localStorage.getItem('toolbox_favorites'));
-            }
-            localStorage.removeItem('toolbox_favorites');
-        }
-    })();
-    {% endif %}
     function getFavorites() {
         try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { return []; }
     }
