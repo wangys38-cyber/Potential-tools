@@ -235,7 +235,7 @@
 
         // 从站会历史获取
         try {
-            const standupHistory = JSON.parse(localStorage.getItem('standup_history') || '[]');
+            const standupHistory = JSON.parse(localStorage.getItem((window._USER_PREFIX || '') + 'standup_history') || '[]');
             const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
             const recentStandups = standupHistory.filter(h => new Date(h.date).getTime() >= oneWeekAgo);
             sources.standups = recentStandups.map(h => ({
@@ -248,7 +248,7 @@
 
         // 从CR分析缓存获取
         try {
-            const crResult = JSON.parse(localStorage.getItem('cr_analysis_result') || 'null');
+            const crResult = JSON.parse(localStorage.getItem((window._USER_PREFIX || '') + 'cr_analysis_result') || 'null');
             if (crResult) {
                 sources.crAnalysis = {
                     summary: crResult.summary || {},
@@ -259,7 +259,7 @@
 
         // 从日志分析获取
         try {
-            const logResult = JSON.parse(localStorage.getItem('log_analysis_result') || 'null');
+            const logResult = JSON.parse(localStorage.getItem((window._USER_PREFIX || '') + 'log_analysis_result') || 'null');
             if (logResult) {
                 sources.logAnalysis = {
                     totalErrors: logResult.errors?.length || 0,

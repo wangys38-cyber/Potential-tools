@@ -1,13 +1,13 @@
-"""
-Potential-tools v8.1 数据可视化 Blueprint
-- 图表模板存储（使用主数据库引擎，支持 PostgreSQL / SQLite）
-- Dashboard 配置存储
-- 图表数据 API
+﻿"""
+Potential-tools v8.1 鏁版嵁鍙鍖?Blueprint
+- 鍥捐〃妯℃澘瀛樺偍锛堜娇鐢ㄤ富鏁版嵁搴撳紩鎿庯紝鏀寔 PostgreSQL / SQLite锛?
+- Dashboard 閰嶇疆瀛樺偍
+- 鍥捐〃鏁版嵁 API
 
-v8.1 变更：
-- 从独立 SQLite 迁移到主数据库引擎（db.py SQLAlchemy）
-- 解决 Railway 重新部署后数据丢失问题
-- 修复异常信息泄露（str(e) → safe_error）
+v8.1 鍙樻洿锛?
+- 浠庣嫭绔?SQLite 杩佺Щ鍒颁富鏁版嵁搴撳紩鎿庯紙db.py SQLAlchemy锛?
+- 瑙ｅ喅 Railway 閲嶆柊閮ㄧ讲鍚庢暟鎹涪澶遍棶棰?
+- 淇寮傚父淇℃伅娉勯湶锛坰tr(e) 鈫?safe_error锛?
 """
 import os
 import json
@@ -23,15 +23,15 @@ bp_viz = Blueprint('visualization', __name__)
 
 
 def _get_user_id():
-    """获取当前用户ID"""
+    """鑾峰彇褰撳墠鐢ㄦ埛ID"""
     return str(session.get('user_id', 'guest'))
 
 
-# ========== 图表模板 API ==========
+# ========== 鍥捐〃妯℃澘 API ==========
 
 @bp_viz.route('/api/chart-templates', methods=['GET'])
 def list_templates():
-    """获取当前用户的图表模板列表"""
+    """鑾峰彇褰撳墠鐢ㄦ埛鐨勫浘琛ㄦā鏉垮垪琛?""
     try:
         import db
         user_id = _get_user_id()
@@ -63,13 +63,13 @@ def list_templates():
             })
         return jsonify({'status': 'success', 'templates': templates})
     except Exception as e:
-        logger.error(f"获取图表模板失败: {e}")
+        logger.error(f"鑾峰彇鍥捐〃妯℃澘澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
 @bp_viz.route('/api/chart-templates', methods=['POST'])
 def save_template():
-    """保存图表模板"""
+    """淇濆瓨鍥捐〃妯℃澘"""
     try:
         import db
         data = request.get_json(silent=True) or {}
@@ -77,7 +77,7 @@ def save_template():
         chart_type = data.get('chart_type', 'bar')
         config = data.get('config', {})
         if not name:
-            return jsonify({'status': 'error', 'error': '模板名称不能为空'}), 400
+            return jsonify({'status': 'error', 'error': '妯℃澘鍚嶇О涓嶈兘涓虹┖'}), 400
 
         user_id = _get_user_id()
         now = time.time()
@@ -92,13 +92,13 @@ def save_template():
 
         return jsonify({'status': 'success', 'id': template_id})
     except Exception as e:
-        logger.error(f"保存图表模板失败: {e}")
+        logger.error(f"淇濆瓨鍥捐〃妯℃澘澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
 @bp_viz.route('/api/chart-templates/<int:tpl_id>', methods=['PUT'])
 def update_template(tpl_id):
-    """更新图表模板"""
+    """鏇存柊鍥捐〃妯℃澘"""
     try:
         import db
         data = request.get_json(silent=True) or {}
@@ -111,29 +111,29 @@ def update_template(tpl_id):
                 {'id': tpl_id, 'user_id': user_id}
             ).fetchone()
             if not row:
-                return jsonify({'status': 'error', 'error': '模板不存在'}), 404
+                return jsonify({'status': 'error', 'error': '妯℃澘涓嶅瓨鍦?}), 404
 
             name = data.get('name')
             config = data.get('config')
             if name:
                 conn.execute(
-                    text("UPDATE chart_templates SET name = :name, updated_at = :updated_at WHERE id = :id"),
-                    {'name': name, 'updated_at': now, 'id': tpl_id}
+                    text("UPDATE chart_templates SET name = :name, updated_at = :updated_at WHERE id = :id AND user_id = :user_id"),
+                    {'name': name, 'updated_at': now, 'id': tpl_id, 'user_id': user_id}
                 )
             if config is not None:
                 conn.execute(
-                    text("UPDATE chart_templates SET config = :config, updated_at = :updated_at WHERE id = :id"),
-                    {'config': json.dumps(config, ensure_ascii=False), 'updated_at': now, 'id': tpl_id}
+                    text("UPDATE chart_templates SET config = :config, updated_at = :updated_at WHERE id = :id AND user_id = :user_id"),
+                    {'config': json.dumps(config, ensure_ascii=False), 'updated_at': now, 'id': tpl_id, 'user_id': user_id}
                 )
         return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"更新图表模板失败: {e}")
+        logger.error(f"鏇存柊鍥捐〃妯℃澘澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
 @bp_viz.route('/api/chart-templates/<int:tpl_id>', methods=['DELETE'])
 def delete_template(tpl_id):
-    """删除图表模板"""
+    """鍒犻櫎鍥捐〃妯℃澘"""
     try:
         import db
         user_id = _get_user_id()
@@ -144,15 +144,15 @@ def delete_template(tpl_id):
             )
         return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"删除图表模板失败: {e}")
+        logger.error(f"鍒犻櫎鍥捐〃妯℃澘澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
-# ========== Dashboard 配置 API ==========
+# ========== Dashboard 閰嶇疆 API ==========
 
 @bp_viz.route('/api/dashboard/config', methods=['GET'])
 def get_dashboard_config():
-    """获取 Dashboard 配置"""
+    """鑾峰彇 Dashboard 閰嶇疆"""
     try:
         import db
         user_id = _get_user_id()
@@ -168,13 +168,13 @@ def get_dashboard_config():
             return jsonify({'status': 'success', 'config': json.loads(row['config_value'])})
         return jsonify({'status': 'success', 'config': None})
     except Exception as e:
-        logger.error(f"获取 Dashboard 配置失败: {e}")
+        logger.error(f"鑾峰彇 Dashboard 閰嶇疆澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
 @bp_viz.route('/api/dashboard/config', methods=['POST'])
 def save_dashboard_config():
-    """保存 Dashboard 配置"""
+    """淇濆瓨 Dashboard 閰嶇疆"""
     try:
         import db
         data = request.get_json(silent=True) or {}
@@ -185,7 +185,7 @@ def save_dashboard_config():
         config_str = json.dumps(config, ensure_ascii=False)
 
         with db.engine.begin() as conn:
-            # 使用 UPSERT 语法（PostgreSQL 和 SQLite 均支持 ON CONFLICT）
+            # 浣跨敤 UPSERT 璇硶锛圥ostgreSQL 鍜?SQLite 鍧囨敮鎸?ON CONFLICT锛?
             conn.execute(
                 text("""
                     INSERT INTO dashboard_config (user_id, config_key, config_value, updated_at)
@@ -197,15 +197,15 @@ def save_dashboard_config():
             )
         return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"保存 Dashboard 配置失败: {e}")
+        logger.error(f"淇濆瓨 Dashboard 閰嶇疆澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
-# ========== Dashboard 统计数据 API ==========
+# ========== Dashboard 缁熻鏁版嵁 API ==========
 
 @bp_viz.route('/api/dashboard/stats', methods=['GET'])
 def dashboard_stats():
-    """获取 Dashboard 统计数据（从 localStorage 中转，后端提供聚合）"""
+    """鑾峰彇 Dashboard 缁熻鏁版嵁锛堜粠 localStorage 涓浆锛屽悗绔彁渚涜仛鍚堬級"""
     try:
         return jsonify({
             'status': 'success',
@@ -219,10 +219,10 @@ def dashboard_stats():
             }
         })
     except Exception as e:
-        logger.error(f"获取 Dashboard 统计失败: {e}")
+        logger.error(f"鑾峰彇 Dashboard 缁熻澶辫触: {e}")
         return jsonify(safe_error(e)), 500
 
 
 def create_visualization_blueprint():
-    """创建可视化 Blueprint"""
+    """鍒涘缓鍙鍖?Blueprint"""
     return bp_viz

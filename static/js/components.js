@@ -383,7 +383,7 @@ const ToolboxSSE = (function() {
 
 // ==================== 主题管理器 ====================
 const ToolboxTheme = (function() {
-    const STORAGE_KEY = 'toolbox_theme';
+    const STORAGE_KEY = function() { return (window._USER_PREFIX || '') + 'toolbox_theme'; };
     let currentTheme = 'auto';
     let systemDark = false;
 
@@ -396,7 +396,7 @@ const ToolboxTheme = (function() {
         const isDark = theme === 'dark' || (theme === 'auto' && systemDark);
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
         // 同步 localStorage
-        try { localStorage.setItem(STORAGE_KEY, theme); } catch(e) {}
+        try { localStorage.setItem(STORAGE_KEY(), theme); } catch(e) {}
         // 通知所有监听器
         document.dispatchEvent(new CustomEvent('themechange', { detail: { theme, isDark } }));
     }
@@ -404,7 +404,7 @@ const ToolboxTheme = (function() {
     function init() {
         // 读取存储的主题
         try {
-            currentTheme = localStorage.getItem(STORAGE_KEY) || 'auto';
+            currentTheme = localStorage.getItem(STORAGE_KEY()) || 'auto';
         } catch(e) {
             currentTheme = 'auto';
         }
@@ -1787,8 +1787,8 @@ const ToolboxCommandPalette = (function() {
 
     // 命令列表
     var COMMANDS = [
-        {icon:'', name:'切换深色模式', desc:'Toggle dark theme', action:function(){ var d=document.documentElement.getAttribute('data-theme')==='dark'; document.documentElement.setAttribute('data-theme', d?'light':'dark'); try{localStorage.setItem('toolbox_theme', d?'light':'dark');}catch(e){} }},
-        {icon:'', name:'切换浅色模式', desc:'Toggle light theme', action:function(){ document.documentElement.setAttribute('data-theme','light'); try{localStorage.setItem('toolbox_theme','light');}catch(e){} }},
+        {icon:'', name:'切换深色模式', desc:'Toggle dark theme', action:function(){ var d=document.documentElement.getAttribute('data-theme')==='dark'; document.documentElement.setAttribute('data-theme', d?'light':'dark'); try{localStorage.setItem((window._USER_PREFIX||'')+'toolbox_theme', d?'light':'dark');}catch(e){} }},
+        {icon:'', name:'切换浅色模式', desc:'Toggle light theme', action:function(){ document.documentElement.setAttribute('data-theme','light'); try{localStorage.setItem((window._USER_PREFIX||'')+'toolbox_theme','light');}catch(e){} }},
         {icon:'', name:'打开 AI 对话', desc:'AI Chat Assistant', action:function(){ if(typeof ToolboxAIChat!=='undefined') ToolboxAIChat.open(); }},
         {icon:'', name:'OCR 图片识别', desc:'Paste image to recognize', action:function(){ if(typeof ToolboxOCR!=='undefined') ToolboxOCR.open(); }},
         {icon:'', name:'查看收藏工具', desc:'Go to favorites', action:function(){ window.location.href='/'; }},
@@ -2534,7 +2534,7 @@ window.ToolboxPush = ToolboxPush;
     function earlyInit() {
         // 在DOMContentLoaded之前尝试初始化主题，减少闪烁
         var savedTheme = 'auto';
-        try { savedTheme = localStorage.getItem('toolbox_theme') || 'auto'; } catch(e) {}
+        try { savedTheme = localStorage.getItem((window._USER_PREFIX||'')+'toolbox_theme') || 'auto'; } catch(e) {}
         var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = savedTheme === 'dark' || (savedTheme === 'auto' && systemDark);
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');

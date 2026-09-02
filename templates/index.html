@@ -751,12 +751,12 @@
             moon.style.display = isDark ? '' : 'none';
             sun.style.display = isDark ? 'none' : '';
         }
-        try { localStorage.setItem('toolbox_theme', next); } catch(e) {}
+        try { localStorage.setItem((window._USER_PREFIX||'')+'toolbox_theme', next); } catch(e) {}
     }
 
     (function() {
         let saved = 'auto';
-        try { saved = localStorage.getItem('toolbox_theme') || 'auto'; } catch(e) {}
+        try { saved = localStorage.getItem((window._USER_PREFIX||'')+'toolbox_theme') || 'auto'; } catch(e) {}
         const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         const isDark = saved === 'dark' || (saved === 'auto' && sysDark);
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');

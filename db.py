@@ -3232,6 +3232,43 @@ def is_user_deleted(user_id):
         return False
 
 
+
+
+# ==================== v7.1 数据隔离辅助工具 ====================
+
+def user_scope(table_alias=None):
+    """生成用户隔离的 SQL 片段，避免遗漏 user_id 过滤。
+
+    用法:
+        where_frag, params = user_scope('t')
+        sql = "SELECT * FROM user_data t WHERE 1=1" + where_frag
+        conn.execute(text(sql), {**params, 'other': val})
+
+    Returns:
+        (sql_fragment, params_dict): 片段以 ' AND user_id = :_uid' 开头
+    """
+    prefix = table_alias + '.' if table_alias else ''
+    return f" AND {prefix}user_id = :_uid", {'_uid': None}
+
+
+def require_user_id(user_id):
+    """校验 user_id 有效性，无效则抛出 ValueError。"""
+    if user_id is None:
+        raise ValueError("user_id 不能为空")
+    try:
+        uid = int(user_id)
+        if uid <= 0:
+            raise ValueError
+        return uid
+    except (TypeError, ValueError):
+        raise ValueError(f"无效的 user_id: {user_id!r}")
+
+
+def assert_resource_owner(user_id, resource_user_id, resource_name='资源'):
+    """校验资源归属，非所有者抛出 PermissionError。"""
+    if int(user_id) != int(resource_user_id):
+        raise PermissionError(f"无权访问该{resource_name}")
+
 # ==================== 启动时初始化 ====================
 
 init_db()

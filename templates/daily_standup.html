@@ -579,7 +579,7 @@
                 timestamp: Date.now()
             };
             try {
-                localStorage.setItem('dashboard_blocker_data', JSON.stringify(dashboardData));
+                localStorage.setItem((_USER_PREFIX || '') + 'dashboard_blocker_data', JSON.stringify(dashboardData));
                 showToast('已同步' + items.blocker.length + '项阻塞到Dashboard', 'success');
             } catch(e) {
                 showToast('同步失败: ' + e.message, 'error');
