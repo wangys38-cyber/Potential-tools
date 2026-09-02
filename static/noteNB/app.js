@@ -690,6 +690,63 @@
                 newNote();
             }
         });
+
+        // 粘贴图片功能
+        document.addEventListener('paste', function(e) {
+            var textarea = document.getElementById('nbContentTextarea');
+            if (!textarea || document.activeElement !== textarea) return;
+
+            var items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    var file = items[i].getAsFile();
+                    if (file) {
+                        handleImagePaste(file, textarea);
+                    }
+                    break;
+                }
+            }
+        });
+    }
+
+    // 处理粘贴的图片
+    function handleImagePaste(file, textarea) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var base64 = e.target.result;
+            var imgMarkdown = '\n![图片](' + base64 + ')\n';
+
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var value = textarea.value;
+
+            textarea.value = value.substring(0, start) + imgMarkdown + value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + imgMarkdown.length, start + imgMarkdown.length);
+
+            onContentInput(textarea.value);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 通过文件选择器插入图片
+    function insertImageFromFile() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var textarea = document.getElementById('nbContentTextarea');
+                if (textarea) {
+                    handleImagePaste(file, textarea);
+                }
+            }
+        };
+        input.click();
     }
 
     // ==================== 公开 API ====================
@@ -713,6 +770,7 @@
         insertFormat: insertFormat,
         insertLine: insertLine,
         exportMarkdown: exportMarkdown,
+        insertImageFromFile: insertImageFromFile,
         toggleSidebar: toggleSidebar,
         toggleTemplateMenu: toggleTemplateMenu,
         useTemplate: useTemplate,
