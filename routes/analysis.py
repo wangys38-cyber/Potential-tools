@@ -1205,8 +1205,13 @@ def create_analysis_blueprint():
             reply = _call_ai(messages, max_tokens=1500, temperature=0.3, timeout=60)
             return jsonify({'status': 'success', 'analysis': reply})
         except Exception as e:
+            err_msg = str(e)
             logger.error(f'AI CR分析失败: {e}')
-            return jsonify({'error': f'AI分析失败: {str(e)}'}), 502
+            if '401' in err_msg or '403' in err_msg:
+                return jsonify({'error': 'AI API Key 认证失败（401），请在设置页面检查 API Key 是否正确配置'}), 401
+            elif '429' in err_msg:
+                return jsonify({'error': 'AI API 限流（429），请稍后重试'}), 429
+            return jsonify({'error': f'AI分析失败: {err_msg}'}), 502
 
     @bp.route('/api/excel-analyze-ai-stream', methods=['POST'])
     @login_required_or_guest
@@ -1609,8 +1614,15 @@ def create_analysis_blueprint():
             logger.error(f'修复建议 JSON 解析失败: {je}, reply: {reply[:500]}')
             return jsonify({'error': 'AI 返回格式解析失败，请重试'}), 502
         except Exception as e:
+            err_msg = str(e)
             logger.error(f'修复建议生成失败: {e}')
-            return jsonify({'error': f'修复建议生成失败: {str(e)}'}), 502
+            if '401' in err_msg or '403' in err_msg:
+                return jsonify({'error': 'AI API Key 认证失败（401），请在设置页面检查 API Key 是否正确配置'}), 401
+            elif '429' in err_msg:
+                return jsonify({'error': 'AI API 限流（429），请稍后重试'}), 429
+            elif 'timeout' in err_msg.lower() or '超时' in err_msg:
+                return jsonify({'error': 'AI 服务超时，请稍后重试'}), 504
+            return jsonify({'error': f'修复建议生成失败: {err_msg}'}), 502
 
     return bp
 
