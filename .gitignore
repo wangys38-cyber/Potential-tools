@@ -19,3 +19,6 @@ switch_to_weasyprint.py
 .jinja_cache/
 .venv/
 visit_count.json
+_patch_*.py
+_fix_*.py
+deploy_status.png

@@ -2,11 +2,11 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app -k gthread --workers 1 --threads 16 --timeout 300 --worker-tmp-dir /dev/shm --keep-alive 10 --max-requests 1000 --max-requests-jitter 50'"
+startCommand = "sh -c 'gunicorn -c gunicorn.conf.py app:app'"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 # Railway 自动从 GitHub main 分支部署，每次 push 触发重新构建
-# v5.4.1 - 添加 healthcheck 健康检查 + GitHub Actions 自动部署 (2026-08-25)
+# v6.0.0 - 添加告警系统、性能监控看板、自动备份调度 (2026-09-02)
