@@ -381,22 +381,22 @@
 
         const devStats = {};
         issues.forEach(issue => {
-            const dev = issue.assignee || '未分配';
+            const dev = issue.developer || issue.assignee || issue.owner || '未分配';
             if (!devStats[dev]) {
                 devStats[dev] = { total: 0, open: 0, resolved: 0, high: 0, critical: 0 };
             }
             devStats[dev].total++;
             const status = (issue.status || '').toLowerCase();
-            if (status.includes('resolved') || status.includes('closed') || status.includes('已解决') || status.includes('已关闭')) {
+            if (status.includes('resolved') || status.includes('closed') || status.includes('已解决') || status.includes('已关闭') || status.includes('done') || status.includes('完成') || status.includes('verified')) {
                 devStats[dev].resolved++;
             } else {
                 devStats[dev].open++;
             }
-            const severity = (issue.severity || '').toLowerCase();
-            if (severity.includes('high') || severity.includes('高') || severity.includes('major')) {
+            const severity = (issue.severity || issue.priority || '').toLowerCase();
+            if (severity.includes('high') || severity.includes('高') || severity.includes('major') || severity.includes('p1') || severity.includes('严重')) {
                 devStats[dev].high++;
             }
-            if (severity.includes('critical') || severity.includes('严重') || severity.includes('blocker') || severity.includes('致命')) {
+            if (severity.includes('critical') || severity.includes('致命') || severity.includes('blocker') || severity.includes('p0') || severity.includes('紧急')) {
                 devStats[dev].critical++;
             }
         });
