@@ -266,6 +266,83 @@
         </div>
         {% endif %}
 
+        <!-- 账号与数据管理 -->
+        <div class="section" id="account-section">
+            <div class="section-header">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <div>
+                    <div class="section-title">账号与数据</div>
+                    <div class="section-desc">管理您的账号安全和个人数据</div>
+                </div>
+            </div>
+
+            <!-- 数据导出 -->
+            <div style="margin-top: 16px; padding: 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">导出个人数据</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">下载您的全部个人数据（笔记、分析记录、偏好设置等）为 JSON 文件</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="exportUserData()" style="white-space:nowrap;">导出数据</button>
+                </div>
+                <div class="test-result" id="exportResult" style="display:none; margin-top: 10px;"></div>
+            </div>
+
+            <!-- 修改密码（仅本地账号） -->
+            {% if current_user and current_user.provider == 'local' %}
+            <div style="margin-top: 12px; padding: 14px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border);">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px;">修改密码</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">当前密码</label>
+                        <input type="password" class="form-input" id="oldPassword" placeholder="输入当前密码" autocomplete="current-password">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">新密码</label>
+                        <input type="password" class="form-input" id="newPassword" placeholder="至少8位，含字母和数字" autocomplete="new-password" oninput="checkNewPwdStrength()">
+                        <div id="newPwdStrength" style="font-size: 11px; margin-top: 4px; color: var(--text-secondary);"></div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px;">
+                    <button class="btn btn-primary" onclick="changePassword()">确认修改</button>
+                </div>
+                <div class="test-result" id="changePwdResult" style="display:none; margin-top: 10px;"></div>
+            </div>
+            {% endif %}
+
+            <!-- 账号删除 -->
+            <div style="margin-top: 12px; padding: 14px; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px; color: #dc2626;">注销账号</div>
+                        <div style="font-size: 12px; color: #991b1b; margin-top: 2px;">账号将被标记删除，30天内可联系管理员恢复，之后将永久删除</div>
+                    </div>
+                    <button class="btn" style="background:#dc2626;color:#fff;border:none;white-space:nowrap;" onclick="showDeleteAccount()">注销账号</button>
+                </div>
+            </div>
+
+            <!-- 删除确认弹窗 -->
+            <div id="deleteAccountModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+                <div style="background:var(--bg-secondary); padding:24px; border-radius:12px; max-width:400px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <h3 style="margin:0 0 12px 0; font-size:18px; color:#dc2626;">确认注销账号？</h3>
+                    <p style="font-size:13px; color:var(--text-secondary); margin:0 0 16px 0; line-height:1.6;">此操作将标记您的账号为已删除状态。30天内可联系管理员恢复，之后所有数据将被永久删除且无法恢复。</p>
+                    {% if current_user and current_user.provider == 'local' %}
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label">请输入密码确认</label>
+                        <input type="password" class="form-input" id="deleteConfirmPassword" placeholder="输入当前密码" autocomplete="current-password">
+                    </div>
+                    {% endif %}
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button class="btn btn-secondary" onclick="hideDeleteAccount()">取消</button>
+                        <button class="btn" style="background:#dc2626;color:#fff;border:none;" onclick="confirmDeleteAccount()">确认注销</button>
+                    </div>
+                    <div class="test-result" id="deleteResult" style="display:none; margin-top: 12px;"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 外观设置 -->
         <div class="section">
             <div class="section-header">
@@ -991,5 +1068,122 @@
     <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
     <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <script>
+        // ==================== 账号与数据管理 ====================
+        async function exportUserData() {
+            const resultEl = document.getElementById('exportResult');
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<span class="status-badge info"><span class="status-dot"></span>正在导出数据...</span>';
+            try {
+                const resp = await fetch('/api/user/export');
+                const data = await resp.json();
+                if (data.status === 'success' && data.data) {
+                    const blob = new Blob([JSON.stringify(data.data, null, 2)], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'user_data_export_' + new Date().toISOString().slice(0,10) + '.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    resultEl.innerHTML = '<span class="status-badge success"><span class="status-dot"></span>数据导出成功，已开始下载</span>';
+                } else {
+                    resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>导出失败: ' + (data.error || '未知错误') + '</span>';
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>网络错误: ' + e.message + '</span>';
+            }
+            setTimeout(function() { resultEl.style.display = 'none'; }, 5000);
+        }
+
+        function checkNewPwdStrength() {
+            const pw = document.getElementById('newPassword').value;
+            const el = document.getElementById('newPwdStrength');
+            if (!pw) { el.textContent = ''; return; }
+            let level = '弱', color = '#dc2626';
+            if (pw.length >= 8 && /[a-zA-Z]/.test(pw) && /\d/.test(pw)) {
+                level = '中'; color = '#f59e0b';
+                if (pw.length >= 12 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?~]/.test(pw)) {
+                    level = '强'; color = '#34c759';
+                }
+            }
+            el.textContent = '密码强度: ' + level;
+            el.style.color = color;
+        }
+
+        async function changePassword() {
+            const oldPw = document.getElementById('oldPassword').value;
+            const newPw = document.getElementById('newPassword').value;
+            const resultEl = document.getElementById('changePwdResult');
+            if (!oldPw || !newPw) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>请填写当前密码和新密码</span>';
+                return;
+            }
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<span class="status-badge info"><span class="status-dot"></span>正在修改...</span>';
+            try {
+                const resp = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    resultEl.innerHTML = '<span class="status-badge success"><span class="status-dot"></span>' + (data.message || '密码修改成功，其他设备已下线') + '</span>';
+                    document.getElementById('oldPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('newPwdStrength').textContent = '';
+                } else {
+                    resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>修改失败: ' + (data.error || '未知错误') + '</span>';
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>网络错误: ' + e.message + '</span>';
+            }
+            setTimeout(function() { resultEl.style.display = 'none'; }, 5000);
+        }
+
+        function showDeleteAccount() {
+            document.getElementById('deleteAccountModal').style.display = 'flex';
+        }
+        function hideDeleteAccount() {
+            document.getElementById('deleteAccountModal').style.display = 'none';
+            const pwEl = document.getElementById('deleteConfirmPassword');
+            if (pwEl) pwEl.value = '';
+        }
+        async function confirmDeleteAccount() {
+            const resultEl = document.getElementById('deleteResult');
+            const payload = { confirm: true };
+            const pwEl = document.getElementById('deleteConfirmPassword');
+            if (pwEl) {
+                if (!pwEl.value) {
+                    resultEl.style.display = 'block';
+                    resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>请输入密码确认</span>';
+                    return;
+                }
+                payload.password = pwEl.value;
+            }
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<span class="status-badge info"><span class="status-dot"></span>正在处理...</span>';
+            try {
+                const resp = await fetch('/api/user/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    resultEl.innerHTML = '<span class="status-badge success"><span class="status-dot"></span>' + (data.message || '账号已注销') + '</span>';
+                    setTimeout(function() { window.location.href = '/login'; }, 2000);
+                } else {
+                    resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>注销失败: ' + (data.error || '未知错误') + '</span>';
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<span class="status-badge error"><span class="status-dot"></span>网络错误: ' + e.message + '</span>';
+            }
+        }
+
+</script>
 </body>
 </html>
