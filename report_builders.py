@@ -97,6 +97,29 @@ def _build_cr_analysis_report_html(data, watermark, file_name, custom_title='', 
     if not isinstance(stability_stats, dict):
         stability_stats = {}
 
+    # 安全辅助函数：确保列表中的每个元素都是字典
+    def _safe_dict_list(lst):
+        if not isinstance(lst, list):
+            return []
+        result = []
+        for item in lst:
+            if isinstance(item, dict):
+                result.append(item)
+            elif isinstance(item, str):
+                try:
+                    parsed = json.loads(item)
+                    if isinstance(parsed, dict):
+                        result.append(parsed)
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        return result
+
+    # 安全处理列表中的嵌套元素
+    suggestions = _safe_dict_list(suggestions)
+    daily_stats = _safe_dict_list(daily_stats)
+    resolved_unverified = _safe_dict_list(resolved_unverified)
+    all_issues = _safe_dict_list(all_issues)
+
     # 水印 - 小水印，密度适中
     watermark_html = ''
     if watermark:
