@@ -19,6 +19,7 @@ import performance_middleware
 import compression_middleware
 import system_metrics
 import alerting
+import backup_scheduler
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
@@ -683,7 +684,8 @@ logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_producti
 try:
     system_metrics.start_collector()
     alerting.start_alerting()
-    logger.info('系统指标采集和告警巡检服务已启动')
+    backup_scheduler.start_scheduler()
+    logger.info('系统指标采集、告警巡检和自动备份服务已启动')
 except Exception as e:
     logger.warning(f'后台服务启动失败: {e}')
 

@@ -302,6 +302,145 @@ def create_admin_blueprint():
             logger.error(f"自动备份失败: {e}")
             return jsonify({'status': 'error', 'error': str(e)}), 500
 
+
+    # ==================== 管理员性能监控看板 ====================
+
+    @bp.route('/admin/performance')
+    @auth.admin_required
+    def admin_performance_page():
+        """管理员性能监控看板页面"""
+        return render_template('admin_performance.html', nav_title='性能监控')
+
+    @bp.route('/api/admin/performance', methods=['GET'])
+    @auth.admin_required
+    def api_admin_performance():
+        """获取实时性能指标（请求统计 + 系统指标 + 慢查询）"""
+        try:
+            import performance_middleware
+            import system_metrics
+            import alerting
+
+            # 请求性能指标
+            perf = performance_middleware._get_metrics_snapshot() if hasattr(performance_middleware, '_get_metrics_snapshot') else {}
+
+            # 直接从 performance_middleware 获取统计
+            with performance_middleware._lock:
+                times = sorted(performance_middleware._response_times)
+                count = len(times)
+                def _pct(p):
+                    if count == 0:
+                        return 0
+                    idx = min(int(count * p / 100), count - 1)
+                    return round(times[idx], 1)
+                request_stats = {
+                    'total_requests': performance_middleware._total_requests,
+                    'slow_requests': performance_middleware._slow_requests,
+                    'slow_rate_pct': round(performance_middleware._slow_requests / performance_middleware._total_requests * 100, 2) if performance_middleware._total_requests else 0,
+                    'avg_ms': round(performance_middleware._total_response_time / performance_middleware._total_requests, 1) if performance_middleware._total_requests else 0,
+                    'p50_ms': _pct(50),
+                    'p95_ms': _pct(95),
+                    'p99_ms': _pct(99),
+                    'max_ms': round(times[-1], 1) if times else 0,
+                    'min_ms': round(times[0], 1) if times else 0,
+                    'sample_count': count,
+                }
+
+            # 告警窗口统计（5分钟滑动窗口，含5xx错误率）
+            alert_stats = alerting.get_request_stats()
+
+            # 系统指标
+            sys_summary = system_metrics.get_summary()
+            sys_history = system_metrics.get_history(limit=60)
+
+            # 慢查询日志
+            slow_logs = performance_middleware.get_slow_logs(limit=20)
+
+            return jsonify({
+                'status': 'success',
+                'request_stats': request_stats,
+                'alert_window': alert_stats,
+                'system': sys_summary,
+                'system_history': sys_history,
+                'slow_logs': slow_logs,
+                'threshold_ms': performance_middleware.SLOW_QUERY_THRESHOLD_MS,
+            })
+        except Exception as e:
+            logger.error(f"获取性能指标失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    # ==================== 告警管理 API ====================
+
+    @bp.route('/api/admin/alerts', methods=['GET'])
+    @auth.admin_required
+    def api_admin_alerts():
+        """获取告警历史"""
+        try:
+            import alerting
+            limit = int(request.args.get('limit', 50))
+            alert_type = request.args.get('type', '').strip() or None
+            level = request.args.get('level', '').strip() or None
+            history = alerting.get_alert_history(limit=limit, alert_type=alert_type, level=level)
+            summary = alerting.get_alert_summary()
+            return jsonify({'status': 'success', 'alerts': history, 'summary': summary})
+        except Exception as e:
+            logger.error(f"获取告警历史失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    @bp.route('/api/admin/alerts/config', methods=['GET'])
+    @auth.admin_required
+    def api_admin_alert_config():
+        """获取告警配置"""
+        try:
+            import alerting
+            config = alerting.get_config()
+            return jsonify({'status': 'success', **config})
+        except Exception as e:
+            logger.error(f"获取告警配置失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    @bp.route('/api/admin/alerts/config', methods=['POST'])
+    @auth.admin_required
+    def api_admin_update_alert_config():
+        """更新告警配置"""
+        try:
+            import alerting
+            data = request.get_json(silent=True) or {}
+            alerting.update_config(
+                enabled=data.get('enabled'),
+                feishu_webhook=data.get('feishu_webhook'),
+                feishu_secret=data.get('feishu_secret'),
+                thresholds=data.get('thresholds'),
+                alert_types=data.get('alert_types'),
+            )
+            current = auth.get_current_user()
+            db.add_audit_log(
+                current['id'] if current else None, 'alert_config_update',
+                target_type='system', target_id='alerting',
+                ip=request.remote_addr or '',
+                user_agent=request.headers.get('User-Agent', ''),
+                details='管理员更新告警配置'
+            )
+            return jsonify({'status': 'success', 'message': '告警配置已更新'})
+        except Exception as e:
+            logger.error(f"更新告警配置失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
+    @bp.route('/api/admin/alerts/test', methods=['POST'])
+    @auth.admin_required
+    def api_admin_test_alert():
+        """发送测试告警（验证飞书 Webhook）"""
+        try:
+            import alerting
+            data = request.get_json(silent=True) or {}
+            alert_type = data.get('type', 'error_rate')
+            ok, msg = alerting.test_alert(alert_type)
+            if ok:
+                return jsonify({'status': 'success', 'message': msg})
+            return jsonify({'status': 'error', 'error': msg}), 400
+        except Exception as e:
+            logger.error(f"测试告警失败: {e}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
     return bp
 
 
