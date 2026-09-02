@@ -59,6 +59,7 @@ def create_notes_blueprint():
                 tags=data.get('tags', []),
                 is_todo=data.get('is_todo', False),
                 pinned=data.get('pinned', False),
+                completed=data.get('completed', False),
             )
             return jsonify({'status': 'success', 'note': note})
         except Exception as e:
@@ -94,6 +95,7 @@ def create_notes_blueprint():
                 tags=data.get('tags'),
                 is_todo=data.get('is_todo'),
                 pinned=data.get('pinned'),
+                completed=data.get('completed'),
             )
             if not success:
                 return jsonify({'error': '笔记不存在'}), 404

@@ -437,6 +437,12 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(user_id, updated_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(user_id, category)"))
 
+        # 迁移：添加 completed 字段（兼容已有数据）
+        try:
+            conn.execute(text("ALTER TABLE notes ADD COLUMN completed INTEGER DEFAULT 0"))
+        except Exception:
+            pass  # 字段已存在
+
         # ==================== v8.0 数据可视化：图表模板表 ====================
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS chart_templates (
@@ -2534,7 +2540,7 @@ def get_notes(user_id):
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
-                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at
+                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, completed, created_at, updated_at
                 FROM notes WHERE user_id = :user_id
                 ORDER BY pinned DESC, updated_at DESC
             """),
@@ -2558,7 +2564,7 @@ def get_note_by_uid(user_id, note_uid):
     with engine.connect() as conn:
         row = conn.execute(
             text("""
-                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at
+                SELECT id, note_uid, title, content, category, tags, is_todo, pinned, completed, created_at, updated_at
                 FROM notes WHERE user_id = :user_id AND note_uid = :note_uid
             """),
             {'user_id': user_id, 'note_uid': note_uid}
@@ -2572,29 +2578,31 @@ def get_note_by_uid(user_id, note_uid):
             item['tags'] = []
         item['is_todo'] = bool(item.get('is_todo', 0))
         item['pinned'] = bool(item.get('pinned', 0))
+        item['completed'] = bool(item.get('completed', 0))
         return item
 
 
-def create_note(user_id, note_uid, title='', content='', category='', tags=None, is_todo=False, pinned=False):
+def create_note(user_id, note_uid, title='', content='', category='', tags=None, is_todo=False, pinned=False, completed=False):
     """创建笔记，返回笔记字典"""
     with engine.begin() as conn:
         now = time.time()
         tags_str = json.dumps(tags or [], ensure_ascii=False)
         conn.execute(
             text("""
-                INSERT INTO notes (user_id, note_uid, title, content, category, tags, is_todo, pinned, created_at, updated_at)
-                VALUES (:user_id, :note_uid, :title, :content, :category, :tags, :is_todo, :pinned, :created_at, :updated_at)
+                INSERT INTO notes (user_id, note_uid, title, content, category, tags, is_todo, pinned, completed, created_at, updated_at)
+                VALUES (:user_id, :note_uid, :title, :content, :category, :tags, :is_todo, :pinned, :completed, :created_at, :updated_at)
             """),
             {
                 'user_id': user_id, 'note_uid': note_uid, 'title': title, 'content': content,
                 'category': category, 'tags': tags_str, 'is_todo': 1 if is_todo else 0,
-                'pinned': 1 if pinned else 0, 'created_at': now, 'updated_at': now
+                'pinned': 1 if pinned else 0, 'completed': 1 if completed else 0,
+                'created_at': now, 'updated_at': now
             }
         )
     return get_note_by_uid(user_id, note_uid)
 
 
-def update_note(user_id, note_uid, title=None, content=None, category=None, tags=None, is_todo=None, pinned=None):
+def update_note(user_id, note_uid, title=None, content=None, category=None, tags=None, is_todo=None, pinned=None, completed=None):
     """更新笔记字段，返回是否成功"""
     with engine.begin() as conn:
         sets = ['updated_at = :updated_at']
@@ -2605,6 +2613,8 @@ def update_note(user_id, note_uid, title=None, content=None, category=None, tags
             sets.append('content = :content'); params['content'] = content
         if category is not None:
             sets.append('category = :category'); params['category'] = category
+        if completed is not None:
+            sets.append('completed = :completed'); params['completed'] = 1 if completed else 0
         if tags is not None:
             sets.append('tags = :tags'); params['tags'] = json.dumps(tags, ensure_ascii=False)
         if is_todo is not None:

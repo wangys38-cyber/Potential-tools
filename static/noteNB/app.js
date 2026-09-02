@@ -131,6 +131,7 @@
             tags: Array.isArray(n.tags) ? n.tags : (n.tags ? JSON.parse(n.tags) : []),
             is_todo: !!n.is_todo,
             pinned: !!n.pinned,
+            completed: !!n.completed,
             created_at: n.created_at || (Date.now() / 1000),
             updated_at: n.updated_at || (Date.now() / 1000)
         };
