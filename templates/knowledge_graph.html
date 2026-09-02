@@ -407,11 +407,14 @@
             <div class="graph-header">
                 <div class="graph-title">知识图谱可视化</div>
                 <div class="graph-controls">
+                    <input type="text" id="graphSearch" class="graph-search-input" placeholder="搜索节点..." oninput="KnowledgeGraph.searchNodes(this.value)" style="width:140px;padding:6px 10px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);font-size:12px;background:var(--ds-bg);color:var(--ds-text);">
+                    <button class="btn-sm primary" onclick="KnowledgeGraph.openCreateNodeModal()">新建节点</button>
+                    <button class="btn-sm primary" onclick="KnowledgeGraph.openCreateRelationModal()">新建关系</button>
                     <button class="btn-sm" onclick="KnowledgeGraph.refreshGraph()">刷新</button>
                     <button class="btn-sm" onclick="KnowledgeGraph.zoomIn()">放大</button>
                     <button class="btn-sm" onclick="KnowledgeGraph.zoomOut()">缩小</button>
                     <button class="btn-sm" onclick="KnowledgeGraph.resetView()">重置</button>
-                    <button class="btn-sm primary" onclick="KnowledgeGraph.exportPNG()">导出PNG</button>
+                    <button class="btn-sm" onclick="KnowledgeGraph.exportPNG()">导出PNG</button>
                     <button class="btn-sm" onclick="KnowledgeGraph.clearHighlight()">清除高亮</button>
                 </div>
             </div>
@@ -524,6 +527,67 @@
                     <div style="text-align:center;color:var(--ds-text-secondary);font-size:12px;">暂无数据</div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 新建节点弹窗 -->
+<div class="modal-overlay" id="createNodeModal">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+            <div class="modal-title">新建节点</div>
+            <button class="modal-close" onclick="KnowledgeGraph.closeCreateNodeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">节点类型</label>
+                <select id="newNodeType" class="reasoning-select"></select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">节点名称</label>
+                <input type="text" id="newNodeName" class="reasoning-select" placeholder="输入节点名称" style="width:100%;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">描述（可选）</label>
+                <textarea id="newNodeDesc" class="reasoning-select" placeholder="输入节点描述" style="width:100%;min-height:80px;resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sm" onclick="KnowledgeGraph.closeCreateNodeModal()">取消</button>
+            <button class="btn-sm primary" onclick="KnowledgeGraph.createNode()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新建关系弹窗 -->
+<div class="modal-overlay" id="createRelationModal">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+            <div class="modal-title">新建关系</div>
+            <button class="modal-close" onclick="KnowledgeGraph.closeCreateRelationModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">源节点</label>
+                <select id="relSourceSelect" class="reasoning-select"></select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">关系类型</label>
+                <select id="relTypeSelect" class="reasoning-select"></select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">目标节点</label>
+                <select id="relTargetSelect" class="reasoning-select"></select>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">描述（可选）</label>
+                <input type="text" id="relDesc" class="reasoning-select" placeholder="输入关系描述" style="width:100%;">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sm" onclick="KnowledgeGraph.closeCreateRelationModal()">取消</button>
+            <button class="btn-sm primary" onclick="KnowledgeGraph.createRelation()">创建</button>
         </div>
     </div>
 </div>

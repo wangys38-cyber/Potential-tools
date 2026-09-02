@@ -1,4 +1,4 @@
-﻿"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入、知识抽取、推理、导出"""
+"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入、知识抽取、推理、导出"""
 import os
 import re
 import csv
@@ -278,6 +278,47 @@ def get_node_neighbors(node_id):
     neighbor_nodes = [n for n in graph['nodes'] if n['id'] in visited and n['id'] != node_id]
     return jsonify({'neighbors': neighbor_nodes, 'relations': all_neighbors, 'count': len(neighbor_nodes)})
 
+
+
+@bp.route('/api/kg/search', methods=['GET'])
+def search_nodes():
+    """搜索节点"""
+    user_id = getattr(g, 'user_id', None)
+    graph = load_graph(user_id)
+    keyword = request.args.get('q', '').strip().lower()
+    node_type = request.args.get('type', '').strip()
+    limit = min(int(request.args.get('limit', 50) or 50), 200)
+    if not keyword:
+        return jsonify({'nodes': [], 'total': 0})
+    results = []
+    for node in graph['nodes']:
+        if node_type and node.get('type') != node_type:
+            continue
+        name = node.get('name', '').lower()
+        desc = node.get('description', '').lower()
+        props_str = json.dumps(node.get('properties', {}), ensure_ascii=False).lower()
+        if keyword in name or keyword in desc or keyword in props_str:
+            results.append(node)
+            if len(results) >= limit:
+                break
+    return jsonify({'nodes': results, 'total': len(results)})
+
+
+@bp.route('/api/kg/relations/<relation_id>', methods=['PUT'])
+def update_relation(relation_id):
+    """更新关系"""
+    user_id = getattr(g, 'user_id', None)
+    data = request.json or {}
+    graph = load_graph()
+    for rel in graph['relations']:
+        if rel['id'] == relation_id:
+            if 'type' in data and data['type'] in RELATION_TYPES:
+                rel['type'] = data['type']
+            if 'description' in data:
+                rel['description'] = data['description']
+            save_graph(graph)
+            return jsonify({'relation': rel, 'message': '关系更新成功'})
+    return jsonify({'error': '关系不存在'}), 404
 
 # ==================== 数据导入 ====================
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 研发知识图谱前端逻辑
  * 功能：图谱可视化、节点交互、数据导入、AI抽取、知识推理、多跳问答、知识导出
  */
@@ -28,6 +28,8 @@ const KnowledgeGraph = (function() {
 
     // 抽取结果缓存
     let extractResult = { nodes: [], relations: [] };
+    let hiddenTypes = new Set();
+    let searchKeyword = '';
 
     /**
      * 初始化
@@ -162,6 +164,7 @@ const KnowledgeGraph = (function() {
 
         // 绘制关系
         relations.forEach(rel => {
+            if (hiddenTypes.has(nodes.find(function(n){return n.id===rel.source;}) && nodes.find(function(n){return n.id===rel.source;}).type) || hiddenTypes.has(nodes.find(function(n){return n.id===rel.target;}) && nodes.find(function(n){return n.id===rel.target;}).type)) return;
             const source = nodePositions[rel.source], target = nodePositions[rel.target];
             if (!source || !target) return;
             const isHighlighted = highlightedRelations.has(rel.id);
@@ -178,6 +181,7 @@ const KnowledgeGraph = (function() {
 
         // 绘制节点
         nodes.forEach(node => {
+            if (hiddenTypes.has(node.type)) return;
             const pos = nodePositions[node.id];
             if (!pos) return;
             const nodeType = nodeTypes[node.type] || {};
@@ -230,7 +234,7 @@ const KnowledgeGraph = (function() {
         const clicked = findNodeAt(x, y);
         if (clicked) {
             selectedNode = clicked.id;
-            showNodeDetail(clicked, e.clientX - rect.left, e.clientY - rect.top);
+            showNodeDetailEnhanced(clicked, e.clientX - rect.left, e.clientY - rect.top);
             render();
         } else {
             isDragging = true;
@@ -1043,6 +1047,203 @@ const KnowledgeGraph = (function() {
         }
     }
 
+
+    // ==================== 搜索与过滤 ====================
+
+    function searchNodes(keyword) {
+        searchKeyword = keyword.trim().toLowerCase();
+        if (!searchKeyword) {
+            highlightedNodes.clear();
+            highlightedRelations.clear();
+            render();
+            return;
+        }
+        const matched = new Set();
+        nodes.forEach(n => {
+            const name = (n.name || '').toLowerCase();
+            const desc = (n.description || '').toLowerCase();
+            if (name.includes(searchKeyword) || desc.includes(searchKeyword)) {
+                matched.add(n.id);
+            }
+        });
+        if (matched.size > 0) {
+            const relIds = new Set();
+            relations.forEach(r => {
+                if (matched.has(r.source) && matched.has(r.target)) relIds.add(r.id);
+            });
+            setHighlight(Array.from(matched), Array.from(relIds));
+        } else {
+            highlightedNodes.clear();
+            highlightedRelations.clear();
+            render();
+        }
+        const info = document.getElementById('highlightInfo');
+        if (matched.size > 0) {
+            info.textContent = '搜索到 ' + matched.size + ' 个节点';
+            info.classList.add('active');
+        } else if (searchKeyword) {
+            info.textContent = '未找到匹配节点';
+            info.classList.add('active');
+        }
+    }
+
+    function toggleType(type) {
+        if (hiddenTypes.has(type)) {
+            hiddenTypes.delete(type);
+        } else {
+            hiddenTypes.add(type);
+        }
+        updateLegend();
+        render();
+    }
+
+    // ==================== 节点编辑与删除 ====================
+
+    function showNodeDetailEnhanced(node, x, y) {
+        const detail = document.getElementById('nodeDetail');
+        const nodeType = nodeTypes[node.type] || {};
+        const relCount = relations.filter(r => r.source === node.id || r.target === node.id).length;
+        detail.innerHTML =
+            '<div class="node-detail-title">' + escapeHtml(node.name) + '</div>' +
+            '<div class="node-detail-type">' + (nodeType.label || node.type) + ' | ' + relCount + ' 条关系</div>' +
+            '<div class="node-detail-desc">' + escapeHtml(node.description || '暂无描述') + '</div>' +
+            '<div style="margin-top:10px;display:flex;gap:6px;">' +
+            '<button class="btn-sm" onclick="KnowledgeGraph.editNode(\'' + node.id + '\')">编辑</button>' +
+            '<button class="btn-sm" style="color:#ff3b30;" onclick="KnowledgeGraph.deleteNode(\'' + node.id + '\')">删除</button>' +
+            '</div>';
+        detail.style.left = Math.min(x + 10, canvas.width - 280) + 'px';
+        detail.style.top = Math.min(y + 10, canvas.height - 200) + 'px';
+        detail.style.display = 'block';
+    }
+
+    async function editNode(nodeId) {
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        const name = prompt('节点名称:', node.name);
+        if (name === null) return;
+        const desc = prompt('节点描述:', node.description || '');
+        if (desc === null) return;
+        try {
+            const resp = await fetch('/api/kg/nodes/' + nodeId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, description: desc })
+            });
+            const data = await resp.json();
+            if (data.error) {
+                showToast('更新失败: ' + data.error, 'error');
+            } else {
+                showToast('节点已更新', 'success');
+                hideNodeDetail();
+                loadGraph();
+            }
+        } catch (e) {
+            showToast('更新失败: ' + e.message, 'error');
+        }
+    }
+
+    async function deleteNode(nodeId) {
+        if (!confirm('确定删除此节点及其所有关系？')) return;
+        try {
+            const resp = await fetch('/api/kg/nodes/' + nodeId, { method: 'DELETE' });
+            const data = await resp.json();
+            if (data.error) {
+                showToast('删除失败: ' + data.error, 'error');
+            } else {
+                showToast('节点已删除', 'success');
+                hideNodeDetail();
+                loadGraph();
+            }
+        } catch (e) {
+            showToast('删除失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== 手动创建节点 ====================
+
+    function openCreateNodeModal() {
+        const modal = document.getElementById('createNodeModal');
+        const typeSelect = document.getElementById('newNodeType');
+        typeSelect.innerHTML = Object.entries(nodeTypes).map(function(e) {
+            return '<option value="' + e[0] + '">' + e[1].label + '</option>';
+        }).join('');
+        modal.classList.add('active');
+    }
+
+    function closeCreateNodeModal() {
+        document.getElementById('createNodeModal').classList.remove('active');
+    }
+
+    async function createNode() {
+        const type = document.getElementById('newNodeType').value;
+        const name = document.getElementById('newNodeName').value.trim();
+        const desc = document.getElementById('newNodeDesc').value.trim();
+        if (!name) { showToast('请输入节点名称', 'warning'); return; }
+        try {
+            const resp = await fetch('/api/kg/nodes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type, name: name, description: desc })
+            });
+            const data = await resp.json();
+            if (data.error) {
+                showToast('创建失败: ' + data.error, 'error');
+            } else {
+                showToast('节点创建成功', 'success');
+                closeCreateNodeModal();
+                document.getElementById('newNodeName').value = '';
+                document.getElementById('newNodeDesc').value = '';
+                loadGraph();
+            }
+        } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== 手动创建关系 ====================
+
+    function openCreateRelationModal() {
+        const modal = document.getElementById('createRelationModal');
+        const opts = nodes.map(function(n) { return '<option value="' + n.id + '">' + escapeHtml(n.name) + '</option>'; }).join('');
+        document.getElementById('relSourceSelect').innerHTML = opts;
+        document.getElementById('relTargetSelect').innerHTML = opts;
+        document.getElementById('relTypeSelect').innerHTML = Object.entries(relationTypes).map(function(e) {
+            return '<option value="' + e[0] + '">' + e[1].label + '</option>';
+        }).join('');
+        modal.classList.add('active');
+    }
+
+    function closeCreateRelationModal() {
+        document.getElementById('createRelationModal').classList.remove('active');
+    }
+
+    async function createRelation() {
+        const source = document.getElementById('relSourceSelect').value;
+        const target = document.getElementById('relTargetSelect').value;
+        const type = document.getElementById('relTypeSelect').value;
+        const desc = document.getElementById('relDesc').value.trim();
+        if (!source || !target || !type) { showToast('请填写完整', 'warning'); return; }
+        if (source === target) { showToast('源节点和目标节点不能相同', 'warning'); return; }
+        try {
+            const resp = await fetch('/api/kg/relations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: source, target: target, type: type, description: desc })
+            });
+            const data = await resp.json();
+            if (data.error) {
+                showToast('创建失败: ' + data.error, 'error');
+            } else {
+                showToast('关系创建成功', 'success');
+                closeCreateRelationModal();
+                document.getElementById('relDesc').value = '';
+                loadGraph();
+            }
+        } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+        }
+    }
+
     // 公开 API
     return {
         init: init,
@@ -1064,7 +1265,17 @@ const KnowledgeGraph = (function() {
         refreshGraph: refreshGraph,
         zoomIn: zoomIn,
         zoomOut: zoomOut,
-        resetView: resetView
+        resetView: resetView,
+        searchNodes: searchNodes,
+        toggleType: toggleType,
+        editNode: editNode,
+        deleteNode: deleteNode,
+        openCreateNodeModal: openCreateNodeModal,
+        closeCreateNodeModal: closeCreateNodeModal,
+        createNode: createNode,
+        openCreateRelationModal: openCreateRelationModal,
+        closeCreateRelationModal: closeCreateRelationModal,
+        createRelation: createRelation
     };
 })();
 
