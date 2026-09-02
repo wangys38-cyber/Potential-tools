@@ -2,7 +2,7 @@
    用法：在 <body> 后添加 {% include '_navbar.html' %}
    依赖：design-system.css（设计系统）、polish.css（打磨样式）
    页面标题通过模板变量 nav_title 传入，默认显示当前页面路径 #}
-<script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
+<script>window._USER_PREFIX={{ (('u' ~ current_user.id ~ '_') if current_user else '') | tojson }};</script>
 {# v7.1 数据隔离：统一用户存储封装，确保所有 localStorage key 带用户前缀 #}
 <script src="/static/js/storage.js?v={{ STATIC_VERSION }}"></script>
 {# 阶段五性能优化：预加载关键 CSS，避免渲染阻塞 #}
