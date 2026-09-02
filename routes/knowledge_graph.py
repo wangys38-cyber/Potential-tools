@@ -487,7 +487,7 @@ def extract_knowledge():
 
     try:
         ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=3000, temperature=0.2, timeout=90)
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=3000, temperature=0.2, timeout=180)
 
         # 解析JSON结果
         result = result.strip()
@@ -515,8 +515,11 @@ def extract_knowledge():
         logger.error(f'抽取结果JSON解析失败: {e}, result: {result[:500]}')
         return jsonify({'error': 'AI返回结果格式异常，请重试'}), 500
     except Exception as e:
+        err_msg = str(e)
         logger.error(f'知识抽取失败: {e}')
-        return jsonify({'error': f'知识抽取失败: {str(e)}'}), 500
+        if 'timeout' in err_msg.lower() or '超时' in err_msg or 'Read timed out' in err_msg:
+            return jsonify({'error': 'AI 服务响应超时（180秒），建议：1.更换响应更快的模型（如 glm-4-flash）2.更换服务商（如 DeepSeek/豆包）3.减少抽取文本量'}), 504
+        return jsonify({'error': f'知识抽取失败: {err_msg}'}), 500
 
 
 @bp.route('/api/kg/extract/confirm', methods=['POST'])
