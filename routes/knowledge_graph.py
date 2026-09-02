@@ -487,9 +487,9 @@ def extract_knowledge():
 
     try:
         ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=4000, temperature=0.2, timeout=180)
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=6000, temperature=0.2, timeout=180)
 
-        # 解析JSON结果 - 增强的JSON提取逻辑
+        # 解析JSON结果 - 增强的JSON提取和修复逻辑
         result = result.strip()
 
         # 方法1：去除markdown代码块标记
@@ -527,11 +527,69 @@ def extract_knowledge():
                         return text[start:i+1]
             return None
 
+        # 方法3：修复被截断的JSON
+        def fix_truncated_json(text):
+            """修复被截断的JSON，找到最后一个完整的节点后补全"""
+            start = text.find('{')
+            if start == -1:
+                return None
+            # 找到 nodes 数组的开始
+            nodes_start = text.find('"nodes"', start)
+            if nodes_start == -1:
+                return None
+            array_start = text.find('[', nodes_start)
+            if array_start == -1:
+                return None
+            # 从数组开始，找到最后一个完整的对象
+            depth = 0
+            in_string = False
+            escape = False
+            last_complete_obj_end = -1
+            for i in range(array_start, len(text)):
+                char = text[i]
+                if escape:
+                    escape = False
+                    continue
+                if char == '\\':
+                    escape = True
+                    continue
+                if char == '"':
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        last_complete_obj_end = i + 1
+            if last_complete_obj_end == -1:
+                return None
+            # 构建修复后的JSON
+            fixed = text[start:last_complete_obj_end] + '], "relations": []}'
+            return fixed
+
         json_str = extract_json(result)
+        if not json_str:
+            # 完整JSON提取失败，尝试修复截断的JSON
+            json_str = fix_truncated_json(result)
+            if json_str:
+                logger.info('JSON被截断，已自动修复')
         if json_str:
             result = json_str
 
-        extracted = json.loads(result)
+        # 尝试解析JSON，失败时再尝试修复
+        try:
+            extracted = json.loads(result)
+        except json.JSONDecodeError:
+            # 再次尝试修复截断的JSON
+            fixed = fix_truncated_json(result)
+            if fixed:
+                extracted = json.loads(fixed)
+                logger.info('JSON解析失败，已通过截断修复成功')
+            else:
+                raise
         nodes = extracted.get('nodes', [])
         relations = extracted.get('relations', [])
 
@@ -548,7 +606,7 @@ def extract_knowledge():
         })
     except json.JSONDecodeError as e:
         logger.error(f'抽取结果JSON解析失败: {e}, result: {result[:1000]}')
-        return jsonify({'error': f'AI返回结果格式异常，无法解析为JSON。AI返回内容前500字: {result[:500]}'}), 500
+        return jsonify({'error': f'AI返回结果格式异常，无法解析为JSON（可能是JSON被截断）。AI返回内容前1000字: {result[:1000]}'}), 500
     except Exception as e:
         err_msg = str(e)
         logger.error(f'知识抽取失败: {e}')
