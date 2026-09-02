@@ -15,15 +15,87 @@ def _is_resolved_status(status):
 
 def _build_cr_analysis_report_html(data, watermark, file_name, custom_title='', ai_analysis='', all_issues=None):
     """构建CR问题分析报告HTML（含Chart.js图表）"""
+    # 类型检查和转换：如果是字符串，尝试解析为JSON
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    if not isinstance(data, dict):
+        data = {}
+    
     if all_issues is None:
         all_issues = []
+    if isinstance(all_issues, str):
+        try:
+            all_issues = json.loads(all_issues)
+        except (json.JSONDecodeError, ValueError):
+            all_issues = []
+    if not isinstance(all_issues, list):
+        all_issues = []
+    
     summary = data.get('summary', {})
+    if isinstance(summary, str):
+        try:
+            summary = json.loads(summary)
+        except (json.JSONDecodeError, ValueError):
+            summary = {}
+    if not isinstance(summary, dict):
+        summary = {}
+    
     module_stats = data.get('module_stats', {})
+    if isinstance(module_stats, str):
+        try:
+            module_stats = json.loads(module_stats)
+        except (json.JSONDecodeError, ValueError):
+            module_stats = {}
+    if not isinstance(module_stats, dict):
+        module_stats = {}
+    
     dev_stats = data.get('dev_stats', {})
+    if isinstance(dev_stats, str):
+        try:
+            dev_stats = json.loads(dev_stats)
+        except (json.JSONDecodeError, ValueError):
+            dev_stats = {}
+    if not isinstance(dev_stats, dict):
+        dev_stats = {}
+    
     daily_stats = data.get('daily_stats', [])
+    if isinstance(daily_stats, str):
+        try:
+            daily_stats = json.loads(daily_stats)
+        except (json.JSONDecodeError, ValueError):
+            daily_stats = []
+    if not isinstance(daily_stats, list):
+        daily_stats = []
+    
     suggestions = data.get('suggestions', [])
+    if isinstance(suggestions, str):
+        try:
+            suggestions = json.loads(suggestions)
+        except (json.JSONDecodeError, ValueError):
+            suggestions = []
+    if not isinstance(suggestions, list):
+        suggestions = []
+    
     resolved_unverified = data.get('resolved_unverified', [])
+    if isinstance(resolved_unverified, str):
+        try:
+            resolved_unverified = json.loads(resolved_unverified)
+        except (json.JSONDecodeError, ValueError):
+            resolved_unverified = []
+    if not isinstance(resolved_unverified, list):
+        resolved_unverified = []
+    
     stability_stats = data.get('stability_stats', {})
+    if isinstance(stability_stats, str):
+        try:
+            stability_stats = json.loads(stability_stats)
+        except (json.JSONDecodeError, ValueError):
+            stability_stats = {}
+    if not isinstance(stability_stats, dict):
+        stability_stats = {}
 
     # 水印 - 小水印，密度适中
     watermark_html = ''
