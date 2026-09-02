@@ -12,6 +12,36 @@
     <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/noteNB/v6-premium.css?v={{ STATIC_VERSION }}">
+
+<style>
+/* 笔记完成功能样式 */
+.nb-note-complete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+}
+.nb-note-complete-btn:hover {
+    background: rgba(0,0,0,0.05);
+}
+.nb-note-item.completed {
+    opacity: 0.7;
+}
+#nbCompleteBtn.completed {
+    color: #10b981;
+}
+.nb-content-preview.completed,
+.nb-preview-content.completed {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+</style>
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -81,6 +111,9 @@
                     </button>
                     <button class="nb-icon-btn" id="nbPinBtn" onclick="NB.togglePin()" title="置顶">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
+                    </button>
+                    <button class="nb-icon-btn" id="nbCompleteBtn" onclick="NB.toggleComplete()" title="标记完成">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </button>
                     <button class="nb-icon-btn" onclick="NB.exportMarkdown()" title="导出 Markdown">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -203,6 +236,53 @@ NB.openVersionHistory = function() {
         alert('已回滚到该版本，请点击保存同步');
     });
 };
+</script>
+
+<script>
+// 笔记完成功能增强
+(function() {
+    var originalToggleComplete = NB.toggleComplete;
+    NB.toggleComplete = function() {
+        originalToggleComplete();
+        updateCompleteUI();
+    };
+
+    var originalOpenNote = NB.openNote;
+    NB.openNote = function(noteId) {
+        originalOpenNote(noteId);
+        setTimeout(updateCompleteUI, 50);
+    };
+
+    function updateCompleteUI() {
+        var note = NB.state && NB.state.currentNoteId ? NB.state.notes.find(function(n) { return n.id === NB.state.currentNoteId; }) : null;
+        var btn = document.getElementById('nbCompleteBtn');
+        if (btn && note) {
+            if (note.completed) {
+                btn.classList.add('completed');
+                btn.title = '标记为未完成';
+            } else {
+                btn.classList.remove('completed');
+                btn.title = '标记完成';
+            }
+        }
+        // 给预览内容加中划线
+        var preview = document.querySelector('.nb-content-preview') || document.querySelector('.nb-preview-content');
+        if (preview && note) {
+            if (note.completed) {
+                preview.classList.add('completed');
+            } else {
+                preview.classList.remove('completed');
+            }
+        }
+    }
+
+    // 页面加载后初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(updateCompleteUI, 100); });
+    } else {
+        setTimeout(updateCompleteUI, 100);
+    }
+})();
 </script>
 </body>
 </html>

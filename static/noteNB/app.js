@@ -177,6 +177,7 @@
             tags: [],
             is_todo: false,
             pinned: false,
+            completed: false,
             created_at: now,
             updated_at: now
         };
@@ -285,12 +286,18 @@
         var html = '';
         list.forEach(function(n) {
             var preview = (n.content || '').replace(/[#*`>\-\[\]]/g, '').replace(/\n/g, ' ').trim().slice(0, 60);
-            html += '<div class="nb-note-item' + (n.id === state.currentNoteId ? ' active' : '') + '" onclick="NB.openNote(\'' + n.id + '\')">' +
+            var completedClass = n.completed ? ' completed' : '';
+            var titleStyle = n.completed ? ' style="text-decoration:line-through;opacity:0.6;"' : '';
+            var previewStyle = n.completed ? ' style="text-decoration:line-through;opacity:0.6;"' : '';
+            html += '<div class="nb-note-item' + (n.id === state.currentNoteId ? ' active' : '') + completedClass + '" onclick="NB.openNote(\'' + n.id + '\')">' +
+                '<div class="nb-note-complete-btn" onclick="event.stopPropagation();NB.toggleNoteComplete(\'' + n.id + '\')" title="' + (n.completed ? '标记为未完成' : '标记为完成') + '">' +
+                    (n.completed ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>') +
+                '</div>' +
                 '<div class="nb-note-item-header">' +
                     (n.pinned ? '<svg class="nb-note-pin" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>' : '') +
-                    '<span class="nb-note-title">' + escapeHtml(n.title || '无标题') + '</span>' +
+                    '<span class="nb-note-title"' + titleStyle + '>' + escapeHtml(n.title || '无标题') + '</span>' +
                 '</div>' +
-                (preview ? '<div class="nb-note-preview">' + escapeHtml(preview) + '</div>' : '') +
+                (preview ? '<div class="nb-note-preview"' + previewStyle + '>' + escapeHtml(preview) + '</div>' : '') +
                 '<div class="nb-note-meta">' +
                     (n.category ? '<span class="nb-note-category-tag">' + escapeHtml(n.category) + '</span>' : '') +
                     '<span>' + formatTime(n.updated_at) + '</span>' +
@@ -608,6 +615,28 @@
         }
     }
 
+    function toggleNoteComplete(noteId) {
+        var note = state.notes.find(function(n) { return n.id === noteId; });
+        if (!note) return;
+        note.completed = !note.completed;
+        note.updated_at = Date.now() / 1000;
+        saveToLocal();
+        updateSaveStatus('saving');
+        debouncedSync(note);
+        renderAll();
+    }
+
+    function toggleComplete() {
+        var note = getCurrentNote();
+        if (!note) return;
+        note.completed = !note.completed;
+        note.updated_at = Date.now() / 1000;
+        saveToLocal();
+        updateSaveStatus('saving');
+        debouncedSync(note);
+        renderAll();
+    }
+
     function togglePin() {
         var note = getCurrentNote();
         if (!note) return;
@@ -669,6 +698,8 @@
         openNote: openNote,
         deleteCurrentNote: deleteCurrentNote,
         togglePin: togglePin,
+        toggleComplete: toggleComplete,
+        toggleNoteComplete: toggleNoteComplete,
         onTitleInput: onTitleInput,
         onContentInput: onContentInput,
         onCategoryInput: onCategoryInput,
