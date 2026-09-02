@@ -22,6 +22,14 @@
         return isNaN(d.getTime()) ? null : d;
     }
 
+    function formatDate(date) {
+        if (!date) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+
     // ============ 功能1：版本对比 ============
 
     let versionCompareData = { v1: null, v2: null };
