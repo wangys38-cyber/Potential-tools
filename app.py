@@ -16,7 +16,9 @@ import rate_limiter
 import request_logger
 import security
 import performance_middleware
-import compression_middleware
+# import compression_middleware  # 临时禁用，排查部署问题
+import system_metrics
+import alerting
 from routes.pages import create_pages_blueprint
 
 # 共享工具模块（v5.0 从 app.py 拆分）
@@ -426,6 +428,21 @@ def add_cache_headers(response):
     return response
 
 
+@app.after_request
+def record_for_alerting(response):
+    """记录请求指标供告警系统使用（错误率、延迟统计）"""
+    try:
+        start = getattr(g, '_perf_start_time', None)
+        if start is not None:
+            duration_ms = (time.perf_counter() - start) * 1000
+        else:
+            duration_ms = 0
+        alerting.record_request(response.status_code, duration_ms)
+    except Exception:
+        pass
+    return response
+
+
 # Register Blueprints (v5.0 之前的旧 Blueprint)
 try:
     from bp_ai import register as register_ai_bp
@@ -660,6 +677,15 @@ except ImportError as e:
 
 logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab, collab_v2, hld, notes")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
+
+
+# ==================== 启动后台服务（系统指标采集 + 告警巡检） ====================
+try:
+    system_metrics.start_collector()
+    alerting.start_alerting()
+    logger.info('系统指标采集和告警巡检服务已启动')
+except Exception as e:
+    logger.warning(f'后台服务启动失败: {e}')
 
 
 # ==================== 应用入口 ====================
