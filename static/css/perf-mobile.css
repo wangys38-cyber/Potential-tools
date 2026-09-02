@@ -1,0 +1,90 @@
+
+/* ===== 性能优化：移动端适配增强 ===== */
+@media (max-width: 768px) {
+    /* 知识图谱移动端优化 */
+    .graph-container {
+        height: 400px !important;
+        touch-action: none;
+    }
+    .graph-header {
+        padding: 10px 12px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .graph-controls {
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+    }
+    .graph-controls .btn-sm {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+        min-height: 36px;
+        min-width: 44px;
+    }
+    .graph-search-input {
+        width: 100% !important;
+        min-height: 36px;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    .stat-card {
+        padding: 10px !important;
+    }
+    .stat-value {
+        font-size: 22px !important;
+    }
+    .main-layout {
+        grid-template-columns: 1fr !important;
+    }
+    .panel-card {
+        padding: 12px !important;
+    }
+    .import-btn {
+        min-height: 44px;
+        font-size: 14px !important;
+    }
+    .reasoning-select, .query-input, .export-select {
+        min-height: 40px;
+        font-size: 14px !important;
+    }
+    /* 模态框移动端优化 */
+    .modal {
+        width: 95% !important;
+        max-height: 90vh !important;
+    }
+    .modal-body {
+        padding: 12px 14px !important;
+    }
+    /* 减少移动端动画 */
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+    .btn-sm, .import-btn {
+        transition: opacity 0.1s !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .graph-container {
+        height: 350px !important;
+    }
+    .page-title {
+        font-size: 20px !important;
+    }
+}
+
+/* 减少重绘：固定定位元素使用 will-change */
+.node-detail, .highlight-info {
+    will-change: transform, opacity;
+}
+
+/* 大图延迟加载占位 */
+img[data-src] {
+    background: var(--ds-bg-secondary);
+    min-height: 100px;
+}

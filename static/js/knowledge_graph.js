@@ -30,6 +30,9 @@ const KnowledgeGraph = (function() {
     let extractResult = { nodes: [], relations: [] };
     let hiddenTypes = new Set();
     let searchKeyword = '';
+    let touchStartDist = 0;
+    let touchStartScale = 1;
+    let lastTouchX = 0, lastTouchY = 0;
 
     /**
      * 初始化
@@ -45,6 +48,11 @@ const KnowledgeGraph = (function() {
         canvas.addEventListener('mouseup', onMouseUp);
         canvas.addEventListener('mouseleave', onMouseLeave);
         canvas.addEventListener('wheel', onWheel, { passive: false });
+
+        // 触摸事件支持（移动端）
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        canvas.addEventListener('touchend', onTouchEnd);
 
         loadGraph();
         loadQAHistory();
@@ -1047,6 +1055,66 @@ const KnowledgeGraph = (function() {
         }
     }
 
+
+
+    // ==================== 触摸交互（移动端） ====================
+
+    function onTouchStart(e) {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            // 单指：拖动或点击
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left - offsetX) / scale;
+            const y = (touch.clientY - rect.top - offsetY) / scale;
+            const clicked = findNodeAt(x, y);
+            if (clicked) {
+                selectedNode = clicked.id;
+                showNodeDetailEnhanced(clicked, touch.clientX - rect.left, touch.clientY - rect.top);
+                render();
+            } else {
+                isDragging = true;
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                hideNodeDetail();
+                selectedNode = null;
+            }
+        } else if (e.touches.length === 2) {
+            // 双指：缩放
+            isDragging = false;
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            touchStartDist = Math.sqrt(dx * dx + dy * dy);
+            touchStartScale = scale;
+        }
+    }
+
+    function onTouchMove(e) {
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            const touch = e.touches[0];
+            offsetX += touch.clientX - lastTouchX;
+            offsetY += touch.clientY - lastTouchY;
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+            render();
+        } else if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (touchStartDist > 0) {
+                scale = Math.max(0.3, Math.min(3, touchStartScale * (dist / touchStartDist)));
+                render();
+            }
+        }
+    }
+
+    function onTouchEnd(e) {
+        isDragging = false;
+        if (e.touches.length < 2) {
+            touchStartDist = 0;
+        }
+    }
 
     // ==================== 搜索与过滤 ====================
 
