@@ -1,4 +1,4 @@
-"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入、知识抽取、推理、导出"""
+﻿"""研发知识图谱 Blueprint — 节点管理、关系构建、智能查询、数据导入、知识抽取、推理、导出"""
 import os
 import re
 import csv
@@ -487,14 +487,49 @@ def extract_knowledge():
 
     try:
         ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=3000, temperature=0.2, timeout=180)
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=4000, temperature=0.2, timeout=180)
 
-        # 解析JSON结果
+        # 解析JSON结果 - 增强的JSON提取逻辑
         result = result.strip()
-        # 去除可能的markdown代码块标记
+
+        # 方法1：去除markdown代码块标记
         if result.startswith('```'):
             result = re.sub(r'^```(?:json)?\s*', '', result)
             result = re.sub(r'\s*```$', '', result)
+
+        # 方法2：从文本中提取第一个完整的JSON对象
+        def extract_json(text):
+            """从文本中提取第一个完整的JSON对象"""
+            start = text.find('{')
+            if start == -1:
+                return None
+            depth = 0
+            in_string = False
+            escape = False
+            for i in range(start, len(text)):
+                char = text[i]
+                if escape:
+                    escape = False
+                    continue
+                if char == '\\':
+                    escape = True
+                    continue
+                if char == '"':
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        return text[start:i+1]
+            return None
+
+        json_str = extract_json(result)
+        if json_str:
+            result = json_str
 
         extracted = json.loads(result)
         nodes = extracted.get('nodes', [])
@@ -512,8 +547,8 @@ def extract_knowledge():
             'source_type': source_type
         })
     except json.JSONDecodeError as e:
-        logger.error(f'抽取结果JSON解析失败: {e}, result: {result[:500]}')
-        return jsonify({'error': 'AI返回结果格式异常，请重试'}), 500
+        logger.error(f'抽取结果JSON解析失败: {e}, result: {result[:1000]}')
+        return jsonify({'error': f'AI返回结果格式异常，无法解析为JSON。AI返回内容前500字: {result[:500]}'}), 500
     except Exception as e:
         err_msg = str(e)
         logger.error(f'知识抽取失败: {e}')
