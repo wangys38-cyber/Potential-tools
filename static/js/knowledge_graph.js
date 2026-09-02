@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 研发知识图谱前端逻辑
  * 功能：图谱可视化、节点交互、数据导入、AI抽取、知识推理、多跳问答、知识导出
  */
@@ -772,17 +772,33 @@ const KnowledgeGraph = (function() {
         doExtractWithText(text, sourceType);
     }
 
+    // 获取 CSRF Token
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.content : '';
+    }
+
     async function doExtractWithText(text, sourceType) {
         const body = document.getElementById('extractModalBody');
         const confirmBtn = document.getElementById('confirmExtractBtn');
-        body.innerHTML = '<div class="loading">AI正在抽取实体和关系...</div>';
+        body.innerHTML = '<div class="loading">AI正在抽取实体和关系...（可能需要1-3分钟）</div>';
 
         try {
+            // 使用 AbortController 设置 200 秒超时
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 200000);
+
             const resp = await fetch('/api/kg/extract', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, source_type: sourceType })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
+                body: JSON.stringify({ text, source_type: sourceType }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+
             const data = await resp.json();
             if (data.error) {
                 body.innerHTML = `<div style="color:var(--ds-danger);">抽取失败: ${escapeHtml(data.error)}</div>`;
@@ -793,7 +809,13 @@ const KnowledgeGraph = (function() {
             renderExtractPreview();
             confirmBtn.disabled = false;
         } catch (e) {
-            body.innerHTML = `<div style="color:var(--ds-danger);">请求失败: ${escapeHtml(e.message)}</div>`;
+            let errorMsg = e.message;
+            if (e.name === 'AbortError') {
+                errorMsg = '请求超时（200秒），AI 服务响应太慢。建议：1.更换更快的模型（如 glm-4-flash）2.减少抽取文本量 3.稍后重试';
+            } else if (errorMsg === 'Failed to fetch') {
+                errorMsg = '网络请求失败，可能原因：1.服务器无响应 2.网络连接中断 3.CSRF校验失败。建议刷新页面后重试，或检查服务器是否正常运行。';
+            }
+            body.innerHTML = `<div style="color:var(--ds-danger);">请求失败: ${escapeHtml(errorMsg)}</div>`;
         }
     }
 
@@ -848,7 +870,10 @@ const KnowledgeGraph = (function() {
         try {
             const resp = await fetch('/api/kg/extract/confirm', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
+                },
                 body: JSON.stringify({ nodes: selectedNodes, relations: selectedRels })
             });
             const data = await resp.json();
