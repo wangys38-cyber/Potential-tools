@@ -113,12 +113,25 @@ def api_get_ai_config():
             logger.info(f"用户 {user['id']} 的 AI 配置已从全局迁移到用户级")
 
     config = ai_utils.get_ai_config(user['id'])
+
+    # 判断配置来源
+    config_source = 'user'
+    if not has_user_config:
+        global_config = db.get_config('ai_config', {}) or {}
+        if isinstance(global_config, dict) and global_config.get('api_key', '').strip():
+            config_source = 'global'
+        elif os.environ.get('AI_API_KEY', '').strip():
+            config_source = 'environment'
+        else:
+            config_source = 'none'
+
     return jsonify({
         'status': 'success',
         'data': {
             'enabled': config['enabled'],
             'has_key': bool(config.get('api_key', '').strip()),
             'has_user_config': has_user_config,
+            'config_source': config_source,
             'key_masked': (config.get('api_key', '')[:3] + '****') if config.get('api_key', '').strip() else '',
             'base_url': config.get('base_url', ''),
             'model': config.get('model', ''),
@@ -189,7 +202,15 @@ def api_ai_test():
             'base_url': ai_config.get('base_url', '')
         })
     except Exception as e:
-        return jsonify({'error': f'AI连接失败: {str(e)}'}), 502
+        err_msg = str(e)
+        logger.error(f'AI连接测试失败: {e}')
+        if '401' in err_msg or '403' in err_msg:
+            return jsonify({'error': 'API Key 认证失败（401），请检查 API Key 是否正确，或重新配置'}), 401
+        elif '429' in err_msg:
+            return jsonify({'error': 'API 限流（429），请稍后重试'}), 429
+        elif 'timeout' in err_msg.lower() or '超时' in err_msg:
+            return jsonify({'error': '连接超时，请检查网络或 base_url 配置'}), 504
+        return jsonify({'error': f'连接失败: {err_msg}'}), 502
 
 
 # ==================== 注册函数 ====================

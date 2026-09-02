@@ -189,8 +189,9 @@
     async function checkAIConfig() {
         try {
             const resp = await fetch('/api/ai-config');
-            const data = await resp.json();
-            return data.enabled && data.api_key;
+            const result = await resp.json();
+            const data = result.data || {};
+            return data.enabled && data.has_key;
         } catch (e) {
             return false;
         }
