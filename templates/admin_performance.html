@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能监控 - Potential Tools</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/admin_users.css?v={{ STATIC_VERSION }}">
+    <style>
+        .perf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .perf-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e5ea; }
+        .perf-card .label { font-size: 13px; color: #86868b; margin-bottom: 8px; }
+        .perf-card .value { font-size: 28px; font-weight: 700; color: #1d1d1f; }
+        .perf-card .value.warning { color: #f59e0b; }
+        .perf-card .value.critical { color: #ef4444; }
+        .perf-card .sub { font-size: 12px; color: #86868b; margin-top: 4px; }
+        .chart-container { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e5ea; }
+        .chart-container h3 { margin: 0 0 16px 0; font-size: 16px; color: #1d1d1f; }
+        .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .chart-row { grid-template-columns: 1fr; } }
+        canvas.chart-canvas { width: 100%; height: 200px; }
+        .alert-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .alert-badge.critical { background: #fef2f2; color: #dc2626; }
+        .alert-badge.warning { background: #fffbeb; color: #d97706; }
+        .config-group { margin-bottom: 20px; }
+        .config-group label { display: block; font-size: 13px; font-weight: 600; color: #1d1d1f; margin-bottom: 6px; }
+        .config-group input, .config-group select { width: 100%; padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px; }
+        .config-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-switch { position: relative; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #d2d2d7; border-radius: 24px; transition: .3s; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+        .toggle-switch input:checked + .toggle-slider { background: #0071e3; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .live-dot { display: inline-block; width: 8px; height: 8px; background: #34c759; border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    </style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1 class="admin-title">性能监控</h1>
+        <div class="admin-toolbar">
+            <span style="font-size:13px;color:#86868b;"><span class="live-dot"></span>实时刷新（10秒）</span>
+            <button class="btn btn-secondary" id="refreshBtn" onclick="AdminPerf.refresh()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>刷新</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="admin-tabs" style="display:flex;gap:0;border-bottom:1px solid #e5e5ea;margin-bottom:16px;">
+        <button class="admin-tab active" id="tabRealtime" onclick="AdminPerf.switchTab('realtime')" style="padding:10px 20px;background:none;border:none;font-size:14px;font-weight:500;cursor:pointer;color:#86868b;border-bottom:2px solid transparent;margin-bottom:-1px;">实时监控</button>
+        <button class="admin-tab" id="tabAlerts" onclick="AdminPerf.switchTab('alerts')" style="padding:10px 20px;background:none;border:none;font-size:14px;font-weight:500;cursor:pointer;color:#86868b;border-bottom:2px solid transparent;margin-bottom:-1px;">告警历史</button>
+        <button class="admin-tab" id="tabConfig" onclick="AdminPerf.switchTab('config')" style="padding:10px 20px;background:none;border:none;font-size:14px;font-weight:500;cursor:pointer;color:#86868b;border-bottom:2px solid transparent;margin-bottom:-1px;">告警配置</button>
+    </div>
+
+    <!-- 实时监控 Tab -->
+    <div id="tabContentRealtime">
+        <!-- 核心指标卡片 -->
+        <div class="perf-grid">
+            <div class="perf-card">
+                <div class="label">总请求数（累计）</div>
+                <div class="value" id="metricTotalRequests">0</div>
+                <div class="sub" id="metricQPS">QPS: 0</div>
+            </div>
+            <div class="perf-card">
+                <div class="label">P95 响应延迟</div>
+                <div class="value" id="metricP95">0ms</div>
+                <div class="sub">P50: <span id="metricP50">0ms</span> | P99: <span id="metricP99">0ms</span></div>
+            </div>
+            <div class="perf-card">
+                <div class="label">5xx 错误率（5分钟）</div>
+                <div class="value" id="metricErrorRate">0%</div>
+                <div class="sub"><span id="metricErrorCount">0</span> 个错误 / <span id="metricWindowTotal">0</span> 请求</div>
+            </div>
+            <div class="perf-card">
+                <div class="label">慢查询数（>500ms）</div>
+                <div class="value" id="metricSlowCount">0</div>
+                <div class="sub">慢查询率: <span id="metricSlowRate">0%</span></div>
+            </div>
+            <div class="perf-card">
+                <div class="label">CPU 使用率</div>
+                <div class="value" id="metricCPU">0%</div>
+                <div class="sub">1分钟负载: <span id="metricLoad">0</span></div>
+            </div>
+            <div class="perf-card">
+                <div class="label">内存使用率</div>
+                <div class="value" id="metricMemory">0%</div>
+                <div class="sub"><span id="metricMemUsed">0</span> / <span id="metricMemTotal">0</span> MB</div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="chart-row">
+            <div class="chart-container">
+                <h3>CPU 使用率趋势（最近10分钟）</h3>
+                <canvas id="cpuChart" class="chart-canvas"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>内存使用率趋势（最近10分钟）</h3>
+                <canvas id="memChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- 慢查询列表 -->
+        <div class="chart-container">
+            <h3>最近慢查询（>500ms）</h3>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>方法</th>
+                            <th>路径</th>
+                            <th>耗时</th>
+                            <th>状态码</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slowLogsBody">
+                        <tr><td colspan="5" style="text-align:center;color:#86868b;padding:20px;">暂无慢查询记录</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 告警历史 Tab -->
+    <div id="tabContentAlerts" style="display:none;">
+        <div class="admin-stats">
+            <span class="stat-item">近24小时告警: <strong id="alert24h">0</strong> 条</span>
+            <span class="stat-item">累计告警: <strong id="alertTotal">0</strong> 条</span>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>类型</th>
+                        <th>级别</th>
+                        <th>当前值</th>
+                        <th>阈值</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody id="alertsBody">
+                    <tr><td colspan="6" style="text-align:center;color:#86868b;padding:20px;">暂无告警记录</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 告警配置 Tab -->
+    <div id="tabContentConfig" style="display:none;">
+        <div class="chart-container" style="max-width:800px;">
+            <h3>告警开关</h3>
+            <div class="toggle-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">启用告警系统</div>
+                    <div style="font-size:12px;color:#86868b;margin-top:2px;">关闭后所有告警检测和推送将停止</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgEnabled">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">5xx 错误率告警</div>
+                    <div style="font-size:12px;color:#86868b;margin-top:2px;">5分钟内5xx错误率超过阈值时告警</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgAlertErrorRate">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">P95 延迟告警</div>
+                    <div style="font-size:12px;color:#86868b;margin-top:2px;">5分钟内P95响应延迟超过阈值时告警</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgAlertLatency">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">CPU 使用率告警</div>
+                    <div style="font-size:12px;color:#86868b;margin-top:2px;">CPU使用率超过阈值时告警</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgAlertCPU">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <div>
+                    <div style="font-weight:600;font-size:14px;">内存使用率告警</div>
+                    <div style="font-size:12px;color:#86868b;margin-top:2px;">内存使用率超过阈值时告警</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgAlertMemory">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="chart-container" style="max-width:800px;">
+            <h3>告警阈值</h3>
+            <div class="config-row">
+                <div class="config-group">
+                    <label>5xx 错误率阈值（%）</label>
+                    <input type="number" id="cfgThresholdErrorRate" step="0.1" min="0.1" max="100">
+                </div>
+                <div class="config-group">
+                    <label>P95 延迟阈值（ms）</label>
+                    <input type="number" id="cfgThresholdLatency" step="100" min="100" max="60000">
+                </div>
+                <div class="config-group">
+                    <label>CPU 使用率阈值（%）</label>
+                    <input type="number" id="cfgThresholdCPU" step="1" min="10" max="100">
+                </div>
+                <div class="config-group">
+                    <label>内存使用率阈值（%）</label>
+                    <input type="number" id="cfgThresholdMemory" step="1" min="10" max="100">
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container" style="max-width:800px;">
+            <h3>飞书 Webhook 配置</h3>
+            <div class="config-group">
+                <label>飞书机器人 Webhook URL</label>
+                <input type="text" id="cfgWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" style="font-family:monospace;font-size:12px;">
+            </div>
+            <div class="config-group">
+                <label>签名密钥（可选，机器人开启签名校验时填写）</label>
+                <input type="password" id="cfgSecret" placeholder="留空则不使用签名">
+            </div>
+            <div style="display:flex;gap:12px;margin-top:16px;">
+                <button class="btn btn-primary" onclick="AdminPerf.saveConfig()">保存配置</button>
+                <button class="btn btn-secondary" onclick="AdminPerf.testAlert()">发送测试告警</button>
+            </div>
+            <div id="configMsg" style="margin-top:12px;font-size:13px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/admin_performance.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>
