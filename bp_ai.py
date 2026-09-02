@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI 相关路由 Blueprint
 从 app.py 提取的 AI 配置管理、模型列表、对话、测试路由
 依赖：ai_utils（AI 调用）、auth（认证）、db（数据库）
@@ -55,21 +55,76 @@ def api_ai_chat():
 @ttl_cache(ttl_seconds=120, key_prefix='ai_models_list')
 def _get_models_list(base_url):
     """根据 base_url 返回模型列表（缓存 120 秒，配置变更时主动失效）"""
-    is_openai = 'dashscope' not in base_url
-    if is_openai:
+    base_url_lower = base_url.lower()
+
+    # 豆包（字节跳动）
+    if 'volces.com' in base_url_lower or 'ark.cn-beijing' in base_url_lower:
         return [
-            {'id': 'doubao-seed-1-6-250615', 'name': 'Doubao Seed 1.6', 'desc': '旗舰模型，支持图文视频，深度思考可关闭'},
-            {'id': 'doubao-seed-1-6-flash-250828', 'name': 'Doubao Seed 1.6 Flash', 'desc': '极速响应，支持图文，日常使用'},
-            {'id': 'doubao-seed-1-6-lite-251015', 'name': 'Doubao Seed 1.6 Lite', 'desc': '轻量版，性价比高'},
-            {'id': 'deepseek-v3-1-terminus', 'name': 'DeepSeek V3.1', 'desc': '深度思考，强推理能力'},
-        ], 'doubao-seed-1-6-250615'
-    else:
+            {'id': 'doubao-pro-32k', 'name': 'Doubao Pro 32K', 'desc': '通用场景，平衡性能与成本'},
+            {'id': 'doubao-lite-32k', 'name': 'Doubao Lite 32K', 'desc': '轻量快速，适合简单任务'},
+            {'id': 'doubao-1.5-pro-32k', 'name': 'Doubao 1.5 Pro 32K', 'desc': '最新版本，更强理解能力'},
+            {'id': 'ep-20240101-xxxxx', 'name': '自定义推理接入点', 'desc': '在火山引擎控制台创建接入点后替换'},
+        ], 'doubao-pro-32k'
+
+    # DeepSeek
+    if 'deepseek.com' in base_url_lower:
+        return [
+            {'id': 'deepseek-chat', 'name': 'DeepSeek Chat', 'desc': '通用对话模型'},
+            {'id': 'deepseek-reasoner', 'name': 'DeepSeek Reasoner', 'desc': '推理模型，适合复杂逻辑'},
+        ], 'deepseek-chat'
+
+    # 小米 MiMo
+    if 'xiaomi.com' in base_url_lower:
+        return [
+            {'id': 'MiMo-7B', 'name': 'MiMo 7B', 'desc': '小米开源模型'},
+            {'id': 'MiMo-VL-7B', 'name': 'MiMo VL 7B', 'desc': '多模态模型'},
+        ], 'MiMo-7B'
+
+    # OpenAI
+    if 'openai.com' in base_url_lower:
+        return [
+            {'id': 'gpt-4o', 'name': 'GPT-4o', 'desc': '旗舰模型，多模态'},
+            {'id': 'gpt-4o-mini', 'name': 'GPT-4o Mini', 'desc': '轻量快速，成本低'},
+            {'id': 'gpt-4-turbo', 'name': 'GPT-4 Turbo', 'desc': '高速推理'},
+        ], 'gpt-4o-mini'
+
+    # 通义千问（阿里云）
+    if 'dashscope' in base_url_lower or 'aliyuncs.com' in base_url_lower:
         return [
             {'id': 'qwen-turbo', 'name': '通义千问 Turbo', 'desc': '快速响应，日常使用'},
             {'id': 'qwen-plus', 'name': '通义千问 Plus', 'desc': '均衡质量与速度'},
             {'id': 'qwen-max', 'name': '通义千问 Max', 'desc': '最强推理能力'},
         ], 'qwen-turbo'
 
+    # 智谱清言（GLM）
+    if 'bigmodel.cn' in base_url_lower or 'zhipu' in base_url_lower:
+        return [
+            {'id': 'glm-4-plus', 'name': 'GLM-4 Plus', 'desc': '旗舰模型，长上下文'},
+            {'id': 'glm-4-flash', 'name': 'GLM-4 Flash', 'desc': '轻量快速，免费额度'},
+            {'id': 'glm-4-air', 'name': 'GLM-4 Air', 'desc': '均衡性能'},
+            {'id': 'glm-4-long', 'name': 'GLM-4 Long', 'desc': '超长上下文'},
+        ], 'glm-4-flash'
+
+    # 月之暗面（Kimi）
+    if 'moonshot.cn' in base_url_lower:
+        return [
+            {'id': 'moonshot-v1-8k', 'name': 'Moonshot V1 8K', 'desc': '标准上下文'},
+            {'id': 'moonshot-v1-32k', 'name': 'Moonshot V1 32K', 'desc': '长上下文，适合长文档'},
+            {'id': 'moonshot-v1-128k', 'name': 'Moonshot V1 128K', 'desc': '超长上下文'},
+        ], 'moonshot-v1-8k'
+
+    # 腾讯混元
+    if 'hunyuan' in base_url_lower or 'tencent' in base_url_lower:
+        return [
+            {'id': 'hunyuan-lite', 'name': 'Hunyuan Lite', 'desc': '轻量快速'},
+            {'id': 'hunyuan-pro', 'name': 'Hunyuan Pro', 'desc': '专业版，更强能力'},
+        ], 'hunyuan-lite'
+
+    # 默认：OpenAI 兼容格式，返回通用模型
+    return [
+        {'id': 'gpt-4o-mini', 'name': 'GPT-4o Mini（兼容）', 'desc': 'OpenAI 兼容格式'},
+        {'id': 'gpt-3.5-turbo', 'name': 'GPT-3.5 Turbo（兼容）', 'desc': 'OpenAI 兼容格式'},
+    ], 'gpt-4o-mini'
 
 @bp.route('/api/ai-models', methods=['GET'])
 def api_ai_models():
