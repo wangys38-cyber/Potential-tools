@@ -201,4 +201,50 @@ def create_versions_blueprint():
             'version_number': version_number
         })
 
+    @bp.route('/<int:version_id>', methods=['DELETE'])
+    def delete_version(version_id):
+        """删除版本（仅作者，不能删除当前最新版本如果只有一个版本）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        v = db.get_document_version_by_id(version_id)
+        if not v:
+            return jsonify({'error': '版本不存在'}), 404
+        if v['user_id'] != uid:
+            return jsonify({'error': '无权限操作'}), 403
+
+        # 检查是否是唯一版本
+        versions = db.get_document_versions(uid, v['doc_type'], v['doc_id'], limit=500)
+        if len(versions) <= 1:
+            return jsonify({'error': '至少保留一个版本，无法删除'}), 400
+
+        with db.engine.connect() as conn:
+            conn.execute(
+                db.text("DELETE FROM document_versions WHERE id = :id AND user_id = :uid"),
+                {'id': version_id, 'uid': uid}
+            )
+            conn.commit()
+        return jsonify({'status': 'success'})
+
+    @bp.route('/<int:version_id>/restore', methods=['POST'])
+    def restore_version_content(version_id):
+        """获取版本内容用于恢复（前端调用后替换编辑器内容）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        v = db.get_document_version_by_id(version_id)
+        if not v:
+            return jsonify({'error': '版本不存在'}), 404
+        if v['user_id'] != uid:
+            return jsonify({'error': '无权限访问'}), 403
+
+        return jsonify({
+            'status': 'success',
+            'content': v.get('content', ''),
+            'version_number': v['version_number'],
+            'name': v.get('name', '')
+        })
+
     return bp

@@ -28,8 +28,14 @@ def create_notifications_blueprint():
 
         limit = int(request.args.get('limit', 50) or 50)
         limit = min(limit, 200)
+        notif_type = request.args.get('type', '').strip() or None
+        only_unread = request.args.get('unread', '').lower() == 'true'
 
         notifications = db.get_notifications(uid, limit=limit, unread_first=True)
+        if notif_type:
+            notifications = [n for n in notifications if n.get('type') == notif_type]
+        if only_unread:
+            notifications = [n for n in notifications if not n.get('is_read')]
         return jsonify({
             'status': 'success',
             'notifications': [{
@@ -75,5 +81,35 @@ def create_notifications_blueprint():
 
         count = db.mark_all_notifications_read(uid)
         return jsonify({'status': 'success', 'marked_count': count})
+
+    @bp.route('/<int:notification_id>', methods=['DELETE'])
+    def delete_notification(notification_id):
+        """删除通知"""
+        uid, err = _require_login()
+        if err:
+            return err
+        with db.engine.connect() as conn:
+            result = conn.execute(
+                db.text("DELETE FROM notifications WHERE id = :id AND user_id = :uid"),
+                {'id': notification_id, 'uid': uid}
+            )
+            conn.commit()
+            if result.rowcount == 0:
+                return jsonify({'error': '通知不存在或无权限'}), 404
+        return jsonify({'status': 'success'})
+
+    @bp.route('/clear-read', methods=['DELETE'])
+    def clear_read_notifications():
+        """清除所有已读通知"""
+        uid, err = _require_login()
+        if err:
+            return err
+        with db.engine.connect() as conn:
+            result = conn.execute(
+                db.text("DELETE FROM notifications WHERE user_id = :uid AND is_read = 1"),
+                {'uid': uid}
+            )
+            conn.commit()
+        return jsonify({'status': 'success', 'deleted_count': result.rowcount})
 
     return bp

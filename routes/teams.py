@@ -405,4 +405,68 @@ def create_teams_blueprint():
         success = db.delete_team_data(data_id, team_id)
         return jsonify({'status': 'success' if success else 'error'})
 
+    @bp.route('/<int:team_id>/leave', methods=['POST'])
+    def leave_team(team_id):
+        """退出团队（所有者不能退出，需先转让或删除团队）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        team, err = _get_team_or_404(team_id)
+        if err:
+            return err
+
+        if team['owner_id'] == uid:
+            return jsonify({'error': '团队所有者不能退出，请先转让所有权或删除团队'}), 400
+
+        role = _check_member(team_id, uid)
+        if not role:
+            return jsonify({'error': '你不是该团队成员'}), 400
+
+        success = db.remove_team_member(team_id, uid)
+        return jsonify({'status': 'success' if success else 'error'})
+
+    @bp.route('/<int:team_id>/transfer', methods=['POST'])
+    def transfer_ownership(team_id):
+        """转让团队所有权（仅当前所有者）"""
+        uid, err = _require_login()
+        if err:
+            return err
+
+        team, err = _get_team_or_404(team_id)
+        if err:
+            return err
+
+        if team['owner_id'] != uid:
+            return jsonify({'error': '仅所有者可转让所有权'}), 403
+
+        data = request.get_json(silent=True) or {}
+        new_owner_id = data.get('new_owner_id')
+        if not new_owner_id:
+            return jsonify({'error': '请指定新所有者'}), 400
+
+        new_owner_id = int(new_owner_id)
+        role = _check_member(team_id, new_owner_id)
+        if not role:
+            return jsonify({'error': '新所有者必须是团队成员'}), 400
+
+        with db.engine.connect() as conn:
+            conn.execute(
+                db.text("UPDATE team_spaces SET owner_id = :new_owner WHERE id = :tid"),
+                {'new_owner': new_owner_id, 'tid': team_id}
+            )
+            # 原所有者降为admin
+            conn.execute(
+                db.text("UPDATE team_members SET role = 'admin' WHERE team_id = :tid AND user_id = :uid"),
+                {'tid': team_id, 'uid': uid}
+            )
+            # 新所有者角色设为owner
+            conn.execute(
+                db.text("UPDATE team_members SET role = 'owner' WHERE team_id = :tid AND user_id = :new_owner"),
+                {'tid': team_id, 'new_owner': new_owner_id}
+            )
+            conn.commit()
+
+        return jsonify({'status': 'success', 'new_owner_id': new_owner_id})
+
     return bp
