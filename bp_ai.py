@@ -153,8 +153,12 @@ def api_save_ai_config():
     config = db.get_user_ai_config(user['id'])
     if not isinstance(config, dict):
         config = {}
-    if 'api_key' in data:
+    if 'api_key' in data and data['api_key'].strip():
+        # 只有当用户输入了新的 API Key 时才更新并加密
         config['api_key'] = data['api_key'].strip()
+        need_encrypt = True
+    else:
+        need_encrypt = False
     if 'base_url' in data:
         config['base_url'] = data['base_url'].strip()
     if 'model' in data:
@@ -163,17 +167,18 @@ def api_save_ai_config():
     if not config.get('api_key', '').strip():
         config = {}
     else:
-        # 加密 API Key 后存储
-        import crypto_utils
-        config['api_key'] = crypto_utils.encrypt(config['api_key'])
+        # 只有新输入的 API Key 才需要加密，避免双重加密
+        if need_encrypt:
+            import crypto_utils
+            config['api_key'] = crypto_utils.encrypt(config['api_key'])
     try:
         db.set_user_ai_config(user['id'], config)
         # 阶段五：配置变更后主动失效模型列表缓存
         ttl_invalidate('ai_models_list')
         return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"保存 AI 配置失败: {e}")
-        return jsonify({'error': '保存配置失败，请稍后重试'}), 500
+        logger.error(f"保存 AI 配置失败: {e}", exc_info=True)
+        return jsonify({'error': f'保存配置失败: {str(e)}'}), 500
 
 
 # ==================== AI 连接测试 ====================
