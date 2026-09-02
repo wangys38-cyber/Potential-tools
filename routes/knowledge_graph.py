@@ -478,7 +478,10 @@ def extract_knowledge():
 1. relations中的source和target必须是nodes中已有的节点name
 2. 只抽取文本中明确提到的实体和关系，不要编造
 3. 节点名称要简洁准确
-4. 如果文本中没有可抽取的内容，返回空的nodes和relations数组"""
+4. 如果文本中没有可抽取的内容，返回空的nodes和relations数组
+5. 重要：请尽可能多地抽取实体和关系，不要遗漏任何明确提到的Bug、模块、研发人员、严重程度、状态等实体
+6. 每个Bug都应该作为一个节点抽取，每个模块都应该作为一个节点抽取，每个研发人员都应该作为一个节点抽取
+7. 请抽取Bug与模块的归属关系、Bug与研发人员的负责关系、Bug与严重程度的关联关系、模块与模块的依赖关系等"""
 
     messages = [
         {'role': 'system', 'content': '你是一位专业的知识图谱抽取引擎，只输出JSON格式的抽取结果。'},
@@ -487,7 +490,7 @@ def extract_knowledge():
 
     try:
         ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=6000, temperature=0.2, timeout=180)
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=8000, temperature=0.2, timeout=180)
 
         # 解析JSON结果 - 增强的JSON提取和修复逻辑
         result = result.strip()

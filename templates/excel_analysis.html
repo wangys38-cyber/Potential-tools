@@ -330,7 +330,7 @@
         }
         if (currentAnalysisData.all_issues && currentAnalysisData.all_issues.length > 0) {
             text += 'Bug列表：\n';
-            currentAnalysisData.all_issues.slice(0, 50).forEach(function(issue) {
+            currentAnalysisData.all_issues.slice(0, 200).forEach(function(issue) {
                 text += '- ' + (issue.summary || issue.title || '') + ' [' + (issue.status || '') + '] [' + (issue.module || '') + ']\n';
             });
         }
