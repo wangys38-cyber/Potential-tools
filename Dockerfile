@@ -16,37 +16,16 @@ RUN playwright install chromium --with-deps
 
 # Cache-bust: 确保每次构建都复制最新代码（避免Docker层缓存旧代码）
 # 每次提交更新此值，强制Docker失效所有后续层的缓存
-ARG CACHE_BUST=20260825-v3-add-perf-cache-modules
+ARG CACHE_BUST=20260902-v1-fix-dockerfile-copy-all
 RUN echo "Cache bust: ${CACHE_BUST}"
 
 # 允许访客访问（通过环境变量控制，默认允许）
 # 安全：不再硬编码 true，可通过 Railway 环境变量覆盖
 ENV ALLOW_GUEST=${ALLOW_GUEST:-true}
 
-# 复制应用代码（COPY 层会根据文件内容自动失效缓存）
-COPY app.py .
-COPY auth.py .
-COPY db.py .
-COPY ai_utils.py .
-COPY bp_ai.py .
-COPY bp_user.py .
-COPY feishu_push.py .
-COPY date_utils.py .
-COPY report_builders.py .
-COPY excel_analyzers.py .
-COPY crypto_utils.py .
-COPY error_utils.py .
-COPY rate_limiter.py .
-COPY request_logger.py .
-COPY security.py .
-COPY ttl_cache.py .
-COPY performance_middleware.py .
-COPY routes/ ./routes/
-COPY templates/ ./templates/
-COPY static/ ./static/
-COPY glossaries/ ./glossaries/
-COPY railway.toml .
-COPY README.md .
+# 复制应用代码（使用 COPY . . 避免遗漏新增文件）
+# .dockerignore 已排除不需要的文件（__pycache__、*.pyc、uploads/、pdfs/ 等）
+COPY . .
 
 # 创建可写目录
 RUN mkdir -p /tmp/toolbox/uploads /tmp/toolbox/pdfs /app/data

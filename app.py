@@ -16,7 +16,7 @@ import rate_limiter
 import request_logger
 import security
 import performance_middleware
-# import compression_middleware  # 临时禁用，排查部署问题
+import compression_middleware
 import system_metrics
 import alerting
 from routes.pages import create_pages_blueprint
@@ -159,8 +159,8 @@ app.jinja_env.bytecode_cache = _ShmBytecodeCache(_jinja_cache_dir)
 # 阶段五性能优化：注册 API 响应时间统计 + 慢查询日志中间件
 performance_middleware.register_performance_middleware(app)
 
-# 性能优化：注册 gzip 响应压缩中间件（临时禁用，排查部署健康检查失败问题）
-# compression_middleware.register_compression_middleware(app)
+# 性能优化：注册 gzip 响应压缩中间件
+compression_middleware.register_compression_middleware(app)
 
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):
