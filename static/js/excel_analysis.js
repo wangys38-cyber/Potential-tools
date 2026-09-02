@@ -21,7 +21,7 @@ let isAnalyzing = false;
 
         // 历史记录
         const HISTORY_KEY = (window._USER_PREFIX || '') + 'cr_analysis_history';
-        const MAX_HISTORY = 5;
+        const MAX_HISTORY = 20;
 
         function getDefaultWatermark() {
             const now = new Date();
@@ -2046,7 +2046,7 @@ let isAnalyzing = false;
         function saveToHistory() {
             if (!currentAnalysisData || !currentAnalysisData.summary) return;
             try {
-                const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
                 const record = {
                     id: 'hist_' + Date.now(),
                     file_name: currentFileName || '未命名',
@@ -2064,9 +2064,38 @@ let isAnalyzing = false;
                 } else {
                     history.unshift(record);
                 }
-                // 只保留最近5条
+                // 只保留最近N条
                 if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+                // 尝试保存，如果空间不足，逐步删除旧记录直到能保存
+                let saved = false;
+                let attempts = 0;
+                while (!saved && attempts < 5) {
+                    try {
+                        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                        saved = true;
+                    } catch(e) {
+                        // 空间不足，删除最旧的记录
+                        if (history.length > 1) {
+                            history.pop();
+                            attempts++;
+                        } else {
+                            // 只剩一条也保存不了，说明数据太大，只保存摘要
+                            record.data = null;
+                            history[0] = record;
+                            try {
+                                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                                saved = true;
+                            } catch(e2) {
+                                console.warn('保存历史记录失败，空间严重不足', e2);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!saved && attempts >= 5) {
+                    console.warn('保存历史记录失败，已尝试清理旧记录');
+                }
             } catch(e) { console.warn('保存历史记录失败', e); }
         }
 

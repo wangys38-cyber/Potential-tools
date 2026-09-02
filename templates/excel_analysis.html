@@ -281,11 +281,12 @@
     <script>
     // v6.0: CR分析 → 修复计划流转
     function generateFixPlan() {
-        if (typeof window.currentAnalysis === 'undefined' || !window.currentAnalysis) {
+        var analysisData = window.currentAnalysisData || window.currentAnalysis;
+        if (typeof analysisData === 'undefined' || !analysisData) {
             if (window.ToolboxToast) window.ToolboxToast.show('请先完成CR分析', 'warning');
             return;
         }
-        var fixPlan = window.Pipeline.crToFixPlan(window.currentAnalysis);
+        var fixPlan = window.Pipeline.crToFixPlan(analysisData);
         if (!fixPlan || fixPlan.tasks.length === 0) {
             if (window.ToolboxToast) window.ToolboxToast.show('未找到可生成修复计划的未解决问题', 'warning');
             return;
