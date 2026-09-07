@@ -1,5 +1,5 @@
-/* Service Worker v6.0 — 增强离线支持 */
-const VERSION = 'v6.0-offline';
+/* Service Worker v7.0 — 增强离线支持 */
+const VERSION = 'v7.0-offline';
 const SHELL_CACHE = `app-shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;

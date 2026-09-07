@@ -1671,3 +1671,74 @@
         max-width: 100% !important;
     }
 }
+
+
+/* ==================== PWA 移动端底部 Tab 导航 ==================== */
+.mobile-tab-bar {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-tab-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: #ffffff;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        z-index: 9999;
+        box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .mobile-tab-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        color: #86868b;
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 500;
+        transition: color 0.2s ease;
+        min-height: 44px;
+    }
+
+    .mobile-tab-item svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .mobile-tab-item.active {
+        color: #1d1d1f;
+    }
+
+    .mobile-tab-item.active svg {
+        stroke-width: 2.2;
+    }
+
+    body {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+
+    #pwa-install-banner {
+        padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    }
+}
+
+[data-theme="dark"] .mobile-tab-bar {
+    background: #1c1c1e;
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .mobile-tab-item {
+    color: #8e8e93;
+}
+
+[data-theme="dark"] .mobile-tab-item.active {
+    color: #ffffff;
+}

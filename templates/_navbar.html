@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="/static/css/v12-features.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ui-polish.css?v={{ STATIC_VERSION }}">
 <link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#1d1d1f">
 {# 阶段五：内联导航栏关键布局 CSS，防止 FOUC 和布局偏移 #}
 <style>
 .pt-nav-bar{position:sticky;top:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px;background:#fff;border-bottom:1px solid #e5e5e7;}
@@ -133,13 +135,53 @@
 <script src="/static/js/perf-monitor.js?v={{ STATIC_VERSION }}" defer></script>
 <script src="/static/js/ui-polish.js?v={{ STATIC_VERSION }}" defer></script>
 <script>
+// Service Worker 注册 + 更新检测 + 添加到主屏幕提示
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/static/sw.js').catch(function(e) {
+        navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+            // 检测新版本
+            reg.addEventListener('updatefound', function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener('statechange', function() {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // 有新版本可用，提示用户刷新
+                        if (confirm('发现新版本，是否立即刷新？')) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        }).catch(function(e) {
             console.log('SW registration failed:', e);
         });
     });
 }
+
+// 添加到主屏幕提示
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 显示安装提示（移动端导航栏下方）
+    setTimeout(function() {
+        var banner = document.createElement('div');
+        banner.id = 'pwa-install-banner';
+        banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1d1d1f;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:99999;font-size:14px;';
+        banner.innerHTML = '<span>添加到主屏幕，随时使用</span><button id="pwa-install-btn" style="background:#fff;color:#1d1d1f;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;">添加</button><button id="pwa-dismiss-btn" style="background:transparent;color:#999;border:none;padding:8px;cursor:pointer;font-size:18px;">&times;</button>';
+        document.body.appendChild(banner);
+        document.getElementById('pwa-install-btn').onclick = function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function() {
+                    banner.remove();
+                });
+            }
+        };
+        document.getElementById('pwa-dismiss-btn').onclick = function() {
+            banner.remove();
+        };
+    }, 2000);
+});
 </script>
 {% if request.path != '/' %}
 <a href="#main-content" class="skip-link">跳到主要内容</a>
@@ -206,6 +248,37 @@ if ('serviceWorker' in navigator) {
         {% endif %}
     </div>
 </nav>
+<!-- 移动端底部 Tab 导航 -->
+<nav class="mobile-tab-bar" id="mobileTabBar" role="navigation" aria-label="移动端导航">
+    <a href="/" class="mobile-tab-item" data-tab="home">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>首页</span>
+    </a>
+    <a href="/notes" class="mobile-tab-item" data-tab="notes">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>笔记</span>
+    </a>
+    <a href="/excel-analysis" class="mobile-tab-item" data-tab="analysis">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>分析</span>
+    </a>
+    <a href="/settings" class="mobile-tab-item" data-tab="me">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>我的</span>
+    </a>
+</nav>
+<script>
+(function() {
+    var path = window.location.pathname;
+    var tabs = document.querySelectorAll('.mobile-tab-item');
+    tabs.forEach(function(tab) {
+        var tabPath = tab.getAttribute('href');
+        if (path === tabPath || (tabPath !== '/' && path.startsWith(tabPath))) {
+            tab.classList.add('active');
+        }
+    });
+})();
+</script>
 <div id="main-content" tabindex="-1" style="outline:none;"></div>
 {% endif %}
 
