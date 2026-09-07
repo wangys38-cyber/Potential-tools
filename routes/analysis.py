@@ -439,7 +439,7 @@ def create_analysis_blueprint():
                     return jsonify({'status': 'done', 'data': {'headers': [], 'detected_columns': {}, 'detected_fields_count': 0, 'current_sheet': sheet_name, 'summary': {'total_issues': 0}, 'sample_data': []}})
                 headers = [str(c).strip() if c else '' for c in headers]
                 col_map = _detect_issue_columns(headers)
-                raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1)}
+                raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1), 'labels': col_map.get('labels', -1)}
                 detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
                 sample_data = [first_data_row] if first_data_row else []
                 total_issues = data_row_count
@@ -463,7 +463,7 @@ def create_analysis_blueprint():
                         return jsonify({'status': 'done', 'data': {'headers': [], 'detected_columns': {}, 'detected_fields_count': 0, 'current_sheet': sheet_name, 'summary': {'total_issues': 0}, 'sample_data': []}})
                     headers = [str(c).strip() if c else '' for c in rows[0]]
                     col_map = _detect_issue_columns(headers)
-                    raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1)}
+                    raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1), 'labels': col_map.get('labels', -1)}
                     detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
                     data_rows = rows[1:]
                     total_issues = sum(1 for row in data_rows if any(str(c).strip() for c in row))
@@ -477,7 +477,7 @@ def create_analysis_blueprint():
                 reader.close()
                 headers = [str(c).strip() if c else '' for c in headers]
                 col_map = _detect_issue_columns(headers)
-                raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1)}
+                raw_detected = {'issue_id': col_map.get('id', -1), 'title': col_map.get('title', -1), 'module': col_map.get('module', -1), 'severity': col_map.get('severity', -1), 'status': col_map.get('status', -1), 'developer': col_map.get('developer', -1), 'create_date': col_map.get('created_date', -1), 'resolve_date': col_map.get('resolved_date', -1), 'fixed_date': col_map.get('closed_date', -1), 'fixed_version': col_map.get('fix_version', -1), 'labels': col_map.get('labels', -1)}
                 detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
 
                 # 流式统计行数 + 取前3行示例

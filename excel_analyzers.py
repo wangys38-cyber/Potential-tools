@@ -211,6 +211,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
             'closed_date': _safe_get(cells, col_map.get('closed_date', -1)),
             'fix_version': _safe_get(cells, col_map.get('fix_version', -1)),
             'resolution': _safe_get(cells, col_map.get('resolution', -1)),
+            'labels': _safe_get(cells, col_map.get('labels', -1)),
         }
         issues.append(issue)
 
@@ -541,6 +542,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
             'closed_date': issue.get('closed_date', ''),
             'fix_version': issue.get('fix_version', ''),
             'resolution': issue.get('resolution', ''),
+            'labels': issue.get('labels', ''),
         })
     all_issues_brief.sort(key=lambda x: x.get('create_date', ''), reverse=True)
     # 不限制数量，导出全部数据用于趋势看板
@@ -564,6 +566,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
         'resolve_date': col_map.get('resolved_date', -1),
         'fixed_date': col_map.get('closed_date', -1),
         'fixed_version': col_map.get('fix_version', -1),
+        'labels': col_map.get('labels', -1),
     }
     detected_columns = {k: v for k, v in raw_detected.items() if v >= 0}
     
@@ -729,6 +732,11 @@ def _detect_issue_columns(headers):
             col_map['reporter'] = i
         elif any(kw in h for kw in ['updated', '更新']):
             col_map['updated_date'] = i
+        # Labels / 标签
+        elif h == 'labels' or h == 'label' or h == 'tag' or h == 'tags' \
+                or 'label' in h or '标签' in h or 'tag' in h:
+            if 'labels' not in col_map:
+                col_map['labels'] = i
 
     return col_map
 
@@ -776,7 +784,7 @@ def _get_required_column_indices(headers, col_map):
     """
     indices = set()
     for key in ['id', 'title', 'module', 'severity', 'status', 'developer',
-                'created_date', 'resolved_date', 'closed_date', 'fix_version', 'resolution']:
+                'created_date', 'resolved_date', 'closed_date', 'fix_version', 'resolution', 'labels']:
         idx = col_map.get(key, -1)
         if idx >= 0 and idx < len(headers):
             indices.add(idx)
@@ -1066,6 +1074,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
     col_closed = get_col('closed_date')
     col_fix_version = get_col('fix_version')
     col_resolution = get_col('resolution')
+    col_labels = get_col('labels')
 
     total = len(df)
 
@@ -1263,6 +1272,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
             'severity': str(col_severity.iloc[i]) if i < len(col_severity) else '',
             'create_date': str(col_created.iloc[i]) if i < len(col_created) else '',
             'resolved_date': str(col_resolved.iloc[i]) if i < len(col_resolved) else '',
+            'labels': str(col_labels.iloc[i]) if i < len(col_labels) else '',
         })
 
     # 释放内存

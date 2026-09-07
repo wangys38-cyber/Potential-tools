@@ -2269,3 +2269,460 @@ let isAnalyzing = false;
             // 滚动到结果区域
             document.getElementById('resultCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+
+
+        // ============================================================
+        // Labels 筛选功能
+        // ============================================================
+        let _originalAnalysisData = null;
+        let _selectedLabels = new Set();
+        let _allUniqueLabels = [];
+        let _labelDropdownOpen = false;
+
+        function _matchSeverityLevelJS(value) {
+            if (!value) return null;
+            var v = String(value).trim();
+            if (!v) return null;
+            var vl = v.toLowerCase();
+            var priorityMap = {
+                'p0':'blocker','s0':'blocker','highest':'blocker','紧急':'blocker',
+                'p1':'critical','s1':'critical','high':'critical','高':'critical','严重':'critical',
+                'p2':'major','s2':'major','medium':'major','中':'major','一般':'major',
+                'p3':'minor','s3':'minor','low':'minor','低':'minor','轻微':'minor',
+                'p4':'trivial','s4':'trivial','lowest':'trivial','最低':'trivial','提示':'trivial'
+            };
+            if (priorityMap[vl]) return priorityMap[vl];
+            if (/^\d$/.test(v)) {
+                var numMap = {'1':'blocker','2':'critical','3':'major','4':'minor','5':'trivial'};
+                if (numMap[v]) return numMap[v];
+            }
+            var pm = vl.match(/^[ps](\d)$/);
+            if (pm) {
+                var nm = {'1':'blocker','2':'critical','3':'major','4':'minor','5':'trivial'};
+                if (nm[pm[1]]) return nm[pm[1]];
+            }
+            var patterns = {
+                'blocker': ['blocker','block','fatal','致命','阻断','urgent','immediate','showstopper'],
+                'critical': ['critical','crit','严重','重要'],
+                'major': ['major','main','中等','一般','normal','moderate','普通'],
+                'minor': ['minor','轻微','small','less'],
+                'trivial': ['trivial','triv','很小','微小','cosmetic','info','informational','suggestion','建议']
+            };
+            for (var level in patterns) {
+                for (var i = 0; i < patterns[level].length; i++) {
+                    if (vl.indexOf(patterns[level][i]) >= 0) return level;
+                }
+            }
+            var cnNum = {'一':'blocker','二':'critical','三':'major','四':'minor','五':'trivial'};
+            if (cnNum[v]) return cnNum[v];
+            return null;
+        }
+
+        function _normalizeDateJS(d) {
+            if (!d) return '';
+            var s = String(d).trim();
+            if (!s || s.toLowerCase() === 'nan' || s.toLowerCase() === 'none' || s.toLowerCase() === 'nat') return '';
+            // YYYY-MM-DD or YYYY/MM/DD
+            var m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (m) {
+                return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+            }
+            // DD-MMM-YYYY or DD/MMM/YYYY
+            var m2 = s.match(/(\d{1,2})[-\/]([A-Za-z]{3})[-\/](\d{4})/);
+            if (m2) {
+                var months = {'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
+                              'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'};
+                var mon = months[m2[2].toLowerCase()];
+                if (mon) return m2[3] + '-' + mon + '-' + m2[1].padStart(2,'0');
+            }
+            // MM/DD/YYYY
+            var m3 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (m3) {
+                return m3[3] + '-' + m3[1].padStart(2,'0') + '-' + m3[2].padStart(2,'0');
+            }
+            // YYYYMMDD
+            var m4 = s.match(/^(\d{4})(\d{2})(\d{2})/);
+            if (m4) return m4[1] + '-' + m4[2] + '-' + m4[3];
+            return '';
+        }
+
+        function _parseIssueLabels(issue) {
+            var raw = issue.labels || issue.label || issue.tag || issue.tags || '';
+            if (!raw) return [];
+            var s = String(raw).trim();
+            if (!s) return [];
+            // Split by comma, semicolon, or whitespace (but preserve multi-word labels separated by commas)
+            var parts;
+            if (s.indexOf(',') >= 0 || s.indexOf(';') >= 0) {
+                parts = s.split(/[,;]/);
+            } else {
+                parts = s.split(/\s+/);
+            }
+            return parts.map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
+        }
+
+        function _extractAllLabels(issues) {
+            var labelSet = new Set();
+            issues.forEach(function(issue) {
+                _parseIssueLabels(issue).forEach(function(l) {
+                    labelSet.add(l);
+                });
+            });
+            return Array.from(labelSet).sort(function(a, b) {
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            });
+        }
+
+        function _issueMatchesLabels(issue, selectedLabels) {
+            if (selectedLabels.size === 0) return true;
+            var issueLabels = _parseIssueLabels(issue);
+            for (var i = 0; i < issueLabels.length; i++) {
+                if (selectedLabels.has(issueLabels[i])) return true;
+            }
+            return false;
+        }
+
+        function _recomputeStatsFromIssues(issues) {
+            var total = issues.length;
+            var bySeverity = {blocker:0, critical:0, major:0, minor:0, trivial:0};
+            var bySeverityResolved = {blocker:0, critical:0, major:0, minor:0, trivial:0};
+            var byModule = {};
+            var byDeveloper = {};
+            var resolved = 0;
+            var dailyStats = {};
+            var unresolvedStatusDist = {};
+            var blockerUnresolvedStatusDist = {};
+            var severityValues = new Set();
+
+            issues.forEach(function(issue) {
+                var sevRaw = (issue.severity || '').trim();
+                var sevLevel = null;
+                if (sevRaw) {
+                    severityValues.add(sevRaw);
+                    sevLevel = _matchSeverityLevelJS(sevRaw);
+                    if (sevLevel) bySeverity[sevLevel]++;
+                }
+
+                var mod = (issue.module || '').trim();
+                if (mod) {
+                    if (!byModule[mod]) byModule[mod] = {total:0, resolved:0, unresolved:0};
+                    byModule[mod].total++;
+                }
+
+                var dev = (issue.developer || '').trim();
+                if (dev) {
+                    if (!byDeveloper[dev]) byDeveloper[dev] = {total:0, resolved:0, unresolved:0, modules:[]};
+                    byDeveloper[dev].total++;
+                    if (mod && byDeveloper[dev].modules.indexOf(mod) < 0) {
+                        byDeveloper[dev].modules.push(mod);
+                    }
+                }
+
+                var status = (issue.status || '').toLowerCase();
+                var isResolved = ['resolved','fixed','closed','done','已解决','已关闭'].some(function(kw) {
+                    return status.indexOf(kw) >= 0;
+                });
+
+                if (isResolved) {
+                    resolved++;
+                    if (mod && byModule[mod]) byModule[mod].resolved++;
+                    if (dev && byDeveloper[dev]) byDeveloper[dev].resolved++;
+                    if (sevLevel && bySeverityResolved[sevLevel] !== undefined) bySeverityResolved[sevLevel]++;
+                } else {
+                    if (mod && byModule[mod]) byModule[mod].unresolved++;
+                    if (dev && byDeveloper[dev]) byDeveloper[dev].unresolved++;
+                    var statusRaw = (issue.status || '').trim();
+                    if (statusRaw) {
+                        unresolvedStatusDist[statusRaw] = (unresolvedStatusDist[statusRaw] || 0) + 1;
+                        if (sevLevel === 'blocker') {
+                            blockerUnresolvedStatusDist[statusRaw] = (blockerUnresolvedStatusDist[statusRaw] || 0) + 1;
+                        }
+                    }
+                }
+
+                var created = (issue.create_date || issue.created_date || '').trim();
+                if (created) {
+                    var dk = _normalizeDateJS(created);
+                    if (dk) {
+                        if (!dailyStats[dk]) dailyStats[dk] = {new:0, resolved:0};
+                        dailyStats[dk].new++;
+                    }
+                }
+                var resolvedDate = (issue.resolved_date || '').trim();
+                if (resolvedDate) {
+                    var dk2 = _normalizeDateJS(resolvedDate);
+                    if (dk2) {
+                        if (!dailyStats[dk2]) dailyStats[dk2] = {new:0, resolved:0};
+                        dailyStats[dk2].resolved++;
+                    }
+                }
+            });
+
+            function calcRate(count) { return total > 0 ? Math.round(count / total * 1000) / 10 : 0; }
+            var bcTotal = bySeverity.blocker + bySeverity.critical;
+            var bcResolved = bySeverityResolved.blocker + bySeverityResolved.critical;
+            var bcRate = bcTotal > 0 ? Math.round(bcResolved / bcTotal * 1000) / 10 : 0;
+
+            var summary = {
+                total_issues: total,
+                total_resolved: resolved,
+                total_unresolved: total - resolved,
+                resolution_rate: calcRate(resolved),
+                blocker_total: bySeverity.blocker,
+                blocker_resolved: bySeverityResolved.blocker,
+                blocker_unresolved: bySeverity.blocker - bySeverityResolved.blocker,
+                blocker_unresolved_rate: bySeverity.blocker > 0 ? Math.round((bySeverity.blocker - bySeverityResolved.blocker) / bySeverity.blocker * 1000) / 10 : 0,
+                blocker_rate: calcRate(bySeverity.blocker),
+                critical_total: bySeverity.critical,
+                critical_resolved: bySeverityResolved.critical,
+                critical_rate: calcRate(bySeverity.critical),
+                major_total: bySeverity.major,
+                major_resolved: bySeverityResolved.major,
+                major_rate: calcRate(bySeverity.major),
+                minor_total: bySeverity.minor,
+                minor_resolved: bySeverityResolved.minor,
+                minor_rate: calcRate(bySeverity.minor),
+                trivial_total: bySeverity.trivial,
+                trivial_resolved: bySeverityResolved.trivial,
+                trivial_rate: calcRate(bySeverity.trivial),
+                blocker_critical_total: bcTotal,
+                blocker_critical_rate: bcRate,
+                unresolved_status_dist: unresolvedStatusDist,
+                blocker_unresolved_status_dist: blockerUnresolvedStatusDist
+            };
+
+            var moduleStats = {};
+            for (var m in byModule) {
+                moduleStats[m] = {
+                    total: byModule[m].total,
+                    resolved: byModule[m].resolved,
+                    unresolved: byModule[m].unresolved
+                };
+            }
+
+            var devStats = {};
+            for (var dv in byDeveloper) {
+                devStats[dv] = {
+                    total: byDeveloper[dv].total,
+                    resolved: byDeveloper[dv].resolved,
+                    unresolved: byDeveloper[dv].unresolved,
+                    modules: byDeveloper[dv].modules.slice(0, 5)
+                };
+            }
+
+            var dailyStatsList = Object.keys(dailyStats).sort().map(function(d) {
+                return {date: d, new_count: dailyStats[d].new, resolved_count: dailyStats[d].resolved};
+            });
+
+            // resolved_unverified
+            var resolvedUnverified = [];
+            issues.forEach(function(issue) {
+                var st = (issue.status || '').toLowerCase().trim();
+                if (st && (st.indexOf('resolved') >= 0 || st.indexOf('已解决') >= 0)
+                    && st.indexOf('verified') < 0 && st.indexOf('closed') < 0
+                    && st.indexOf('done') < 0 && st.indexOf('已关闭') < 0) {
+                    resolvedUnverified.push({
+                        issue_id: issue.id || issue.issue_id || '',
+                        title: issue.title || '',
+                        module: issue.module || '',
+                        severity: issue.severity || '',
+                        status: issue.status || '',
+                        developer: issue.developer || '',
+                        resolution: issue.resolution || '',
+                        create_date: issue.create_date || ''
+                    });
+                }
+            });
+
+            return {
+                summary: summary,
+                module_stats: moduleStats,
+                dev_stats: devStats,
+                daily_stats: dailyStatsList,
+                resolved_unverified: resolvedUnverified,
+                severity_values: Array.from(severityValues)
+            };
+        }
+
+        function initLabelFilter() {
+            if (!currentAnalysisData || !currentAnalysisData.all_issues) return;
+            // Always extract from original unfiltered data to preserve full label list
+            var sourceData = _originalAnalysisData || currentAnalysisData;
+            var issues = sourceData.all_issues || [];
+            if (issues.length === 0) return;
+            _allUniqueLabels = _extractAllLabels(issues);
+
+            var bar = document.getElementById('labelFilterBar');
+            if (!bar) return;
+
+            if (_allUniqueLabels.length === 0) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            bar.style.display = 'block';
+            _renderLabelDropdown();
+            _updateLabelFilterUI();
+        }
+
+        function _renderLabelDropdown() {
+            var listEl = document.getElementById('labelDropdownList');
+            if (!listEl) return;
+            var html = '';
+            _allUniqueLabels.forEach(function(label) {
+                var checked = _selectedLabels.has(label) ? 'checked' : '';
+                html += '<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:var(--ds-text);hover:background:var(--ds-bg-secondary);" onmouseover="this.style.background=\'var(--ds-bg-secondary)\'" onmouseout="this.style.background=\'transparent\'">'
+                    + '<input type="checkbox" value="' + _escapeAttr(label) + '" ' + checked
+                    + ' onchange="toggleLabel(this.value)" style="cursor:pointer;">'
+                    + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _escapeHtml(label) + '</span>'
+                    + '</label>';
+            });
+            listEl.innerHTML = html;
+        }
+
+        function _escapeHtml(s) {
+            var div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function _escapeAttr(s) {
+            return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function _updateLabelFilterUI() {
+            var textEl = document.getElementById('labelFilterText');
+            var countEl = document.getElementById('labelFilterCount');
+            var clearBtn = document.getElementById('labelFilterClearBtn');
+
+            if (_selectedLabels.size === 0) {
+                if (textEl) textEl.textContent = '全部 Labels';
+                if (countEl) countEl.textContent = '';
+                if (clearBtn) clearBtn.style.display = 'none';
+            } else {
+                var labels = Array.from(_selectedLabels);
+                var display = labels.length <= 3 ? labels.join(', ') : labels.length + ' 个 Labels';
+                if (textEl) textEl.textContent = display;
+                if (countEl) countEl.textContent = '已筛选 ' + _selectedLabels.size + ' 项';
+                if (clearBtn) clearBtn.style.display = 'inline-block';
+            }
+        }
+
+        function toggleLabelDropdown() {
+            var dropdown = document.getElementById('labelDropdown');
+            if (!dropdown) return;
+            _labelDropdownOpen = !_labelDropdownOpen;
+            dropdown.style.display = _labelDropdownOpen ? 'block' : 'none';
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            var toggle = document.getElementById('labelFilterToggle');
+            var dropdown = document.getElementById('labelDropdown');
+            if (!toggle || !dropdown) return;
+            if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+                _labelDropdownOpen = false;
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function toggleLabel(label) {
+            if (_selectedLabels.has(label)) {
+                _selectedLabels.delete(label);
+            } else {
+                _selectedLabels.add(label);
+            }
+            _updateLabelFilterUI();
+            applyLabelFilter();
+        }
+
+        function clearLabelFilter() {
+            _selectedLabels.clear();
+            _renderLabelDropdown();
+            _updateLabelFilterUI();
+            applyLabelFilter();
+        }
+
+        function applyLabelFilter() {
+            if (!_originalAnalysisData) {
+                _originalAnalysisData = JSON.parse(JSON.stringify(currentAnalysisData));
+            }
+
+            var baseData = _originalAnalysisData;
+            var allIssues = baseData.all_issues || [];
+
+            var filteredIssues;
+            if (_selectedLabels.size === 0) {
+                filteredIssues = allIssues;
+            } else {
+                filteredIssues = allIssues.filter(function(issue) {
+                    return _issueMatchesLabels(issue, _selectedLabels);
+                });
+            }
+
+            // Recompute stats from filtered issues
+            var recomputed = _recomputeStatsFromIssues(filteredIssues);
+
+            // Build filtered data object
+            var filteredData = JSON.parse(JSON.stringify(baseData));
+            filteredData.all_issues = filteredIssues;
+            filteredData.summary = recomputed.summary;
+            filteredData.module_stats = recomputed.module_stats;
+            filteredData.dev_stats = recomputed.dev_stats;
+            filteredData.daily_stats = recomputed.daily_stats;
+            filteredData.resolved_unverified = recomputed.resolved_unverified;
+            if (recomputed.severity_values) {
+                filteredData.severity_values = recomputed.severity_values;
+            }
+
+            // Remove the severity grid that was inserted after summaryGrid (to avoid duplication)
+            var summaryGrid = document.getElementById('summaryGrid');
+            if (summaryGrid && summaryGrid.nextElementSibling) {
+                var next = summaryGrid.nextElementSibling;
+                if (next.id !== 'labelFilterBar' && next.className && next.className.indexOf && next.className.indexOf('summary-card') < 0) {
+                    // Check if it's the severity grid (has display:grid)
+                    if (next.style && next.style.display === 'grid') {
+                        next.parentNode.removeChild(next);
+                    }
+                }
+            }
+
+            // Update current data and re-render
+            currentAnalysisData = filteredData;
+            window.currentAnalysisData = filteredData;
+
+            // Suppress saveToHistory during filter re-render
+            var _origSave = window.saveToHistory;
+            window.saveToHistory = function() {};
+            try {
+                displayResults();
+            } finally {
+                if (_origSave) window.saveToHistory = _origSave;
+            }
+
+            // Re-draw charts
+            try { drawModulePieChart(recomputed.module_stats); } catch(e) { console.warn('Pie chart redraw failed:', e); }
+            try {
+                if (window.CRVizEnhancement && window.CRVizEnhancement.rerender) {
+                    window.CRVizEnhancement.rerender();
+                }
+            } catch(e) { console.warn('Enhanced charts redraw failed:', e); }
+
+            // Re-render stability modules
+            try {
+                window._allModuleStats = recomputed.module_stats;
+                if (typeof filterStabilityModules === 'function') filterStabilityModules();
+            } catch(e) {}
+        }
+
+        // Hook into displayResults to init label filter after first render
+        var _origDisplayResults = displayResults;
+        displayResults = function() {
+            _origDisplayResults.apply(this, arguments);
+            // Reset filter state on fresh analysis
+            if (!_originalAnalysisData || _selectedLabels.size === 0) {
+                _originalAnalysisData = null;
+                _selectedLabels.clear();
+            }
+            setTimeout(function() { initLabelFilter(); }, 50);
+        };

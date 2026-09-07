@@ -117,6 +117,24 @@
             <div id="severityInfo" class="util-hidden"></div>
             <div class="summary-grid" id="summaryGrid"></div>
 
+            <!-- Labels 筛选栏 -->
+            <div id="labelFilterBar" style="display:none;margin:20px 0;padding:16px 20px;background:var(--ds-bg-elevated);border:1px solid var(--ds-border-light);border-radius:var(--ds-radius-lg);">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span style="font-size:13px;font-weight:600;color:var(--ds-text);white-space:nowrap;">Labels 筛选：</span>
+                    <div style="position:relative;flex:1;min-width:240px;max-width:480px;">
+                        <button type="button" id="labelFilterToggle" onclick="toggleLabelDropdown()" style="width:100%;padding:8px 12px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);background:var(--ds-bg);color:var(--ds-text);font-size:13px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                            <span id="labelFilterText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">全部 Labels</span>
+                            <span style="margin-left:8px;flex-shrink:0;">&#9662;</span>
+                        </button>
+                        <div id="labelDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--ds-bg);border:1px solid var(--ds-border);border-radius:var(--ds-radius-md);box-shadow:var(--ds-shadow-lg);max-height:280px;overflow-y:auto;z-index:100;padding:8px 0;">
+                            <div id="labelDropdownList"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="labelFilterClearBtn" onclick="clearLabelFilter()" style="padding:8px 16px;font-size:13px;display:none;">清除筛选</button>
+                    <span id="labelFilterCount" style="font-size:12px;color:var(--ds-text-secondary);white-space:nowrap;"></span>
+                </div>
+            </div>
+
             <div class="tabs">
                 <button class="tab active" data-tab="suggestions" onclick="switchTab('suggestions')">智能分析</button>
                 <button class="tab" data-tab="modules" onclick="switchTab('modules')">模块统计</button>
