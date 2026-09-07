@@ -1089,3 +1089,75 @@
         color: #f5f5f7;
     }
 }
+
+
+/* ==================== 移动端优化 ==================== */
+@media (max-width: 768px) {
+    /* 拍照按钮只在移动端显示 */
+    .nb-mobile-only {
+        display: inline-flex !important;
+    }
+
+    /* 工具栏按钮放大，触摸区域 >= 44px */
+    .nb-tool-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .nb-tool-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* 输入框字体 >= 16px，防止 iOS 自动缩放 */
+    .nb-content-textarea,
+    .nb-title-input {
+        font-size: 16px !important;
+    }
+
+    /* 工具栏固定在键盘上方 */
+    .nb-toolbar {
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+        background: #ffffff;
+        border-top: 1px solid #e5e5ea;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .nb-toolbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 编辑器区域优化 */
+    .nb-editor-body {
+        padding-bottom: 10px;
+    }
+
+    /* 笔记列表项触摸区域放大 */
+    .nb-note-item {
+        min-height: 56px;
+        padding: 12px 16px;
+    }
+
+    /* 侧边栏宽度优化 */
+    .nb-sidebar {
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* 暗黑模式适配 */
+[data-theme="dark"] .nb-toolbar {
+    background: #1c1c1e;
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 桌面端隐藏拍照按钮 */
+.nb-mobile-only {
+    display: none !important;
+}

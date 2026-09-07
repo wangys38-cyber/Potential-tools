@@ -169,6 +169,10 @@
                 <button class="nb-tool-btn" onclick="NB.insertImageFromFile()" title="插入图片">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 </button>
+                <button class="nb-tool-btn nb-mobile-only" onclick="NB.takePhoto()" title="拍照">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </button>
+                <input type="file" id="nbCameraInput" accept="image/*" capture="environment" style="display:none;">
                 <span class="nb-tool-sep"></span>
                 <button class="nb-tool-btn nb-mode-btn active" id="nbEditModeBtn" onclick="NB.setMode('edit')" title="编辑模式">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -286,6 +290,58 @@ NB.openVersionHistory = function() {
         setTimeout(updateCompleteUI, 100);
     }
 })();
+</script>
+<script>
+// 拍照功能
+NB.takePhoto = function() {
+    var input = document.getElementById('nbCameraInput');
+    if (input) {
+        input.click();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    var cameraInput = document.getElementById('nbCameraInput');
+    if (cameraInput) {
+        cameraInput.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                // 压缩图片
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = new Image();
+                    img.onload = function() {
+                        var canvas = document.createElement('canvas');
+                        var maxWidth = 1920;
+                        var scale = Math.min(1, maxWidth / img.width);
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        NB.insertImageFromDataUrl(dataUrl);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            cameraInput.value = '';
+        });
+    }
+});
+
+// 从 dataUrl 插入图片
+NB.insertImageFromDataUrl = function(dataUrl) {
+    var textarea = document.querySelector('.nb-content-textarea');
+    if (!textarea) return;
+    var cursorPos = textarea.selectionStart;
+    var text = textarea.value;
+    var imgMarkdown = '\n![图片](' + dataUrl + ')\n';
+    textarea.value = text.substring(0, cursorPos) + imgMarkdown + text.substring(cursorPos);
+    textarea.selectionStart = textarea.selectionEnd = cursorPos + imgMarkdown.length;
+    NB.onContentInput();
+    if (window.showToast) showToast('图片已插入');
+};
 </script>
 </body>
 </html>
