@@ -320,8 +320,10 @@
         display: none;
     }
 
-    /* 移动端隐藏不常用的团队按钮，避免导航栏溢出 */
-    .pt-nav-right a[href="/teams"] {
+    /* 移动端隐藏不常用的按钮，避免导航栏溢出 */
+    .pt-nav-right a[href="/teams"],
+    .pt-nav-right a[href*="admin"],
+    .pt-nav-right a[href*="performance"] {
         display: none;
     }
 
@@ -531,9 +533,12 @@
         display: none;
     }
 
-    /* 小屏隐藏同步状态按钮和AI助手，避免导航栏溢出 */
+    /* 小屏隐藏同步、AI助手、通知，避免导航栏溢出 */
     #ptSyncBtn,
-    .pt-nav-right button[onclick*="AIAssistant"] {
+    #notification-bell,
+    .pt-nav-right button[onclick*="AIAssistant"],
+    .pt-nav-right button[id*="ai"],
+    .pt-nav-right button[id*="AI"] {
         display: none;
     }
 
@@ -1642,8 +1647,9 @@
     .stats-grid, .metric-cards, .kpi-grid {
         grid-template-columns: 1fr !important;
     }
-    /* 超小屏隐藏通知按钮，只保留搜索、主题、设置、头像 */
-    #notification-bell {
+    /* 超小屏隐藏主题切换，只保留搜索、设置、头像 */
+    #ptThemeBtn,
+    .pt-nav-right button[onclick*="toggleTheme"] {
         display: none;
     }
 }

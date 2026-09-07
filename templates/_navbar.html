@@ -88,6 +88,35 @@
             return resp;
         });
     };
+
+    // XMLHttpRequest 拦截器：自动注入 CSRF Token
+    if (window.XMLHttpRequest) {
+        var _origXHROpen = XMLHttpRequest.prototype.open;
+        var _origXHRSend = XMLHttpRequest.prototype.send;
+        var _origXHRSetHeader = XMLHttpRequest.prototype.setRequestHeader;
+
+        XMLHttpRequest.prototype.open = function(method, url) {
+            this._csrfMethod = method;
+            return _origXHROpen.apply(this, arguments);
+        };
+
+        XMLHttpRequest.prototype.setRequestHeader = function(header, value) {
+            return _origXHRSetHeader.apply(this, arguments);
+        };
+
+        XMLHttpRequest.prototype.send = function(body) {
+            if (this._csrfMethod && this._csrfMethod.toUpperCase() !== 'GET') {
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                var token = meta ? meta.getAttribute('content') : '';
+                if (token) {
+                    try {
+                        _origXHRSetHeader.call(this, 'X-CSRF-Token', token);
+                    } catch(e) {}
+                }
+            }
+            return _origXHRSend.apply(this, arguments);
+        };
+    }
 })();
 </script>
 <script src="/static/js/performance.js?v={{ STATIC_VERSION }}" defer></script>
