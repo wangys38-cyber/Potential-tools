@@ -103,7 +103,7 @@ except Exception as e:
 sock = Sock(app)
 
 # 启用 gzip 压缩（HTML/JSON/CSS/JS 响应自动压缩，减少传输量 60-80%）
-Compress(app)
+# Compress(app) # 禁用，与Whitenoise冲突导致静态文件截断
 app.config['COMPRESS_MIMETYPES'] = [
     'text/html', 'text/css', 'text/xml',
     'application/json', 'application/javascript',
