@@ -587,7 +587,7 @@ function updateTrendAnalysis() {
     document.getElementById('statCurrent').textContent = lastRow ? lastRow.cwv : 0;
     document.getElementById('statPlan').textContent = lastRow ? lastRow.plan : 0;
     document.getElementById('statNew').textContent = totalNew;
-    document.getElementById('statResolved').textContent = totalResolved;
+    document.getElementById('statTrendResolved').textContent = totalResolved;
 
     // 渲染折线图
     const ctx = document.getElementById('trendChart');
