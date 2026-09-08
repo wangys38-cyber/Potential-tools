@@ -163,7 +163,7 @@ app.jinja_env.bytecode_cache = _ShmBytecodeCache(_jinja_cache_dir)
 performance_middleware.register_performance_middleware(app)
 
 # 性能优化：注册 gzip 响应压缩中间件
-compression_middleware.register_compression_middleware(app)
+# compression_middleware.register_compression_middleware(app) # 禁用，与Flask-Compress冲突
 
 # 配置 - Railway等云平台使用 /tmp 作为可写目录
 if os.environ.get('RAILWAY_STATIC_URL') or os.environ.get('PORT'):

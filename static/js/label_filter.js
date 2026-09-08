@@ -461,6 +461,16 @@ let trendData = [];
 // 解析日期
 function parseDate(dateStr) {
     if (!dateStr) return null;
+    
+    // 支持 Excel 日期序列号（如 45292.33383101852）
+    const num = Number(dateStr);
+    if (!isNaN(num) && num > 20000 && num < 80000) {
+        // Excel 序列号转日期：1900-01-01 为序列号 1（含1900闰年bug）
+        // 转换公式：(serial - 25569) * 86400 * 1000
+        const jsDate = new Date((num - 25569) * 86400 * 1000);
+        if (!isNaN(jsDate.getTime())) return jsDate;
+    }
+    
     // 尝试多种格式
     const formats = [
         /^(\d{4})-(\d{1,2})-(\d{1,2})/,
