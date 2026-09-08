@@ -580,6 +580,15 @@ function updateTrendAnalysis() {
         </tr>
     `).join('');
 
+    // 更新关键指标卡片
+    const lastRow = trendData[trendData.length - 1];
+    const totalNew = trendData.reduce((sum, r) => sum + r.new, 0);
+    const totalResolved = trendData.reduce((sum, r) => sum + r.resolved, 0);
+    document.getElementById('statCurrent').textContent = lastRow ? lastRow.cwv : 0;
+    document.getElementById('statPlan').textContent = lastRow ? lastRow.plan : 0;
+    document.getElementById('statNew').textContent = totalNew;
+    document.getElementById('statResolved').textContent = totalResolved;
+
     // 渲染折线图
     const ctx = document.getElementById('trendChart');
     if (charts.trend) charts.trend.destroy();
@@ -589,25 +598,30 @@ function updateTrendAnalysis() {
             labels: trendData.map(d => d.date),
             datasets: [
                 {
-                    label: 'CR CWV',
+                    label: '实际未解决',
                     data: trendData.map(d => d.cwv),
                     borderColor: '#007aff',
-                    backgroundColor: 'rgba(0,122,255,0.08)',
-                    borderWidth: 2,
+                    backgroundColor: 'rgba(0,122,255,0.1)',
+                    borderWidth: 2.5,
                     pointRadius: 4,
                     pointBackgroundColor: '#007aff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
                     tension: 0.3,
-                    fill: false
+                    fill: true
                 },
                 {
-                    label: 'CR fix Plan',
+                    label: '修复计划',
                     data: trendData.map(d => d.plan),
                     borderColor: '#ff3b30',
-                    backgroundColor: 'rgba(255,59,48,0.08)',
+                    backgroundColor: 'rgba(255,59,48,0.05)',
                     borderWidth: 2,
+                    borderDash: [6, 4],
                     pointRadius: 3,
                     pointBackgroundColor: '#ff3b30',
-                    tension: 0.3,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1.5,
+                    tension: 0,
                     fill: false
                 }
             ]
@@ -617,14 +631,20 @@ function updateTrendAnalysis() {
             maintainAspectRatio: true,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { position: 'bottom', labels: { font: { size: 12 }, usePointStyle: true, padding: 20 } },
+                legend: { position: 'bottom', labels: { font: { size: 13 }, usePointStyle: true, padding: 20 } },
                 tooltip: {
-                    backgroundColor: 'rgba(29,29,31,0.9)',
+                    backgroundColor: 'rgba(29,29,31,0.95)',
                     titleFont: { size: 13, weight: '600' },
                     bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 8,
                     callbacks: {
                         label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.y;
+                            const label = context.dataset.label;
+                            const value = context.parsed.y;
+                            if (label === '实际未解决') return ` 还有 ${value} 个 Bug 未解决`;
+                            if (label === '修复计划') return ` 按计划应剩余 ${value} 个`;
+                            return ` ${label}: ${value}`;
                         }
                     }
                 }
@@ -632,6 +652,7 @@ function updateTrendAnalysis() {
             scales: {
                 y: {
                     beginAtZero: true,
+                    title: { display: true, text: 'Bug 数量', font: { size: 12 } },
                     ticks: { font: { size: 11 } },
                     grid: { color: 'rgba(0,0,0,0.06)' }
                 },
