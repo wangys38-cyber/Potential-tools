@@ -146,7 +146,7 @@ function parseIssues(data) {
         severity: findColumn(headers, ['priority', 'severity', '严重级别', '优先级', '严重程度']),
         labels: findColumn(headers, ['labels', 'label', '标签', 'tag', 'tags']),
         created: findColumn(headers, ['created', 'create date', '创建时间', '创建日期']),
-        resolved: findColumn(headers, ['resolved', 'resolve date', '解决时间', '解决日期', 'updated'])
+        resolved: findColumn(headers, ['resolved', 'resolve date', '解决时间', '解决日期', 'resolutiondate', 'resolution date'])
     };
 
     for (let i = 1; i < data.length; i++) {
@@ -527,8 +527,9 @@ function updateTrendAnalysis() {
             dateSet.add(key);
             dailyNew[key] = (dailyNew[key] || 0) + 1;
         }
+        // 只有状态是已解决的问题，才计入已解决数
         const resolved = parseDate(issue.resolved);
-        if (resolved) {
+        if (resolved && isResolved(issue)) {
             const key = resolved.toDateString();
             dateSet.add(key);
             dailyResolved[key] = (dailyResolved[key] || 0) + 1;
