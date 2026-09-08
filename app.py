@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response, g
 import os
+from dotenv import load_dotenv
+load_dotenv()  # 加载 .env 配置
 import sys
 import logging
 import traceback

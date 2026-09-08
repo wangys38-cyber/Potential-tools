@@ -71,7 +71,12 @@ def csrf_protect():
 
     对 POST/PUT/DELETE 请求校验 X-CSRF-Token Header。
     登录页和公开 API 豁免。
+    开发环境（FLASK_ENV=development）跳过校验。
     """
+    # 开发环境跳过 CSRF 校验
+    if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEBUG') == 'true':
+        return None
+
     if request.method in ('GET', 'HEAD', 'OPTIONS'):
         return None
 

@@ -22,6 +22,10 @@ def create_pages_blueprint(cached_render):
     def excel_analysis():
         return cached_render('excel_analysis.html', nav_title='CR 问题分析')
 
+    @bp.route('/label-filter')
+    def label_filter():
+        return cached_render('label_filter.html', nav_title='Labels 筛选分析')
+
     @bp.route('/project-info')
     def project_info():
         return cached_render('project_info.html', nav_title='项目信息收集')

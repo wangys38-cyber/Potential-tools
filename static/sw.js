@@ -1,5 +1,5 @@
-/* Service Worker v7.0 — 增强离线支持 */
-const VERSION = 'v7.0-offline';
+/* Service Worker v7.1 — 增强离线支持 */
+const VERSION = 'v7.1-clean';
 const SHELL_CACHE = `app-shell-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;
@@ -34,6 +34,13 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll(PRECACHE_URLS).catch(() => {}))
       .then(() => self.skipWaiting())
   );
+});
+
+// 接收前端消息，支持立即激活新版本
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // activate：清理旧缓存，立即 claim

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labels 筛选分析 - Potential-tools</title>
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/polish.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1>Labels 筛选分析</h1>
+            <p class="page-subtitle">上传 CR 数据，按 Labels 筛选并查看统计分析</p>
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="card upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="upload-text">点击或拖拽上传 Excel/CSV 文件</p>
+                <p class="upload-hint">支持 .xlsx, .xls, .csv 格式</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+            </div>
+            <div class="file-info" id="fileInfo" style="display:none;">
+                <span id="fileName"></span>
+                <button class="btn btn-secondary btn-sm" onclick="resetUpload()">重新上传</button>
+            </div>
+        </div>
+
+        <!-- 分析进度 -->
+        <div class="card progress-section" id="progressSection" style="display:none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">正在分析...</p>
+        </div>
+
+        <!-- 筛选和结果区域 -->
+        <div id="resultSection" style="display:none;">
+            <!-- Labels 筛选 -->
+            <div class="card filter-card">
+                <div class="filter-header">
+                    <h3>Labels 筛选</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="clearFilter()">清除筛选</button>
+                </div>
+                <div class="label-selector">
+                    <div class="label-dropdown">
+                        <button class="dropdown-toggle" id="labelDropdownToggle" onclick="toggleDropdown()">
+                            <span id="selectedLabelsText">选择 Labels...</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="selected-labels" id="selectedLabels"></div>
+                </div>
+                <div class="filter-mode">
+                    <label>
+                        <input type="radio" name="filterMode" value="any" checked onchange="applyFilter()">
+                        <span>匹配任一 Label</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="filterMode" value="all" onchange="applyFilter()">
+                        <span>匹配所有 Label</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">总问题数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statResolved">0</div>
+                    <div class="stat-label">已解决</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statUnresolved">0</div>
+                    <div class="stat-label">未解决</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRate">0%</div>
+                    <div class="stat-label">解决率</div>
+                </div>
+            </div>
+
+            <!-- CR 趋势分析 -->
+            <div class="card trend-section">
+                <div class="trend-header">
+                    <h3>CR 趋势分析</h3>
+                    <div class="trend-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="exportTrendCSV()">导出 CSV</button>
+                    </div>
+                </div>
+                <div class="trend-chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="trend-table-container">
+                    <table class="trend-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>CR CWV</th>
+                                <th>CR fix Plan</th>
+                                <th>NEW</th>
+                                <th>Resolved</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trendTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="charts-grid">
+                <div class="card chart-card">
+                    <h4>严重级别分布</h4>
+                    <canvas id="severityChart"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h4>模块分布</h4>
+                    <canvas id="moduleChart"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h4>负责人分布</h4>
+                    <canvas id="developerChart"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h4>状态分布</h4>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 问题列表 -->
+            <div class="card">
+                <div class="table-header">
+                    <h4>问题列表</h4>
+                    <span class="table-count" id="tableCount">共 0 条</span>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>标题</th>
+                                <th>模块</th>
+                                <th>负责人</th>
+                                <th>严重级别</th>
+                                <th>状态</th>
+                                <th>Labels</th>
+                            </tr>
+                        </thead>
+                        <tbody id="issueTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; }
+        .page-subtitle { color: var(--text-secondary, #86868b); margin: 0; }
+        .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; }
+        .upload-section { text-align: center; }
+        .upload-area { border: 2px dashed #d0d0d0; border-radius: 12px; padding: 48px 24px; cursor: pointer; transition: all 0.2s; }
+        .upload-area:hover { border-color: #000; background: #fafafa; }
+        .upload-area svg { color: #86868b; margin-bottom: 16px; }
+        .upload-text { font-size: 16px; font-weight: 600; margin: 0 0 8px 0; }
+        .upload-hint { font-size: 13px; color: #86868b; margin: 0; }
+        .file-info { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+        .progress-section { text-align: center; }
+        .progress-bar { width: 100%; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+        .progress-fill { height: 100%; background: #000; width: 0%; transition: width 0.3s; }
+        .filter-card { overflow: visible; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .filter-header h3 { margin: 0; font-size: 18px; }
+        .label-selector { margin-bottom: 16px; }
+        .dropdown-toggle { width: 100%; padding: 10px 16px; border: 1px solid #d0d0d0; border-radius: 8px; background: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 14px; }
+        .dropdown-toggle:hover { border-color: #000; }
+        .dropdown-menu { position: fixed; z-index: 99999; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-height: 300px; overflow: hidden; display: flex; flex-direction: column; }
+        .dropdown-search { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+        .dropdown-search input { width: 100%; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; }
+        .dropdown-list { overflow-y: auto; flex: 1; }
+        .dropdown-item { padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .dropdown-item:hover { background: #f5f5f5; }
+        .dropdown-item input { margin: 0; }
+        .selected-labels { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .label-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f0f0f0; border-radius: 16px; font-size: 12px; }
+        .label-tag button { background: none; border: none; cursor: pointer; color: #86868b; padding: 0; font-size: 14px; line-height: 1; }
+        .label-tag button:hover { color: #000; }
+        .filter-mode { display: flex; gap: 24px; }
+        .filter-mode label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #f0f0f0; }
+        .stat-value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+        .stat-label { font-size: 13px; color: #86868b; }
+        .trend-section { margin-bottom: 20px; }
+        .trend-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .trend-header h3 { margin: 0; font-size: 18px; }
+        .trend-chart-container { margin-bottom: 20px; }
+        .trend-chart-container canvas { max-height: 350px; }
+        .trend-table-container { overflow-x: auto; }
+        .trend-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .trend-table th { text-align: center; padding: 10px 16px; background: #f8f8f8; font-weight: 600; border-bottom: 1px solid #e0e0e0; }
+        .trend-table td { text-align: center; padding: 8px 16px; border-bottom: 1px solid #f0f0f0; }
+        .trend-table tr:hover { background: #fafafa; }
+        .trend-table .cwv { color: #007aff; font-weight: 600; }
+        .trend-table .plan { color: #ff3b30; font-weight: 600; }
+        .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+        .chart-card h4 { margin: 0 0 16px 0; font-size: 15px; }
+        .chart-card canvas { max-height: 250px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .table-header h4 { margin: 0; font-size: 16px; }
+        .table-count { font-size: 13px; color: #86868b; }
+        .table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { text-align: left; padding: 10px 12px; background: #f8f8f8; font-weight: 600; border-bottom: 1px solid #e0e0e0; white-space: nowrap; }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        .data-table tr:hover { background: #fafafa; }
+        .severity-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .severity-critical { background: #ffe5e5; color: #d4380d; }
+        .severity-high { background: #fff3e0; color: #d46b08; }
+        .severity-medium { background: #fffbe6; color: #d4b106; }
+        .severity-low { background: #f0f0f0; color: #595959; }
+        .status-resolved { color: #389e0d; }
+        .status-unresolved { color: #d4380d; }
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+        .pagination button { padding: 6px 12px; border: 1px solid #d0d0d0; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .pagination button:hover { border-color: #000; }
+        .pagination button.active { background: #000; color: #fff; border-color: #000; }
+        .btn { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-primary { background: #000; color: #fff; }
+        .btn-primary:hover { background: #333; }
+        .btn-secondary { background: #f0f0f0; color: #000; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .label-dropdown { position: relative; }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .page-container { padding: 16px; }
+        }
+    </style>
+
+    <script src="/static/js/label_filter.js"></script>
+
+    <!-- Labels 下拉菜单（移到 body 末尾，避免父容器 transform 影响 fixed 定位） -->
+    <div class="dropdown-menu" id="dropdownMenu" style="display:none;">
+        <div class="dropdown-search">
+            <input type="text" id="labelSearch" placeholder="搜索 Labels..." oninput="filterLabels()">
+        </div>
+        <div class="dropdown-list" id="labelList"></div>
+    </div>
+</body>
+</html>
