@@ -356,6 +356,7 @@ let filteredIssues = [];
 let currentPage = 1;
 const pageSize = 20;
 let charts = {};
+let _debugInfo = {};
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -494,10 +495,11 @@ function parseIssues(data) {
         developer: findColumn(headers, ['assignee', 'developer', '负责人', '处理人', '经办人']),
         status: findColumn(headers, ['status', '状态', '问题状态']),
         severity: findColumn(headers, ['priority', 'severity', '严重级别', '优先级', '严重程度']),
-        labels: findColumn(headers, ['labels', 'label', '标签', 'tag', 'tags']),
+        labelsCols: findAllColumns(headers, ['labels', 'label', '标签', 'tag', 'tags', 'issue labels', 'issue label', 'bug labels', 'bug label', 'work item labels', 'work item tag']),
         created: findColumn(headers, ['created', 'create date', '创建时间', '创建日期']),
         resolved: findColumn(headers, ['resolved', 'resolve date', '解决时间', '解决日期', 'resolutiondate', 'resolution date'])
     };
+    _debugInfo = { fieldMap, headers, rawData: data.slice(0, 10) };
 
     for (let i = 1; i < data.length; i++) {
         const row = data[i];
@@ -510,7 +512,10 @@ function parseIssues(data) {
             developer: getValue(row, fieldMap.developer, ''),
             status: getValue(row, fieldMap.status, ''),
             severity: getValue(row, fieldMap.severity, ''),
-            labels: parseLabels(getValue(row, fieldMap.labels, '')),
+            labels: (() => {
+                const allLabelStrs = (fieldMap.labelsCols || []).map(colIdx => getValue(row, colIdx, '')).filter(v => v);
+                return parseLabels(allLabelStrs.join(' '));
+            })(),
             created: getValue(row, fieldMap.created, ''),
             resolved: getValue(row, fieldMap.resolved, '')
         };
@@ -524,14 +529,37 @@ function parseIssues(data) {
 }
 
 function findColumn(headers, keywords) {
+    // 规范化列名：去除空格、下划线、连字符，转小写
+    function normalize(s) {
+        return String(s || '').toLowerCase().replace(/[\s_\-]+/g, '');
+    }
     for (let i = 0; i < headers.length; i++) {
+        const h = normalize(headers[i]);
         for (const kw of keywords) {
-            if (headers[i] && headers[i].includes(kw.toLowerCase())) {
+            if (h && h.includes(normalize(kw))) {
                 return i;
             }
         }
     }
     return -1;
+}
+
+// 找到所有匹配的列（用于 Jira 导出的多个 labels 列）
+function findAllColumns(headers, keywords) {
+    function normalize(s) {
+        return String(s || '').toLowerCase().replace(/[\s_\-]+/g, '');
+    }
+    const result = [];
+    for (let i = 0; i < headers.length; i++) {
+        const h = normalize(headers[i]);
+        for (const kw of keywords) {
+            if (h && h.includes(normalize(kw))) {
+                result.push(i);
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 function getValue(row, index, defaultValue) {
@@ -543,7 +571,48 @@ function getValue(row, index, defaultValue) {
 
 function parseLabels(labelStr) {
     if (!labelStr) return [];
-    return labelStr.split(/[,;，；\s]+/).filter(l => l.trim()).map(l => l.trim());
+    let str = String(labelStr);
+    if (!str.trim()) return [];
+    
+    let labels = [];
+    
+    // 检查是否是 JSON 数组格式
+    const trimmed = str.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                labels = parsed.map(String);
+            }
+        } catch(e) {
+            // 不是 JSON，继续其他解析
+        }
+    }
+    
+    if (labels.length === 0) {
+        // 统一替换所有 Unicode 空白字符为普通空格
+        // 包括：不间断空格(U+00A0)、全角空格(U+3000)、各种宽度空格(U+2000-U+200A)、零宽空格(U+FEFF)等
+        str = str.replace(/[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ');
+        
+        // 检查是否有逗号、分号、换行符、制表符、竖线等明确分隔符
+        const hasSpecialSeparator = /[,，;；\n\r\t|]/.test(str);
+        
+        if (hasSpecialSeparator) {
+            // 用特殊分隔符拆分（同时也按空格拆分，因为可能混用）
+            labels = str.split(/[,，;；\n\r\t|\s]+/);
+        } else {
+            // 按空白字符拆分，处理引号包裹的标签
+            const regex = /"([^"]+)"|'([^']+)'|(\S+)/g;
+            let match;
+            while ((match = regex.exec(str)) !== null) {
+                labels.push(match[1] || match[2] || match[3]);
+            }
+        }
+    }
+    
+    return labels
+        .map(l => String(l).trim().replace(/^["']|["']$/g, ''))
+        .filter(l => l && l.length > 0);
 }
 
 // 提取所有 Labels
