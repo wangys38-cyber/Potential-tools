@@ -134,8 +134,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
+{# v8.0 目标4：Chart.js 与 chart-library 改为按需加载，首屏先渲染数字 #}
 <script>
 (function() {
     'use strict';
@@ -177,18 +176,20 @@
             resolvedVals = [10, 9, 12, 14];
         }
 
-        charts.bugTrend = PTChart.destroy(charts.bugTrend);
-        charts.bugTrend = PTChart.create('bugTrendChart', {
-            type: 'line',
-            data: {
-                labels: weeks,
-                datasets: [
-                    { label: '新增', data: newVals, borderColor: '#ff3b30', backgroundColor: 'rgba(255,59,48,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 },
-                    { label: '解决', data: resolvedVals, borderColor: '#34c759', backgroundColor: 'rgba(52,199,89,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 }
-                ]
-            },
-            options: { plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-        });
+        if (window.PTChart) {
+            charts.bugTrend = PTChart.destroy(charts.bugTrend);
+            charts.bugTrend = PTChart.create('bugTrendChart', {
+                type: 'line',
+                data: {
+                    labels: weeks,
+                    datasets: [
+                        { label: '新增', data: newVals, borderColor: '#ff3b30', backgroundColor: 'rgba(255,59,48,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 },
+                        { label: '解决', data: resolvedVals, borderColor: '#34c759', backgroundColor: 'rgba(52,199,89,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 }
+                    ]
+                },
+                options: { plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
 
         var totalNew = newVals.reduce(function(a,b){return a+b;},0);
         var totalResolved = resolvedVals.reduce(function(a,b){return a+b;},0);
@@ -221,15 +222,17 @@
         trendEl.className = 'mttf-trend ' + (pct >= 0 ? 'up' : 'down');
         trendEl.textContent = (pct >= 0 ? '+' : '') + pct + '% 较上次';
 
-        charts.mttf = PTChart.destroy(charts.mttf);
-        charts.mttf = PTChart.create('mttfTrendChart', {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'MTTF (h)', data: values, borderColor: '#000000', backgroundColor: 'rgba(0,0,0,0.08)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
-        });
+        if (window.PTChart) {
+            charts.mttf = PTChart.destroy(charts.mttf);
+            charts.mttf = PTChart.create('mttfTrendChart', {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'MTTF (h)', data: values, borderColor: '#000000', backgroundColor: 'rgba(0,0,0,0.08)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 4 }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
+            });
+        }
     }
 
     // ========== 研发效能 ==========
@@ -251,19 +254,22 @@
         // 效能趋势（解决率近4周）
         var trendLabels = ['W30','W31','W32','W33'];
         var rateTrend = [72, 75, 78, parseFloat(rate)];
-        charts.eff = PTChart.destroy(charts.eff);
-        charts.eff = PTChart.create('effTrendChart', {
-            type: 'line',
-            data: {
-                labels: trendLabels,
-                datasets: [{ label: '解决率%', data: rateTrend, borderColor: '#34c759', backgroundColor: 'rgba(52,199,89,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { min: 60, max: 100 } } }
-        });
+        if (window.PTChart) {
+            charts.eff = PTChart.destroy(charts.eff);
+            charts.eff = PTChart.create('effTrendChart', {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{ label: '解决率%', data: rateTrend, borderColor: '#34c759', backgroundColor: 'rgba(52,199,89,0.1)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { min: 60, max: 100 } } }
+            });
+        }
     }
 
     // ========== 版本进度甘特图 ==========
     function renderGantt() {
+        if (!window.PTChart) return; // 图表引擎未加载时跳过，加载后会重新调用
         var planData = safeGet('project_plan') || safeGet('fix_plan');
         var tasks;
         if (planData && planData.tasks && planData.tasks.length) {
@@ -313,11 +319,28 @@
     }
 
     // ========== 初始化 ==========
+    // v8.0 目标4：首屏先渲染数字/文本（不依赖图表库），图表引擎按需加载后再绘图
     renderBugTrend();
     renderMTTF();
     renderEfficiency();
     renderGantt();
     renderProjectOverview();
+    function loaderReady() {
+        if (window.PTLoader) return Promise.resolve(window.PTLoader);
+        return new Promise(function(resolve) {
+            document.addEventListener('DOMContentLoaded', function() { resolve(window.PTLoader); });
+        });
+    }
+    loaderReady().then(function(L) {
+        return L.load('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
+    }).then(function() { return PTLoader.load('/static/js/chart-library.js'); })
+        .then(function() {
+            renderBugTrend();
+            renderMTTF();
+            renderEfficiency();
+            renderGantt();
+        })
+        .catch(function(e) { console.warn('图表引擎按需加载失败:', e); });
 
     // 异步拉取 API 数据（如果有）
     fetch('/api/dashboard/stats').then(function(r){return r.json();}).then(function(data){

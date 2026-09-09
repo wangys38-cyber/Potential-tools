@@ -8,6 +8,11 @@
 {# 阶段五性能优化：预加载关键 CSS，避免渲染阻塞 #}
 <link rel="preload" href="/static/css/design-system.css?v={{ STATIC_VERSION }}" as="style">
 <link rel="preload" href="/static/css/polish.css?v={{ STATIC_VERSION }}" as="style">
+{# v8.0 目标4：CDN 域名预解析 + 首屏关键 JS 预加载（不阻塞解析） #}
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preload" href="/static/js/storage.js?v={{ STATIC_VERSION }}" as="script">
+<link rel="preload" href="/static/js/pt-loader.js?v={{ STATIC_VERSION }}" as="script">
 <link rel="stylesheet" href="/static/css/polish.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
 <link rel="stylesheet" href="/static/css/ai_assistant.css?v={{ STATIC_VERSION }}">

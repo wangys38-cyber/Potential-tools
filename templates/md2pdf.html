@@ -12,15 +12,9 @@
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <script>
-        if (window.mermaid) {
-            mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose',
-                flowchart: { useMaxWidth: true, htmlLabels: true },
-                sequence: { useMaxWidth: true }, gantt: { useMaxWidth: true } });
-        }
-    </script>
-    <style>.mermaid { text-align: center; margin: 20px 0; } .mermaid svg { max-width: 100% !important; height: auto !important; }</style>
+    {# v8.0 目标4：Mermaid 改为按需加载，预览首次出现图表时才通过 PTLoader 动态拉取 #}
+    <style>.mermaid { text-align: center; margin: 20px 0; } .mermaid svg { max-width: 100% !important; height: auto !important; }
+    .mermaid-loading { color: #86868b; font-size: 13px; padding: 16px; text-align: center; }</style>
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -225,6 +219,80 @@
 
     <script src="/static/js/md2pdf.js?v={{ STATIC_VERSION }}"></script>
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
+    <script>
+    /* v8.0 目标4：Mermaid 按需加载引导。
+       md2pdf.js 在 window.mermaid 存在时自行渲染；引擎未加载时由本脚本兜底：
+       监听预览区，首次出现 .mermaid 节点才动态加载引擎并渲染，加载中显示提示。 */
+    (function() {
+        'use strict';
+        var MERMAID_CDN = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+        var mermaidPromise = null;
+        var loadTimer = null;
+
+        function ensureMermaid() {
+            if (window.mermaid) return Promise.resolve(window.mermaid);
+            if (mermaidPromise) return mermaidPromise;
+            mermaidPromise = new Promise(function(resolve, reject) {
+                function start(loader) {
+                    loader.load(MERMAID_CDN).then(function() {
+                        if (!window.mermaid) { reject(new Error('mermaid global missing')); return; }
+                        window.mermaid.initialize({
+                            startOnLoad: false, theme: 'default', securityLevel: 'loose',
+                            flowchart: { useMaxWidth: true, htmlLabels: true },
+                            sequence: { useMaxWidth: true }, gantt: { useMaxWidth: true }
+                        });
+                        resolve(window.mermaid);
+                    }).catch(reject);
+                }
+                if (window.PTLoader) { start(window.PTLoader); return; }
+                // pt-loader.js 以 defer 加载，DOMContentLoaded 时必然就绪
+                document.addEventListener('DOMContentLoaded', function() { start(window.PTLoader); });
+            }).catch(function(e) { mermaidPromise = null; throw e; });
+            return mermaidPromise;
+        }
+
+        function checkMermaid() {
+            // 引擎就绪后，后续渲染由 md2pdf.js 自行处理，这里不再介入
+            if (window.mermaid) return;
+            var preview = document.getElementById('preview');
+            if (!preview) return;
+            var pending = preview.querySelectorAll('.mermaid:not([data-processed])');
+            if (!pending.length) return;
+            var nodes = Array.prototype.slice.call(pending);
+            nodes.forEach(function(el) {
+                if (!el.getAttribute('data-src-saved')) el.setAttribute('data-src-saved', el.textContent);
+                el.textContent = '正在加载图表引擎...';
+                el.classList.add('mermaid-loading');
+            });
+            ensureMermaid().then(function(mmd) {
+                nodes.forEach(function(el) {
+                    el.classList.remove('mermaid-loading');
+                    el.textContent = el.getAttribute('data-src-saved') || '';
+                });
+                return mmd.run({ nodes: nodes.filter(function(el) {
+                    return !el.getAttribute('data-processed') && document.body.contains(el);
+                })});
+            }).catch(function(e) {
+                console.warn('Mermaid 按需加载/渲染失败:', e);
+                nodes.forEach(function(el) {
+                    el.classList.remove('mermaid-loading');
+                    el.textContent = el.getAttribute('data-src-saved') || '';
+                });
+            });
+        }
+
+        function bind() {
+            var preview = document.getElementById('preview');
+            if (!preview) { document.addEventListener('DOMContentLoaded', bind); return; }
+            new MutationObserver(function() {
+                clearTimeout(loadTimer);
+                loadTimer = setTimeout(checkMermaid, 60);
+            }).observe(preview, { childList: true, subtree: true });
+            checkMermaid();
+        }
+        bind();
+    })();
+    </script>
     <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>

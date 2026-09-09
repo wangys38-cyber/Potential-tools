@@ -189,14 +189,51 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
+{# v8.0 目标4：Chart.js / xlsx / chart-library 改为按需加载，首屏不拉取 #}
 <script>
 (function() {
     'use strict';
 
     var rawData = [], columns = [], chart = null, chartType = 'bar';
+    // ===== 按需加载：表格解析引擎 / 图表引擎（首次使用时才拉取，结果缓存） =====
+    var XLSX_CDN = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    var CHART_CDN = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+    var _xlsxPromise = null, _chartPromise = null;
+    function loaderReady() {
+        if (window.PTLoader) return Promise.resolve(window.PTLoader);
+        // pt-loader.js 由 _navbar 以 defer 加载，内联脚本解析期可能更早执行
+        return new Promise(function(resolve) {
+            document.addEventListener('DOMContentLoaded', function() { resolve(window.PTLoader); });
+        });
+    }
+    function ensureXlsx() {
+        if (window.XLSX) return Promise.resolve();
+        if (!_xlsxPromise) _xlsxPromise = loaderReady().then(function(L) { return L.load(XLSX_CDN); });
+        return _xlsxPromise;
+    }
+    function ensureChartLib() {
+        if (window.Chart && window.PTChart) return Promise.resolve();
+        if (!_chartPromise) {
+            // Chart.js 必须先于本地封装层 chart-library.js 执行
+            _chartPromise = loaderReady().then(function(L) { return L.load(CHART_CDN); }).then(function() {
+                return PTLoader.load('/static/js/chart-library.js');
+            });
+        }
+        return _chartPromise;
+    }
+    function setChartHint(msg) {
+        var wrap = document.getElementById('chartWrap');
+        if (!wrap) return;
+        var hint = wrap.querySelector('.chart-lib-hint');
+        if (!msg) { if (hint) hint.remove(); return; }
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'chart-lib-hint';
+            hint.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ds-text-secondary);pointer-events:none;z-index:2;';
+            wrap.appendChild(hint);
+        }
+        hint.textContent = msg;
+    }
     var templates = [];
     var COLORS = ['#000000','#34c759','#ff9500','#ff3b30','#007aff','#5856d6','#af52de','#ff2d55'];
 
@@ -209,6 +246,7 @@
     window.handleFile = function(file) {
         if (!file) return;
         document.getElementById('fileName').textContent = file.name;
+        ensureXlsx().then(function() {
         var reader = new FileReader();
         reader.onload = function(e) {
             var wb = XLSX.read(e.target.result, {type:'array'});
@@ -260,6 +298,7 @@
         } else {
             reader.readAsArrayBuffer(file);
         }
+        }).catch(function(e) { console.error(e); alert('表格解析引擎加载失败，请重试'); });
     };
 
     function populateSelects() {
@@ -278,8 +317,14 @@
     };
 
     // ========== 渲染图表 ==========
-    window.renderChart = function() {
+    window.renderChart = async function() {
         if (!rawData.length) return;
+        if (!window.PTChart) {
+            setChartHint('正在加载图表引擎...');
+            try { await ensureChartLib(); }
+            catch (e) { setChartHint('图表引擎加载失败，请检查网络后重试'); console.error(e); return; }
+        }
+        setChartHint(null);
         chart = PTChart.destroy(chart);
 
         var xKey = document.getElementById('xAxisSelect').value;
@@ -461,7 +506,7 @@
         var keys = [xKey].concat(yKeys.length ? yKeys : [columns[1]]);
         PTChart.exportCSV(
             rawData.map(function(r){return String(r[xKey]);}),
-            yKeys.map(function(k){return {label: k, data: rawData.map(function(r){return parseFloat(r[k]) || 0;});};}),
+            yKeys.map(function(k){return {label: k, data: rawData.map(function(r){return parseFloat(r[k]) || 0;})};}),
             document.getElementById('chartTitle').value || 'data'
         );
     };
@@ -538,7 +583,7 @@
     // ========== 重置 ==========
     window.resetUpload = function() {
         rawData = []; columns = [];
-        chart = PTChart.destroy(chart);
+        chart = (window.PTChart && chart) ? PTChart.destroy(chart) : null;
         document.getElementById('fileInfo').style.display = 'none';
         document.getElementById('builder').style.display = 'none';
         document.getElementById('emptyState').style.display = 'block';

@@ -158,9 +158,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
+{# v8.0 目标4：Chart.js / xlsx / chart-library 改为按需加载，首屏不拉取 #}
 <script>
 (function() {
     'use strict';
@@ -171,6 +169,47 @@
     var trendChart = null, cumulativeChart = null, devTrendChart = null;
     var currentAgg = null;
 
+    // ===== 按需加载：表格解析引擎 / 图表引擎（首次使用时才拉取，结果缓存） =====
+    var XLSX_CDN = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    var CHART_CDN = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+    var _xlsxPromise = null, _chartPromise = null;
+    function loaderReady() {
+        if (window.PTLoader) return Promise.resolve(window.PTLoader);
+        // pt-loader.js 由 _navbar 以 defer 加载，内联脚本解析期可能更早执行
+        return new Promise(function(resolve) {
+            document.addEventListener('DOMContentLoaded', function() { resolve(window.PTLoader); });
+        });
+    }
+    function ensureXlsx() {
+        if (window.XLSX) return Promise.resolve();
+        if (!_xlsxPromise) _xlsxPromise = loaderReady().then(function(L) { return L.load(XLSX_CDN); });
+        return _xlsxPromise;
+    }
+    function ensureChartLib() {
+        if (window.Chart && window.PTChart) return Promise.resolve();
+        if (!_chartPromise) {
+            // Chart.js 必须先于本地封装层 chart-library.js 执行
+            _chartPromise = loaderReady().then(function(L) { return L.load(CHART_CDN); }).then(function() {
+                return PTLoader.load('/static/js/chart-library.js');
+            });
+        }
+        return _chartPromise;
+    }
+    function setWrapHint(id, msg) {
+        var wrap = document.getElementById(id);
+        if (!wrap) return;
+        var hint = wrap.querySelector('.chart-lib-hint');
+        if (!msg) { if (hint) hint.remove(); return; }
+        wrap.style.position = 'relative';
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'chart-lib-hint';
+            hint.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ds-text-secondary);pointer-events:none;z-index:2;background:var(--ds-bg-elevated);';
+            wrap.appendChild(hint);
+        }
+        hint.textContent = msg;
+    }
+
     // ========== 文件上传 ==========
     var uploadZone = document.getElementById('uploadZone');
     uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
@@ -180,6 +219,7 @@
     window.handleFile = function(file) {
         if (!file) return;
         if (versions.length >= 3) { alert('最多支持 3 个版本对比，请先移除一个版本'); return; }
+        ensureXlsx().then(function() {
         var reader = new FileReader();
         reader.onload = function(e) {
             var wb = XLSX.read(e.target.result, {type:'array'});
@@ -191,6 +231,7 @@
             processData();
         };
         reader.readAsArrayBuffer(file);
+        }).catch(function(e) { console.error(e); alert('表格解析引擎加载失败，请重试'); });
     };
 
     window.removeVersion = function(idx) {
@@ -309,12 +350,23 @@
         var allData = [];
         versions.forEach(function(v) { allData = allData.concat(v.data); });
 
+        // 统计数字与周表不依赖图表库，首屏立即渲染
         renderStats(allData);
-        renderTrendChart();
-        renderCumulativeChart();
         renderWeeklyTable();
-        renderHeatmap(allData);
-        renderDevTrend(allData);
+
+        // 图表引擎按需加载完成后再渲染图表
+        var wrapIds = ['trendWrap', 'cumulativeWrap', 'devTrendWrap', 'heatmapContainer'];
+        wrapIds.forEach(function(id) { setWrapHint(id, '正在加载图表引擎...'); });
+        ensureChartLib().then(function() {
+            wrapIds.forEach(function(id) { setWrapHint(id, null); });
+            renderTrendChart();
+            renderCumulativeChart();
+            renderHeatmap(allData);
+            renderDevTrend(allData);
+        }).catch(function(e) {
+            wrapIds.forEach(function(id) { setWrapHint(id, '图表引擎加载失败，请检查网络后重试'); });
+            console.error(e);
+        });
     }
 
     // ========== 统计卡片 ==========
