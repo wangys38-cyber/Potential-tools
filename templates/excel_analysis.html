@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+    <!-- v8.0: Chart.js 不再首屏同步加载，首次出图/切换图表时由 PTLoader 按需加载 -->
     <link rel="stylesheet" href="/static/css/excel_analysis.css?v={{ STATIC_VERSION }}">
     <script>
         window.__APP_CONFIG__ = {
@@ -87,6 +87,16 @@
                 <button class="btn btn-secondary" onclick="resetAll()">重新选择文件</button>
                 <button class="btn btn-primary" onclick="confirmColumns()">开始分析</button>
             </div>
+        </div>
+
+        <!-- v8.0: 流式预览卡片（后台全量分析期间先展示前100行 + 总行数） -->
+        <div class="card" id="streamPreviewCard" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap;">
+                <h3 style="margin:0;font-size:16px;font-weight:600;color:var(--ds-text);">数据预览</h3>
+                <span id="streamPreviewMeta" style="font-size:12px;color:var(--ds-text-secondary);"></span>
+            </div>
+            <div id="streamPreviewTableWrap" style="max-height:420px;overflow:auto;border:1px solid var(--ds-border-light);border-radius:var(--ds-radius-md);"></div>
+            <p style="font-size:12px;color:var(--ds-text-secondary);margin:10px 2px 0;">后台正在进行全量分析，预览数据不影响分析进度；分析完成后本预览自动收起。</p>
         </div>
 
         <!-- Step 3: Results -->
@@ -284,18 +294,19 @@
     </div>
 
     <script>window._USER_PREFIX='{% if current_user %}u{{ current_user.id }}_{% endif %}';</script>
-    <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/cr_deep_analysis.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/cr_phase2.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/cr_enhancement.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/cr_viz_enhancement.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
-    <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
+    <!-- v8.0: 全部外部脚本 defer，不阻塞首屏解析，执行顺序与文档顺序一致 -->
+    <script src="/static/js/components.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/worker-manager.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/pipeline.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/excel_analysis.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/cr_deep_analysis.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/cr_phase2.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/cr_enhancement.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/chart-library.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/cr_viz_enhancement.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}" defer></script>
+    <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}" defer></script>
     <script>
     // v6.0: CR分析 → 修复计划流转
     function generateFixPlan() {

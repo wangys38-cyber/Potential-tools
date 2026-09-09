@@ -510,6 +510,47 @@ def create_analysis_blueprint():
             logger.error(f"字段映射失败: {traceback.format_exc()}")
             return jsonify({'status': 'error', 'error': str(e)}), 500
 
+    # v8.0 性能优化：流式预览端点 — 返回表头 + 前N行 + 总行数，不全量加载
+    @bp.route('/api/excel-analyze-preview', methods=['POST'])
+    def api_excel_analyze_preview():
+        """流式预览：前端先渲染前 100 行与总行数，后台继续全量分析。
+        参数: file_id, sheet_name, rows(默认100, 1-500)
+        """
+        data = request.get_json(silent=True) or {}
+        file_id = data.get('file_id', '')
+        sheet_name = data.get('sheet_name', '')
+        try:
+            nrows = int(data.get('rows', 100))
+        except (TypeError, ValueError):
+            nrows = 100
+        nrows = max(1, min(nrows, 500))
+        if not file_id or not sheet_name:
+            return jsonify({'error': '缺少参数: file_id, sheet_name'}), 400
+        if not validate_file_id(file_id):
+            return jsonify({'error': '无效的文件ID'}), 400
+
+        file_path = None
+        for ext in ['.xlsx', '.xls', '.csv']:
+            candidate = os.path.join(current_app.config['UPLOAD_FOLDER'], f"excel_{file_id}{ext}")
+            if os.path.exists(candidate):
+                file_path = candidate
+                break
+        if not file_path:
+            return jsonify({'error': f'文件不存在: {file_id}'}), 404
+
+        try:
+            from excel_analyzers import _stream_excel_preview
+            preview = _stream_excel_preview(file_path, sheet_name, max_rows=nrows)
+            logger.info(
+                f"excel-analyze-preview: file_id={file_id}, sheet={sheet_name}, "
+                f"total_rows={preview['total_rows']}, mode={preview['read_mode']}, "
+                f"elapsed={preview['elapsed_sec']}s"
+            )
+            return jsonify({'status': 'success', 'data': preview})
+        except Exception as e:
+            logger.error(f"流式预览失败: {traceback.format_exc()}")
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
     @bp.route('/api/task-status', methods=['POST'])
     def api_task_status():
         """查询后台任务状态"""

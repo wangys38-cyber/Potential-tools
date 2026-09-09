@@ -794,21 +794,24 @@ def _get_required_column_indices(headers, col_map):
 
 
 def _read_excel_optimized(file_path, sheet_name, usecols=None, file_size=0):
-    """优化的 Excel 读取：只加载需要列，大文件使用 read_only 流式。
+    """优化的 Excel 读取：只加载需要列，大文件使用 read_only 流式迭代。
 
-    Args:
-        file_path: 文件路径
-        sheet_name: sheet 名
-        usecols: 需要加载的列索引列表，None 表示全部
-        file_size: 文件大小（字节），>50MB 使用流式
+    v8.0 改造：
+    - 流式阈值由 50MB 降到 10MB（与 fast 分析模式阈值一致）
+    - usecols=None 时同样走流式（以前只有指定列才流式）
+    - 每 50000 行构建一个子 DataFrame，最后 concat，避免超大中间列表
+    - .xls（老二进制/HTML 伪装）openpyxl 无法读取，自动回退 pandas
 
     Returns:
         pandas.DataFrame
     """
     import pandas as pd
 
-    # 大文件（>50MB）使用 read_only 流式读取
-    if file_size > 50 * 1024 * 1024 and usecols is not None:
+    lower_path = file_path.lower()
+    is_xlsx = lower_path.endswith('.xlsx')
+    stream_threshold = 10 * 1024 * 1024  # v8.0: 10MB 以上即流式
+
+    if is_xlsx and file_size > stream_threshold:
         try:
             from openpyxl import load_workbook
             wb = load_workbook(file_path, read_only=True, data_only=True)
@@ -816,28 +819,50 @@ def _read_excel_optimized(file_path, sheet_name, usecols=None, file_size=0):
                 sheet_name = wb.sheetnames[0]
             ws = wb[sheet_name]
 
-            rows_data = []
-            usecols_set = set(usecols)
-            for i, row in enumerate(ws.iter_rows(values_only=True)):
-                if i == 0:
-                    # 表头行，只保留需要的列
-                    header_row = [str(row[c]).strip() if c < len(row) and row[c] is not None else ''
-                                  for c in usecols]
-                    continue
-                # 数据行
-                data_row = [str(row[c]).strip() if c < len(row) and row[c] is not None else ''
-                           for c in usecols]
-                # 跳过全空行
-                if any(data_row):
-                    rows_data.append(data_row)
+            chunk_size = 50000
+            frames = []
+            buf = []
+            header_row = None
 
+            def _row_to_cells(row):
+                if usecols is not None:
+                    return [str(row[c]).strip() if c < len(row) and row[c] is not None else ''
+                            for c in usecols]
+                return [str(c).strip() if c is not None else '' for c in row]
+
+            for i, row in enumerate(ws.iter_rows(values_only=True)):
+                row = list(row)
+                if i == 0:
+                    header_row = _row_to_cells(row)
+                    continue
+                data_row = _row_to_cells(row)
+                # 列数对齐（read_only 模式下个别行维度可能不一致）
+                if header_row and len(data_row) != len(header_row):
+                    if len(data_row) < len(header_row):
+                        data_row.extend([''] * (len(header_row) - len(data_row)))
+                    else:
+                        data_row = data_row[:len(header_row)]
+                if any(data_row):
+                    buf.append(data_row)
+                if len(buf) >= chunk_size:
+                    frames.append(pd.DataFrame(buf))
+                    buf = []
+                    gc.collect()
+            if buf:
+                frames.append(pd.DataFrame(buf))
+            buf = None
             wb.close()
-            df = pd.DataFrame(rows_data, columns=header_row)
-            del rows_data
+
+            if frames:
+                df = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+                df.columns = header_row
+            else:
+                df = pd.DataFrame(columns=header_row or [])
+            del frames
             gc.collect()
             return df
         except Exception as e:
-            logger.warning(f"流式读取失败，回退pandas: {e}")
+            logger.warning(f"read_only 流式读取失败，回退pandas: {e}")
 
     # 普通读取：使用 usecols 只加载需要的列
     read_kwargs = {
@@ -854,7 +879,7 @@ def _read_excel_optimized(file_path, sheet_name, usecols=None, file_size=0):
         return df
     except Exception as e:
         logger.warning(f"usecols读取失败，回退全量: {e}")
-        del read_kwargs['usecols']
+        read_kwargs.pop('usecols', None)
         return pd.read_excel(file_path, **read_kwargs)
 
 
@@ -883,8 +908,8 @@ def _read_csv_optimized(file_path, usecols=None, file_size=0):
     # 尝试不同编码
     encodings = ['utf-8', 'gbk', 'gb2312', 'latin1']
 
-    # 大文件使用 chunksize 分块读取
-    if file_size > 50 * 1024 * 1024:
+    # v8.0: 大文件（>10MB）使用 chunksize 分块流式读取
+    if file_size > 10 * 1024 * 1024:
         chunks = []
         for enc in encodings:
             try:
@@ -920,6 +945,104 @@ def _read_csv_optimized(file_path, usecols=None, file_size=0):
 
     # 最后兜底
     return pd.read_csv(file_path, dtype=str, na_filter=False, encoding='latin1', on_bad_lines='skip')
+
+
+# ============================================================
+# v8.0 流式预览 — 只返回表头 + 前 N 行 + 总行数，不全量加载
+# ============================================================
+
+def _stream_excel_preview(file_path, sheet_name, max_rows=100, cell_limit=200):
+    """流式读取 Excel/CSV 预览数据。
+
+    Args:
+        file_path: 文件路径
+        sheet_name: sheet 名（CSV 忽略）
+        max_rows: 返回的前 N 条数据行
+        cell_limit: 单元格文本截断长度，控制预览响应体积
+
+    Returns:
+        dict: {headers, preview_rows, total_rows, sheet_name, elapsed_sec, read_mode}
+    """
+    t0 = time.time()
+    max_rows = max(1, min(int(max_rows or 100), 500))
+    lower = file_path.lower()
+    headers = []
+    preview_rows = []
+    total_rows = 0
+    read_mode = 'stream'
+
+    def _trim(v):
+        s = '' if v is None else str(v).strip()
+        return s[:cell_limit]
+
+    if lower.endswith('.csv'):
+        # CSV：pandas chunksize 流式，第一块取预览，同时累计总行数
+        import pandas as pd
+        encodings = ['utf-8', 'gbk', 'gb2312', 'latin1']
+        for enc in encodings:
+            chunk_iter = None
+            try:
+                chunk_iter = pd.read_csv(
+                    file_path, dtype=str, na_filter=False, encoding=enc,
+                    on_bad_lines='skip', chunksize=20000)
+                for ci, chunk in enumerate(chunk_iter):
+                    if ci == 0:
+                        headers = [_trim(c) for c in chunk.columns]
+                        preview_rows = [[_trim(v) for v in row]
+                                        for row in chunk.head(max_rows).itertuples(index=False, name=None)]
+                    total_rows += len(chunk)
+                read_mode = 'csv-chunksize'
+                break
+            except UnicodeDecodeError:
+                headers, preview_rows, total_rows = [], [], 0
+                continue
+            except Exception as e:
+                logger.warning(f"CSV 预览流式读取失败({enc}): {e}")
+                headers, preview_rows, total_rows = [], [], 0
+                continue
+    elif lower.endswith('.xlsx'):
+        # xlsx：openpyxl read_only 流式迭代，内存恒定
+        from openpyxl import load_workbook
+        wb = load_workbook(file_path, read_only=True, data_only=True)
+        if sheet_name not in wb.sheetnames:
+            sheet_name = wb.sheetnames[0]
+        ws = wb[sheet_name]
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i == 0:
+                headers = [_trim(c) for c in row]
+                continue
+            vals = [_trim(c) for c in row]
+            if any(vals):
+                total_rows += 1
+                if len(preview_rows) < max_rows:
+                    preview_rows.append(vals)
+        wb.close()
+        read_mode = 'openpyxl-read_only'
+    else:
+        # .xls（含 HTML 伪装的 xls）：openpyxl 不支持，回退 ExcelReader
+        try:
+            from app import ExcelReader
+            reader = ExcelReader(file_path)
+            reader.open()
+            rows = reader.get_sheet_data(sheet_name)
+            reader.close()
+            if rows:
+                headers = [_trim(c) for c in rows[0]]
+                data_rows = [r for r in rows[1:] if any(str(c).strip() for c in r)]
+                total_rows = len(data_rows)
+                preview_rows = [[_trim(c) for c in r] for r in data_rows[:max_rows]]
+            read_mode = 'xls-fallback'
+        except Exception as e:
+            logger.warning(f"xls 预览回退读取失败: {e}")
+
+    return {
+        'headers': headers,
+        'preview_rows': preview_rows,
+        'total_rows': total_rows,
+        'sheet_name': sheet_name,
+        'elapsed_sec': round(time.time() - t0, 2),
+        'read_mode': read_mode,
+    }
 
 
 # ============================================================

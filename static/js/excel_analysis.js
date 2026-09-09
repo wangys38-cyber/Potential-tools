@@ -156,10 +156,11 @@ let isAnalyzing = false;
             try {
                 let data;
 
-                // v6.0: 文件大于 5MB 时使用分片上传（5MB分片+4并发），否则直接上传
-                var uploadThreshold = ToolboxUpload.DIRECT_UPLOAD_THRESHOLD || (5 * 1024 * 1024);
+                // v8.0: 大小文件路径都显示真实上传进度（XHR upload.onprogress）与文件大小
+                var fileSizeText = formatFileSize(file.size);
+                var uploadThreshold = ToolboxUpload.DIRECT_UPLOAD_THRESHOLD || (10 * 1024 * 1024);
                 if (file.size > uploadThreshold) {
-                    analyzing.querySelector('p').textContent = '正在上传文件... 0%';
+                    analyzing.querySelector('p').textContent = '正在上传文件... 0%（' + fileSizeText + '）';
                     var uploadStartTime = Date.now();
                     data = await ToolboxUpload.uploadChunked(file, {
                         accept: '.xlsx,.xls,.csv',
@@ -176,13 +177,17 @@ let isAnalyzing = false;
                                 else etaText = '，剩余 ' + Math.floor(etaSec / 60) + 'm' + Math.ceil(etaSec % 60) + 's';
                             }
                             analyzing.querySelector('p').textContent =
-                                '正在上传文件... ' + pct + '% (' + speedMBps.toFixed(2) + ' MB/s' + etaText + ')';
+                                '正在上传文件... ' + pct + '%（' + fileSizeText + '，' + speedMBps.toFixed(2) + ' MB/s' + etaText + '）';
                         }
                     });
                 } else {
-                    analyzing.querySelector('p').textContent = '正在解析Excel数据...';
+                    analyzing.querySelector('p').textContent = '正在上传文件... 0%（' + fileSizeText + '）';
                     var directResp = await ToolboxUpload.directUpload(file, '/api/excel-analyze', {
-                        headers: { 'X-Skip-Loading': 'true' }
+                        headers: { 'X-Skip-Loading': 'true' },
+                        onProgress: function(loaded, total) {
+                            var pct = total ? Math.round(loaded / total * 100) : 0;
+                            analyzing.querySelector('p').textContent = '正在上传文件... ' + pct + '%（' + fileSizeText + '）';
+                        }
                     });
                     if (directResp.status !== 'success') throw new Error(directResp.error || '分析失败');
                     data = directResp.data;
@@ -397,6 +402,12 @@ let isAnalyzing = false;
                 }
 
                 const taskId = initResult.data.task_id;
+
+                // v8.0: 并行请求流式预览（前100行+总行数），先渲染预览，后台继续全量分析
+                _loadStreamPreview(currentFileId, currentSheet).catch(function(e) {
+                    console.warn('流式预览加载失败:', e);
+                });
+
                 // 轮询任务状态（最多 900 次 = 15分钟，大文件需要更长时间）
                 let pollCount = 0;
                 const maxPolls = 900;
@@ -418,6 +429,7 @@ let isAnalyzing = false;
                         currentAnalysisData.file_name = currentFileName;
                         window.currentAnalysisData = currentAnalysisData;
                         displayResults();
+                        _hideStreamPreview();
                         return;
                     } else if (statusResult.status === 'error') {
                         const pb = document.getElementById('analysisProgressBar');
@@ -453,6 +465,11 @@ let isAnalyzing = false;
 
             const d = currentAnalysisData;
             const s = d.summary || {};
+
+            // v8.0: 必须在任何列表渲染（含下方 filterStabilityModules）之前，
+            // 以当前数据集初始化列表 Worker，并销毁上一次的虚拟滚动实例
+            if (window.ExcelListWorker) ExcelListWorker.init(d.all_issues || []);
+            _destroyStabilityVirtualScroll();
 
             // 显示推送按钮和文件名
             const pushBtn = document.getElementById('pushFeishuBtn');
@@ -784,6 +801,9 @@ let isAnalyzing = false;
             }
             document.getElementById('unverifiedSection').innerHTML = unvHtml;
 
+            // v8.0: 预热按需加载的 Chart.js（用户停留在智能分析 tab 时可立即出图）
+            if (window.ensureChartJs) ensureChartJs().catch(function(){});
+
             // Draw charts
             drawModulePieChart(moduleStats);
             drawDailyLineChart(dailyStats);
@@ -804,6 +824,10 @@ let isAnalyzing = false;
         function drawModulePieChart(moduleStats) {
             const ctx = document.getElementById('modulePieChart');
             if (!ctx) return;
+            // v8.0: Chart.js 按需加载，加载完成后再绘图（序号防止过期绘制）
+            const seq = ++_chartDrawSeq;
+            ensureChartJs().then(function() {
+            if (seq !== _chartDrawSeq || !document.body.contains(ctx)) return;
 
             const data = Object.entries(moduleStats)
                 .sort((a, b) => b[1].total - a[1].total)
@@ -853,6 +877,7 @@ let isAnalyzing = false;
                     }
                 }
             });
+            }).catch(function(e) { console.warn('Chart.js 未就绪，模块分布图跳过:', e); });
         }
 
         function formatDate(d) {
@@ -866,6 +891,10 @@ let isAnalyzing = false;
         function drawDailyLineChart(dailyStats) {
             const ctx = document.getElementById('dailyLineChart');
             if (!ctx) return;
+            // v8.0: Chart.js 按需加载
+            const seq = ++_chartDrawSeq;
+            ensureChartJs().then(function() {
+            if (seq !== _chartDrawSeq || !document.body.contains(ctx)) return;
 
             const displayData = dailyStats.slice(-14);
 
@@ -938,6 +967,7 @@ let isAnalyzing = false;
                 if (window.renderModuleHealth) window.renderModuleHealth();
                 if (window.CRDeepAnalysis && window.CRDeepAnalysis.refresh) window.CRDeepAnalysis.refresh();
             }, 100);
+            }).catch(function(e) { console.warn('Chart.js 未就绪，每日趋势图跳过:', e); });
         }
 
         function switchTab(tab) {
@@ -1017,6 +1047,10 @@ let isAnalyzing = false;
             currentAnalysisData = null;
             window.currentAnalysisData = null;
             currentAIAnalysis = '';  // 清空AI分析结果
+            // v8.0: 清理虚拟滚动、流式预览与 Worker 数据
+            _destroyStabilityVirtualScroll();
+            _hideStreamPreview();
+            if (window.ExcelListWorker) ExcelListWorker.init([]);
         }
 
         // v3.0: AI 根因分析（SSE 流式）
@@ -1191,146 +1225,72 @@ let isAnalyzing = false;
             
             document.getElementById('stabilitySection').innerHTML = stabilityHtml;
             
-            // 筛选并显示稳定性问题列表
+            // v8.0: 稳定性问题详情列表 —— Worker 筛选/搜索/排序 + VirtualScroll 虚拟滚动
             const stabilityIssuesSection = document.getElementById('stabilityIssuesSection');
             if (stabilityIssuesSection && currentAnalysisData && currentAnalysisData.all_issues) {
-                const allIssues = currentAnalysisData.all_issues;
-                let filteredIssues = allIssues;
-                
-                // 根据关键字筛选问题
-                if (keywords.length > 0) {
-                    filteredIssues = allIssues.filter(issue => {
-                        const modLower = (issue.module || '').toLowerCase();
-                        return keywords.some(kw => modLower.includes(kw));
-                    });
-                }
-                
-                if (filteredIssues.length > 0) {
-                    // v6.0: 分页显示，默认每页50条
-                    const PAGE_SIZE = 50;
-                    const totalPages = Math.ceil(filteredIssues.length / PAGE_SIZE);
-                    let currentPage = 1;
+                window._stabilityKeywords = keywords;
+                window._stabilitySearch = '';
+                const totalAll = currentAnalysisData.all_issues.length;
+                const GRID_COLS = '110px minmax(180px,1fr) 150px 110px 100px 92px 92px';
 
-                    function renderIssuesPage(page) {
-                        currentPage = Math.max(1, Math.min(page, totalPages));
-                        const start = (currentPage - 1) * PAGE_SIZE;
-                        const end = Math.min(start + PAGE_SIZE, filteredIssues.length);
-                        const displayIssues = filteredIssues.slice(start, end);
+                // 旧虚拟列表实例先销毁（其 DOM 即将被替换），并递增版本号使在途异步请求失效
+                _destroyStabilityVirtualScroll();
+                const listToken = ++window._stabListToken;
 
-                        const severityColors = {
-                            'blocker': '#ff3b30', 'critical': '#ff3b30',
-                            'major': '#ff9500', 'minor': '#ffcc00', 'trivial': '#8e8e93'
-                        };
-
-                        let rowsHtml = '';
-                        displayIssues.forEach((issue, idx) => {
-                            const isOpen = !issue.resolved_date || issue.resolved_date === '-';
-                            const statusColor = isOpen ? '#ff3b30' : '#34c759';
-                            const sev = (issue.severity || '').toLowerCase().trim();
-                            const sevColor = severityColors[sev] || '#8e8e93';
-                            const globalIdx = start + idx;
-
-                            rowsHtml += `
-                                <tr style="border-top:1px solid #f0f0f3;${globalIdx % 2 === 1 ? 'background:#fafafa;' : ''}">
-                                    <td style="padding:8px 12px;white-space:nowrap;font-family:monospace;color:#0071e3;font-weight:600;">${escapeHtml(issue.issue_id || '-')}</td>
-                                    <td style="padding:8px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(issue.title || '')}">${escapeHtml(issue.title || '-')}</td>
-                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.module || '-')}</td>
-                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text);">${escapeHtml(issue.developer || '-')}</td>
-                                    <td style="padding:8px 12px;white-space:nowrap;color:var(--text-secondary);">${escapeHtml(issue.create_date || '-')}</td>
-                                    <td style="padding:8px 12px;white-space:nowrap;">
-                                        <span style="background:${sevColor}20;color:${sevColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                            ${escapeHtml(issue.severity || '-')}
-                                        </span>
-                                    </td>
-                                    <td style="padding:8px 12px;white-space:nowrap;">
-                                        <span style="background:${statusColor}20;color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">
-                                            ${isOpen ? '未解决' : '已解决'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-
-                        const body = document.getElementById('stabilityIssuesBody');
-                        if (body) body.innerHTML = rowsHtml;
-
-                        // 更新分页信息
-                        const pageInfo = document.getElementById('stabilityPageInfo');
-                        if (pageInfo) {
-                            pageInfo.textContent = `第 ${currentPage}/${totalPages} 页，显示 ${start + 1}-${end} 条，共 ${filteredIssues.length} 条`;
-                        }
-                        const prevBtn = document.getElementById('stabilityPrevBtn');
-                        const nextBtn = document.getElementById('stabilityNextBtn');
-                        if (prevBtn) prevBtn.disabled = currentPage <= 1;
-                        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
-                    }
-
-                    let issuesHtml = `
-                        <div style="background:linear-gradient(135deg,#fff,#f8f9fa);border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid var(--border);">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                                <h3 style="margin:0;color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
-                                     稳定性问题详情列表
-                                </h3>
-                                <div style="display:flex;gap:8px;align-items:center;">
-                                    <select id="stabilityStatusFilter" onchange="filterStabilityIssues()" style="padding:6px 12px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;">
-                                        <option value="">全部状态</option>
-                                        <option value="open">未解决</option>
-                                        <option value="resolved">已解决</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div style="max-height:500px;overflow-y:auto;border-radius:12px;border:1px solid #e5e5ea;">
-                                <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                                    <thead style="position:sticky;top:0;background:#f5f5f7;z-index:1;">
-                                        <tr>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> eDART ID</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;">标题</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">模块</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 研发</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 创建时间</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;"> 严重性</th>
-                                            <th style="padding:10px 12px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap;">状态</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="stabilityIssuesBody"></tbody>
-                                </table>
-                            </div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
-                                <span id="stabilityPageInfo" style="font-size:12px;color:var(--text-secondary);"></span>
-                                <div style="display:flex;gap:8px;">
-                                    <button id="stabilityPrevBtn" onclick="window._renderStabilityPage(${currentPage - 1})" style="padding:6px 14px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;cursor:pointer;">上一页</button>
-                                    <button id="stabilityNextBtn" onclick="window._renderStabilityPage(${currentPage + 1})" style="padding:6px 14px;border:1px solid #d2d2d7;border-radius:6px;font-size:12px;background:white;cursor:pointer;">下一页</button>
-                                </div>
+                stabilityIssuesSection.innerHTML = `
+                    <div style="background:var(--ds-bg-elevated,#fff);border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid var(--ds-border-light,#e5e5ea);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+                            <h3 style="margin:0;color:var(--ds-text,#1d1d1f);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                                稳定性问题详情列表
+                                <span style="font-size:12px;font-weight:400;color:var(--ds-text-secondary,#86868b);">全量 ${totalAll} 条，虚拟滚动仅渲染可视行</span>
+                            </h3>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <input type="text" id="stabilityListSearch" placeholder="搜索 ID/标题/模块/研发"
+                                       style="padding:6px 12px;border:1px solid var(--ds-border,#d2d2d7);border-radius:6px;font-size:12px;width:210px;background:var(--ds-bg,#fff);color:var(--ds-text,#1d1d1f);">
+                                <select id="stabilityStatusFilter" onchange="filterStabilityIssues()" style="padding:6px 12px;border:1px solid var(--ds-border,#d2d2d7);border-radius:6px;font-size:12px;background:var(--ds-bg,#fff);color:var(--ds-text,#1d1d1f);">
+                                    <option value="">全部状态</option>
+                                    <option value="open">未解决</option>
+                                    <option value="resolved">已解决</option>
+                                </select>
                             </div>
                         </div>
-                    `;
-                    stabilityIssuesSection.innerHTML = issuesHtml;
-                    window._currentStabilityIssues = filteredIssues;
-                    window._renderStabilityPage = renderIssuesPage;
-                    renderIssuesPage(1);
-                } else {
-                    stabilityIssuesSection.innerHTML = '';
+                        <div style="display:grid;grid-template-columns:${GRID_COLS};background:var(--ds-bg-secondary,#f5f5f7);border-radius:8px 8px 0 0;font-size:12px;font-weight:600;color:var(--ds-text,#1d1d1f);">
+                            <div style="padding:10px 12px;white-space:nowrap;">eDART ID</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">标题</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">模块</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">研发</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">创建时间</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">严重性</div>
+                            <div style="padding:10px 12px;white-space:nowrap;">状态</div>
+                        </div>
+                        <div id="stabilityVirtList" style="height:480px;overflow-y:auto;border:1px solid var(--ds-border-light,#e5e5ea);border-top:none;border-radius:0 0 8px 8px;background:var(--ds-bg-elevated,#fff);"></div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px;flex-wrap:wrap;">
+                            <span id="stabilityPageInfo" style="font-size:12px;color:var(--ds-text-secondary,#86868b);"></span>
+                            <span style="font-size:12px;color:var(--ds-text-tertiary,#aeaeb2);">滚动查看全部数据，无需翻页</span>
+                        </div>
+                    </div>
+                `;
+
+                // 搜索输入防抖（250ms），计算在 Worker 中完成
+                const searchInput = document.getElementById('stabilityListSearch');
+                if (searchInput) {
+                    let _searchTimer = null;
+                    searchInput.addEventListener('input', function() {
+                        if (_searchTimer) clearTimeout(_searchTimer);
+                        _searchTimer = setTimeout(function() {
+                            window._stabilitySearch = searchInput.value.trim();
+                            _refreshStabilityVirtualList(listToken);
+                        }, 250);
+                    });
                 }
+
+                _refreshStabilityVirtualList(listToken);
             }
         }
 
+        // v8.0: 状态筛选/关键字/搜索变化 → Worker 查询 → VirtualScroll 增量更新
         function filterStabilityIssues() {
-            const filter = document.getElementById('stabilityStatusFilter');
-            const value = filter ? filter.value : '';
-            if (!window._currentStabilityIssues) return;
-
-            let issues = window._currentStabilityIssues;
-            if (value === 'open') {
-                issues = issues.filter(i => !i.resolved_date || i.resolved_date === '-');
-            } else if (value === 'resolved') {
-                issues = issues.filter(i => i.resolved_date && i.resolved_date !== '-');
-            }
-
-            // 使用分页渲染
-            if (window._renderStabilityPage) {
-                window._currentStabilityIssues = issues;
-                window._renderStabilityPage(1);
-            }
+            _refreshStabilityVirtualList(window._stabListToken || 0);
         }
 
         function renderSuggestionCard(sug) {
@@ -2643,7 +2603,7 @@ let isAnalyzing = false;
             applyLabelFilter();
         }
 
-        function applyLabelFilter() {
+        async function applyLabelFilter() {
             if (!_originalAnalysisData) {
                 _originalAnalysisData = JSON.parse(JSON.stringify(currentAnalysisData));
             }
@@ -2655,13 +2615,12 @@ let isAnalyzing = false;
             if (_selectedLabels.size === 0) {
                 filteredIssues = allIssues;
             } else {
-                filteredIssues = allIssues.filter(function(issue) {
-                    return _issueMatchesLabels(issue, _selectedLabels);
-                });
+                // v8.0: Labels 筛选下沉 Worker（失败自动降级主线程 filter）
+                filteredIssues = await ExcelListWorker.filterLabels(allIssues, Array.from(_selectedLabels));
             }
 
-            // Recompute stats from filtered issues
-            var recomputed = _recomputeStatsFromIssues(filteredIssues);
+            // v8.0: 大数组分组统计聚合下沉 Worker（自动降级 _recomputeStatsFromIssues）
+            var recomputed = await ExcelListWorker.aggregate(filteredIssues);
 
             // Build filtered data object
             var filteredData = JSON.parse(JSON.stringify(baseData));
@@ -2726,3 +2685,333 @@ let isAnalyzing = false;
             }
             setTimeout(function() { initLabelFilter(); }, 50);
         };
+
+        // ============================================================
+        // v8.0 性能优化模块：Chart 按需加载 / 列表 Worker 客户端 /
+        // 虚拟滚动助手 / 流式预览
+        // ============================================================
+
+        // ---------- 文件大小格式化 ----------
+        function formatFileSize(bytes) {
+            bytes = Number(bytes) || 0;
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+            return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+        }
+
+        // ---------- Chart.js 按需加载（点击/出图时才请求 CDN） ----------
+        const CHARTJS_CDN_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        let _chartJsPromise = null;
+        let _chartDrawSeq = 0;
+        function ensureChartJs() {
+            if (window.Chart) return Promise.resolve(window.Chart);
+            if (_chartJsPromise) return _chartJsPromise;
+            _chartJsPromise = new Promise(function(resolve, reject) {
+                function ok() {
+                    if (window.Chart) resolve(window.Chart);
+                    else { _chartJsPromise = null; reject(new Error('Chart.js 加载后仍不可用')); }
+                }
+                if (window.PTLoader && PTLoader.load) {
+                    PTLoader.load(CHARTJS_CDN_URL).then(ok, function(err) {
+                        _chartJsPromise = null; reject(err);
+                    });
+                } else {
+                    // PTLoader 尚未就绪时的兜底
+                    const s = document.createElement('script');
+                    s.src = CHARTJS_CDN_URL;
+                    s.async = true;
+                    s.onload = ok;
+                    s.onerror = function() { _chartJsPromise = null; reject(new Error('Chart.js CDN 加载失败')); };
+                    document.head.appendChild(s);
+                }
+            });
+            return _chartJsPromise;
+        }
+        // 暴露给按需场景（如切换到图表 tab）主动预加载
+        window.ensureChartJs = ensureChartJs;
+
+        // ---------- Excel 列表 Worker 客户端（失败自动降级主线程） ----------
+        const ExcelListWorker = (function() {
+            let wrapper = null;
+            let disabled = false;
+            let seq = 0;
+            const pending = {};
+            const WORKER_URL = '/static/js/workers/excel-worker.js';
+
+            function _settle(reqId, fn, arg) {
+                const cb = pending[reqId];
+                if (!cb) return;
+                delete pending[reqId];
+                try { Promise.resolve(fn(arg)).then(cb.resolve, cb.reject); }
+                catch (e) { cb.resolve(fn(arg)); }
+            }
+
+            function _ensure() {
+                if (disabled) return null;
+                if (wrapper) return wrapper;
+                if (!window.WorkerManager || !WorkerManager.supported) { disabled = true; return null; }
+                try {
+                    wrapper = WorkerManager.createWorker(WORKER_URL, { autoFallback: true });
+                    wrapper.onMessage = function(msg) {
+                        const cb = msg.reqId != null ? pending[msg.reqId] : null;
+                        if (!cb) return;
+                        if (msg.type === 'query_result' || msg.type === 'labels_result' || msg.type === 'aggregate_result') {
+                            delete pending[msg.reqId];
+                            cb.resolve(msg.data);
+                        } else if (msg.type === 'error') {
+                            delete pending[msg.reqId];
+                            cb.reject(new Error(msg.message || 'worker error'));
+                        }
+                    };
+                    wrapper.onError = function(err) {
+                        console.warn('[ExcelListWorker] Worker 异常，本次起降级主线程:', err);
+                        disabled = true;
+                        try { wrapper.terminate(); } catch (e) {}
+                        wrapper = null;
+                        Object.keys(pending).forEach(function(id) {
+                            const p = pending[id]; delete pending[id];
+                            try { Promise.resolve(p.fallback()).then(p.resolve, p.reject); }
+                            catch (e2) { try { p.resolve(p.fallback()); } catch (e3) { p.reject(e3); } }
+                        });
+                    };
+                } catch (e) {
+                    console.warn('[ExcelListWorker] 创建失败，降级主线程:', e);
+                    disabled = true;
+                    wrapper = null;
+                }
+                return wrapper;
+            }
+
+            function _request(msg, fallbackFn) {
+                const w = _ensure();
+                if (!w || disabled) return Promise.resolve().then(fallbackFn);
+                return new Promise(function(resolve, reject) {
+                    const reqId = ++seq;
+                    pending[reqId] = { resolve: resolve, reject: reject, fallback: fallbackFn };
+                    msg.reqId = reqId;
+                    try {
+                        w.post(msg);
+                        // 30s 超时保护：自动走主线程降级，避免 Promise 永久挂起
+                        setTimeout(function() {
+                            if (pending[reqId]) {
+                                const p = pending[reqId]; delete pending[reqId];
+                                Promise.resolve().then(p.fallback).then(p.resolve, p.resolve);
+                            }
+                        }, 30000);
+                    } catch (e) {
+                        delete pending[reqId];
+                        Promise.resolve().then(fallbackFn).then(resolve, resolve);
+                    }
+                });
+            }
+
+            // ---- 主线程降级：严重程度排序权重（与 worker matchSeverity 一致） ----
+            const SEV_RANK = {
+                blocker: 0, critical: 1, major: 2, minor: 3, trivial: 4,
+                p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, s0: 0, s1: 1, s2: 2, s3: 3, s4: 4
+            };
+            function _sevRank(v) {
+                if (!v) return 99;
+                const s = String(v).toLowerCase().trim();
+                if (SEV_RANK[s] !== undefined) return SEV_RANK[s];
+                if (/^\d+$/.test(s)) { const n = parseInt(s, 10); if (n >= 1 && n <= 5) return n - 1; }
+                for (const k in SEV_RANK) { if (s.indexOf(k) >= 0) return SEV_RANK[k]; }
+                return 99;
+            }
+            function _mainThreadSort(arr, field, order) {
+                const mult = order === 'desc' ? -1 : 1;
+                arr.sort(function(a, b) {
+                    let va = a[field] !== undefined ? a[field] : '';
+                    let vb = b[field] !== undefined ? b[field] : '';
+                    if (field === 'severity') return (_sevRank(va) - _sevRank(vb)) * mult;
+                    if (field === 'create_date' || field === 'resolved_date' || field === 'closed_date' || field === 'created_date') {
+                        return ((new Date(va).getTime() || 0) - (new Date(vb).getTime() || 0)) * mult;
+                    }
+                    va = String(va).toLowerCase(); vb = String(vb).toLowerCase();
+                    if (va < vb) return -1 * mult;
+                    if (va > vb) return 1 * mult;
+                    return 0;
+                });
+                return arr;
+            }
+
+            function _fallbackQuery(q) {
+                const source = (currentAnalysisData && currentAnalysisData.all_issues) || [];
+                let result = source;
+                const kws = (q.keywords || []).map(function(k) { return String(k).toLowerCase().trim(); }).filter(Boolean);
+                if (kws.length) {
+                    result = result.filter(function(it) {
+                        const m = String(it.module || '').toLowerCase();
+                        return kws.some(function(k) { return m.indexOf(k) >= 0; });
+                    });
+                }
+                if (q.status === 'open') {
+                    result = result.filter(function(it) { return !it.resolved_date || it.resolved_date === '-'; });
+                } else if (q.status === 'resolved') {
+                    result = result.filter(function(it) { return it.resolved_date && it.resolved_date !== '-'; });
+                }
+                if (q.search) {
+                    const kw = String(q.search).toLowerCase();
+                    const fields = (q.searchFields && q.searchFields.length) ? q.searchFields : ['issue_id', 'title', 'module', 'developer'];
+                    result = result.filter(function(it) {
+                        return fields.some(function(f) {
+                            return String(it[f] != null ? it[f] : '').toLowerCase().indexOf(kw) >= 0;
+                        });
+                    });
+                }
+                if (q.sortField) result = _mainThreadSort(result.slice(), q.sortField, q.sortOrder);
+                return result;
+            }
+
+            return {
+                init: function(data) {
+                    // 重新 init 时重置降级标记（新数据意味着新的一次机会）
+                    disabled = false;
+                    const w = _ensure();
+                    if (w) { try { w.post({ type: 'init', data: data || [] }); } catch (e) { disabled = true; } }
+                },
+                query: function(q) {
+                    q = q || {};
+                    return _request(Object.assign({ type: 'apply_query' }, q), function() { return _fallbackQuery(q); });
+                },
+                filterLabels: function(allIssues, labels) {
+                    const labelSet = new Set(labels || []);
+                    return _request({ type: 'filter_labels', labels: labels || [] }, function() {
+                        if (!labels || labels.length === 0) return allIssues;
+                        return allIssues.filter(function(it) { return _issueMatchesLabels(it, labelSet); });
+                    });
+                },
+                aggregate: function(issues) {
+                    // 显式传入待聚合数组（用户操作触发一次结构化克隆，可接受），
+                    // 不依赖 Worker 内部 allData/filteredData 状态，口径与主线程降级完全一致
+                    return _request({ type: 'aggregate', data: issues || [] }, function() {
+                        return _recomputeStatsFromIssues(issues || []);
+                    });
+                },
+                isFallback: function() { return disabled; }
+            };
+        })();
+        window.ExcelListWorker = ExcelListWorker;
+
+        // ---------- 稳定性问题列表：VirtualScroll 虚拟滚动 ----------
+        const STAB_GRID_COLS = '110px minmax(180px,1fr) 150px 110px 100px 92px 92px';
+        const STAB_ROW_HEIGHT = 48;
+
+        function _destroyStabilityVirtualScroll() {
+            window._stabListToken = (window._stabListToken || 0) + 1;
+            if (window._stabilityVS) {
+                try { window._stabilityVS.destroy(); } catch (e) {}
+                window._stabilityVS = null;
+            }
+        }
+
+        function _renderStabilityBugRow(issue) {
+            const isOpen = !issue.resolved_date || issue.resolved_date === '-';
+            const statusColor = isOpen ? '#ff3b30' : '#34c759';
+            const sev = String(issue.severity || '').toLowerCase().trim();
+            const severityColors = {
+                blocker: '#ff3b30', critical: '#ff3b30',
+                major: '#ff9500', minor: '#ffcc00', trivial: '#8e8e93'
+            };
+            const sevColor = severityColors[sev] || '#8e8e93';
+            const cell = 'padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            return '<div style="display:grid;grid-template-columns:' + STAB_GRID_COLS +
+                ';align-items:center;height:' + STAB_ROW_HEIGHT + 'px;border-bottom:1px solid var(--ds-border-light,#f0f0f3);font-size:12px;color:var(--ds-text,#1d1d1f);">' +
+                '<div style="' + cell + 'font-family:monospace;color:#0071e3;font-weight:600;" title="' + _escapeAttr(issue.issue_id || '') + '">' + _escapeHtml(issue.issue_id || '-') + '</div>' +
+                '<div style="' + cell + '" title="' + _escapeAttr(issue.title || '') + '">' + _escapeHtml(issue.title || '-') + '</div>' +
+                '<div style="' + cell + '" title="' + _escapeAttr(issue.module || '') + '">' + _escapeHtml(issue.module || '-') + '</div>' +
+                '<div style="' + cell + '" title="' + _escapeAttr(issue.developer || '') + '">' + _escapeHtml(issue.developer || '-') + '</div>' +
+                '<div style="' + cell + 'color:var(--ds-text-secondary,#86868b);">' + _escapeHtml(issue.create_date || '-') + '</div>' +
+                '<div style="' + cell + '"><span style="background:' + sevColor + '20;color:' + sevColor +
+                ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">' + _escapeHtml(issue.severity || '-') + '</span></div>' +
+                '<div style="' + cell + '"><span style="background:' + statusColor + '20;color:' + statusColor +
+                ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">' + (isOpen ? '未解决' : '已解决') + '</span></div>' +
+                '</div>';
+        }
+
+        async function _refreshStabilityVirtualList(token) {
+            const container = document.getElementById('stabilityVirtList');
+            if (!container || !currentAnalysisData) return;
+            const myToken = token || window._stabListToken || 0;
+            const statusSel = document.getElementById('stabilityStatusFilter');
+            const query = {
+                keywords: window._stabilityKeywords || [],
+                status: statusSel ? statusSel.value : '',
+                search: window._stabilitySearch || '',
+                searchFields: ['issue_id', 'title', 'module', 'developer'],
+                sortField: 'create_date',
+                sortOrder: 'desc'
+            };
+            let issues;
+            try {
+                issues = await ExcelListWorker.query(query);
+            } catch (e) {
+                console.warn('Worker 查询失败，主线程重试:', e);
+                issues = (currentAnalysisData.all_issues || []);
+            }
+            // 异步返回期间容器可能已被重建/销毁，版本号不一致说明本次请求已过期
+            if (myToken !== window._stabListToken) return;
+            if (!document.getElementById('stabilityVirtList')) return;
+            window._currentStabilityIssues = issues;
+            const info = document.getElementById('stabilityPageInfo');
+            if (info) info.textContent = '共 ' + issues.length + ' 条（仅渲染可视区域行，计算在 Worker 完成）';
+            if (window._stabilityVS) {
+                window._stabilityVS.updateItems(issues);
+                window._stabilityVS.scrollToIndex(0);
+            } else if (window.VirtualScroll) {
+                window._stabilityVS = new VirtualScroll(container, {
+                    items: issues,
+                    itemHeight: STAB_ROW_HEIGHT,
+                    overscan: 8,
+                    className: 'vs-bug-row',
+                    renderItem: _renderStabilityBugRow
+                });
+            } else {
+                // VirtualScroll 不可用时的兜底：只渲染前 500 行
+                container.innerHTML = issues.slice(0, 500).map(_renderStabilityBugRow).join('');
+            }
+        }
+        window._refreshStabilityVirtualList = _refreshStabilityVirtualList;
+
+        // ---------- v8.0 流式预览（先渲染前100行，后台继续全量分析） ----------
+        async function _loadStreamPreview(fileId, sheetName) {
+            if (!fileId || !sheetName) return;
+            const resp = await fetch('/api/excel-analyze-preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Skip-Loading': 'true' },
+                body: JSON.stringify({ file_id: fileId, sheet_name: sheetName, rows: 100 })
+            });
+            const result = await resp.json();
+            if (!resp.ok || result.status !== 'success') throw new Error(result.error || '预览失败');
+            const p = result.data || {};
+            const card = document.getElementById('streamPreviewCard');
+            if (!card) return;
+            const meta = document.getElementById('streamPreviewMeta');
+            if (meta) {
+                meta.textContent = '共 ' + (p.total_rows || 0) + ' 行 · 先展示前 ' +
+                    (p.preview_rows || []).length + ' 行 · ' + (p.read_mode || '') + ' · ' + (p.elapsed_sec || 0) + 's';
+            }
+            const headers = p.headers || [];
+            const rows = p.preview_rows || [];
+            const headHtml = '<tr>' + headers.map(function(h) {
+                return '<th style="white-space:nowrap;">' + _escapeHtml(h || ' ') + '</th>';
+            }).join('') + '</tr>';
+            const bodyHtml = rows.map(function(r) {
+                return '<tr>' + headers.map(function(_, ci) {
+                    const v = r[ci] != null ? r[ci] : '';
+                    return '<td style="white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;" title="' +
+                        _escapeAttr(v) + '">' + _escapeHtml(v) + '</td>';
+                }).join('') + '</tr>';
+            }).join('');
+            const wrap = document.getElementById('streamPreviewTableWrap');
+            if (wrap) {
+                wrap.innerHTML = '<table style="font-size:12px;margin:0;"><thead>' + headHtml + '</thead><tbody>' + bodyHtml + '</tbody></table>';
+            }
+            card.style.display = '';
+        }
+
+        function _hideStreamPreview() {
+            const card = document.getElementById('streamPreviewCard');
+            if (card) card.style.display = 'none';
+        }
