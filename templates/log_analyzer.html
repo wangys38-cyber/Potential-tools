@@ -6,7 +6,8 @@
     <title>日志分析器</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='M21 21l-4.35-4.35'/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--ds-bg); min-height: 100vh; color: var(--ds-text); }
@@ -105,8 +106,8 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
                     <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ds-text);">分析结论</h3>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button class="btn btn-secondary" onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('patterns')" style="padding:6px 12px;font-size:12px;">异常模式库</button>
-                        <button class="btn btn-secondary" onclick="LogAIEnhancements.ensureModals();LogAIEnhancements.AdminPanel.open('fixes')" style="padding:6px 12px;font-size:12px;">修复方案库</button>
+                        <button class="btn btn-secondary" onclick="openAiAdmin('patterns')" style="padding:6px 12px;font-size:12px;">异常模式库</button>
+                        <button class="btn btn-secondary" onclick="openAiAdmin('fixes')" style="padding:6px 12px;font-size:12px;">修复方案库</button>
                         <button id="aiAnalyzeBtn" class="btn btn-primary" onclick="runAiAnalyze()" style="padding:6px 14px;font-size:13px;">AI 智能根因分析</button>
                         <button class="btn btn-secondary" onclick="window.location.href='/knowledge-graph'" style="padding:6px 14px;font-size:13px;">抽取到知识图谱</button>
                     </div>
@@ -135,7 +136,7 @@
                 <button class="filter-btn" data-filter="power" onclick="setFilter('power')">功耗</button>
                 <button class="filter-btn" data-filter="error" onclick="setFilter('error')">错误</button>
                 <button class="filter-btn" data-filter="warning" onclick="setFilter('warning')">警告</button>
-                <input type="text" class="search-box" id="searchBox" placeholder="搜索日志内容..." oninput="renderLogs()">
+                <input type="text" class="search-box" id="searchBox" placeholder="搜索日志内容..." oninput="debounceRenderLogs()">
             </div>
             <div class="log-panel">
                 <div class="log-header">
@@ -156,6 +157,19 @@
     </div>
     <script>
         let allLogs = [], currentFilter = 'all';
+        // .util-hidden 为 display:none !important，inline display 无法覆盖，统一用 class 切换
+        function showEl(id, display) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('util-hidden');
+            el.style.display = display || 'block';
+        }
+        function hideEl(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.add('util-hidden');
+            el.style.display = 'none';
+        }
         const PATTERNS = {
             crash: {regex: /(panic|fatal|kernel\s*panic|watchdog|hardfault|busfault|memfault|死机|crash|abort)/i, label: '死机'},
             reboot: {regex: /(reboot|restart|reset|warm\s*boot|cold\s*boot|shutdown|power\s*on|重启)/i, label: '重启'},
@@ -170,20 +184,55 @@
         uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
         uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 
+        // v8.0: 文件大小阈值 —— <10MB 一次性读取；>=10MB 分片流式读取（覆盖 >50MB 场景）
+        const SMALL_FILE_LIMIT = 10 * 1024 * 1024;
+        const READ_CHUNK_BYTES = 4 * 1024 * 1024;
+        const STREAM_BATCH_LINES = 2000;
+
+        function formatBytes(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            return (n / 1024 / 1024).toFixed(2) + ' MB';
+        }
+
+        // 按需加载外部脚本（优先 PTLoader，失败回退手动插入 script）
+        function loadCdnScript(url, globalName) {
+            if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
+            if (window.PTLoader && PTLoader.load) return PTLoader.load(url);
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = url; s.async = true;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('脚本加载失败: ' + url));
+                document.head.appendChild(s);
+            });
+        }
+
+        let _jszipPromise = null;
+        function ensureJSZip() {
+            if (window.JSZip) return Promise.resolve(window.JSZip);
+            if (!_jszipPromise) {
+                _jszipPromise = loadCdnScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', 'JSZip')
+                    .then(() => window.JSZip);
+            }
+            return _jszipPromise;
+        }
+
         async function handleFile(file) {
             if (!file) return;
             document.getElementById('fileName').textContent = file.name;
-            document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
-            document.getElementById('fileInfo').style.display = 'flex';
+            document.getElementById('fileSize').textContent = formatBytes(file.size);
+            showEl('fileInfo', 'flex');
 
             const isZip = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed';
 
             if (isZip) {
-                if (typeof JSZip === 'undefined') {
-                    alert('JSZip库未加载，请刷新页面重试');
-                    return;
-                }
                 try {
+                    await ensureJSZip();
+                    if (typeof JSZip === 'undefined') {
+                        alert('JSZip 库加载失败，请检查网络后重试');
+                        return;
+                    }
                     document.getElementById('fileName').textContent = file.name + ' (解压中...)';
                     const zip = await JSZip.loadAsync(file);
                     const logFiles = [];
@@ -201,16 +250,136 @@
                         const content = await lf.entry.async('string');
                         allContent += `\n===== ${lf.path} =====\n` + content + '\n';
                     }
-                    document.getElementById('fileName').textContent = file.name + ` (${logFiles.length}个日志文件)`;
+                    document.getElementById('fileName').textContent = file.name + ` (${logFiles.length}个日志文件, ${formatBytes(file.size)})`;
                     analyzeLog(allContent);
                 } catch (e) {
                     alert('ZIP解压失败: ' + e.message);
                 }
+            } else if (file.size >= SMALL_FILE_LIMIT) {
+                // v8.0: 大文件分片读取 + 逐批送 Worker
+                analyzeLargeFile(file);
             } else {
                 const reader = new FileReader();
                 reader.onload = e => analyzeLog(e.target.result);
                 reader.readAsText(file);
             }
+        }
+
+        // v8.0: 大文件 blob.slice 分片读取（TextDecoder stream 模式处理跨片中文），逐批送 Worker 流式分析
+        function analyzeLargeFile(file) {
+            document.getElementById('emptyState').style.display = 'none';
+            showEl('analysis', 'block');
+            destroyLogVirtualScroll();
+            const container = document.getElementById('logContent');
+            container.innerHTML = '';
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'analyzeProgress';
+            progressDiv.style.cssText = 'text-align:center;padding:32px;color:var(--ds-text-secondary);';
+            progressDiv.innerHTML =
+                '<div style="font-size:15px;margin-bottom:14px;">正在流式读取并分析大文件...</div>' +
+                '<div style="font-size:12px;margin-bottom:6px;" id="readProgressText">读取 0 / ' + formatBytes(file.size) + '</div>' +
+                '<div style="width:70%;margin:0 auto 14px;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="readBar" style="height:100%;width:0%;background:var(--ds-text-secondary);transition:width 0.2s;"></div></div>' +
+                '<div style="font-size:12px;margin-bottom:6px;" id="analyzeProgressText">已分析 0 行</div>' +
+                '<div style="width:70%;margin:0 auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="analyzeBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div>' +
+                '<div style="font-size:11px;color:var(--ds-text-tertiary);margin-top:10px;">分片读取 + Web Worker 后台分析，不阻塞页面</div>';
+            container.appendChild(progressDiv);
+
+            let worker = null;
+            if (window.WorkerManager && window.WorkerManager.supported) {
+                worker = window.WorkerManager.createWorker('/static/js/workers/log-worker.js', { autoFallback: true });
+            }
+            if (!worker) { fallbackReadWhole(file); return; }
+
+            let finished = false;
+            worker.onProgress = function(msg) {
+                const ab = document.getElementById('analyzeBar');
+                if (ab) {
+                    if (typeof msg.progress === 'number') {
+                        ab.style.width = msg.progress + '%';
+                    } else if (msg.processed) {
+                        // 流式分析未知总行数，进度条推进到 90% 封顶，done 时收尾
+                        ab.style.width = Math.min(90, 20 + (msg.processed % 70)) + '%';
+                    }
+                }
+                const tt = document.getElementById('analyzeProgressText');
+                if (tt) tt.textContent = '已分析 ' + (msg.processed || 0) + ' 行，发现 ' + (msg.found != null ? msg.found : 0) + ' 条异常';
+            };
+            worker.onDone = function(msg) {
+                if (finished) return;
+                finished = true;
+                allLogs = msg.results || [];
+                const ab0 = document.getElementById('analyzeBar');
+                if (ab0) ab0.style.width = '100%';
+                progressDiv.remove();
+                renderStats();
+                renderTimeline();
+                renderLogs();
+                generateConclusion();
+                syncComputeResults();
+                try { worker.terminate(); } catch(e) {}
+            };
+            worker.onMessage = function() { /* streamReady 等无需处理 */ };
+            worker.onError = function(err) {
+                if (finished) return;
+                console.warn('流式分析 Worker 失败，降级主线程:', err);
+                try { worker.terminate(); } catch(e) {}
+                fallbackReadWhole(file);
+            };
+            worker.post({ action: 'streamInit' });
+
+            const reader = new FileReader();
+            const decoder = new TextDecoder('utf-8');
+            let offset = 0, lineNo = 0, carry = '', batch = [];
+            function flushBatch() {
+                if (batch.length === 0) return;
+                const startLineNo = lineNo - batch.length;
+                worker.post({ action: 'streamLines', lines: batch, startLineNo: startLineNo });
+                batch = [];
+            }
+            function readNext() {
+                const sliceEnd = Math.min(offset + READ_CHUNK_BYTES, file.size);
+                reader.readAsArrayBuffer(file.slice(offset, sliceEnd));
+            }
+            reader.onload = function(e) {
+                const chunkLen = e.target.result.byteLength;
+                const isLast = offset + chunkLen >= file.size;
+                const text = carry + decoder.decode(e.target.result, { stream: !isLast });
+                offset += chunkLen;
+                const rb = document.getElementById('readBar');
+                if (rb) rb.style.width = (offset / file.size * 100) + '%';
+                const rt = document.getElementById('readProgressText');
+                if (rt) rt.textContent = '读取 ' + formatBytes(offset) + ' / ' + formatBytes(file.size) + '（' + Math.round(offset / file.size * 100) + '%）';
+
+                const parts = text.split(/\r?\n/);
+                if (!isLast) carry = parts.pop() || ''; else carry = '';
+                for (let i = 0; i < parts.length; i++) {
+                    lineNo++;
+                    batch.push(parts[i]);
+                    if (batch.length >= STREAM_BATCH_LINES) flushBatch();
+                }
+                if (isLast) {
+                    if (carry.length > 0) { lineNo++; batch.push(carry); carry = ''; }
+                    flushBatch();
+                    const tt = document.getElementById('analyzeProgressText');
+                    if (tt) tt.textContent = '共 ' + lineNo + ' 行，正在汇总...';
+                    worker.post({ action: 'streamEnd' });
+                } else {
+                    setTimeout(readNext, 0);
+                }
+            };
+            reader.onerror = function() {
+                try { worker.terminate(); } catch(e) {}
+                fallbackReadWhole(file);
+            };
+            readNext();
+        }
+
+        // Worker 不可用/失败时的降级：整文件读入后走现有主线程分批分析
+        function fallbackReadWhole(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) { analyzeLog(e.target.result); };
+            reader.onerror = function() { alert('文件读取失败'); };
+            reader.readAsText(file);
         }
 
         function analyzeLog(text) {
@@ -223,7 +392,7 @@
                 }
             }
             document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('analysis').style.display = 'block';
+            showEl('analysis', 'block');
 
             // 大文件使用Web Worker，小文件走主线程
             const useWorker = window.WorkerManager && window.WorkerManager.supported && totalLines > 3000;
@@ -240,6 +409,7 @@
             progressDiv.id = 'analyzeProgress';
             progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--ds-text-secondary);';
             progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;"> Web Worker 正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div><div style="font-size:11px;color:var(--ds-text-tertiary);margin-top:8px;">使用后台线程处理，不阻塞页面</div>`;
+            destroyLogVirtualScroll();
             document.getElementById('logContent').innerHTML = '';
             document.getElementById('logContent').appendChild(progressDiv);
 
@@ -257,6 +427,7 @@
                 renderTimeline();
                 renderLogs();
                 generateConclusion();
+                syncComputeResults();
                 worker.terminate();
             };
             worker.onError = function(err) {
@@ -274,6 +445,7 @@
             progressDiv.id = 'analyzeProgress';
             progressDiv.style.cssText = 'text-align:center;padding:40px;color:var(--ds-text-secondary);';
             progressDiv.innerHTML = `<div style="font-size:16px;margin-bottom:12px;">正在分析日志...</div><div style="font-size:13px;">已处理 0 / ${totalLines} 行</div><div style="width:60%;margin:16px auto;height:6px;background:var(--ds-bg-secondary);border-radius:3px;overflow:hidden;"><div id="progressBar" style="height:100%;width:0%;background:var(--ds-accent);transition:width 0.2s;"></div></div>`;
+            destroyLogVirtualScroll();
             document.getElementById('logContent').innerHTML = '';
             document.getElementById('logContent').appendChild(progressDiv);
 
@@ -306,6 +478,7 @@
                     renderTimeline();
                     renderLogs();
                     generateConclusion();
+                    syncComputeResults();
                 }
             }
             processBatch();
@@ -340,24 +513,131 @@
             renderLogs();
         }
 
-        function renderLogs() {
-            const search = document.getElementById('searchBox').value.toLowerCase();
+        // ===== v8.0: 虚拟滚动 + 大结果集筛选下沉 Worker =====
+        let logVirtualScroll = null;
+        let _computeWorker = null;
+        let _computeWorkerDead = false;
+        let _pendingView = null;
+        let _viewReqId = 0;
+        let _renderDebounce = null;
+        const LOG_ROW_HEIGHT = 44;
+        const WORKER_FILTER_THRESHOLD = 10000;
+
+        function destroyLogVirtualScroll() {
+            if (logVirtualScroll) {
+                try { logVirtualScroll.destroy(); } catch(e) {}
+                logVirtualScroll = null;
+            }
+        }
+
+        function getFilterCriteria() {
+            const searchEl = document.getElementById('searchBox');
+            return {
+                type: currentFilter,
+                query: searchEl ? searchEl.value.toLowerCase() : ''
+            };
+        }
+
+        function getFilteredLogsSync() {
+            const c = getFilterCriteria();
             let filtered = allLogs;
-            if (currentFilter !== 'all') filtered = filtered.filter(l => l.type === currentFilter);
-            if (search) filtered = filtered.filter(l => l.text.toLowerCase().includes(search));
-            const MAX_RENDER = 500;
-            const displayCount = Math.min(filtered.length, MAX_RENDER);
-            document.getElementById('logCount').textContent = `显示 ${displayCount} / ${filtered.length} 条${filtered.length > MAX_RENDER ? '（仅显示前500条，请使用筛选缩小范围）' : ''}`;
-            if (filtered.length === 0) {
-                document.getElementById('logContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--ds-text-secondary)">无匹配日志</div>';
+            if (c.type !== 'all') filtered = filtered.filter(l => l.type === c.type);
+            if (c.query) filtered = filtered.filter(l => l.text.toLowerCase().includes(c.query));
+            return filtered;
+        }
+
+        // 常驻计算 Worker：分析结果只同步一次，后续筛选/排序不再跨线程拷贝全量数据
+        function getComputeWorker() {
+            if (_computeWorkerDead || !window.WorkerManager || !window.WorkerManager.supported) return null;
+            if (_computeWorker) return _computeWorker;
+            try {
+                const w = window.WorkerManager.createWorker('/static/js/workers/log-worker.js', { autoFallback: true });
+                w.onMessage = function(msg) {
+                    if (msg.type === 'viewDone' && _pendingView && msg.reqId === _pendingView.reqId) {
+                        _pendingView = null;
+                        if (msg.emptyCache) { mountLogs(getFilteredLogsSync()); return; }
+                        mountLogs(msg.results || []);
+                    }
+                };
+                w.onError = function() {
+                    _computeWorkerDead = true;
+                    try { w.terminate(); } catch(e) {}
+                    _computeWorker = null;
+                    renderLogs();
+                };
+                _computeWorker = w;
+                return w;
+            } catch(e) {
+                _computeWorkerDead = true;
+                return null;
+            }
+        }
+
+        function syncComputeResults() {
+            const w = getComputeWorker();
+            if (w) w.post({ action: 'setResults', results: allLogs });
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logContent');
+            const countEl = document.getElementById('logCount');
+            if (allLogs.length === 0) {
+                destroyLogVirtualScroll();
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ds-text-secondary)">无匹配日志</div>';
+                if (countEl) countEl.textContent = '';
                 return;
             }
-            let html = '';
-            for (let i = 0; i < displayCount; i++) {
-                const l = filtered[i];
-                html += `<div class="log-line ${l.type}"><span class="log-tag ${l.type}">${l.label}</span><span style="color:var(--ds-text-secondary);margin-right:8px">L${l.line}</span>${escapeHtml(l.text)}</div>`;
+            const criteria = getFilterCriteria();
+            // 大结果集筛选下沉 Worker；小结果集同步过滤（无延迟感）
+            if (allLogs.length > WORKER_FILTER_THRESHOLD) {
+                const w = getComputeWorker();
+                if (w) {
+                    const reqId = ++_viewReqId;
+                    if (countEl) countEl.textContent = '筛选中...';
+                    _pendingView = { reqId: reqId, cb: mountLogs };
+                    w.post({ action: 'filterView', type: criteria.type, query: criteria.query, reqId: reqId });
+                    return;
+                }
             }
-            document.getElementById('logContent').innerHTML = html;
+            mountLogs(getFilteredLogsSync());
+        }
+
+        // 搜索输入防抖，避免大结果集每次按键都触发过滤
+        function debounceRenderLogs() {
+            clearTimeout(_renderDebounce);
+            _renderDebounce = setTimeout(renderLogs, 180);
+        }
+
+        function renderLogRow(l) {
+            const safeText = escapeHtml(l.text);
+            return '<div class="log-line ' + l.type + '" title="L' + l.line + ': ' + safeText + '" ' +
+                'style="margin:0;height:100%;display:flex;align-items:center;padding:4px 8px;border-radius:4px;white-space:nowrap;overflow:hidden;">' +
+                '<span class="log-tag ' + l.type + '" style="flex-shrink:0;">' + l.label + '</span>' +
+                '<span style="color:var(--ds-text-secondary);margin-right:8px;flex-shrink:0;">L' + l.line + '</span>' +
+                '<span style="overflow:hidden;text-overflow:ellipsis;">' + safeText + '</span></div>';
+        }
+
+        function mountLogs(filtered) {
+            const container = document.getElementById('logContent');
+            const countEl = document.getElementById('logCount');
+            if (countEl) countEl.textContent = '共 ' + filtered.length + ' 条异常日志';
+            if (!filtered || filtered.length === 0) {
+                destroyLogVirtualScroll();
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ds-text-secondary)">无匹配日志</div>';
+                return;
+            }
+            if (logVirtualScroll) {
+                logVirtualScroll.updateItems(filtered);
+                return;
+            }
+            container.innerHTML = '';
+            logVirtualScroll = new VirtualScroll(container, {
+                items: filtered,
+                itemHeight: LOG_ROW_HEIGHT,
+                overscan: 8,
+                className: 'vs-log-row',
+                renderItem: renderLogRow
+            });
         }
 
         function escapeHtml(s) {
@@ -368,10 +648,10 @@
             const panel = document.getElementById('conclusionPanel');
             const content = document.getElementById('conclusionContent');
             if (!panel || !content || allLogs.length === 0) {
-                if (panel) panel.style.display = 'none';
+                if (panel) hideEl('conclusionPanel');
                 return;
             }
-            panel.style.display = 'block';
+            showEl('conclusionPanel', 'block');
 
             const counts = {};
             Object.keys(PATTERNS).forEach(t => counts[t] = 0);
@@ -691,8 +971,10 @@
 
         function resetUpload() {
             allLogs = [];
-            document.getElementById('fileInfo').style.display = 'none';
-            document.getElementById('analysis').style.display = 'none';
+            destroyLogVirtualScroll();
+            hideEl('fileInfo');
+            hideEl('analysis');
+            hideEl('conclusionPanel');
             document.getElementById('emptyState').style.display = 'block';
             document.getElementById('fileInput').value = '';
             document.getElementById('aiResultSection').style.display = 'none';
@@ -729,7 +1011,34 @@
             return { stats_summary: statsSummary, key_anomalies: topAnomalies };
         }
 
+        let _aiScriptsPromise = null;
+        // v8.0: AI 根因分析脚本按需加载（点击时才下载，首屏不加载）
+        function ensureAIScripts() {
+            if (window.LogRootCauseAI && window.LogAIEnhancements) return Promise.resolve();
+            if (!_aiScriptsPromise) {
+                const urls = ['/static/js/log_root_cause_ai.js', '/static/js/log_ai_enhancements.js'];
+                _aiScriptsPromise = (window.PTLoader && PTLoader.loadMultiple)
+                    ? PTLoader.loadMultiple(urls)
+                    : Promise.all(urls.map(u => loadCdnScript(u)));
+            }
+            return _aiScriptsPromise;
+        }
+        function openAiAdmin(tab) {
+            ensureAIScripts().then(() => {
+                LogAIEnhancements.ensureModals();
+                LogAIEnhancements.AdminPanel.open(tab);
+            }).catch(e => alert('AI 组件加载失败: ' + e.message));
+        }
         async function runAiAnalyze() {
+            try {
+                await ensureAIScripts();
+            } catch(e) {
+                showToast('AI 组件加载失败: ' + e.message, 'error');
+                return;
+            }
+            return _runAiAnalyzeInternal();
+        }
+        async function _runAiAnalyzeInternal() {
             if (allLogs.length === 0) {
                 showToast('请先分析日志', 'warning');
                 return;
@@ -1048,8 +1357,7 @@
 <script src="/static/js/v5-ux.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/components.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/log_root_cause_ai.js?v={{ STATIC_VERSION }}"></script>
-<script src="/static/js/log_ai_enhancements.js?v={{ STATIC_VERSION }}"></script>
+<!-- v8.0: AI 根因分析脚本改为按需加载（点击 AI 分析按钮时通过 PTLoader 加载） -->
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script>
 // v6.0: 日志分析 → Bug趋势看板同步

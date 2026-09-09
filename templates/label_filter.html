@@ -6,7 +6,9 @@
     <title>Labels 筛选分析 - Potential-tools</title>
     <link rel="stylesheet" href="/static/css/design-system.css">
     <link rel="stylesheet" href="/static/css/polish.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <!-- v8.0: XLSX 为核心功能保留静态加载；Chart.js 改为生成图表时按需加载 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -31,7 +33,7 @@
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
             </div>
             <div class="file-info" id="fileInfo" style="display:none;">
-                <span id="fileName"></span>
+                <span><span id="fileName"></span><span id="fileSize" style="color:#86868b;font-size:12px;margin-left:8px;"></span></span>
                 <button class="btn btn-secondary btn-sm" onclick="resetUpload()">重新上传</button>
             </div>
         </div>
@@ -217,8 +219,8 @@
                         <button class="btn btn-secondary btn-sm" onclick="exportFilteredCSV()">导出筛选结果</button>
                     </div>
                 </div>
-                <div class="table-container">
-                    <table class="data-table">
+                <div class="table-container" id="tableContainer">
+                    <table class="data-table" id="issueTable">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -232,6 +234,18 @@
                         </thead>
                         <tbody id="issueTableBody"></tbody>
                     </table>
+                    <div id="virtualTableWrap" style="display:none;">
+                        <div class="vt-head">
+                            <div class="vt-cell">ID</div>
+                            <div class="vt-cell">标题</div>
+                            <div class="vt-cell">模块</div>
+                            <div class="vt-cell">负责人</div>
+                            <div class="vt-cell">严重级别</div>
+                            <div class="vt-cell">状态</div>
+                            <div class="vt-cell">Labels</div>
+                        </div>
+                        <div class="vt-body" id="issueVirtualContainer"></div>
+                    </div>
                 </div>
                 <div class="pagination" id="pagination"></div>
             </div>
@@ -345,6 +359,13 @@
             .charts-grid { grid-template-columns: 1fr; }
             .page-container { padding: 16px; }
         }
+        /* v8.0: 虚拟滚动问题表格（固定行高，仅渲染可视区） */
+        .vt-head { display:grid; grid-template-columns:130px 1fr 120px 110px 100px 90px 1.4fr; background:#f8f8f8; padding:10px 0; font-weight:600; font-size:13px; border-bottom:1px solid #e0e0e0; position:sticky; top:0; z-index:2; }
+        .vt-item { display:grid; grid-template-columns:130px 1fr 120px 110px 100px 90px 1.4fr; align-items:center; border-bottom:1px solid #f0f0f0; box-sizing:border-box; }
+        .vt-item:hover { background:#fafafa; }
+        .vt-cell { padding:0 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+        .vt-body { max-height:560px; overflow-y:auto; border:1px solid #f0f0f0; border-top:none; border-radius:0 0 8px 8px; }
+        .preview-banner { text-align:center; padding:12px; font-size:13px; background:#f8f8f8; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:16px; }
     </style>
 
     <script>
@@ -400,32 +421,218 @@ function initUpload() {
     });
 }
 
+// v8.0: 大文件阈值与虚拟滚动阈值
+const LARGE_FILE_LIMIT = 50 * 1024 * 1024;  // 超过 50MB 走 Worker 后台解析
+const VIRTUAL_ROW_HEIGHT = 44;
+const VIRTUAL_THRESHOLD = 300;              // 超过 300 行启用全量虚拟滚动
+const WORKER_QUERY_THRESHOLD = 5000;        // 超过 5000 行筛选/聚合下沉 Worker
+let _labelCounts = {};
+
+function formatFileSize(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+// 按需加载外部脚本（优先 PTLoader）
+function loadExtScript(url, globalName) {
+    if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
+    if (window.PTLoader && PTLoader.load) return PTLoader.load(url);
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url; s.async = true;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('脚本加载失败: ' + url));
+        document.head.appendChild(s);
+    });
+}
+
+let _xlsxReady = null;
+function ensureXLSX() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (!_xlsxReady) _xlsxReady = loadExtScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
+    return _xlsxReady;
+}
+
+// v8.0: Chart.js 按需加载（用户首次看到图表时才下载）
+let _chartReady = null;
+function ensureChartJs() {
+    if (window.Chart) return Promise.resolve(window.Chart);
+    if (!_chartReady) _chartReady = loadExtScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', 'Chart');
+    return _chartReady;
+}
+
 // 处理文件
 async function handleFile(file) {
     document.getElementById('fileName').textContent = file.name;
+    const fsEl = document.getElementById('fileSize');
+    if (fsEl) fsEl.textContent = formatFileSize(file.size);
     document.getElementById('fileInfo').style.display = 'flex';
     document.getElementById('uploadSection').style.display = 'none';
     document.getElementById('progressSection').style.display = 'block';
 
     try {
+        await ensureXLSX();
+        if (file.size >= LARGE_FILE_LIMIT && typeof Worker !== 'undefined') {
+            await handleLargeFile(file);
+            return;
+        }
         updateProgress(20, '正在读取文件...');
         const data = await readFile(file);
         updateProgress(50, '正在解析数据...');
         allIssues = parseIssues(data);
         updateProgress(80, '正在提取 Labels...');
         extractLabels();
-        updateProgress(100, '分析完成');
-
-        setTimeout(() => {
-            document.getElementById('progressSection').style.display = 'none';
-            document.getElementById('resultSection').style.display = 'block';
-            renderLabelList();
-            applyFilter();
-        }, 500);
+        populateSeverityFilter();
+        _severityPopulated = true;
+        finishParse();
     } catch (error) {
         alert('文件解析失败: ' + error.message);
         resetUpload();
     }
+}
+
+function finishParse() {
+    updateProgress(100, '分析完成');
+    setTimeout(() => {
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('resultSection').style.display = 'block';
+        renderLabelList();
+        applyFilter();
+    }, 300);
+}
+
+// ===== v8.0: 大文件 Worker 解析（进度回调 + 前 N 行预览，失败降级主线程） =====
+let _labelWorker = null;
+let _labelWorkerDead = false;
+let _labelWorkerHasData = false;
+let _queryReqId = 0;
+let _lwHandlers = {};
+
+function createLabelWorker() {
+    if (_labelWorkerDead || typeof Worker === 'undefined') return null;
+    if (_labelWorker) return _labelWorker;
+    try {
+        const w = new Worker('/static/js/workers/label-worker.js');
+        w.onmessage = (e) => {
+            const msg = e.data;
+            const h = _lwHandlers[msg.type];
+            if (h) h(msg);
+        };
+        w.onerror = (err) => {
+            console.warn('[label-worker] 失败，后续操作降级主线程:', err);
+            _labelWorkerDead = true;
+            try { w.terminate(); } catch(e) {}
+            _labelWorker = null;
+        };
+        _labelWorker = w;
+        return w;
+    } catch(e) {
+        _labelWorkerDead = true;
+        return null;
+    }
+}
+
+function readArrayBufferWithProgress(file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onprogress = (ev) => { if (ev.lengthComputable && onProgress) onProgress(ev.loaded / ev.total); };
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function showPreviewBanner(n) {
+    let b = document.getElementById('previewBanner');
+    if (!b) {
+        b = document.createElement('div');
+        b.id = 'previewBanner';
+        b.className = 'preview-banner';
+        document.getElementById('resultSection').prepend(b);
+    }
+    b.textContent = '已预览前 ' + n + ' 行，完整数据正在后台解析...';
+    b.style.display = 'block';
+}
+function hidePreviewBanner() {
+    const b = document.getElementById('previewBanner');
+    if (b) b.style.display = 'none';
+}
+
+async function handleLargeFile(file) {
+    const worker = createLabelWorker();
+    if (!worker) {
+        // Worker 不可用：退回同步路径
+        const data = await readFile(file);
+        allIssues = parseIssues(data);
+        extractLabels();
+        populateSeverityFilter();
+        _severityPopulated = true;
+        finishParse();
+        return;
+    }
+    updateProgress(5, '正在读取大文件 ' + formatFileSize(file.size) + ' ...');
+    const buffer = await readArrayBufferWithProgress(file, p =>
+        updateProgress(Math.round(5 + p * 30), '读取文件 ' + Math.round(p * 100) + '%'));
+    updateProgress(40, '后台解析 Excel 中...');
+
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        _lwHandlers = {
+            progress: (msg) => updateProgress(Math.round(msg.percent || 0), msg.text || '解析中...'),
+            preview: (msg) => {
+                // 先渲染前 N 行预览，完整解析继续在后台进行
+                allIssues = msg.issues || [];
+                extractLabels();
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'block';
+                renderLabelList();
+                applyFilter();
+                showPreviewBanner(allIssues.length);
+            },
+            done: (msg) => {
+                if (settled) return;
+                settled = true;
+                allIssues = msg.issues || [];
+                allLabels = msg.labels || [];
+                _labelCounts = msg.labelCounts || {};
+                populateSeverityOptions(msg.severities || []);
+                _severityPopulated = true;
+                _labelWorkerHasData = true;
+                hidePreviewBanner();
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'block';
+                renderLabelList();
+                applyFilter();
+                resolve();
+            },
+            error: (msg) => {
+                if (settled) return;
+                settled = true;
+                // Worker 解析失败（如离线环境 importScripts 失败）：自动降级主线程同步解析
+                console.warn('[label-worker] 解析失败，降级主线程:', msg.message);
+                _labelWorkerDead = true;
+                readFile(file).then(data => {
+                    allIssues = parseIssues(data);
+                    extractLabels();
+                    populateSeverityFilter();
+                    _severityPopulated = true;
+                    finishParse();
+                    resolve();
+                }).catch(reject);
+            }
+        };
+        worker.postMessage({ action: 'parse', buffer: buffer }, [buffer]);
+    });
+}
+
+function populateSeverityOptions(severities) {
+    const select = document.getElementById('severityFilter');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">全部级别</option>' +
+        severities.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    select.value = current;
 }
 
 // 读取文件
@@ -473,12 +680,7 @@ function fixEncoding(str) {
     }
 }
 
-// 动态加载 SheetJS
-if (typeof XLSX === 'undefined') {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    document.head.appendChild(script);
-}
+// v8.0: SheetJS 动态加载统一由 ensureXLSX() 处理（head 中保留静态加载作为核心保障）
 
 // 解析问题数据
 function parseIssues(data) {
@@ -615,11 +817,15 @@ function parseLabels(labelStr) {
         .filter(l => l && l.length > 0);
 }
 
-// 提取所有 Labels
+// 提取所有 Labels（v8.0: 同时统计每个 label 的数量，避免下拉列表 O(n*m) 遍历）
 function extractLabels() {
     const labelSet = new Set();
+    _labelCounts = {};
     allIssues.forEach(issue => {
-        issue.labels.forEach(label => labelSet.add(label));
+        issue.labels.forEach(label => {
+            labelSet.add(label);
+            _labelCounts[label] = (_labelCounts[label] || 0) + 1;
+        });
     });
     allLabels = Array.from(labelSet).sort();
 }
@@ -640,6 +846,7 @@ function renderLabelList() {
 }
 
 function countByLabel(label) {
+    if (_labelCounts && _labelCounts[label] != null) return _labelCounts[label];
     return allIssues.filter(i => i.labels.includes(label)).length;
 }
 
@@ -791,20 +998,22 @@ function isResolved(issue) {
     return resolvedStatuses.some(s => issue.status.toLowerCase().includes(s));
 }
 
-// 更新图表
-function updateCharts() {
-    updateSeverityChart();
-    updateModuleChart();
-    updateDeveloperChart();
-    updateStatusChart();
+// 更新图表（v8.0: Chart.js 按需加载；groups 可由 Worker 预聚合传入）
+function updateCharts(groups) {
+    ensureChartJs().then(() => {
+        updateSeverityChart(groups && groups.severity);
+        updateModuleChart(groups && groups.module);
+        updateDeveloperChart(groups && groups.developer);
+        updateStatusChart(groups && groups.status);
+    }).catch(err => console.warn('Chart.js 加载失败:', err));
 }
 
-function updateSeverityChart() {
-    const counts = {};
-    filteredIssues.forEach(issue => {
+function updateSeverityChart(preset) {
+    const counts = preset || {};
+    if (!preset) { filteredIssues.forEach(issue => {
         const sev = issue.severity || '未设置';
         counts[sev] = (counts[sev] || 0) + 1;
-    });
+    }); }
 
     const labels = Object.keys(counts);
     const data = Object.values(counts);
@@ -818,12 +1027,12 @@ function updateSeverityChart() {
     });
 }
 
-function updateModuleChart() {
-    const counts = {};
-    filteredIssues.forEach(issue => {
+function updateModuleChart(preset) {
+    const counts = preset || {};
+    if (!preset) { filteredIssues.forEach(issue => {
         const mod = issue.module || '未设置';
         counts[mod] = (counts[mod] || 0) + 1;
-    });
+    }); }
 
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const labels = sorted.map(s => s[0]);
@@ -837,12 +1046,12 @@ function updateModuleChart() {
     });
 }
 
-function updateDeveloperChart() {
-    const counts = {};
-    filteredIssues.forEach(issue => {
+function updateDeveloperChart(preset) {
+    const counts = preset || {};
+    if (!preset) { filteredIssues.forEach(issue => {
         const dev = issue.developer || '未分配';
         counts[dev] = (counts[dev] || 0) + 1;
-    });
+    }); }
 
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const labels = sorted.map(s => s[0]);
@@ -856,12 +1065,12 @@ function updateDeveloperChart() {
     });
 }
 
-function updateStatusChart() {
-    const counts = {};
-    filteredIssues.forEach(issue => {
+function updateStatusChart(preset) {
+    const counts = preset || {};
+    if (!preset) { filteredIssues.forEach(issue => {
         const status = issue.status || '未设置';
         counts[status] = (counts[status] || 0) + 1;
-    });
+    }); }
 
     const labels = Object.keys(counts);
     const data = Object.values(counts);
@@ -925,8 +1134,8 @@ function formatDate(date) {
     return (date.getMonth() + 1) + '月' + date.getDate() + '日';
 }
 
-// 更新趋势分析
-function updateTrendAnalysis() {
+// 更新趋势分析（v8.0: daily 可由 Worker 预聚合传入，跳过主线程逐行日期解析）
+function updateTrendAnalysis(daily) {
     if (filteredIssues.length === 0) {
         trendData = [];
         document.getElementById('trendTableBody').innerHTML = '<tr><td colspan="5" style="color:#86868b;padding:20px;">暂无数据</td></tr>';
@@ -934,26 +1143,31 @@ function updateTrendAnalysis() {
         return;
     }
 
-    // 收集所有日期
+    // 收集所有日期（Worker 路径直接使用预聚合结果）
     const dateSet = new Set();
-    const dailyNew = {};
-    const dailyResolved = {};
-
-    filteredIssues.forEach(issue => {
-        const created = parseDate(issue.created);
-        if (created) {
-            const key = created.toDateString();
-            dateSet.add(key);
-            dailyNew[key] = (dailyNew[key] || 0) + 1;
-        }
-        // 只有状态是已解决的问题，才计入已解决数
-        const resolved = parseDate(issue.resolved);
-        if (resolved && isResolved(issue)) {
-            const key = resolved.toDateString();
-            dateSet.add(key);
-            dailyResolved[key] = (dailyResolved[key] || 0) + 1;
-        }
-    });
+    let dailyNew = {};
+    let dailyResolved = {};
+    if (daily) {
+        dailyNew = daily.dailyNew || {};
+        dailyResolved = daily.dailyResolved || {};
+        (daily.dates || []).forEach(k => dateSet.add(k));
+    } else {
+        filteredIssues.forEach(issue => {
+            const created = parseDate(issue.created);
+            if (created) {
+                const key = created.toDateString();
+                dateSet.add(key);
+                dailyNew[key] = (dailyNew[key] || 0) + 1;
+            }
+            // 只有状态是已解决的问题，才计入已解决数
+            const resolved = parseDate(issue.resolved);
+            if (resolved && isResolved(issue)) {
+                const key = resolved.toDateString();
+                dateSet.add(key);
+                dailyResolved[key] = (dailyResolved[key] || 0) + 1;
+            }
+        });
+    }
 
     if (dateSet.size === 0) {
         document.getElementById('trendTableBody').innerHTML = '<tr><td colspan="5" style="color:#86868b;padding:20px;">无法解析日期数据</td></tr>';
@@ -1019,9 +1233,10 @@ function updateTrendAnalysis() {
     document.getElementById('statNew').textContent = totalNew;
     document.getElementById('statTrendResolved').textContent = totalResolved;
 
-    // 渲染折线图
+    // 渲染折线图（v8.0: Chart.js 按需加载）
     const ctx = document.getElementById('trendChart');
     if (charts.trend) charts.trend.destroy();
+    ensureChartJs().then(() => {
     charts.trend = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1093,6 +1308,7 @@ function updateTrendAnalysis() {
             }
         }
     });
+    });
 }
 
 // 导出趋势 CSV
@@ -1112,15 +1328,38 @@ function exportTrendCSV() {
     link.click();
 }
 
-// 渲染表格
+// ===== v8.0: 问题表格 —— 小数据保留分页，大数据全量虚拟滚动 =====
+let issueVirtualScroll = null;
+function destroyIssueVirtualScroll() {
+    if (issueVirtualScroll) {
+        try { issueVirtualScroll.destroy(); } catch(e) {}
+        issueVirtualScroll = null;
+    }
+}
+
 function renderTable() {
+    document.getElementById('tableCount').textContent = `共 ${filteredIssues.length} 条`;
+    const wrap = document.getElementById('virtualTableWrap');
+    const table = document.getElementById('issueTable');
+    const pager = document.getElementById('pagination');
+    if (filteredIssues.length > VIRTUAL_THRESHOLD && window.VirtualScroll) {
+        if (table) table.style.display = 'none';
+        if (pager) pager.style.display = 'none';
+        wrap.style.display = 'block';
+        mountIssueVirtual(filteredIssues);
+    } else {
+        destroyIssueVirtualScroll();
+        wrap.style.display = 'none';
+        if (table) table.style.display = '';
+        if (pager) pager.style.display = '';
+        renderTablePage();
+    }
+}
+
+function renderTablePage() {
     const tbody = document.getElementById('issueTableBody');
     const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageData = filteredIssues.slice(start, end);
-
-    document.getElementById('tableCount').textContent = `共 ${filteredIssues.length} 条`;
-
+    const pageData = filteredIssues.slice(start, start + pageSize);
     tbody.innerHTML = pageData.map(issue => `
         <tr>
             <td>${escapeHtml(issue.id)}</td>
@@ -1132,8 +1371,36 @@ function renderTable() {
             <td>${issue.labels.map(l => `<span class="label-tag" style="margin:1px;">${escapeHtml(l)}</span>`).join('')}</td>
         </tr>
     `).join('');
-
     renderPagination();
+}
+
+function renderVirtualIssueRow(issue) {
+    const labelHtml = issue.labels.slice(0, 3).map(l =>
+        `<span class="label-tag" style="margin:1px;">${escapeHtml(l)}</span>`
+    ).join('') + (issue.labels.length > 3 ? ' …' : '');
+    return `<div class="vt-cell" title="${escapeHtml(issue.id)}">${escapeHtml(issue.id)}</div>` +
+        `<div class="vt-cell" title="${escapeHtml(issue.title)}">${escapeHtml(issue.title)}</div>` +
+        `<div class="vt-cell" title="${escapeHtml(issue.module)}">${escapeHtml(issue.module)}</div>` +
+        `<div class="vt-cell" title="${escapeHtml(issue.developer)}">${escapeHtml(issue.developer)}</div>` +
+        `<div class="vt-cell"><span class="severity-badge severity-${getSeverityClass(issue.severity)}">${escapeHtml(issue.severity) || '-'}</span></div>` +
+        `<div class="vt-cell ${isResolved(issue) ? 'status-resolved' : 'status-unresolved'}">${escapeHtml(issue.status)}</div>` +
+        `<div class="vt-cell">${labelHtml}</div>`;
+}
+
+function mountIssueVirtual(items) {
+    const container = document.getElementById('issueVirtualContainer');
+    if (issueVirtualScroll) {
+        issueVirtualScroll.updateItems(items);
+        return;
+    }
+    container.innerHTML = '';
+    issueVirtualScroll = new VirtualScroll(container, {
+        items: items,
+        itemHeight: VIRTUAL_ROW_HEIGHT,
+        overscan: 10,
+        className: 'vt-item',
+        renderItem: renderVirtualIssueRow
+    });
 }
 
 function getSeverityClass(severity) {
@@ -1195,10 +1462,25 @@ function updateProgress(percent, text) {
 function resetUpload() {
     allIssues = [];
     allLabels = [];
+    _labelCounts = {};
     selectedLabels.clear();
     filteredIssues = [];
+    _labelWorkerHasData = false;
+    destroyIssueVirtualScroll();
+    if (_labelWorker) {
+        try { _labelWorker.terminate(); } catch(e) {}
+        _labelWorker = null;
+    }
+    _lwHandlers = {};
+    hidePreviewBanner();
+    const wrap = document.getElementById('virtualTableWrap');
+    if (wrap) wrap.style.display = 'none';
+    const table = document.getElementById('issueTable');
+    if (table) table.style.display = '';
     document.getElementById('fileInput').value = '';
     document.getElementById('fileInfo').style.display = 'none';
+    const fsEl = document.getElementById('fileSize');
+    if (fsEl) fsEl.textContent = '';
     document.getElementById('uploadSection').style.display = 'block';
     document.getElementById('progressSection').style.display = 'none';
     document.getElementById('resultSection').style.display = 'none';
@@ -1283,45 +1565,77 @@ function exportFilteredCSV() {
     URL.revokeObjectURL(link.href);
 }
 
-// 增强版 applyFilter（覆盖原函数，支持搜索/状态/严重级别筛选）
-const _origApplyFilter = applyFilter;
-applyFilter = function() {
-    const mode = document.querySelector('input[name="filterMode"]:checked').value;
+// v8.0: 收集筛选条件
+function collectFilterCriteria() {
+    const modeEl = document.querySelector('input[name="filterMode"]:checked');
     const si = document.getElementById('searchInput');
     const sf = document.getElementById('statusFilter');
     const svf = document.getElementById('severityFilter');
-    const searchText = si ? si.value.toLowerCase().trim() : '';
-    const statusVal = sf ? sf.value : '';
-    const severityVal = svf ? svf.value : '';
+    return {
+        mode: modeEl ? modeEl.value : 'any',
+        searchText: si ? si.value.toLowerCase().trim() : '',
+        statusVal: sf ? sf.value : '',
+        severityVal: svf ? svf.value : '',
+        selectedLabels: Array.from(selectedLabels)
+    };
+}
+
+function matchIssueWithCriteria(issue, c) {
+    if (c.selectedLabels.length > 0) {
+        const labelMatch = c.mode === 'any'
+            ? issue.labels.some(l => selectedLabels.has(l))
+            : c.selectedLabels.every(l => issue.labels.includes(l));
+        if (!labelMatch) return false;
+    }
+    if (c.searchText) {
+        const target = (issue.title + ' ' + issue.id).toLowerCase();
+        if (!target.includes(c.searchText)) return false;
+    }
+    if (c.statusVal === 'resolved' && !isResolved(issue)) return false;
+    if (c.statusVal === 'unresolved' && isResolved(issue)) return false;
+    if (c.severityVal && issue.severity !== c.severityVal) return false;
+    return true;
+}
+
+// 增强版 applyFilter（覆盖原函数，支持搜索/状态/严重级别筛选；大数据下沉 Worker）
+applyFilter = function() {
+    const c = collectFilterCriteria();
 
     if (!_severityPopulated && allIssues.length > 0) {
         populateSeverityFilter();
         _severityPopulated = true;
     }
 
-    filteredIssues = allIssues.filter(issue => {
-        if (selectedLabels.size > 0) {
-            const labelMatch = mode === 'any'
-                ? issue.labels.some(l => selectedLabels.has(l))
-                : Array.from(selectedLabels).every(l => issue.labels.includes(l));
-            if (!labelMatch) return false;
+    // Worker 路径：筛选 + 分组聚合 + 趋势日聚合全部后台执行，仅回传索引与统计
+    if (_labelWorkerHasData && !_labelWorkerDead && allIssues.length > WORKER_QUERY_THRESHOLD) {
+        const w = createLabelWorker();
+        if (w) {
+            const reqId = ++_queryReqId;
+            _lwHandlers.queryResult = (msg) => {
+                if (msg.reqId !== reqId) return;
+                filteredIssues = msg.indices.map(i => allIssues[i]);
+                currentPage = 1;
+                updateStats();
+                updateCharts(msg.groups);
+                updateTrendAnalysis(msg.daily);
+                renderTable();
+            };
+            w.postMessage({ action: 'query', reqId: reqId, criteria: c });
+            return;
         }
-        if (searchText) {
-            const target = (issue.title + ' ' + issue.id).toLowerCase();
-            if (!target.includes(searchText)) return false;
-        }
-        if (statusVal === 'resolved' && !isResolved(issue)) return false;
-        if (statusVal === 'unresolved' && isResolved(issue)) return false;
-        if (severityVal && issue.severity !== severityVal) return false;
-        return true;
-    });
+    }
+    applyFilterSync(c);
+};
 
+// 主线程同步筛选（小数据路径 / Worker 降级路径）
+function applyFilterSync(c) {
+    filteredIssues = allIssues.filter(issue => matchIssueWithCriteria(issue, c));
     currentPage = 1;
     updateStats();
     updateCharts();
     updateTrendAnalysis();
     renderTable();
-};
+}
 
 </script>
 
