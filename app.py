@@ -696,4 +696,6 @@ except Exception as e:
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     logger.info(f"启动 Potential-tools v5.0，端口: {port}")
-    app.run(host='0.0.0.0', port=port, debug=not _is_production)
+    # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
+    # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
+    app.run(host='0.0.0.0', port=port, debug=not _is_production, use_reloader=False)

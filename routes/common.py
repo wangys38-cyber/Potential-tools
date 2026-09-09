@@ -9,6 +9,7 @@ import gc
 import logging
 import traceback
 import threading
+import queue
 from datetime import datetime, timezone, timedelta
 
 import db
@@ -542,10 +543,6 @@ try:
 except ImportError:
     _sync_playwright = None
 
-_pdf_render_lock = threading.Lock()
-_pw_instance = None
-_pw_browser = None
-
 # MD2PDF 预览样式 CSS
 MD2PDF_PREVIEW_CSS = """
         body { font-family: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; padding: 40px; background: #fff; color: #333; font-size: 14px; line-height: 1.8; }
@@ -568,55 +565,97 @@ MD2PDF_PREVIEW_CSS = """
         hr { border: none; border-top: 2px dashed #ddd; margin: 25px 0; }
 """
 
+# ---- Playwright 专用工作线程（sync_api 不允许跨线程，Flask 多线程下必须固定在一个线程内运行）----
+_pw_task_queue = None
+_pw_worker_thread = None
+_pw_worker_lock = threading.Lock()
 
-def get_pw_browser():
-    """获取或创建全局 Chromium 浏览器实例（复用，避免每次冷启动）"""
-    global _pw_instance, _pw_browser
-    if _sync_playwright is None:
-        raise RuntimeError("Playwright 未安装，请运行: pip install playwright && playwright install chromium")
-    if _pw_browser is not None:
+
+def _pw_worker_loop():
+    """专用工作线程：在本线程内创建并长期持有 playwright + browser，串行执行渲染任务"""
+    instance = None
+    browser = None
+    while True:
+        task = _pw_task_queue.get()
+        if task is None:
+            # 退出信号
+            break
+        fn, args, result_box = task
         try:
-            _ = _pw_browser.version
-            return _pw_browser
-        except Exception:
-            _pw_browser = None
-            logger.warning("Chromium 浏览器已断开，正在重新创建...")
-    if _pw_instance is None:
-        _pw_instance = _sync_playwright().start()
+            if _sync_playwright is None:
+                raise RuntimeError("Playwright 未安装，请运行: pip install playwright && playwright install chromium")
+            # 懒启动 playwright + browser（全局复用）
+            if instance is None:
+                instance = _sync_playwright().start()
+            if browser is None:
+                try:
+                    browser = instance.chromium.launch(headless=True, channel="chrome")
+                except Exception:
+                    browser = instance.chromium.launch(headless=True)
+                logger.info("Chromium 浏览器实例已创建（专用工作线程复用）")
+            result_box['result'] = fn(browser, *args)
+        except Exception as e:
+            # browser 异常时清空，下次任务重建
+            try:
+                if browser is not None:
+                    browser.close()
+            except Exception:
+                pass
+            browser = None
+            result_box['error'] = e
+        finally:
+            result_box['done'].set()
+
+
+def _pw_run_on_worker(fn, *args, timeout=120):
+    """把渲染任务提交到专用工作线程执行并等待结果"""
+    global _pw_task_queue, _pw_worker_thread
+    with _pw_worker_lock:
+        if _pw_worker_thread is None or not _pw_worker_thread.is_alive():
+            _pw_task_queue = queue.Queue()
+            _pw_worker_thread = threading.Thread(target=_pw_worker_loop, name="pw-pdf-worker", daemon=True)
+            _pw_worker_thread.start()
+    done = threading.Event()
+    result_box = {'done': done, 'result': None, 'error': None}
+    _pw_task_queue.put((fn, args, result_box))
+    if not done.wait(timeout=timeout):
+        raise TimeoutError("PDF 渲染超时（%ss）" % timeout)
+    if result_box['error'] is not None:
+        raise result_box['error']
+    return result_box['result']
+
+
+def _render_on_browser(browser, html_path, pdf_path, margin, extra_wait_ms, wait_selector):
+    """在专用工作线程内执行的实际渲染逻辑"""
+    context = browser.new_context()
+    page = context.new_page()
     try:
-        _pw_browser = _pw_instance.chromium.launch(headless=True, channel="chrome")
-    except Exception:
-        _pw_browser = _pw_instance.chromium.launch(headless=True)
-    logger.info("Chromium 浏览器实例已创建（全局复用）")
-    return _pw_browser
+        page.goto(f'file://{html_path}')
+        page.wait_for_load_state('networkidle')
+        if wait_selector:
+            try:
+                page.wait_for_selector(wait_selector, timeout=5000)
+            except Exception:
+                pass
+        if extra_wait_ms > 0:
+            page.wait_for_timeout(extra_wait_ms)
+        page.pdf(
+            path=pdf_path,
+            format='A4',
+            margin=margin,
+            print_background=True
+        )
+    finally:
+        context.close()
 
 
 def render_pdf(html_path, pdf_path, margin=None, extra_wait_ms=0, wait_selector=None):
-    """使用全局 Chromium 实例渲染 PDF（线程安全）"""
+    """线程安全的 PDF 渲染：提交到 Playwright 专用工作线程执行"""
     if margin is None:
         margin = {'top': '2cm', 'right': '2cm', 'bottom': '2cm', 'left': '2cm'}
-    with _pdf_render_lock:
-        browser = get_pw_browser()
-        context = browser.new_context()
-        page = context.new_page()
-        try:
-            page.goto(f'file://{html_path}')
-            page.wait_for_load_state('networkidle')
-            if wait_selector:
-                try:
-                    page.wait_for_selector(wait_selector, timeout=5000)
-                except Exception:
-                    pass
-            if extra_wait_ms > 0:
-                page.wait_for_timeout(extra_wait_ms)
-            page.pdf(
-                path=pdf_path,
-                format='A4',
-                margin=margin,
-                print_background=True
-            )
-        finally:
-            context.close()
+    return _pw_run_on_worker(
+        _render_on_browser, html_path, pdf_path, margin, extra_wait_ms, wait_selector
+    )
 
 
 # ==================== 后台任务共享状态 ====================
