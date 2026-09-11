@@ -642,7 +642,7 @@ def get_user_by_id(user_id):
     """根据ID获取用户信息"""
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT * FROM users WHERE id = :id"),
+            text("SELECT id, provider, provider_uid, name, email, avatar, username, is_admin, created_at, last_login FROM users WHERE id = :id"),
             {'id': user_id}
         ).fetchone()
         return _row_to_dict(row)
@@ -747,7 +747,7 @@ def get_user_by_username(username):
         return None
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT * FROM users WHERE username = :username"),
+            text("SELECT id, provider, provider_uid, name, email, avatar, username, is_admin, created_at, last_login FROM users WHERE username = :username"),
             {'username': username.strip()}
         ).fetchone()
         return _row_to_dict(row)
@@ -759,7 +759,7 @@ def get_user_by_email(email):
         return None
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT * FROM users WHERE email = :email"),
+            text("SELECT id, provider, provider_uid, name, email, avatar, username, is_admin, created_at, last_login FROM users WHERE email = :email"),
             {'email': email.strip().lower()}
         ).fetchone()
         return _row_to_dict(row)

@@ -6,92 +6,12 @@
     <title>每日站会助手 - Potential Tools</title>
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: var(--bg-primary);
-            min-height: 100vh;
-            color: var(--text-primary);
-        }
-        .container { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
-        .panel {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }
-        .panel-title {
-            font-size: 15px; font-weight: 600; margin-bottom: 12px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .panel-title .badge {
-            font-size: 10px; padding: 2px 8px; border-radius: 10px;
-            background: var(--bg-secondary); color: var(--text-secondary); font-weight: 600;
-        }
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .input-row input {
-            flex: 1; padding: 8px 12px; border: 1px solid var(--border);
-            border-radius: 8px; font-size: 13px; background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-        .input-row input:focus { outline: none; border-color: var(--text-primary); }
-        textarea {
-            width: 100%; min-height: 80px; padding: 10px 12px;
-            border: 1px solid var(--border); border-radius: 10px;
-            background: var(--bg-secondary); color: var(--text-primary);
-            font-size: 13px; line-height: 1.6; resize: vertical;
-            font-family: inherit;
-        }
-        textarea:focus { outline: none; border-color: var(--text-primary); }
-        .action-btn {
-            padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
-            font-size: 13px; font-weight: 500; cursor: pointer;
-            transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
-            background: var(--bg-secondary); color: var(--text-primary);
-        }
-        .action-btn:hover { background: var(--bg-hover, #e8e8ed); }
-        .action-btn.primary { background: #000; color: #fff; border-color: #000; }
-        .action-btn.primary:hover { background: #333; }
-        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-        .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-        .tag {
-            padding: 4px 10px; border-radius: 6px; font-size: 12px;
-            background: var(--bg-secondary); color: var(--text-primary);
-            display: inline-flex; align-items: center; gap: 4px;
-            border: 1px solid var(--border-light, #e8e8ed);
-        }
-        .tag .remove { cursor: pointer; opacity: 0.6; }
-        .tag .remove:hover { opacity: 1; }
-        .output-area {
-            background: var(--bg-secondary); border-radius: 10px;
-            padding: 16px; font-size: 13px; line-height: 1.8;
-            white-space: pre-wrap; word-break: break-word;
-            min-height: 120px; border: 1px solid var(--border);
-        }
-        .output-area.empty { color: var(--text-secondary); font-style: italic; }
-        .history-item {
-            padding: 10px 12px; border-radius: 8px;
-            background: var(--bg-secondary); margin-bottom: 6px;
-            cursor: pointer; transition: background 0.2s;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .history-item:hover { background: var(--bg-hover, #e8e8ed); }
-        .history-date { font-size: 12px; color: var(--text-secondary); }
-        .history-preview { font-size: 12px; color: var(--text-primary); flex: 1; margin: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .jira-panel { display: none; margin-top: 10px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; }
-        .jira-panel.show { display: block; }
-        @media (max-width: 768px) {
-            .container { padding: 16px 12px; }
-        }
-    </style>
+    
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+<link rel="stylesheet" href="/static/css/page/daily_standup.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

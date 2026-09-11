@@ -13,35 +13,8 @@
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/noteNB/v6-premium.css?v={{ STATIC_VERSION }}">
 
-<style>
-/* 笔记完成功能样式 */
-.nb-note-complete-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-right: 8px;
-    transition: all 0.2s ease;
-}
-.nb-note-complete-btn:hover {
-    background: rgba(0,0,0,0.05);
-}
-.nb-note-item.completed {
-    opacity: 0.7;
-}
-#nbCompleteBtn.completed {
-    color: #10b981;
-}
-.nb-content-preview.completed,
-.nb-preview-content.completed {
-    text-decoration: line-through;
-    opacity: 0.6;
-}
-</style>
+
+<link rel="stylesheet" href="/static/css/page/notes.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -222,126 +195,10 @@ window.NB_CONFIG = {
 };
 </script>
 <script src="/static/noteNB/app.js?v={{ STATIC_VERSION }}"></script>
-<script>
-// v12.0 笔记版本历史集成
-NB.openVersionHistory = function() {
-    var note = NB.currentNote || (NB.state && NB.state.currentNote);
-    if (!note) { alert('请先选择一篇笔记'); return; }
-    var docId = note.id || note.note_uid || note.uid;
-    if (!docId) { alert('无法获取笔记ID'); return; }
-    VersionHistory.open('note', String(docId), function(content) {
-        // 回滚：更新编辑器内容
-        var editor = document.getElementById('nbContentInput') || document.querySelector('.nb-content-input') || document.querySelector('[contenteditable]');
-        if (editor) {
-            if (editor.tagName === 'TEXTAREA' || editor.tagName === 'INPUT') {
-                editor.value = content;
-            } else {
-                editor.innerHTML = content;
-            }
-            if (typeof NB.onContentInput === 'function') NB.onContentInput(content);
-        }
-        alert('已回滚到该版本，请点击保存同步');
-    });
-};
-</script>
 
-<script>
-// 笔记完成功能增强
-(function() {
-    var originalToggleComplete = NB.toggleComplete;
-    NB.toggleComplete = function() {
-        originalToggleComplete();
-        updateCompleteUI();
-    };
 
-    var originalOpenNote = NB.openNote;
-    NB.openNote = function(noteId) {
-        originalOpenNote(noteId);
-        setTimeout(updateCompleteUI, 50);
-    };
 
-    function updateCompleteUI() {
-        var note = NB.state && NB.state.currentNoteId ? NB.state.notes.find(function(n) { return n.id === NB.state.currentNoteId; }) : null;
-        var btn = document.getElementById('nbCompleteBtn');
-        if (btn && note) {
-            if (note.completed) {
-                btn.classList.add('completed');
-                btn.title = '标记为未完成';
-            } else {
-                btn.classList.remove('completed');
-                btn.title = '标记完成';
-            }
-        }
-        // 给预览内容加中划线
-        var preview = document.querySelector('.nb-content-preview') || document.querySelector('.nb-preview-content');
-        if (preview && note) {
-            if (note.completed) {
-                preview.classList.add('completed');
-            } else {
-                preview.classList.remove('completed');
-            }
-        }
-    }
 
-    // 页面加载后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { setTimeout(updateCompleteUI, 100); });
-    } else {
-        setTimeout(updateCompleteUI, 100);
-    }
-})();
-</script>
-<script>
-// 拍照功能
-NB.takePhoto = function() {
-    var input = document.getElementById('nbCameraInput');
-    if (input) {
-        input.click();
-    }
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    var cameraInput = document.getElementById('nbCameraInput');
-    if (cameraInput) {
-        cameraInput.addEventListener('change', function(e) {
-            var file = e.target.files[0];
-            if (file) {
-                // 压缩图片
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var img = new Image();
-                    img.onload = function() {
-                        var canvas = document.createElement('canvas');
-                        var maxWidth = 1920;
-                        var scale = Math.min(1, maxWidth / img.width);
-                        canvas.width = img.width * scale;
-                        canvas.height = img.height * scale;
-                        var ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        NB.insertImageFromDataUrl(dataUrl);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-            cameraInput.value = '';
-        });
-    }
-});
-
-// 从 dataUrl 插入图片
-NB.insertImageFromDataUrl = function(dataUrl) {
-    var textarea = document.querySelector('.nb-content-textarea');
-    if (!textarea) return;
-    var cursorPos = textarea.selectionStart;
-    var text = textarea.value;
-    var imgMarkdown = '\n![图片](' + dataUrl + ')\n';
-    textarea.value = text.substring(0, cursorPos) + imgMarkdown + text.substring(cursorPos);
-    textarea.selectionStart = textarea.selectionEnd = cursorPos + imgMarkdown.length;
-    NB.onContentInput();
-    if (window.showToast) showToast('图片已插入');
-};
-</script>
+<script src="/static/js/page/notes.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

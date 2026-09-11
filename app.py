@@ -103,7 +103,7 @@ except Exception as e:
 sock = Sock(app)
 
 # 启用 gzip 压缩（HTML/JSON/CSS/JS 响应自动压缩，减少传输量 60-80%）
-# Compress(app) # 禁用，与Whitenoise冲突导致静态文件截断
+Compress(app)  # 静态文件由WhiteNoise在WSGI层处理，不会到达Flask-Compress
 app.config['COMPRESS_MIMETYPES'] = [
     'text/html', 'text/css', 'text/xml',
     'application/json', 'application/javascript',
@@ -209,69 +209,55 @@ def inject_user():
 
 # ==================== 登录拦截 ====================
 # 允许无需登录即可访问的路径前缀（按频率排序，命中即返回）
-_PUBLIC_PATHS = (
-    '/static/',
-    '/assets/',
-    '/login',
-    '/auth/',
-    '/health',
-    '/favicon.ico',
-    '/api/merit',          # v2.0: 功德查询允许匿名访问
-    '/api/user/preferences', # v2.0: 偏好查询允许匿名访问
-    '/api/upload-audio',     # API端点自行检查认证，避免302重定向导致JSON解析失败
-    '/api/transcription-status', # 同上
-    '/api/ai-models',        # 模型列表允许匿名查看（端点内部检查认证）
-    '/api/ai-config',        # 同上
-    '/api/ai-test',          # 同上
-    '/api/ai-chat',          # AI 对话 SSE 自行检查认证
-    '/api/test-report-ai-stream',  # 测试报告 AI 流式分析自行检查认证
-    '/api/excel-analyze-ai-stream', # CR 分析 AI 流式自行检查认证
-    '/api/generate-minutes-stream', # 会议纪要 AI 流式自行检查认证
-    '/api/weekly-report-stream',    # 周报 AI 流式自行检查认证
-    '/api/translate',         # 翻译器 API 自行检查认证
-    '/api/translate/stream',  # 翻译器流式 SSE 自行检查认证
-    '/api/notes/sync',       # 笔记同步API自行检查认证
-    '/api/docs',             # 文档仓库API自行检查认证
-    '/api/docs/<int:doc_id>', # 文档详情API自行检查认证
-    '/api/upload-init',      # 上传API自行检查认证，返回JSON 401
-    '/api/upload-chunk',     # 同上
-    '/api/upload-complete',  # 同上
-    '/ws/',                  # WebSocket端点自行检查认证
-    '/share/',               # v5.3: 共享工作空间允许匿名查看
-    '/privacy',               # 隐私政策页（公开访问）
+_PUBLIC_EXACT_PATHS = frozenset({'/login', '/health', '/favicon.ico', '/privacy'})
+_PUBLIC_PREFIX_PATHS = (
+    '/static/', '/assets/', '/auth/', '/api/merit', '/api/user/preferences',
+    '/api/upload-audio', '/api/transcription-status', '/api/ai-models',
+    '/api/ai-config', '/api/ai-test', '/api/ai-chat', '/api/test-report-ai-stream',
+    '/api/excel-analyze-ai-stream', '/api/generate-minutes-stream',
+    '/api/weekly-report-stream', '/api/translate', '/api/translate/stream',
+    '/api/notes/sync', '/api/docs', '/api/upload-init', '/api/upload-chunk',
+    '/api/upload-complete', '/ws/', '/share/',
 )
 
 @app.before_request
 def require_login():
-    """全局登录拦截：未登录用户自动跳转到登录页"""
+    """P1优化：统一前置中间件（登录+游客+安全+限流+日志，5合1）"""
     path = request.path
-
-    # 定期清理过期任务（非阻塞，不影响请求处理）
     _maybe_cleanup()
+    request_logger.before_request_log()
+    is_public = path in _PUBLIC_EXACT_PATHS or any(path.startswith(p) for p in _PUBLIC_PREFIX_PATHS)
 
-    # 公开路径 — 最先检查，快速放行（静态文件、登录、OAuth回调等）
-    for prefix in _PUBLIC_PATHS:
-        if path.startswith(prefix):
-            return None
+    if not is_public and not session.get('user_id') and not auth.ALLOW_GUEST:
+        session['next_url'] = path if (path != '/' and not path.startswith('/api/')) else '/'
+        if path.startswith('/api/'):
+            return jsonify({'error': '请先登录', 'need_login': True}), 401
+        return redirect(url_for('login_page'))
 
-    # 已登录 — 放行（仅检查 session，不查数据库）
-    if session.get('user_id'):
-        return None
+    user = auth.get_current_user()
+    if user:
+        g.user = user
+    elif not is_public and not auth.is_guest_allowed(path):
+        if path.startswith('/api/'):
+            return jsonify({'error': '请先登录', 'need_login': True}), 401
+        return redirect('/login')
 
-    # 如果允许游客模式 — 放行
-    if auth.ALLOW_GUEST:
-        return None
+    if session.get('user_id') and auth.check_session_timeout():
+        token = session.get('session_token')
+        if token: db.delete_user_session(token)
+        uid = session.get('user_id')
+        db.add_audit_log(uid, 'session_timeout', target_type='user', target_id=uid,
+                         ip=request.remote_addr or '', user_agent=request.headers.get('User-Agent', ''),
+                         details='会话空闲超时自动登出')
+        session.clear()
+        if path.startswith('/api/'):
+            return jsonify({'error': '会话已超时，请重新登录', 'need_login': True}), 401
+        return redirect(url_for('login_page'))
 
-    # 记录用户原始请求路径，登录后跳回
-    if path != '/' and not path.startswith('/api/'):
-        session['next_url'] = path
-    else:
-        session['next_url'] = '/'
-
-    # API 请求返回 401，页面请求 302 跳转
-    if path.startswith('/api/'):
-        return jsonify({'error': '请先登录', 'need_login': True}), 401
-    return redirect(url_for('login_page'))
+    csrf_result = security.csrf_protect()
+    if csrf_result is not None:
+        return csrf_result
+    return rate_limiter.check_rate_limit()
 
 
 # ==================== 定期清理 ====================
@@ -323,60 +309,12 @@ def handle_exception(error):
     return jsonify({'error': '服务器内部错误，请稍后重试'}), 500
 
 
-@app.before_request
-def guest_access_control():
-    """游客访问控制：未登录用户只能访问白名单内的路径"""
-    user = auth.get_current_user()
-    if user:
-        g.user = user  # 存入 g 供后续中间件使用
-        return None  # 已登录用户不限制
-    # 未登录用户（游客）检查白名单
-    if not auth.is_guest_allowed(request.path):
-        # API 请求返回 401，页面请求重定向到登录页
-        if request.path.startswith('/api/'):
-            return jsonify({'error': '请先登录', 'need_login': True}), 401
-        return redirect('/login')
-    return None
 
 
-@app.before_request
-def api_rate_limit():
-    """API 速率限制检查"""
-    return rate_limiter.check_rate_limit()
 
 
-@app.before_request
-def log_request_start():
-    """记录请求开始时间（用于结构化请求日志）"""
-    request_logger.before_request_log()
 
 
-@app.before_request
-def security_middleware():
-    """阶段四安全加固：CSRF 防护 + 会话空闲超时"""
-    # 1. 会话空闲超时检查
-    if session.get('user_id'):
-        if auth.check_session_timeout():
-            # 会话超时，清理并跳转登录
-            token = session.get('session_token')
-            if token:
-                db.delete_user_session(token)
-            user_id = session.get('user_id')
-            db.add_audit_log(user_id, 'session_timeout', target_type='user',
-                             target_id=user_id, ip=request.remote_addr or '',
-                             user_agent=request.headers.get('User-Agent', ''),
-                             details='会话空闲超时自动登出')
-            session.clear()
-            if request.path.startswith('/api/'):
-                return jsonify({'error': '会话已超时，请重新登录', 'need_login': True}), 401
-            return redirect(url_for('login_page'))
-
-    # 2. CSRF 防护（仅对非 GET 请求，已登录用户）
-    csrf_result = security.csrf_protect()
-    if csrf_result is not None:
-        return csrf_result
-
-    return None
 
 
 @app.after_request
@@ -565,7 +503,24 @@ def share_page(share_code):
 # ==================== 模板渲染缓存 + ETag ====================
 # 内存缓存已渲染的模板，配合ETag实现304 Not Modified
 # 静态模板（不含current_user）全量缓存；含current_user的按用户缓存
-_template_cache = {}
+_template_cache = {}  # P0待修复：无界缓存
+from collections import OrderedDict
+_TEMPLATE_CACHE_MAX = 500
+_TEMPLATE_CACHE_TTL = 3600
+_template_cache = OrderedDict()
+def _tc_get(key):
+    e = _template_cache.get(key)
+    if e is None: return None
+    ct, mt, etag, html = e
+    if time.time() - ct > _TEMPLATE_CACHE_TTL:
+        del _template_cache[key]; return None
+    _template_cache.move_to_end(key)
+    return (mt, etag, html)
+def _tc_set(key, mtime, etag, html):
+    if key in _template_cache: _template_cache.move_to_end(key)
+    _template_cache[key] = (time.time(), mtime, etag, html)
+    while len(_template_cache) > _TEMPLATE_CACHE_MAX:
+        _template_cache.popitem(last=False)
 
 # 不含动态用户信息的模板 — 可全局缓存
 _STATIC_TEMPLATES = frozenset({
@@ -597,7 +552,7 @@ def cached_render(template_name, **context):
         cache_key = f'{template_name}:{uid}'
 
     mtime = _get_template_mtime(template_name)
-    cached = _template_cache.get(cache_key)
+    cached = _tc_get(cache_key)
     if cached is not None:
         cached_mtime, etag, html = cached
         # 模板文件未修改且缓存存在 — 使用缓存
@@ -617,7 +572,7 @@ def cached_render(template_name, **context):
     # 首次渲染或缓存失效后重新渲染
     html = render_template(template_name, **context)
     etag = hashlib.md5(html.encode('utf-8')).hexdigest()[:16]
-    _template_cache[cache_key] = (mtime, etag, html)
+    _tc_set(cache_key, mtime, etag, html)
 
     resp = make_response(html)
     resp.headers['ETag'] = etag
@@ -678,7 +633,7 @@ try:
 except ImportError as e:
     logger.warning(f"HLD Blueprint 加载失败: {e}")
 
-logger.info(f"v5.0 Blueprint 注册完成: pages, api, tools, analysis, sync, collab, collab_v2, hld, notes")
+logger.info(f"Blueprint 注册完成，应用版本 v{APP_VERSION}")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
 
 
@@ -695,7 +650,7 @@ except Exception as e:
 # ==================== 应用入口 ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    logger.info(f"启动 Potential-tools v5.0，端口: {port}")
+    logger.info(f"启动 Potential-tools v{APP_VERSION}，端口: {port}")
     # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
     # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
     app.run(host='0.0.0.0', port=port, debug=not _is_production, use_reloader=False)

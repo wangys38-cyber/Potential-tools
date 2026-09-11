@@ -6,55 +6,13 @@
     <title>版本发布检查清单</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><path d=%22M9 9h6v6H9z%22/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg-primary); min-height: 100vh; color: var(--text-primary); }
-        .header { background: rgba(255,255,255,0.72);  padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; }
-        .header h1 { font-size: 28px; font-weight: 600; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
-        .back-btn { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); text-decoration: none; }
-        .container { max-width: 900px; margin: 24px auto; padding: 0 20px; }
-        .progress-bar { background: var(--bg-card); border-radius: 16px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid var(--border); }
-        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .progress-text { font-size: 14px; font-weight: 600; }
-        .progress-percent { font-size: 24px; font-weight: 700; background: #1d1d1f; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #fff; border-radius: 4px; transition: width 0.5s ease; }
-        .stage-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
-        .stage-tab { padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-        .stage-tab.active { background: #1d1d1f; color: #fff; border-color: transparent; }
-        .stage-tab .stage-count { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); }
-        .stage-tab.active .stage-count { background: rgba(255,255,255,0.2); }
-        .checklist { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
-        .checklist-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .checklist-title .go-badge { font-size: 11px; padding: 3px 10px; border-radius: 8px; font-weight: 600; }
-        .go-badge.go { background: rgba(16,185,129,0.15); color: #10b981; }
-        .go-badge.nogo { background: rgba(239,68,68,0.15); color: #ef4444; }
-        .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .check-item:last-child { border-bottom: none; }
-        .check-item input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; accent-color: #1d1d1f; cursor: pointer; flex-shrink: 0; }
-        .check-item-content { flex: 1; }
-        .check-item-title { font-size: 14px; font-weight: 500; }
-        .check-item-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-        .check-item.checked .check-item-title { text-decoration: line-through; color: var(--text-secondary); }
-        .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        .btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 14px; color: var(--text-primary); transition: all 0.2s; }
-        .btn-primary { background: #1d1d1f; color: #fff; border: none; }
-        .btn:hover { transform: translateY(-1px); }
-        .version-input { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
-        .version-input label { font-size: 14px; color: var(--text-secondary); }
-        .version-input input { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 14px; flex: 1; min-width: 200px; }
-        @media (max-width: 768px) {
-            .header { padding: 20px 16px; padding-left: 60px; }
-            .header h1 { font-size: 22px; }
-            .container { padding: 0 14px; }
-        }
-    </style>
+    
 
 <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}"><link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
 
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+<link rel="stylesheet" href="/static/css/page/release_checklist.css?v={{ STATIC_VERSION }}">
 </head>
 <body>
 {% include '_navbar.html' %}

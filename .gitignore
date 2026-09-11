@@ -22,3 +22,9 @@ visit_count.json
 _patch_*.py
 _fix_*.py
 deploy_status.png
+node_modules/
+backups/
+*.db
+优化分析报告.html
+_extract_*.py
+_batch_*.py
