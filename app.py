@@ -481,6 +481,43 @@ def health_check():
     return jsonify({'status': 'ok', 'service': 'potential-tools'}), 200
 
 
+# ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
+import time as _time
+import uuid as _uuid
+_PIPELINE_STORE = {}  # {id: {data, expire_at}}
+_PIPELINE_TTL = 600  # 10分钟过期
+
+def _cleanup_pipeline():
+    """清理过期的临时数据"""
+    now = _time.time()
+    expired = [k for k, v in _PIPELINE_STORE.items() if v['expire_at'] < now]
+    for k in expired:
+        del _PIPELINE_STORE[k]
+
+@app.route('/api/pipeline/store', methods=['POST'])
+def pipeline_store():
+    """存储临时数据，返回 ID。用于跨页面大数据传递（替代 localStorage）"""
+    _cleanup_pipeline()
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({'error': '无效数据'}), 400
+    pid = _uuid.uuid4().hex[:16]
+    _PIPELINE_STORE[pid] = {
+        'data': data,
+        'expire_at': _time.time() + _PIPELINE_TTL
+    }
+    return jsonify({'id': pid, 'expires_in': _PIPELINE_TTL})
+
+@app.route('/api/pipeline/get/<pid>')
+def pipeline_get(pid):
+    """获取临时数据（一次性，获取后删除）"""
+    _cleanup_pipeline()
+    item = _PIPELINE_STORE.pop(pid, None)
+    if not item:
+        return jsonify({'error': '数据不存在或已过期'}), 404
+    return jsonify(item['data'])
+
+
 # ==================== 隐私政策页 ====================
 @app.route('/privacy')
 def privacy_page():
