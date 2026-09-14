@@ -13,6 +13,7 @@ from db import ai as ai_db
 from services.ai import create_ai_service, get_ai_service, reset_ai_service, is_ai_configured
 from services.ai.base import ChatMessage, AIError
 from services.ai.prompts import get_prompt, render_prompt
+from services.ai import nl2sql
 
 logger = logging.getLogger(__name__)
 
@@ -358,3 +359,76 @@ def delete_report(report_id):
         return jsonify({'status': 'success'})
     else:
         return jsonify({'status': 'error', 'error': '删除失败'}), 400
+
+
+# ==================== 自然语言查询 (NL2SQL) ====================
+
+@bp.route('/query/schema', methods=['GET'])
+def get_query_schema():
+    """获取可查询的表结构"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    from services.ai.nl2sql import QUERYABLE_TABLES
+    tables = []
+    for name, info in QUERYABLE_TABLES.items():
+        tables.append({
+            'name': name,
+            'description': info['description'],
+            'columns': list(info['columns'].keys()),
+        })
+    return jsonify({'status': 'success', 'tables': tables})
+
+
+@bp.route('/query', methods=['POST'])
+def natural_language_query():
+    """自然语言查询数据"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    question = data.get('question', '').strip()
+
+    if not question:
+        return jsonify({'status': 'error', 'error': '问题不能为空'}), 400
+
+    service, err = _get_user_ai_config(user_id)
+    if err:
+        return err
+
+    try:
+        # 判断是否管理员
+        from db import get_user_by_id
+        user = get_user_by_id(user_id)
+        is_admin = bool(user and user.get('is_admin'))
+
+        # 执行 NL2SQL 查询
+        result = nl2sql.query(question, service, user_id, is_admin)
+
+        # 保存到对话历史
+        session_id = data.get('session_id') or 'nl2sql_' + str(int(time.time()))
+        ai_db.save_ai_message(user_id, session_id, 'user', question)
+        ai_db.save_ai_message(
+            user_id, session_id, 'assistant',
+            result['explanation'], 0, service.model
+        )
+
+        return jsonify({
+            'status': 'success',
+            'question': result['question'],
+            'sql': result['sql'],
+            'columns': result['columns'],
+            'rows': result['rows'],
+            'row_count': result['row_count'],
+            'explanation': result['explanation'],
+            'latency_ms': result['latency_ms'],
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 400
+    except AIError as e:
+        return jsonify({'status': 'error', 'error': str(e), 'code': e.code}), 400
+    except Exception as e:
+        logger.error(f'NL2SQL 查询失败: {e}')
+        return jsonify({'status': 'error', 'error': f'查询失败: {str(e)}'}), 500

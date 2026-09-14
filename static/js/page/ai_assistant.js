@@ -346,3 +346,142 @@
     }
 
 })();
+
+
+// ==================== 数据查询模式 (NL2SQL) ====================
+let currentMode = 'chat'; // chat | query
+
+window.switchMode = function(mode) {
+    currentMode = mode;
+    document.getElementById('chatModeBtn').classList.toggle('active', mode === 'chat');
+    document.getElementById('queryModeBtn').classList.toggle('active', mode === 'query');
+    document.getElementById('queryResult').style.display = mode === 'query' ? 'block' : 'none';
+
+    if (mode === 'query') {
+        inputEl.placeholder = '输入自然语言问题，如：本周我用了哪些工具？';
+        loadQuerySchema();
+    } else {
+        inputEl.placeholder = '输入你的问题...';
+    }
+};
+
+function loadQuerySchema() {
+    fetch('/api/ai/query/schema')
+        .then(r => r.json())
+        .then(data => {
+            if (data.tables) {
+                console.log('可查询的表:', data.tables.map(t => t.name).join(', '));
+            }
+        });
+}
+
+// 重写 sendMessage 以支持查询模式
+const originalSendMessage = window.sendMessage;
+window.sendMessage = function() {
+    if (currentMode === 'query') {
+        sendQuery();
+    } else {
+        originalSendMessage();
+    }
+};
+
+function sendQuery() {
+    const question = inputEl.value.trim();
+    if (!question || isStreaming) return;
+
+    if (!currentSessionId) {
+        currentSessionId = generateSessionId();
+    }
+
+    addMessage('user', question);
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    const typingEl = showTypingIndicator();
+    isStreaming = true;
+    sendBtn.disabled = true;
+
+    fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            question: question,
+            session_id: currentSessionId
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        isStreaming = false;
+        sendBtn.disabled = false;
+        removeTypingIndicator(typingEl);
+
+        if (data.status === 'success') {
+            showQueryResult(data);
+            addMessage('assistant', data.explanation);
+            loadSessions();
+            loadUsage();
+        } else {
+            addMessage('assistant', '❌ 查询失败: ' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        isStreaming = false;
+        sendBtn.disabled = false;
+        removeTypingIndicator(typingEl);
+        addMessage('assistant', '❌ 错误: ' + error.message);
+    });
+}
+
+function showQueryResult(data) {
+    const resultEl = document.getElementById('queryResult');
+    resultEl.style.display = 'block';
+
+    document.getElementById('querySql').textContent = data.sql;
+    document.getElementById('queryRowCount').textContent = data.row_count;
+
+    const tableEl = document.getElementById('queryTable');
+    if (data.columns && data.rows && data.rows.length > 0) {
+        let html = '<thead><tr>';
+        for (const col of data.columns) {
+            html += '<th>' + escapeHtml(col) + '</th>';
+        }
+        html += '</tr></thead><tbody>';
+        for (const row of data.rows.slice(0, 100)) {
+            html += '<tr>';
+            for (const col of data.columns) {
+                let val = row[col];
+                if (val === null || val === undefined) val = '';
+                if (typeof val === 'object') val = JSON.stringify(val);
+                html += '<td title="' + escapeHtml(String(val)) + '">' + escapeHtml(String(val)) + '</td>';
+            }
+            html += '</tr>';
+        }
+        html += '</tbody>';
+        tableEl.innerHTML = html;
+    } else {
+        tableEl.innerHTML = '<tr><td style="text-align:center;padding:20px;color:#999;">查询结果为空</td></tr>';
+    }
+
+    document.getElementById('queryExplanation').textContent = data.explanation;
+}
+
+window.copySql = function() {
+    const sql = document.getElementById('querySql').textContent;
+    navigator.clipboard.writeText(sql).then(() => {
+        showToast('SQL 已复制');
+    });
+};
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 16px;border-radius:8px;z-index:99999;font-size:13px;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}

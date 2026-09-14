@@ -39,6 +39,10 @@
                 <span class="ai-badge" id="modelBadge">未配置</span>
             </div>
             <div class="ai-actions">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="chatModeBtn" onclick="switchMode('chat')">💬 对话</button>
+                    <button class="mode-btn" id="queryModeBtn" onclick="switchMode('query')">📊 数据查询</button>
+                </div>
                 <button class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()">⚙️ 配置</button>
                 <button class="btn btn-secondary btn-sm" onclick="clearConversation()">🗑️ 清空</button>
             </div>
@@ -99,6 +103,29 @@
                     <button class="quick-action" onclick="sendQuickMessage('解释 Bug 趋势变化的原因')">📈 解释趋势</button>
                     <button class="quick-action" onclick="sendQuickMessage('给出代码质量改进建议')">💡 改进建议</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 查询结果区域（数据查询模式） -->
+        <div class="ai-query-result" id="queryResult" style="display:none;">
+            <div class="query-sql">
+                <div class="query-sql-header">
+                    <span>📝 生成的 SQL</span>
+                    <button class="btn btn-secondary btn-sm" onclick="copySql()">复制</button>
+                </div>
+                <pre id="querySql"></pre>
+            </div>
+            <div class="query-table-wrap">
+                <div class="query-table-header">
+                    <span>📋 查询结果 (<span id="queryRowCount">0</span> 行)</span>
+                </div>
+                <div class="query-table-scroll">
+                    <table class="query-table" id="queryTable"></table>
+                </div>
+            </div>
+            <div class="query-explanation">
+                <div class="query-explanation-header">💡 AI 解释</div>
+                <div id="queryExplanation"></div>
             </div>
         </div>
 

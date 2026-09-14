@@ -402,3 +402,139 @@
         max-width: 85%;
     }
 }
+
+
+/* 模式切换 */
+.mode-toggle {
+    display: flex;
+    background: var(--ds-bg-secondary, #f5f5f7);
+    border-radius: 8px;
+    padding: 2px;
+    margin-right: 8px;
+}
+
+.mode-btn {
+    padding: 4px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--ds-text-secondary, #86868b);
+    transition: all 0.2s;
+}
+
+.mode-btn.active {
+    background: var(--ds-bg, #fff);
+    color: var(--ds-text, #1d1d1f);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* 查询结果区域 */
+.ai-query-result {
+    padding: 16px 24px;
+    border-top: 1px solid var(--ds-border, #e5e5ea);
+    background: var(--ds-bg-secondary, #f5f5f7);
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.query-sql {
+    background: #1e1e1e;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.query-sql-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #2d2d2d;
+    color: #ccc;
+    font-size: 12px;
+}
+
+.query-sql pre {
+    margin: 0;
+    padding: 12px;
+    color: #d4d4d4;
+    font-size: 12px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.query-table-wrap {
+    background: var(--ds-bg, #fff);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid var(--ds-border, #e5e5ea);
+}
+
+.query-table-header {
+    padding: 8px 12px;
+    background: var(--ds-bg-secondary, #f5f5f7);
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--ds-border, #e5e5ea);
+}
+
+.query-table-scroll {
+    max-height: 200px;
+    overflow: auto;
+}
+
+.query-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.query-table th {
+    background: var(--ds-bg-secondary, #f5f5f7);
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--ds-text-secondary, #86868b);
+    border-bottom: 1px solid var(--ds-border, #e5e5ea);
+    position: sticky;
+    top: 0;
+    white-space: nowrap;
+}
+
+.query-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--ds-border-light, #f0f0f0);
+    color: var(--ds-text, #1d1d1f);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.query-table tr:hover td {
+    background: var(--ds-bg-secondary, #f5f5f7);
+}
+
+.query-explanation {
+    background: var(--ds-bg, #fff);
+    border-radius: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--ds-border, #e5e5ea);
+}
+
+.query-explanation-header {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.query-explanation div {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ds-text-secondary, #86868b);
+    white-space: pre-wrap;
+}
