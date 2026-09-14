@@ -9,7 +9,10 @@ function _getChartBase64(chart){
     return "";
 }
 function _drawTrendChartToBase64(dailyStats){
-    // 优先使用页面已有的Chart.js趋势图
+    // 优先使用页面已有的"每日趋势与累计Bug曲线"图（双Y轴组合图）
+    var fromCumulative=_getChartBase64(window.__dailyCumulativeChart);
+    if(fromCumulative)return fromCumulative;
+    // 其次使用每日趋势图
     var fromChart=_getChartBase64(dailyLineChart);
     if(fromChart)return fromChart;
     // 回退：纯Canvas绘制
