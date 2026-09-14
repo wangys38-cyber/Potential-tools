@@ -5,6 +5,14 @@
 (function() {
     'use strict';
 
+    // 存储 AI 分析结果，供邮件生成等后续流程使用
+    window.crAIAnalysisResult = window.crAIAnalysisResult || {};
+
+    function saveAIResult(type, data) {
+        window.crAIAnalysisResult[type] = data;
+        window.crAIAnalysisResult._lastUpdate = new Date().toISOString();
+    }
+
     // ==================== 工具函数 ====================
     function getAnalysisData() {
         // currentAnalysisData 是用 let 声明的全局变量，不在 window 上
@@ -375,6 +383,9 @@
     };
 
     function renderFullAnalysis(data) {
+        // 存储 AI 分析结果，供邮件生成等后续流程使用
+        saveAIResult('full_analysis', data);
+
         const content = document.getElementById('enhancedAIContent');
         if (!content) return;
 

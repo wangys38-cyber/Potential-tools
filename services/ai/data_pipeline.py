@@ -184,6 +184,7 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     """
     issues = cr_data.get('issues') or []
     daily_trend = cr_data.get('dailyTrend') or []
+    ai_analysis = cr_data.get('aiAnalysis') or {}
 
     # 统计
     total = len(issues)
@@ -218,6 +219,63 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 </table>
 '''
 
+    # AI 智能分析内容
+    full_analysis = ai_analysis.get('full_analysis') or {}
+    if full_analysis:
+        body += '<h3 style="color: #1d1d1f;">🤖 AI 智能分析</h3>'
+
+        # 根因分析
+        root_cause = full_analysis.get('root_cause') or {}
+        rc_ai = root_cause.get('ai_analysis') or {}
+        if rc_ai:
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f0f7ff; border-radius: 8px; border-left: 3px solid #007aff;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">🎯 根因分析</div>'
+            if rc_ai.get('risk_assessment'):
+                body += f'<div style="font-size: 13px; color: #1d1d1f; margin-bottom: 8px; line-height: 1.6;">{rc_ai["risk_assessment"]}</div>'
+            if rc_ai.get('key_findings'):
+                body += '<ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #86868b; line-height: 1.8;">'
+                for finding in rc_ai['key_findings'][:5]:
+                    body += f'<li>{finding}</li>'
+                body += '</ul>'
+            body += '</div>'
+
+        # 趋势预测
+        prediction = full_analysis.get('prediction') or {}
+        if prediction.get('status') == 'success':
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f0fff4; border-radius: 8px; border-left: 3px solid #34c759;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">📈 趋势预测</div>'
+            body += '<table style="width: 100%; border-collapse: collapse;">'
+            body += '<tr>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">趋势</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("trend_icon", "")} {prediction.get("trend", "-")}</div></td>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">未来7天新增</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("total_predicted_new", 0)}</div></td>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">置信度</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("confidence", 0)}%</div></td>'
+            body += '</tr></table></div>'
+
+        # 改进计划
+        improvement = full_analysis.get('improvement') or {}
+        imp_plan = improvement.get('plan') or {}
+        if imp_plan.get('short_term'):
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #fff8f0; border-radius: 8px; border-left: 3px solid #ff9500;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">📋 改进建议</div>'
+            body += '<div style="font-size: 12px; font-weight: 600; color: #86868b; margin-bottom: 4px;">短期（1-2周）</div>'
+            body += '<ul style="margin: 0 0 8px; padding-left: 20px; font-size: 12px; color: #1d1d1f; line-height: 1.8;">'
+            for item in imp_plan['short_term'][:3]:
+                action = item.get('action', '')
+                impact = item.get('expected_impact', '')
+                body += f'<li><strong>{action}</strong>'
+                if impact:
+                    body += f' - <span style="color: #86868b;">{impact}</span>'
+                body += '</li>'
+            body += '</ul>'
+            if imp_plan.get('medium_term'):
+                body += '<div style="font-size: 12px; font-weight: 600; color: #86868b; margin-bottom: 4px;">中期（1-2月）</div>'
+                body += '<ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #1d1d1f; line-height: 1.8;">'
+                for item in imp_plan['medium_term'][:2]:
+                    action = item.get('action', '')
+                    body += f'<li>{action}</li>'
+                body += '</ul>'
+            body += '</div>'
+
     # 未解决问题列表
     if unresolved:
         body += '<h3 style="color: #1d1d1f;">⚠️ 未解决问题（前10条）</h3><ul style="font-size: 13px; line-height: 1.8;">'
@@ -234,10 +292,30 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 
     body += '</div>'
 
+    # 构建纯文本版本
+    body_text = f'CR 分析日报 - {today}\n总问题: {total}\n未解决: {len(unresolved)}\n致命/严重: {len(critical)}\n'
+    if full_analysis:
+        body_text += '\n=== AI 智能分析 ===\n'
+        rc_ai = (full_analysis.get('root_cause') or {}).get('ai_analysis') or {}
+        if rc_ai.get('risk_assessment'):
+            body_text += f'风险评估: {rc_ai["risk_assessment"]}\n'
+        if rc_ai.get('key_findings'):
+            body_text += '关键发现:\n'
+            for f in rc_ai['key_findings'][:5]:
+                body_text += f'  - {f}\n'
+        pred = full_analysis.get('prediction') or {}
+        if pred.get('status') == 'success':
+            body_text += f'趋势预测: {pred.get("trend", "-")}, 未来7天新增{pred.get("total_predicted_new", 0)}个, 置信度{pred.get("confidence", 0)}%\n'
+        imp = (full_analysis.get('improvement') or {}).get('plan') or {}
+        if imp.get('short_term'):
+            body_text += '短期改进建议:\n'
+            for item in imp['short_term'][:3]:
+                body_text += f'  - {item.get("action", "")}\n'
+
     return {
         'subject': subject,
         'body': body,
-        'body_text': f'CR 分析日报 - {today}\n总问题: {total}\n未解决: {len(unresolved)}\n致命/严重: {len(critical)}',
+        'body_text': body_text,
         'recipients': [],
     }
 

@@ -367,11 +367,14 @@ function getCRDataForPipeline() {
     const data = (typeof currentAnalysisData !== 'undefined' ? currentAnalysisData : null)
                  || (typeof window.currentAnalysisData !== 'undefined' ? window.currentAnalysisData : null)
                  || {};
+    // 获取 AI 分析结果（如果有）
+    const aiAnalysis = (typeof window.crAIAnalysisResult !== 'undefined' ? window.crAIAnalysisResult : null) || {};
     return {
         issues: data.all_issues || data.issues || data.allIssues || data.rows || data.bugs || [],
         dailyTrend: data.daily_trend || data.dailyTrend || data.daily_data || [],
         moduleStats: data.module_stats || data.moduleStats || {},
         summary: data.summary || {},
+        aiAnalysis: aiAnalysis,
     };
 }
 
