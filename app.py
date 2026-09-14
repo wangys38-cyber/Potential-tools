@@ -683,6 +683,13 @@ try:
     system_metrics.start_collector()
     alerting.start_alerting()
     backup_scheduler.start_scheduler()
+    # v8.0: 启动 AI Agent 调度器
+    try:
+        from services.ai.agent import start_agent_scheduler
+        start_agent_scheduler()
+        logger.info('AI Agent 调度器已启动')
+    except Exception as e:
+        logger.warning(f'AI Agent 调度器启动失败: {e}')
     logger.info('系统指标采集、告警巡检和自动备份服务已启动')
 except Exception as e:
     logger.warning(f'后台服务启动失败: {e}')

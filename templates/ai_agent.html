@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - Potential-tools v8.0</title>
+    <link rel="stylesheet" href="/static/css/common.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/page/ai_agent.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="agent-container">
+        <div class="agent-header">
+            <div>
+                <h1>🤖 AI Agent 自动分析</h1>
+                <p class="agent-subtitle">定时自动分析 CR 数据，检测异常，生成报告，推送告警</p>
+            </div>
+            <div class="agent-status" id="agentStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">检查中...</span>
+            </div>
+        </div>
+
+        <div class="agent-grid">
+            <!-- 左侧：配置面板 -->
+            <div class="agent-panel">
+                <div class="panel-header">
+                    <h2>⚙️ Agent 配置</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label>启用 Agent</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="agentEnabled">
+                            <label for="agentEnabled" class="toggle-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>运行频率</label>
+                        <select id="scheduleType">
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="hourly">每小时</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>运行时间</label>
+                        <input type="time" id="scheduleTime" value="09:00">
+                    </div>
+
+                    <div class="form-group">
+                        <label>监控指标</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="unresolved_bugs" checked> 未解决 Bug 数</label>
+                            <label><input type="checkbox" value="critical_bugs" checked> 致命 Bug 数</label>
+                            <label><input type="checkbox" value="high_bugs" checked> 严重 Bug 数</label>
+                            <label><input type="checkbox" value="new_today" checked> 今日新增</label>
+                            <label><input type="checkbox" value="avg_resolution_days"> 平均修复时长</label>
+                            <label><input type="checkbox" value="modules_at_risk"> 高风险模块数</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>告警阈值</label>
+                        <div class="threshold-inputs">
+                            <div class="threshold-item">
+                                <span>致命 Bug</span>
+                                <input type="number" id="thresholdCritical" value="5" min="0">
+                            </div>
+                            <div class="threshold-item">
+                                <span>今日新增</span>
+                                <input type="number" id="thresholdNew" value="10" min="0">
+                            </div>
+                            <div class="threshold-item">
+                                <span>未解决总数</span>
+                                <input type="number" id="thresholdUnresolved" value="50" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>功能开关</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" id="autoReport" checked> 自动生成报告</label>
+                            <label><input type="checkbox" id="alertEnabled" checked> 异常告警通知</label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+                        <button class="btn btn-secondary" onclick="runAgentNow()">▶️ 立即运行</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：运行状态 + 告警 -->
+            <div class="agent-right">
+                <!-- 运行状态 -->
+                <div class="agent-panel">
+                    <div class="panel-header">
+                        <h2>📊 运行状态</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshStatus()">🔄 刷新</button>
+                    </div>
+                    <div class="panel-body" id="statusPanel">
+                        <div class="status-grid">
+                            <div class="status-card">
+                                <div class="status-label">上次运行</div>
+                                <div class="status-value" id="lastRunTime">-</div>
+                            </div>
+                            <div class="status-card">
+                                <div class="status-label">下次运行</div>
+                                <div class="status-value" id="nextRunTime">-</div>
+                            </div>
+                            <div class="status-card">
+                                <div class="status-label">调度器</div>
+                                <div class="status-value" id="schedulerStatus">-</div>
+                            </div>
+                            <div class="status-card">
+                                <div class="status-label">未读告警</div>
+                                <div class="status-value alert-count" id="unreadAlerts">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 告警中心 -->
+                <div class="agent-panel">
+                    <div class="panel-header">
+                        <h2>🔔 告警中心</h2>
+                        <div>
+                            <button class="btn btn-secondary btn-sm" onclick="markAllRead()">全部已读</button>
+                            <button class="btn btn-secondary btn-sm" onclick="refreshAlerts()">刷新</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="alertsPanel">
+                        <div class="empty-state">暂无告警</div>
+                    </div>
+                </div>
+
+                <!-- 运行历史 -->
+                <div class="agent-panel">
+                    <div class="panel-header">
+                        <h2>📜 运行历史</h2>
+                    </div>
+                    <div class="panel-body" id="runsPanel">
+                        <div class="empty-state">暂无运行记录</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 运行结果弹窗 -->
+    <div id="runResultModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agent 运行结果</h3>
+                <button onclick="closeRunResult()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="runResultContent"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/page/ai_agent.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

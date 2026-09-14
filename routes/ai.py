@@ -14,6 +14,8 @@ from services.ai import create_ai_service, get_ai_service, reset_ai_service, is_
 from services.ai.base import ChatMessage, AIError
 from services.ai.prompts import get_prompt, render_prompt
 from services.ai import nl2sql
+from services.ai import agent as ai_agent_service
+from db import agent as agent_db
 
 logger = logging.getLogger(__name__)
 
@@ -432,3 +434,185 @@ def natural_language_query():
     except Exception as e:
         logger.error(f'NL2SQL 查询失败: {e}')
         return jsonify({'status': 'error', 'error': f'查询失败: {str(e)}'}), 500
+
+
+# ==================== v8.0 AI Agent 自动分析 ====================
+
+@bp.route('/agent/config', methods=['GET'])
+def get_agent_config():
+    """获取 Agent 配置"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    name = request.args.get('name', 'default')
+    config = agent_db.get_agent_config(user_id, name)
+    if not config:
+        # 返回默认配置
+        config = {
+            'user_id': user_id,
+            'name': name,
+            'enabled': 0,
+            'schedule_type': 'daily',
+            'schedule_time': '09:00',
+            'monitor_metrics': ['unresolved_bugs', 'critical_bugs', 'new_today'],
+            'alert_threshold': {'critical_bugs': 5, 'new_today': 10, 'unresolved_bugs': 50},
+            'auto_report': 1,
+            'alert_enabled': 1,
+            'data_sources': [],
+        }
+    return jsonify({'status': 'success', 'config': config})
+
+
+@bp.route('/agent/config', methods=['POST'])
+def save_agent_config():
+    """保存 Agent 配置"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    name = data.get('name', 'default')
+
+    config_id = agent_db.save_agent_config(user_id, name, data)
+
+    # 如果启用了，计算下次运行时间
+    if data.get('enabled'):
+        config = agent_db.get_agent_config(user_id, name)
+        if config:
+            scheduler = ai_agent_service.get_agent_scheduler()
+            next_run = scheduler._calculate_next_run(config)
+            agent_db.update_agent_run_time(config_id, 0, next_run)
+
+    return jsonify({'status': 'success', 'config_id': config_id})
+
+
+@bp.route('/agent/run', methods=['POST'])
+def run_agent_manually():
+    """手动触发 Agent 运行"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    name = data.get('name', 'default')
+
+    config = agent_db.get_agent_config(user_id, name)
+    if not config:
+        return jsonify({'status': 'error', 'error': 'Agent 配置不存在'}), 404
+
+    # 创建运行记录
+    run_id = agent_db.create_agent_run(user_id, config['id'], 'manual')
+
+    try:
+        # 获取 AI 服务
+        service = None
+        try:
+            service, _ = _get_user_ai_config(user_id)
+        except:
+            pass
+
+        # 执行分析
+        result = ai_agent_service.run_agent_analysis(user_id, config, service)
+
+        # 更新运行记录
+        agent_db.update_agent_run(
+            run_id=run_id,
+            status='completed' if result['status'] == 'success' else result['status'],
+            metrics_summary=result.get('metrics', {}),
+            anomalies=result.get('anomalies', []),
+            report_id=result.get('report_id', 0),
+        )
+
+        return jsonify({
+            'status': 'success',
+            'run_id': run_id,
+            'result': result,
+        })
+    except Exception as e:
+        logger.error(f'Agent 手动运行失败: {e}')
+        agent_db.update_agent_run(run_id, 'failed', error_message=str(e))
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@bp.route('/agent/runs', methods=['GET'])
+def list_agent_runs():
+    """获取 Agent 运行历史"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    limit = int(request.args.get('limit', 20))
+    runs = agent_db.list_agent_runs(user_id, limit)
+    return jsonify({'status': 'success', 'runs': runs})
+
+
+@bp.route('/agent/alerts', methods=['GET'])
+def list_agent_alerts():
+    """获取告警列表"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    only_unread = request.args.get('unread', '0') == '1'
+    limit = int(request.args.get('limit', 50))
+    alerts = agent_db.list_alerts(user_id, only_unread, limit)
+    unread_count = agent_db.get_unread_alert_count(user_id)
+    return jsonify({'status': 'success', 'alerts': alerts, 'unread_count': unread_count})
+
+
+@bp.route('/agent/alerts/<int:alert_id>/read', methods=['POST'])
+def mark_alert_read(alert_id):
+    """标记告警已读"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    success = agent_db.mark_alert_read(user_id, alert_id)
+    return jsonify({'status': 'success' if success else 'error'})
+
+
+@bp.route('/agent/alerts/read-all', methods=['POST'])
+def mark_all_alerts_read():
+    """标记所有告警已读"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    count = agent_db.mark_all_alerts_read(user_id)
+    return jsonify({'status': 'success', 'marked_count': count})
+
+
+@bp.route('/agent/alerts/<int:alert_id>/resolve', methods=['POST'])
+def resolve_alert(alert_id):
+    """解决告警"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    success = agent_db.resolve_alert(user_id, alert_id)
+    return jsonify({'status': 'success' if success else 'error'})
+
+
+@bp.route('/agent/status', methods=['GET'])
+def get_agent_status():
+    """获取 Agent 运行状态"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    config = agent_db.get_agent_config(user_id)
+    recent_runs = agent_db.list_agent_runs(user_id, limit=5)
+    unread_count = agent_db.get_unread_alert_count(user_id)
+
+    scheduler = ai_agent_service.get_agent_scheduler()
+
+    return jsonify({
+        'status': 'success',
+        'enabled': bool(config and config.get('enabled')),
+        'scheduler_running': scheduler.running,
+        'last_run_at': config.get('last_run_at', 0) if config else 0,
+        'next_run_at': config.get('next_run_at', 0) if config else 0,
+        'recent_runs': recent_runs,
+        'unread_alerts': unread_count,
+    })

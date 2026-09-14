@@ -1,0 +1,452 @@
+/* AI Agent 页面样式 v8.0 */
+.agent-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.agent-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.agent-subtitle {
+    font-size: 14px;
+    color: var(--ds-text-secondary, #86868b);
+    margin: 0;
+}
+
+.agent-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--ds-bg-elevated, #fff);
+    border-radius: 20px;
+    border: 1px solid var(--ds-border-light, #e5e5ea);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #86868b;
+}
+
+.status-dot.running {
+    background: #34c759;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.stopped {
+    background: #ff3b30;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.agent-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+}
+
+.agent-panel {
+    background: var(--ds-bg-elevated, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--ds-border-light, #e5e5ea);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ds-border-light, #e5e5ea);
+}
+
+.panel-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.panel-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ds-text, #1d1d1f);
+    margin-bottom: 8px;
+}
+
+.form-group select,
+.form-group input[type="time"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--ds-border, #d2d2d7);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--ds-bg, #fff);
+    color: var(--ds-text, #1d1d1f);
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ds-text-secondary, #86868b);
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.threshold-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.threshold-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.threshold-item span {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ds-text-secondary, #86868b);
+}
+
+.threshold-item input {
+    width: 80px !important;
+    text-align: center;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    display: block;
+    width: 48px;
+    height: 26px;
+    background: var(--ds-border, #d2d2d7);
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.toggle-label::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-label {
+    background: #34c759;
+}
+
+.toggle-switch input:checked + .toggle-label::after {
+    transform: translateX(22px);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-actions .btn {
+    flex: 1;
+}
+
+/* 状态卡片 */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.status-card {
+    background: var(--ds-bg-secondary, #f5f5f7);
+    padding: 14px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.status-label {
+    font-size: 12px;
+    color: var(--ds-text-tertiary, #aeaeb2);
+    margin-bottom: 4px;
+}
+
+.status-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.status-value.alert-count {
+    color: #ff9500;
+}
+
+/* 告警列表 */
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: var(--ds-bg-secondary, #f5f5f7);
+    border-left: 3px solid #86868b;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.alert-item:hover {
+    opacity: 0.8;
+}
+
+.alert-item.high {
+    border-left-color: #ff3b30;
+}
+
+.alert-item.medium {
+    border-left-color: #ff9500;
+}
+
+.alert-item.low {
+    border-left-color: #34c759;
+}
+
+.alert-item.read {
+    opacity: 0.5;
+}
+
+.alert-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.alert-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.alert-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ds-text, #1d1d1f);
+    margin-bottom: 2px;
+}
+
+.alert-desc {
+    font-size: 12px;
+    color: var(--ds-text-secondary, #86868b);
+    line-height: 1.4;
+}
+
+.alert-time {
+    font-size: 11px;
+    color: var(--ds-text-tertiary, #aeaeb2);
+    flex-shrink: 0;
+}
+
+/* 运行历史 */
+.run-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: var(--ds-bg-secondary, #f5f5f7);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.run-item:hover {
+    background: var(--ds-bg, #fff);
+}
+
+.run-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.run-status.completed {
+    background: #34c759;
+}
+
+.run-status.failed {
+    background: #ff3b30;
+}
+
+.run-status.running {
+    background: #ff9500;
+    animation: pulse 1s infinite;
+}
+
+.run-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.run-trigger {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.run-time {
+    font-size: 11px;
+    color: var(--ds-text-tertiary, #aeaeb2);
+}
+
+.run-metrics {
+    font-size: 11px;
+    color: var(--ds-text-secondary, #86868b);
+    flex-shrink: 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--ds-text-tertiary, #aeaeb2);
+    font-size: 13px;
+}
+
+/* 弹窗 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: var(--ds-bg-elevated, #fff);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ds-border-light, #e5e5ea);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--ds-text-secondary, #86868b);
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.modal-close:hover {
+    background: var(--ds-bg-secondary, #f5f5f7);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ds-text, #1d1d1f);
+}
+
+.modal-body pre {
+    background: var(--ds-bg-secondary, #f5f5f7);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 12px;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .agent-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -665,6 +665,69 @@ def init_db():
         """))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_reports_user ON ai_reports(user_id, report_type, created_at DESC)"))
 
+        # ==================== v8.0 AI Agent 表 ====================
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_agent_configs (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                name TEXT DEFAULT 'default',
+                enabled INTEGER DEFAULT 0,
+                schedule_type TEXT DEFAULT 'daily',
+                schedule_time TEXT DEFAULT '09:00',
+                monitor_metrics TEXT DEFAULT '[]',
+                alert_threshold TEXT DEFAULT '{{}}',
+                auto_report INTEGER DEFAULT 1,
+                alert_enabled INTEGER DEFAULT 1,
+                data_sources TEXT DEFAULT '[]',
+                last_run_at REAL DEFAULT 0,
+                next_run_at REAL DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0,
+                UNIQUE(user_id, name)
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_agent_configs_user ON ai_agent_configs(user_id, enabled)"))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_agent_runs (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                config_id INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                trigger_type TEXT DEFAULT 'scheduled',
+                metrics_summary TEXT DEFAULT '{{}}',
+                anomalies_found TEXT DEFAULT '[]',
+                report_id INTEGER DEFAULT 0,
+                error_message TEXT DEFAULT '',
+                started_at REAL DEFAULT 0,
+                completed_at REAL DEFAULT 0,
+                duration_ms INTEGER DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_agent_runs_user ON ai_agent_runs(user_id, started_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON ai_agent_runs(status, started_at)"))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_alerts (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                run_id INTEGER DEFAULT 0,
+                alert_type TEXT DEFAULT 'anomaly',
+                severity TEXT DEFAULT 'medium',
+                title TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                metric_name TEXT DEFAULT '',
+                metric_value REAL DEFAULT 0,
+                threshold REAL DEFAULT 0,
+                is_read INTEGER DEFAULT 0,
+                is_resolved INTEGER DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                resolved_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_alerts_user ON ai_alerts(user_id, is_read, created_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_alerts_severity ON ai_alerts(severity, created_at DESC)"))
+
         # ==================== 阶段五性能优化：补充复合索引 ====================
         # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))
