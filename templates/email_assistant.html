@@ -46,6 +46,14 @@
                         <button class="btn" style="padding:6px 14px;font-size:13px;" onclick="copyEmail()">复制</button>
                     </div>
                 </div>
+                <div style="padding:16px 20px;border-bottom:1px solid var(--ds-border-light);">
+                    <div style="display:flex;gap:12px;align-items:center;">
+                        <label style="font-size:13px;font-weight:600;white-space:nowrap;">收件人：</label>
+                        <input type="email" class="form-input" id="emailRecipient" placeholder="输入收件人邮箱，多个用逗号分隔" style="flex:1;padding:8px 12px;font-size:13px;">
+                        <button class="btn btn-primary" id="sendEmailBtn" style="padding:8px 20px;font-size:13px;white-space:nowrap;" onclick="sendEmail()">发送邮件</button>
+                    </div>
+                    <div id="sendEmailResult" style="font-size:12px;margin-top:8px;"></div>
+                </div>
                 <div class="preview-body" id="previewBody"></div>
             </div>
         </div>

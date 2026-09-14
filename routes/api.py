@@ -254,6 +254,109 @@ def create_api_blueprint(base_dir, static_version):
         else:
             return jsonify({'status': 'error', 'error': result.get('error', '发送失败')}), 502
 
+    # ==================== SMTP 邮件配置 ====================
+
+    @bp.route('/api/settings/smtp', methods=['GET'])
+    def api_get_smtp():
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        cfg = db.get_config('smtp_mail_config') or {}
+        return jsonify({
+            'status': 'success',
+            'configured': bool(cfg.get('smtp_host') and cfg.get('username')),
+            'smtp_host': cfg.get('smtp_host', ''),
+            'smtp_port': cfg.get('smtp_port', 587),
+            'username': cfg.get('username', ''),
+            'from_name': cfg.get('from_name', ''),
+            'use_tls': cfg.get('use_tls', True),
+            'password_set': bool(cfg.get('password'))
+        })
+
+    @bp.route('/api/settings/smtp', methods=['POST'])
+    def api_set_smtp():
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        data = request.get_json(silent=True) or {}
+        import base64
+        cfg = db.get_config('smtp_mail_config') or {}
+        cfg['smtp_host'] = (data.get('smtp_host') or '').strip()
+        cfg['smtp_port'] = int(data.get('smtp_port') or 587)
+        cfg['username'] = (data.get('username') or '').strip()
+        cfg['from_name'] = (data.get('from_name') or '').strip()
+        cfg['use_tls'] = bool(data.get('use_tls', True))
+        new_pw = data.get('password') or ''
+        if new_pw:
+            cfg['password'] = base64.b64encode(new_pw.encode('utf-8')).decode('utf-8')
+        elif not cfg.get('password'):
+            cfg['password'] = ''
+        if not cfg['smtp_host'] or not cfg['username']:
+            return jsonify({'status': 'error', 'error': 'SMTP服务器和邮箱地址不能为空'}), 400
+        db.set_config('smtp_mail_config', cfg)
+        return jsonify({'status': 'success', 'configured': True})
+
+    @bp.route('/api/email/test', methods=['POST'])
+    def api_email_test():
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        cfg = db.get_config('smtp_mail_config') or {}
+        if not cfg.get('smtp_host') or not cfg.get('username'):
+            return jsonify({'status': 'error', 'error': '请先配置 SMTP 信息'}), 400
+        try:
+            import smtplib
+            import base64
+            password = base64.b64decode(cfg.get('password', '')).decode('utf-8') if cfg.get('password') else ''
+            server = smtplib.SMTP(cfg['smtp_host'], cfg.get('smtp_port', 587), timeout=15)
+            if cfg.get('use_tls', True):
+                server.starttls()
+            if password:
+                server.login(cfg['username'], password)
+            server.quit()
+            return jsonify({'status': 'success', 'message': 'SMTP 连接测试成功'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': f'连接失败: {str(e)}'}), 502
+
+    @bp.route('/api/email/send', methods=['POST'])
+    def api_email_send():
+        user = auth.get_current_user()
+        if not user:
+            return jsonify({'status': 'error', 'error': '请先登录'}), 401
+        data = request.get_json(silent=True) or {}
+        to = (data.get('to') or '').strip()
+        subject = (data.get('subject') or '').strip()
+        body = data.get('body') or ''
+        if not to or not subject or not body:
+            return jsonify({'status': 'error', 'error': '收件人、主题、正文不能为空'}), 400
+        cfg = db.get_config('smtp_mail_config') or {}
+        if not cfg.get('smtp_host') or not cfg.get('username'):
+            return jsonify({'status': 'error', 'error': '请先在设置中配置 SMTP 信息'}), 400
+        try:
+            import smtplib
+            import base64
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            from email.header import Header
+            from email.utils import formataddr
+            password = base64.b64decode(cfg.get('password', '')).decode('utf-8') if cfg.get('password') else ''
+            from_name = cfg.get('from_name') or cfg['username']
+            msg = MIMEMultipart()
+            msg['From'] = formataddr((str(Header(from_name, 'utf-8')), cfg['username']))
+            msg['To'] = to
+            msg['Subject'] = Header(subject, 'utf-8')
+            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            server = smtplib.SMTP(cfg['smtp_host'], cfg.get('smtp_port', 587), timeout=30)
+            if cfg.get('use_tls', True):
+                server.starttls()
+            if password:
+                server.login(cfg['username'], password)
+            server.sendmail(cfg['username'], [x.strip() for x in to.split(',')], msg.as_string())
+            server.quit()
+            return jsonify({'status': 'success', 'message': '邮件发送成功'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': f'发送失败: {str(e)}'}), 502
+
     # ==================== 用户信息 ====================
 
     @bp.route('/api/user/profile', methods=['GET'])

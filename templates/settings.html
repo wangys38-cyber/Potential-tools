@@ -95,6 +95,60 @@
             <div class="test-result" id="testResult"></div>
         </div>
 
+        <!-- SMTP 邮件配置 -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <div>
+                    <div class="section-title">邮件发送配置 <span id="smtpConfigStatus" style="font-size:12px;font-weight:400;margin-left:8px;"></span></div>
+                    <div class="section-desc">配置 SMTP 邮箱（Outlook/QQ/163等），在邮件助手中一键发送邮件</div>
+                </div>
+            </div>
+
+            <div id="smtpConfigForm">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">SMTP 服务器</label>
+                        <input type="text" class="form-input" id="smtpHost" placeholder="smtp.office365.com">
+                        <div class="form-hint">Outlook: smtp.office365.com | QQ: smtp.qq.com | 163: smtp.163.com</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">端口</label>
+                        <input type="number" class="form-input" id="smtpPort" value="587">
+                        <div class="form-hint">默认 587（TLS），部分服务器用 465（SSL）</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">邮箱地址</label>
+                        <input type="email" class="form-input" id="smtpUsername" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">发件人名称（可选）</label>
+                        <input type="text" class="form-input" id="smtpFromName" placeholder="如：王大锤">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">邮箱密码 / 应用专用密码</label>
+                    <input type="password" class="form-input" id="smtpPassword" placeholder="输入应用专用密码（非登录密码）">
+                    <div class="form-hint">Outlook需在 account.microsoft.com 开启应用专用密码；QQ/163需在邮箱设置中开启SMTP并获取授权码</div>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="smtpUseTls" checked style="width:16px;height:16px;">
+                        <span>使用 TLS 加密（推荐，端口587时勾选）</span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <button class="btn btn-primary" onclick="saveSmtpConfig()">保存配置</button>
+                    <button class="btn btn-secondary" onclick="testSmtpConfig()">测试连接</button>
+                    <span id="smtpTestResult" style="font-size:13px;"></span>
+                </div>
+            </div>
+        </div>
+
         <!-- 飞书推送设置 -->
         <div class="section">
             <div class="section-header">
