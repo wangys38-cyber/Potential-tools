@@ -1,0 +1,247 @@
+/* 插件管理页面样式 v8.1 */
+.plugins-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.plugins-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.plugins-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.plugins-subtitle {
+    font-size: 14px;
+    color: #86868b;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.plugins-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #e5e5ea;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1d1d1f;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #86868b;
+    margin-top: 4px;
+}
+
+.plugins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+}
+
+.plugin-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e5e5ea;
+    transition: all 0.2s;
+}
+
+.plugin-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+.plugin-card.disabled {
+    opacity: 0.6;
+}
+
+.plugin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.plugin-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+}
+
+.plugin-version {
+    font-size: 11px;
+    color: #86868b;
+    background: #f5f5f7;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.plugin-description {
+    font-size: 13px;
+    color: #86868b;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    min-height: 40px;
+}
+
+.plugin-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: #aeaeb2;
+    margin-bottom: 16px;
+}
+
+.plugin-permissions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.permission-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.plugin-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.plugin-actions .btn {
+    flex: 1;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.status-badge.enabled {
+    background: #34c759;
+    color: #fff;
+}
+
+.status-badge.disabled {
+    background: #86868b;
+    color: #fff;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e5ea;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #86868b;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e5ea;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #86868b;
+    font-size: 14px;
+}

@@ -4,7 +4,7 @@
 
 集成 CR 分析、日志根因定位、知识图谱、HLD 生成、项目计划、测试报告、会议纪要等 **20+ 工具**，支持本地运行与云端部署，开箱即用。
 
-[![Version](https://img.shields.io/badge/version-v8.0.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
+[![Version](https://img.shields.io/badge/version-v8.1.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
 [![Python](https://img.shields.io/badge/python-3.9%2B-green.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -34,6 +34,7 @@
 
 - **研发全流程覆盖** — 从需求分析（HLD）、开发排期（软件计划）、质量把控（CR/测试报告/MTTF）到团队协作（会议纪要/站会/周报），一个平台搞定。
 - **AI 原生架构 (v8.0)** — 统一 AI 服务抽象层，支持 OpenAI 兼容 / Doubao / DeepSeek / Ollama，提供 AI 对话助手、自然语言数据查询（NL2SQL）、CR 智能归因与趋势预测、AI Agent 自动分析、智能报告自动推送、跨工具数据联动。
+- **插件化生态 (v8.1)** — 完整插件框架，支持热加载、生命周期管理、权限控制，提供插件 API SDK，第三方开发者可轻松扩展功能，内置插件管理市场。
 - **AI 深度赋能** — 支持豆包、DeepSeek、小米、OpenAI、通义千问、智谱、Kimi、混元 **8 大 AI 服务商**，提供根因分析、文档生成、智能翻译、邮件助手等能力。
 - **大文件无忧** — 2MB 分块上传 + 断点续传 + Web Worker 后台处理 + pandas 向量化计算，轻松应对 **200MB** 级日志与 Excel 文件。
 - **数据安全隔离** — 多用户数据按账号隔离存储，支持微信 OAuth 登录、访客模式、CSRF 防护、限流、审计日志，GDPR 合规。
@@ -54,6 +55,16 @@
 | **AI Agent 自动分析** | 定时自动分析（每分钟巡检）、异常检测（阈值/环比突增/趋势偏离）、自动生成报告、告警中心、运行历史 |
 | **智能报告中心** | 日报/周报/月报模板、Markdown+HTML双格式、核心指标卡片+趋势预测+AI风险评估、定时邮件推送、推送历史 |
 | **跨工具数据联动** | CR分析→趋势看板→邮件→任务一键流转、5个工作流定义、统一数据管道、目标页面自动接收提示 |
+
+### 插件化生态 (v8.1 新增)
+
+| 功能 | 核心能力 |
+|------|----------|
+| **插件核心框架** | 插件加载器（自动扫描发现）、完整生命周期（install/activate/deactivate/uninstall）、热加载无需重启、单例管理 |
+| **插件 API SDK** | 数据库访问（读写分离）、路由注册、页面注入、工具调用、配置管理、日志记录，7种权限控制 |
+| **插件管理系统** | 插件列表、启用/禁用、配置面板、重新加载、状态统计、权限展示 |
+| **插件开发规范** | plugin.json 描述文件、标准目录结构、示例插件、开发文档 |
+| **安全沙箱** | 声明式权限、最小权限原则、异常自动禁用、数据隔离 |
 
 ### 研发分析与数据基础
 
@@ -284,6 +295,21 @@ Potential-tools/
 ## 更新日志
 
 详见 [CHANGELOG.md](CHANGELOG.md)。
+
+### v8.1.0 — 2026-09-14
+
+- **插件化生态** — 完整插件框架（加载器/生命周期/热加载）、插件 API SDK（7种权限控制）、插件管理系统（列表/启用禁用/配置/重载）、示例插件、开发文档
+- **AI 配置兼容** — 修复 v8.0 AI 服务无法读取旧格式配置的问题，自动从 user_preferences 表迁移
+
+### v8.0.0 — 2026-09-13
+
+- **AI 原生架构** — 统一 AI 服务抽象层，支持 OpenAI 兼容 / Doubao / DeepSeek / Ollama
+- **AI 对话助手** — 多提供商统一接入、对话历史、流式输出、配置面板
+- **自然语言查询 (NL2SQL)** — 中文提问自动生成 SQL、6张可查询表、数据隔离
+- **CR 分析 AI 增强** — 智能根因归因、Bug 趋势预测（未来7天）、改进建议、一键全量分析
+- **AI Agent 自动分析** — 定时巡检、异常检测、自动生成报告、告警中心
+- **智能报告中心** — 日报/周报/月报模板、Markdown+HTML双格式、定时邮件推送
+- **跨工具数据联动** — CR→趋势→邮件→任务一键流转、5个工作流、统一数据管道
 
 ### v7.0.0 — 2026-08-25
 

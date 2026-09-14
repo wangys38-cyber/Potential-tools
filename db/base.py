@@ -805,6 +805,28 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pipeline_user ON ai_pipeline_data(user_id, pipeline_key, created_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pipeline_target ON ai_pipeline_data(user_id, target_tool, status)"))
 
+        # ==================== v8.1 插件化表 ====================
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS plugins (
+                id {_PK_TYPE},
+                plugin_id TEXT UNIQUE NOT NULL,
+                name TEXT DEFAULT '',
+                version TEXT DEFAULT '',
+                enabled INTEGER DEFAULT 1,
+                installed_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS plugin_settings (
+                id {_PK_TYPE},
+                plugin_id TEXT UNIQUE NOT NULL,
+                settings TEXT DEFAULT '{{}}',
+                updated_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+
         # ==================== 阶段五性能优化：补充复合索引 ====================
         # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))

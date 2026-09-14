@@ -1,0 +1,29 @@
+{
+  "id": "hello-world",
+  "name": "Hello World 示例插件",
+  "version": "1.0.0",
+  "description": "一个简单的示例插件，演示插件开发流程。提供一个问候 API 和自定义页面。",
+  "author": "Potential Tools",
+  "min_app_version": "8.1.0",
+  "permissions": ["routes", "pages"],
+  "entry": {
+    "backend": "backend.main:HelloWorldPlugin",
+    "frontend": "frontend/index.js"
+  },
+  "settings": [
+    {
+      "key": "greeting",
+      "name": "问候语",
+      "type": "string",
+      "default": "你好",
+      "description": "插件使用的问候语"
+    },
+    {
+      "key": "show_time",
+      "name": "显示时间",
+      "type": "boolean",
+      "default": true,
+      "description": "是否在问候中显示当前时间"
+    }
+  ]
+}

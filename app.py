@@ -40,6 +40,7 @@ from routes.teams import create_teams_blueprint
 from routes.versions import create_versions_blueprint
 from routes.notifications import create_notifications_blueprint
 from routes.ai import bp as ai_bp
+from routes.plugins import bp as plugins_bp
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -75,7 +76,7 @@ def _get_static_version():
 _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
-APP_VERSION = '8.0.0'
+APP_VERSION = '8.1.0'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -666,6 +667,7 @@ app.register_blueprint(create_notifications_blueprint())
 
 # v8.0 AI 原生
 app.register_blueprint(ai_bp)
+app.register_blueprint(plugins_bp)
 
 # HLD 生成器
 try:
@@ -705,6 +707,17 @@ except Exception as e:
 # ==================== 应用入口 ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    # 加载插件
+    try:
+        from core.plugin import get_plugin_loader
+        loader = get_plugin_loader()
+        loader.init_app(app)
+        plugin_count = loader.load_all_plugins()
+        loader.register_routes(app)
+        logger.info(f"已加载 {plugin_count} 个插件")
+    except Exception as e:
+        logger.warning(f"插件加载失败: {e}")
+
     logger.info(f"启动 Potential-tools v{APP_VERSION}，端口: {port}")
     # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
     # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
