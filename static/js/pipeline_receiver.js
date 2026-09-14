@@ -14,6 +14,13 @@
     // 页面加载后检查是否有待消费的数据
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(checkPipelineData, 500);
+        // 定期检查新数据（每3秒检查一次，持续60秒）
+        let checkCount = 0;
+        const interval = setInterval(function() {
+            checkCount++;
+            if (checkCount > 20) { clearInterval(interval); return; }
+            checkPipelineData();
+        }, 3000);
     });
 
     function checkPipelineData() {

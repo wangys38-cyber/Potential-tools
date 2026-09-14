@@ -19,35 +19,58 @@ const TEMPLATES=[{id:"ai-reply",icon:"ai",name:"AI 智能回复",fields:["emailC
       navigator.clipboard.writeText(e).then(()=>showToast("已复制到剪贴板"));
     }
   }function clearForm(){currentTemplate.fields.forEach(e=>{const t=document.getElementById("field_"+e);t&&(t.value="")}),document.getElementById("previewCard").style.display="none",showToast("已清空")}function showToast(e){const t=document.getElementById("toast");t.textContent=e,t.classList.add("show"),setTimeout(()=>t.classList.remove("show"),2e3)}renderTemplateList(),renderFormFields();
-// 从 CR 分析导入邮件草稿（优先从后端临时存储获取，兼容localStorage旧方式）
+// 从 CR 分析导入邮件草稿
 (function(){
   function _applyDraft(_o){
     if(_o&&_o.subject&&_o.body){
       generatedEN=_o.body;
-      generatedZH=generatedEN;
+      generatedZH=_o.body;
       isHtmlEmail=!!_o.is_html;
       emailSubject=_o.subject||"";
       emailBodyText=_o.body_text||"";
-      // 填充收件人输入框（如果有）
       var _subjInput=document.getElementById("emailSubjectInput");
       if(_subjInput)_subjInput.value=_o.subject||"";
       document.getElementById("previewCard").style.display="block";
       renderPreview();
-      showToast("已从 CR 分析导入邮件内容（含趋势图）");
+      var hasAI = _o.source_data && _o.source_data.has_ai_analysis;
+      showToast("已从 CR 分析导入邮件" + (hasAI ? "（含 AI 智能分析）" : ""));
     }
   }
   try{
     var _params=new URLSearchParams(window.location.search);
-    var _draftId=_params.get("draft_id");
-    if(_draftId){
-      fetch("/api/pipeline/get/"+_draftId)
-        .then(function(r){return r.json();})
-        .then(function(_o){_applyDraft(_o);})
-        .catch(function(e){console.warn("Fetch draft error:",e);showToast("邮件草稿获取失败，请重新生成","error");});
+    // 如果带 import=1 参数，自动从管道消费数据
+    if(_params.get("import")==="1"){
+      fetch("/api/ai/pipeline/consume",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({target_tool:"email-assistant"})
+      })
+      .then(function(r){return r.json();})
+      .then(function(result){
+        var data=result.data||[];
+        if(data.length>0){
+          var item=data[0];
+          var content=item.data_content||item.data||{};
+          _applyDraft(content);
+        }else{
+          showToast("没有待导入的邮件数据，请先在 CR 分析页面生成邮件");
+        }
+      })
+      .catch(function(e){console.warn("Consume pipeline error:",e);showToast("邮件导入失败，请重试","error");});
       return;
     }
-    var _d=localStorage.getItem("_cr_email_draft");
-    if(_d){var _o=JSON.parse(_d);_applyDraft(_o);localStorage.removeItem("_cr_email_draft");}
+    // 兼容旧的 draft_id 方式
+    var _draftId=_params.get("draft_id");
+    if(_draftId){
+      fetch("/api/ai/pipeline/peek?target_tool=email-assistant")
+        .then(function(r){return r.json();})
+        .then(function(result){
+          var data=result.data||[];
+          if(data.length>0){_applyDraft(data[0].data_content||{});}
+        })
+        .catch(function(e){console.warn("Fetch draft error:",e);});
+      return;
+    }
   }catch(e){console.warn("Import email draft error:",e);}
 })();
 // 接收管道推送的 CR 邮件数据

@@ -393,7 +393,14 @@ function pushToEmail() {
         alert('请先完成 CR 分析');
         return;
     }
-    window.pushToPipeline('cr_to_email', data, 'CR 分析邮件');
+    window.pushToPipeline('cr_to_email', data, 'CR 分析邮件').then(function(result) {
+        if (result && result.status === 'success') {
+            // 推送成功后自动跳转到邮件助手页面
+            setTimeout(function() {
+                window.location.href = '/email-assistant?import=1';
+            }, 800);
+        }
+    });
 }
 
 function pushToTasks() {
