@@ -327,6 +327,7 @@ def create_api_blueprint(base_dir, static_version):
         to = (data.get('to') or '').strip()
         subject = (data.get('subject') or '').strip()
         body = data.get('body') or ''
+        is_html = bool(data.get('is_html', False))
         if not to or not subject or not body:
             return jsonify({'status': 'error', 'error': '收件人、主题、正文不能为空'}), 400
         cfg = db.get_config('smtp_mail_config') or {}
@@ -345,7 +346,7 @@ def create_api_blueprint(base_dir, static_version):
             msg['From'] = formataddr((str(Header(from_name, 'utf-8')), cfg['username']))
             msg['To'] = to
             msg['Subject'] = Header(subject, 'utf-8')
-            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            msg.attach(MIMEText(body, 'html' if is_html else 'plain', 'utf-8'))
             server = smtplib.SMTP(cfg['smtp_host'], cfg.get('smtp_port', 587), timeout=30)
             if cfg.get('use_tls', True):
                 server.starttls()
