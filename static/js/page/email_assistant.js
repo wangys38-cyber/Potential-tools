@@ -56,12 +56,15 @@ function sendEmail(){
     var emailText = "en"===currentLang?generatedEN:generatedZH;
     if(!emailText) return showToast("请先生成邮件内容","error");
     var subject, body;
+    // 优先使用主题输入框的值
+    var _subjInput=document.getElementById("emailSubjectInput");
+    var _inputSubject=_subjInput?_subjInput.value.trim():"";
     if(isHtmlEmail){
-      subject = emailSubject || "CR分析报告";
+      subject = _inputSubject || emailSubject || "CR分析报告";
       body = emailText;
     }else{
       var lines = emailText.split("\n");
-      subject = lines[0] || "无主题";
+      subject = _inputSubject || lines[0] || "无主题";
       body = lines.slice(1).join("\n").trim();
     }
     var btn = document.getElementById("sendEmailBtn");
