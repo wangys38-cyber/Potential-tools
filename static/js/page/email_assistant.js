@@ -50,6 +50,29 @@ const TEMPLATES=[{id:"ai-reply",icon:"ai",name:"AI 智能回复",fields:["emailC
     if(_d){var _o=JSON.parse(_d);_applyDraft(_o);localStorage.removeItem("_cr_email_draft");}
   }catch(e){console.warn("Import email draft error:",e);}
 })();
+// 接收管道推送的 CR 邮件数据
+window.onPipelineDataImport = function(dataList) {
+  try {
+    var item = dataList && dataList[0];
+    if (!item) return;
+    var data = item.data_content || item.data || {};
+    if (data && data.subject && data.body) {
+      generatedEN = data.body;
+      generatedZH = data.body;
+      isHtmlEmail = !!data.is_html;
+      emailSubject = data.subject || "";
+      emailBodyText = data.body_text || "";
+      var _subjInput = document.getElementById("emailSubjectInput");
+      if (_subjInput) _subjInput.value = data.subject || "";
+      document.getElementById("previewCard").style.display = "block";
+      renderPreview();
+      var hasAI = data.source_data && data.source_data.has_ai_analysis;
+      showToast("已从 CR 分析导入邮件" + (hasAI ? "（含 AI 智能分析）" : ""));
+    }
+  } catch (e) {
+    console.warn("Pipeline import error:", e);
+  }
+};
 function sendEmail(){
     var recipient = document.getElementById("emailRecipient").value.trim();
     if(!recipient) return showToast("请输入收件人邮箱","error");

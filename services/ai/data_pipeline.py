@@ -87,6 +87,23 @@ def push_to_pipeline(user_id: int, pipeline_key: str, data: Dict,
         return {'status': 'success', 'pipeline_id': 0, 'steps': results}
 
     # 单步骤工作流
+    # 对于特定工作流，先进行数据转换
+    processed_data = data
+    if pipeline_key == 'cr_to_email':
+        # CR → 邮件：自动生成邮件内容
+        email_result = transform_cr_to_email(data)
+        processed_data = {
+            'subject': email_result['subject'],
+            'body': email_result['body'],
+            'body_text': email_result['body_text'],
+            'is_html': True,
+            'recipients': email_result.get('recipients', []),
+            'source_data': {
+                'issues_count': len(data.get('issues') or []),
+                'has_ai_analysis': bool(data.get('aiAnalysis') and data['aiAnalysis'].get('full_analysis')),
+            }
+        }
+
     pipeline_id = pipeline_db.save_pipeline_data(
         user_id=user_id,
         pipeline_key=pipeline_key,
@@ -94,7 +111,7 @@ def push_to_pipeline(user_id: int, pipeline_key: str, data: Dict,
         target_tool=pipeline['target'],
         data_type='workflow_data',
         title=title or pipeline['name'],
-        data_content=data,
+        data_content=processed_data,
         metadata=metadata or {},
     )
 

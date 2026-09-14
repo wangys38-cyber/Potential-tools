@@ -81,6 +81,13 @@
     };
 
     function renderPrediction(data) {
+        // 保存趋势预测结果
+        saveAIResult('prediction', data);
+        // 同时更新 full_analysis 格式
+        const full = window.crAIAnalysisResult.full_analysis || {};
+        full.prediction = { status: 'success', trend: data.trend, trend_icon: data.trend_icon, total_predicted_new: data.total_predicted_new, confidence: data.confidence, avg_daily_new: data.avg_daily_new };
+        saveAIResult('full_analysis', full);
+
         const section = document.getElementById('bugPredictionSection');
         if (!section) return;
 
@@ -177,6 +184,13 @@
     };
 
     function renderEnhancedAnalysis(data) {
+        // 保存根因分析结果
+        saveAIResult('root_cause', data);
+        // 同时更新 full_analysis 格式，供邮件生成使用
+        const full = window.crAIAnalysisResult.full_analysis || {};
+        full.root_cause = { ai_analysis: data.ai_analysis || {}, module_stats: data.module_stats || [] };
+        saveAIResult('full_analysis', full);
+
         const content = document.getElementById('enhancedAIContent');
         if (!content) return;
 
@@ -287,6 +301,13 @@
     };
 
     function renderImprovementPlan(plan) {
+        // 保存改进计划结果
+        saveAIResult('improvement', { plan: plan });
+        // 同时更新 full_analysis 格式
+        const full = window.crAIAnalysisResult.full_analysis || {};
+        full.improvement = { plan: plan };
+        saveAIResult('full_analysis', full);
+
         const content = document.getElementById('enhancedAIContent');
         if (!content) return;
 
