@@ -10,11 +10,12 @@ from . import cr_enhancer
 from . import agent as ai_agent
 from . import report_generator
 from . import report_pusher
+from . import data_pipeline
 
 __all__ = [
     'AIServiceBase', 'AIResponse', 'AIError', 'ChatMessage',
     'create_ai_service', 'get_ai_service', 'reset_ai_service', 'is_ai_configured',
     'PromptTemplate', 'get_prompt', 'render_prompt',
     'nl2sql', 'cr_enhancer', 'ai_agent',
-    'report_generator', 'report_pusher',
+    'report_generator', 'report_pusher', 'data_pipeline',
 ]

@@ -785,6 +785,26 @@ def init_db():
         """.format(_PK_TYPE=_PK_TYPE)))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_push_logs_user ON ai_report_push_logs(user_id, sent_at DESC)"))
 
+        # ==================== v8.0 跨工具数据联动表 ====================
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_pipeline_data (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                pipeline_key TEXT DEFAULT '',
+                source_tool TEXT DEFAULT '',
+                target_tool TEXT DEFAULT '',
+                data_type TEXT DEFAULT '',
+                title TEXT DEFAULT '',
+                data_content TEXT DEFAULT '',
+                metadata TEXT DEFAULT '{{}}',
+                status TEXT DEFAULT 'pending',
+                expires_at REAL DEFAULT 0,
+                created_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pipeline_user ON ai_pipeline_data(user_id, pipeline_key, created_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pipeline_target ON ai_pipeline_data(user_id, target_tool, status)"))
+
         # ==================== 阶段五性能优化：补充复合索引 ====================
         # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))

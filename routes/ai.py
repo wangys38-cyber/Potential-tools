@@ -18,6 +18,8 @@ from services.ai import agent as ai_agent_service
 from db import agent as agent_db
 from db import report as report_db
 from services.ai import report_generator, report_pusher
+from services.ai import data_pipeline
+from db import pipeline as pipeline_db
 
 logger = logging.getLogger(__name__)
 
@@ -815,3 +817,121 @@ def list_report_logs():
     limit = int(request.args.get('limit', 20))
     logs = report_db.list_push_logs(user_id, limit)
     return jsonify({'status': 'success', 'logs': logs})
+
+
+# ==================== v8.0 跨工具数据联动 ====================
+
+@bp.route('/pipeline/list', methods=['GET'])
+def list_pipelines():
+    """获取可用的工作流列表"""
+    pipelines = data_pipeline.get_available_pipelines()
+    return jsonify({'status': 'success', 'pipelines': pipelines})
+
+
+@bp.route('/pipeline/push', methods=['POST'])
+def push_to_pipeline():
+    """推送数据到工作流管道"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    pipeline_key = data.get('pipeline_key', '')
+    pipeline_data = data.get('data', {})
+    title = data.get('title', '')
+    metadata = data.get('metadata', {})
+
+    if not pipeline_key:
+        return jsonify({'status': 'error', 'error': '缺少 pipeline_key'}), 400
+
+    if not pipeline_data:
+        return jsonify({'status': 'error', 'error': '缺少数据'}), 400
+
+    result = data_pipeline.push_to_pipeline(
+        user_id=user_id,
+        pipeline_key=pipeline_key,
+        data=pipeline_data,
+        title=title,
+        metadata=metadata,
+    )
+    return jsonify(result)
+
+
+@bp.route('/pipeline/consume', methods=['POST'])
+def consume_pipeline():
+    """消费流转数据（目标工具调用）"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    target_tool = data.get('target_tool', '')
+
+    if not target_tool:
+        return jsonify({'status': 'error', 'error': '缺少 target_tool'}), 400
+
+    data_list = data_pipeline.consume_pipeline_data(user_id, target_tool)
+    return jsonify({'status': 'success', 'data': data_list, 'count': len(data_list)})
+
+
+@bp.route('/pipeline/peek', methods=['GET'])
+def peek_pipeline():
+    """查看待消费的流转数据（不标记）"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    target_tool = request.args.get('target_tool', '')
+    if not target_tool:
+        return jsonify({'status': 'error', 'error': '缺少 target_tool'}), 400
+
+    data_list = data_pipeline.peek_pipeline_data(user_id, target_tool)
+    return jsonify({'status': 'success', 'data': data_list, 'count': len(data_list)})
+
+
+@bp.route('/pipeline/history', methods=['GET'])
+def pipeline_history():
+    """获取流转历史"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    limit = int(request.args.get('limit', 20))
+    history = pipeline_db.list_pipeline_history(user_id, limit)
+    return jsonify({'status': 'success', 'history': history})
+
+
+@bp.route('/pipeline/<int:pipeline_id>/status', methods=['POST'])
+def update_pipeline_status(pipeline_id):
+    """更新流转状态"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    status = data.get('status', 'consumed')
+
+    success = pipeline_db.update_pipeline_status(pipeline_id, status)
+    return jsonify({'status': 'success' if success else 'error'})
+
+
+@bp.route('/pipeline/full-workflow', methods=['POST'])
+def execute_full_workflow():
+    """执行完整工作流：CR → 趋势 → 邮件 → 任务"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    cr_data = data.get('cr_data', {})
+    trend_image = data.get('trend_image')
+
+    if not cr_data:
+        return jsonify({'status': 'error', 'error': '缺少 CR 数据'}), 400
+
+    result = data_pipeline.execute_full_workflow(
+        user_id=user_id,
+        cr_data=cr_data,
+        trend_image=trend_image,
+    )
+    return jsonify(result)
