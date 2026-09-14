@@ -308,9 +308,13 @@ def create_api_blueprint(base_dir, static_version):
             import smtplib
             import base64
             password = base64.b64decode(cfg.get('password', '')).decode('utf-8') if cfg.get('password') else ''
-            server = smtplib.SMTP(cfg['smtp_host'], cfg.get('smtp_port', 587), timeout=15)
-            if cfg.get('use_tls', True):
-                server.starttls()
+            port = int(cfg.get('smtp_port', 587))
+            if port == 465:
+                server = smtplib.SMTP_SSL(cfg['smtp_host'], port, timeout=15)
+            else:
+                server = smtplib.SMTP(cfg['smtp_host'], port, timeout=15)
+                if cfg.get('use_tls', True):
+                    server.starttls()
             if password:
                 server.login(cfg['username'], password)
             server.quit()
@@ -347,9 +351,13 @@ def create_api_blueprint(base_dir, static_version):
             msg['To'] = to
             msg['Subject'] = Header(subject, 'utf-8')
             msg.attach(MIMEText(body, 'html' if is_html else 'plain', 'utf-8'))
-            server = smtplib.SMTP(cfg['smtp_host'], cfg.get('smtp_port', 587), timeout=30)
-            if cfg.get('use_tls', True):
-                server.starttls()
+            port = int(cfg.get('smtp_port', 587))
+            if port == 465:
+                server = smtplib.SMTP_SSL(cfg['smtp_host'], port, timeout=30)
+            else:
+                server = smtplib.SMTP(cfg['smtp_host'], port, timeout=30)
+                if cfg.get('use_tls', True):
+                    server.starttls()
             if password:
                 server.login(cfg['username'], password)
             server.sendmail(cfg['username'], [x.strip() for x in to.split(',')], msg.as_string())
