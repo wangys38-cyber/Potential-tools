@@ -15,6 +15,66 @@ from .base import ChatMessage, AIError
 logger = logging.getLogger(__name__)
 
 
+# ==================== 指标计算 ====================
+
+def calculate_metrics(issues: List[Dict], daily_data: List[Dict] = None) -> Dict[str, Any]:
+    """
+    计算 CR 分析核心指标
+    """
+    total = len(issues)
+
+    # 状态统计
+    unresolved = 0
+    critical = 0
+    high = 0
+    medium = 0
+    low = 0
+    modules = set()
+
+    for issue in issues:
+        status = str(issue.get('status') or issue.get('状态') or '').lower()
+        if not any(k in status for k in ('resolved', 'closed', 'done', '已解决', '已关闭')):
+            unresolved += 1
+
+        severity = str(issue.get('severity') or issue.get('严重度') or issue.get('优先级') or '').lower()
+        if 'critical' in severity or '致命' in severity or 'blocker' in severity:
+            critical += 1
+        elif 'high' in severity or '严重' in severity or 'major' in severity:
+            high += 1
+        elif 'medium' in severity or '一般' in severity or 'normal' in severity:
+            medium += 1
+        elif 'low' in severity or '轻微' in severity or 'minor' in severity:
+            low += 1
+
+        module = issue.get('module') or issue.get('模块') or issue.get('component') or '未知'
+        modules.add(module)
+
+    # 今日新增/解决
+    today_new = 0
+    today_resolved = 0
+    if daily_data and len(daily_data) > 0:
+        latest = daily_data[-1]
+        today_new = latest.get('new', latest.get('新增', 0))
+        today_resolved = latest.get('resolved', latest.get('解决', 0))
+
+    # 解决率
+    resolution_rate = round((total - unresolved) / total * 100, 1) if total > 0 else 0
+
+    return {
+        'total': total,
+        'unresolved': unresolved,
+        'resolved': total - unresolved,
+        'critical': critical,
+        'high': high,
+        'medium': medium,
+        'low': low,
+        'modules': len(modules),
+        'today_new': today_new,
+        'today_resolved': today_resolved,
+        'resolution_rate': resolution_rate,
+    }
+
+
 # ==================== 趋势预测 ====================
 
 def predict_bug_trend(daily_data: List[Dict], days_ahead: int = 7) -> Dict[str, Any]:

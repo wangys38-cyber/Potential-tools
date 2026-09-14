@@ -4,7 +4,7 @@
 
 集成 CR 分析、日志根因定位、知识图谱、HLD 生成、项目计划、测试报告、会议纪要等 **20+ 工具**，支持本地运行与云端部署，开箱即用。
 
-[![Version](https://img.shields.io/badge/version-v7.0.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
+[![Version](https://img.shields.io/badge/version-v8.0.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
 [![Python](https://img.shields.io/badge/python-3.9%2B-green.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -33,6 +33,7 @@
 ## 核心亮点
 
 - **研发全流程覆盖** — 从需求分析（HLD）、开发排期（软件计划）、质量把控（CR/测试报告/MTTF）到团队协作（会议纪要/站会/周报），一个平台搞定。
+- **AI 原生架构 (v8.0)** — 统一 AI 服务抽象层，支持 OpenAI 兼容 / Doubao / DeepSeek / Ollama，提供 AI 对话助手、自然语言数据查询（NL2SQL）、CR 智能归因与趋势预测、AI Agent 自动分析、智能报告自动推送、跨工具数据联动。
 - **AI 深度赋能** — 支持豆包、DeepSeek、小米、OpenAI、通义千问、智谱、Kimi、混元 **8 大 AI 服务商**，提供根因分析、文档生成、智能翻译、邮件助手等能力。
 - **大文件无忧** — 2MB 分块上传 + 断点续传 + Web Worker 后台处理 + pandas 向量化计算，轻松应对 **200MB** 级日志与 Excel 文件。
 - **数据安全隔离** — 多用户数据按账号隔离存储，支持微信 OAuth 登录、访客模式、CSRF 防护、限流、审计日志，GDPR 合规。
@@ -42,6 +43,17 @@
 ---
 
 ## 功能矩阵
+
+### AI 原生能力 (v8.0 新增)
+
+| 功能 | 核心能力 |
+|------|----------|
+| **AI 对话助手** | 多提供商统一接入（OpenAI兼容/Doubao/DeepSeek/Ollama）、对话历史管理、流式输出、快捷操作、配置面板 |
+| **自然语言查询 (NL2SQL)** | 用中文提问自动生成 SQL、6张可查询表、用户数据隔离、SQL安全验证、AI解释查询结果 |
+| **CR 分析 AI 增强** | 智能根因归因（模块风险排名+AI深度分析）、Bug趋势预测（线性回归+移动平均，未来7天）、改进建议（短/中/长期三层计划）、一键全量分析 |
+| **AI Agent 自动分析** | 定时自动分析（每分钟巡检）、异常检测（阈值/环比突增/趋势偏离）、自动生成报告、告警中心、运行历史 |
+| **智能报告中心** | 日报/周报/月报模板、Markdown+HTML双格式、核心指标卡片+趋势预测+AI风险评估、定时邮件推送、推送历史 |
+| **跨工具数据联动** | CR分析→趋势看板→邮件→任务一键流转、5个工作流定义、统一数据管道、目标页面自动接收提示 |
 
 ### 研发分析与数据基础
 
