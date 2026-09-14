@@ -56,6 +56,13 @@ function exportToEmail(){if(!currentAnalysisData)return void showToast("请先�
 var d=currentAnalysisData,s=d.summary||{},fn=d.file_name||"CR分析",today=new Date().toISOString().slice(0,10);
 var subject="【CR分析报告】"+fn+" - "+today;
 var chartImg=_drawTrendChartToBase64(d.daily_stats||[]);var pieImg=_getChartBase64(modulePieChart);
+var _modStats=d.module_stats||{};
+var _mttfUnresolved=0,_perfUnresolved=0,_mttfName="",_perfName="";
+Object.keys(_modStats).forEach(function(_k){
+  var _kl=_k.toLowerCase();
+  if(_kl.indexOf("mttf")>=0||_k.indexOf("MTTF")>=0){_mttfUnresolved=_modStats[_k].unresolved||0;_mttfName=_k;}
+  if(_kl.indexOf("性能")>=0||_kl.indexOf("performance")>=0||_kl.indexOf("perf")>=0){_perfUnresolved=_modStats[_k].unresolved||0;_perfName=_k;}
+});
 var unresolved=(d.all_issues||[]).filter(function(x){return !x.resolved&&x.status!=="Resolved"&&x.status!=="Closed"&&x.status!=="已解决"&&x.status!=="已关闭";});
 var sevHtml="";
 [["blocker","Blocker","#ff3b30"],["critical","Critical","#ff9500"],["major","Major","#ffcc00"],["minor","Minor","#34c759"],["trivial","Trivial","#8e8e93"]].forEach(function(item){
@@ -84,7 +91,12 @@ var bodyHtml='<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 
 +'<td style="padding:12px;text-align:center;background:#fff5f5;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#ff3b30;">'+(s.total_unresolved||0)+'</div><div style="font-size:12px;color:#888;">未解决</div></td>'
 +'<td style="padding:12px;text-align:center;background:#f0f7ff;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#007aff;">'+(s.resolution_rate||0)+'%</div><div style="font-size:12px;color:#888;">解决率</div></td>'
 +'</tr></table>'
-+'<h2 style="font-size:16px;margin:20px 0 10px;color:#333;border-bottom:2px solid #007aff;padding-bottom:6px;">二、严重程度分布</h2>'
++'<h2 style="font-size:16px;margin:20px 0 10px;color:#333;border-bottom:2px solid #007aff;padding-bottom:6px;">二、重点模块剩余问题</h2>'
++'<table style="width:100%;border-collapse:collapse;margin:10px 0;"><tr>'
++'<td style="padding:12px;text-align:center;background:#fff5f5;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#ff3b30;">'+_mttfUnresolved+'</div><div style="font-size:12px;color:#888;">'+(_mttfName||"MTTF")+' 剩余</div></td>'
++'<td style="padding:12px;text-align:center;background:#fff8f0;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#ff9500;">'+_perfUnresolved+'</div><div style="font-size:12px;color:#888;">'+(_perfName||"性能")+' 剩余</div></td>'
++'</tr></table>'
++'<h2 style="font-size:16px;margin:20px 0 10px;color:#333;border-bottom:2px solid #007aff;padding-bottom:6px;">三、严重程度分布</h2>'
 +'<div style="margin:10px 0;">'+sevHtml+'</div>'
 +'<h2 style="font-size:16px;margin:20px 0 10px;color:#333;border-bottom:2px solid #007aff;padding-bottom:6px;">三、Bug 趋势图（近14天）</h2>'
 +(chartImg?'<div style="text-align:center;margin:10px 0;"><img src="'+chartImg+'" style="max-width:100%;border:1px solid #eee;border-radius:8px;" alt="Bug趋势图"/></div>':'<p style="color:#999;font-size:13px;">暂无趋势数据</p>')
