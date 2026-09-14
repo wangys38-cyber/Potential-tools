@@ -275,12 +275,35 @@
                 <button class="btn btn-primary" onclick="generatePDF(this)">生成PDF报告</button>
             </div>
 
-            <!-- v3.0 AI 根因分析 -->
+            <!-- v8.0 AI 增强分析 -->
             <div style="margin-top: 20px; padding: 24px; background: var(--ds-bg-elevated); border-radius: var(--ds-radius-lg); border: 1px solid var(--ds-border-light); box-shadow: var(--ds-shadow-sm);" id="aiCard">
                 <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;color:var(--ds-text);">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ds-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M8 22h8"/></svg>
-                    AI 根因分析
-                    <span style="font-size: 12px; color: var(--ds-text-tertiary); font-weight: normal;">v3.0 新功能</span>
+                    AI 智能分析
+                    <span style="font-size: 12px; color: var(--ds-text-tertiary); font-weight: normal;">v8.0 增强</span>
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                    <button class="btn btn-primary" id="enhancedAIBtn" onclick="runFullAIAnalysis()" style="padding:8px 16px;font-size:13px;">
+                        🚀 一键全量分析
+                    </button>
+                    <button class="btn btn-secondary" onclick="runEnhancedAIAnalysis()" style="padding:8px 16px;font-size:13px;">
+                        🎯 智能归因
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadBugPrediction();switchTab('prediction')" style="padding:8px 16px;font-size:13px;">
+                        📈 趋势预测
+                    </button>
+                    <button class="btn btn-secondary" onclick="generateAIAnalysis()" style="padding:8px 16px;font-size:13px;">
+                        🔍 根因分类（旧版）
+                    </button>
+                </div>
+                <div id="enhancedAIContent" style="min-height:60px;margin-bottom:16px;">
+                    <div style="text-align:center;padding:20px;color:var(--ds-text-tertiary);font-size:13px;">
+                        点击上方按钮开始 AI 分析<br>
+                        <span style="font-size:12px;">全量分析 = 智能归因 + 趋势预测 + 改进建议</span>
+                    </div>
+                </div>
+                <div style="border-top:1px solid var(--ds-border-light);padding-top:16px;">
+                    <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--ds-text);">📌 根因分类（v3.0）</div>
                 </div>
                 <div id="aiContent" style="min-height: 60px;">
                     <div style="text-align: center; padding: 20px;">
@@ -328,6 +351,7 @@
             </div>
         </div>
     </div>
+<script src="/static/js/cr_ai_enhancement.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/page/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
 </body>
 </html>

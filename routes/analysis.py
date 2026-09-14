@@ -24,6 +24,7 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context, se
 
 import auth
 import ai_utils
+from services.ai import cr_enhancer as cr_ai_enhancer
 from routes.common import (
     ExcelReader, validate_file_id, render_pdf, MD2PDF_PREVIEW_CSS,
     background_tasks, load_task_meta, save_task_meta, _CST,
@@ -1664,6 +1665,115 @@ def create_analysis_blueprint():
             elif 'timeout' in err_msg.lower() or '超时' in err_msg:
                 return jsonify({'error': 'AI 服务超时，请稍后重试'}), 504
             return jsonify({'error': f'修复建议生成失败: {err_msg}'}), 502
+
+
+    # ==================== v8.0 CR AI 增强 ====================
+
+    @bp.route('/api/cr/ai/predict', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_ai_predict():
+        """AI 趋势预测：基于历史每日数据预测未来 Bug 趋势"""
+        data = request.get_json(silent=True) or {}
+        daily_data = data.get('daily_data', [])
+        days_ahead = data.get('days_ahead', 7)
+
+        if not daily_data:
+            return jsonify({'error': '缺少每日趋势数据'}), 400
+
+        try:
+            result = cr_ai_enhancer.predict_bug_trend(daily_data, days_ahead)
+            # 如果 AI 可用，添加解释
+            ai_config = get_ai_config()
+            if ai_config.get('enabled') and result.get('status') == 'success':
+                try:
+                    service = get_ai_service()
+                    if service:
+                        result['explanation'] = cr_ai_enhancer.explain_prediction(result, service)
+                except Exception as e:
+                    logger.warning(f'预测解释失败: {e}')
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f'趋势预测失败: {e}')
+            return jsonify({'error': f'预测失败: {str(e)}'}), 500
+
+    @bp.route('/api/cr/ai/enhanced-root-cause', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_ai_enhanced_root_cause():
+        """增强根因分析：多维度归因 + AI 深度分析"""
+        ai_config = get_ai_config()
+        if not ai_config.get('enabled'):
+            return jsonify({'error': 'AI功能未配置'}), 503
+
+        data = request.get_json(silent=True) or {}
+        issues = data.get('issues', [])
+        if not issues:
+            return jsonify({'error': '缺少问题数据'}), 400
+
+        try:
+            service = get_ai_service()
+            if not service:
+                return jsonify({'error': 'AI 服务初始化失败'}), 503
+            result = cr_ai_enhancer.enhanced_root_cause_analysis(issues, service)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f'增强根因分析失败: {e}')
+            return jsonify({'error': f'分析失败: {str(e)}'}), 500
+
+    @bp.route('/api/cr/ai/improvement-plan', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_ai_improvement_plan():
+        """生成系统性改进计划"""
+        ai_config = get_ai_config()
+        if not ai_config.get('enabled'):
+            return jsonify({'error': 'AI功能未配置'}), 503
+
+        data = request.get_json(silent=True) or {}
+        analysis_result = data.get('analysis_result')
+        if not analysis_result:
+            # 如果没有传入分析结果，尝试用 issues 重新分析
+            issues = data.get('issues', [])
+            if not issues:
+                return jsonify({'error': '缺少分析结果或问题数据'}), 400
+            try:
+                service = get_ai_service()
+                analysis_result = cr_ai_enhancer.enhanced_root_cause_analysis(issues, service)
+            except Exception as e:
+                return jsonify({'error': f'分析失败: {str(e)}'}), 500
+
+        try:
+            service = get_ai_service()
+            if not service:
+                return jsonify({'error': 'AI 服务初始化失败'}), 503
+            result = cr_ai_enhancer.generate_improvement_plan(analysis_result, service)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f'改进计划生成失败: {e}')
+            return jsonify({'error': f'生成失败: {str(e)}'}), 500
+
+    @bp.route('/api/cr/ai/full-analysis', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_ai_full_analysis():
+        """一键 AI 全量分析：归因 + 预测 + 建议"""
+        ai_config = get_ai_config()
+        if not ai_config.get('enabled'):
+            return jsonify({'error': 'AI功能未配置'}), 503
+
+        data = request.get_json(silent=True) or {}
+        issues = data.get('issues', [])
+        daily_data = data.get('daily_data', [])
+
+        if not issues:
+            return jsonify({'error': '缺少问题数据'}), 400
+
+        try:
+            service = get_ai_service()
+            if not service:
+                return jsonify({'error': 'AI 服务初始化失败'}), 503
+            result = cr_ai_enhancer.full_ai_analysis(issues, daily_data, service)
+            return jsonify(result)
+        except Exception as e:
+            logger.error(f'全量分析失败: {e}')
+            return jsonify({'error': f'分析失败: {str(e)}'}), 500
 
     return bp
 
