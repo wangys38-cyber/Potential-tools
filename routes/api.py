@@ -296,6 +296,45 @@ def create_api_blueprint(base_dir, static_version):
         db.set_config('smtp_mail_config', cfg)
         return jsonify({'status': 'success', 'configured': True})
 
+
+    def _connect_smtp(cfg):
+        """建立SMTP连接并完成握手，返回server对象或抛出带诊断信息的异常"""
+        import smtplib
+        port = int(cfg.get('smtp_port', 587))
+        host = cfg['smtp_host']
+        use_tls = cfg.get('use_tls', True)
+
+        if port == 465:
+            server = smtplib.SMTP_SSL(host, port, timeout=20)
+            server.ehlo()
+        else:
+            server = smtplib.SMTP(host, port, timeout=20)
+            server.ehlo()
+            if use_tls:
+                if server.has_extn('starttls'):
+                    server.starttls()
+                    server.ehlo()  # STARTTLS后必须重新EHLO获取更新后的能力
+                else:
+                    # 服务器不声明STARTTLS但用户要求加密，尝试强制STARTTLS
+                    try:
+                        server.starttls()
+                        server.ehlo()
+                    except Exception as e:
+                        raise Exception(f'服务器不支持STARTTLS加密。请尝试关闭TLS或改用465端口(SSL)。详情: {str(e)}')
+
+        # 检查AUTH支持
+        if not server.has_extn('auth'):
+            server.quit()
+            raise Exception(
+                f'服务器不支持SMTP认证(AUTH扩展)。\n'
+                f'可能原因:\n'
+                f'1. 端口错误：请确认SMTP服务器端口(常见: 465/587)\n'
+                f'2. 加密方式不匹配：465端口用SSL，587端口用STARTTLS\n'
+                f'3. 该邮箱未开启SMTP服务或需要授权码\n'
+                f'服务器地址: {host}:{port}'
+            )
+        return server
+
     @bp.route('/api/email/test', methods=['POST'])
     def api_email_test():
         user = auth.get_current_user()
@@ -305,16 +344,9 @@ def create_api_blueprint(base_dir, static_version):
         if not cfg.get('smtp_host') or not cfg.get('username'):
             return jsonify({'status': 'error', 'error': '请先配置 SMTP 信息'}), 400
         try:
-            import smtplib
             import base64
             password = base64.b64decode(cfg.get('password', '')).decode('utf-8') if cfg.get('password') else ''
-            port = int(cfg.get('smtp_port', 587))
-            if port == 465:
-                server = smtplib.SMTP_SSL(cfg['smtp_host'], port, timeout=15)
-            else:
-                server = smtplib.SMTP(cfg['smtp_host'], port, timeout=15)
-                if cfg.get('use_tls', True):
-                    server.starttls()
+            server = _connect_smtp(cfg)
             if password:
                 server.login(cfg['username'], password)
             server.quit()
@@ -351,13 +383,7 @@ def create_api_blueprint(base_dir, static_version):
             msg['To'] = to
             msg['Subject'] = Header(subject, 'utf-8')
             msg.attach(MIMEText(body, 'html' if is_html else 'plain', 'utf-8'))
-            port = int(cfg.get('smtp_port', 587))
-            if port == 465:
-                server = smtplib.SMTP_SSL(cfg['smtp_host'], port, timeout=30)
-            else:
-                server = smtplib.SMTP(cfg['smtp_host'], port, timeout=30)
-                if cfg.get('use_tls', True):
-                    server.starttls()
+            server = _connect_smtp(cfg)
             if password:
                 server.login(cfg['username'], password)
             server.sendmail(cfg['username'], [x.strip() for x in to.split(',')], msg.as_string())
