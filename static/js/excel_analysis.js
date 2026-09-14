@@ -78,14 +78,33 @@ var sevHtml="";
 });
 var issueHtml="";
 if(unresolved.length>0){
-    issueHtml='<h3 style="margin:20px 0 10px;font-size:15px;color:#333;">三、未解决问题（共'+unresolved.length+'条，展示前10条）</h3><ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:#555;">';
-    unresolved.slice(0,10).forEach(function(x,i){
-        var title=x.title||x.summary||x.issue||x.description||"(无标题)";
-        var sev=x.severity||x.priority||"";var mod=x.module||x.component||"";
-        issueHtml+="<li>["+sev+"] "+title+(mod?" ("+mod+")":"")+"</li>";
+    // 按严重程度统计
+    var _sevMap={blocker:0,critical:0,major:0,minor:0,trivial:0,other:0};
+    var _modMap={};
+    unresolved.forEach(function(x){
+        var _s=(x.severity||x.priority||"").toLowerCase();
+        if(_sevMap[_s]!==undefined)_sevMap[_s]++;else _sevMap.other++;
+        var _m=x.module||x.component||"未分类";
+        _modMap[_m]=(_modMap[_m]||0)+1;
     });
-    issueHtml+="</ol>";
-    if(unresolved.length>10)issueHtml+='<p style="font-size:12px;color:#999;margin:5px 0;">... 还有 '+(unresolved.length-10)+' 条未展示</p>';
+    var _sevLabels={blocker:"Blocker",critical:"Critical",major:"Major",minor:"Minor",trivial:"Trivial",other:"其他"};
+    var _sevColors={blocker:"#ff3b30",critical:"#ff9500",major:"#ffcc00",minor:"#34c759",trivial:"#8e8e93",other:"#c7c7cc"};
+    var _sevHtml="";
+    ["blocker","critical","major","minor","trivial","other"].forEach(function(k){
+        if(_sevMap[k]>0){
+            _sevHtml+='<span style="display:inline-block;margin:4px 8px 4px 0;padding:4px 12px;border-radius:12px;background:'+_sevColors[k]+'22;color:'+_sevColors[k]+';font-size:13px;font-weight:600;">'+_sevLabels[k]+': '+_sevMap[k]+'</span>';
+        }
+    });
+    // 按模块统计（前5）
+    var _modArr=Object.entries(_modMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var _modHtml=_modArr.map(function(m){
+        return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;">'+m[0]+'</td><td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;text-align:right;font-weight:600;">'+m[1]+'</td></tr>';
+    }).join("");
+    issueHtml='<h2 style="font-size:16px;margin:20px 0 10px;color:#333;border-bottom:2px solid #007aff;padding-bottom:6px;">未解决问题汇总（共'+unresolved.length+'条）</h2>'
+    +'<h3 style="font-size:14px;margin:12px 0 8px;color:#555;">按严重程度</h3>'
+    +'<div style="margin:8px 0;">'+_sevHtml+'</div>'
+    +'<h3 style="font-size:14px;margin:16px 0 8px;color:#555;">按模块分布（Top 5）</h3>'
+    +'<table style="width:100%;border-collapse:collapse;margin:8px 0;">'+_modHtml+'</table>';
 }
 var bodyHtml='<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:20px;color:#333;">'
 +'<p style="font-size:14px;line-height:1.6;">各位好，</p>'
