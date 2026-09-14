@@ -4,6 +4,7 @@ import json
 import time
 import logging
 from sqlalchemy import text
+from werkzeug.security import check_password_hash, generate_password_hash
 """db.users - users 相关数据库操作"""
 from .base import engine, DB_TYPE, _row_to_dict
 
@@ -157,7 +158,7 @@ def get_user_by_username(username):
         return None
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT id, provider, provider_uid, name, email, avatar, username, is_admin, created_at, last_login FROM users WHERE username = :username"),
+            text("SELECT id, provider, provider_uid, name, email, avatar, username, password_hash, is_admin, created_at, last_login FROM users WHERE username = :username"),
             {'username': username.strip()}
         ).fetchone()
         return _row_to_dict(row)
@@ -171,7 +172,7 @@ def get_user_by_email(email):
         return None
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT id, provider, provider_uid, name, email, avatar, username, is_admin, created_at, last_login FROM users WHERE email = :email"),
+            text("SELECT id, provider, provider_uid, name, email, avatar, username, password_hash, is_admin, created_at, last_login FROM users WHERE email = :email"),
             {'email': email.strip().lower()}
         ).fetchone()
         return _row_to_dict(row)
