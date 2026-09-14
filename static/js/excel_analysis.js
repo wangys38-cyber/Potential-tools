@@ -76,10 +76,19 @@ var bodyHtml='<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 
 +'</div>';
 var bodyText="各位好，\n\n以下是本次 CR 分析的结果汇总：\n\n一、整体概览\n- 问题总数："+(s.total_issues||0)+"\n- 已解决："+(s.total_resolved||0)+"\n- 未解决："+(s.total_unresolved||0)+"\n- 解决率："+(s.resolution_rate||0)+"%\n\n（趋势图请查看HTML版本邮件）\n\n详细数据请查看附件或系统。\n\n此致\n敬礼";
 try{
-  localStorage.setItem("_cr_email_draft",JSON.stringify({subject:subject,body:bodyHtml,body_text:bodyText,source:"cr-analysis",is_html:true}));
-  showToast("邮件内容已生成（含趋势图），正在跳转...","success");
-  setTimeout(function(){window.location.href="/email-assistant";},800);
-}catch(e){showToast("生成失败: "+e.message+"（可能是图片太大，尝试减少数据量）","error");}
+  var _draft={subject:subject,body:bodyHtml,body_text:bodyText,source:"cr-analysis",is_html:true};
+  fetch("/api/pipeline/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(_draft)})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res.id){
+        showToast("邮件内容已生成（含趋势图），正在跳转...","success");
+        setTimeout(function(){window.location.href="/email-assistant?draft_id="+res.id;},800);
+      }else{
+        showToast("生成失败: 存储失败","error");
+      }
+    })
+    .catch(function(e){showToast("生成失败: "+e.message,"error");});
+}catch(e){showToast("生成失败: "+e.message,"error");}
 }
 
 window._refreshStabilityVirtualList=_refreshStabilityVirtualList;
