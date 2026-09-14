@@ -303,6 +303,9 @@ def create_api_blueprint(base_dir, static_version):
         port = int(cfg.get('smtp_port', 587))
         host = cfg['smtp_host']
         use_tls = cfg.get('use_tls', True)
+        # 587端口必须使用STARTTLS，即使用户未勾选也强制启用
+        if port == 587:
+            use_tls = True
 
         if port == 465:
             server = smtplib.SMTP_SSL(host, port, timeout=20)
