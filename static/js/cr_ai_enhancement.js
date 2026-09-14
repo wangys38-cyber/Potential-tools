@@ -7,7 +7,8 @@
 
     // ==================== 工具函数 ====================
     function getAnalysisData() {
-        // 尝试从全局变量获取分析数据
+        // currentAnalysisData 是用 let 声明的全局变量，不在 window 上
+        if (typeof currentAnalysisData !== 'undefined' && currentAnalysisData) return currentAnalysisData;
         if (window.currentAnalysisData) return window.currentAnalysisData;
         if (window.analysisData) return window.analysisData;
         if (window.crAnalysisData) return window.crAnalysisData;
@@ -17,13 +18,13 @@
     function getIssues() {
         const data = getAnalysisData();
         if (!data) return [];
-        return data.issues || data.allIssues || data.rows || data.bugs || [];
+        return data.all_issues || data.issues || data.allIssues || data.rows || data.bugs || [];
     }
 
     function getDailyData() {
         const data = getAnalysisData();
         if (!data) return [];
-        return data.dailyTrend || data.daily_data || data.dailyStats || [];
+        return data.daily_trend || data.dailyTrend || data.daily_data || [];
     }
 
     function showLoading(elementId, text) {
