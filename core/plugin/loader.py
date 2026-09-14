@@ -218,10 +218,11 @@ class PluginLoader:
         return result
 
     def register_routes(self, app) -> int:
-        """将所有插件的路由注册到 Flask 应用"""
+        """将所有插件的路由和页面注册到 Flask 应用"""
         count = 0
         for plugin_id, plugin in self.plugins.items():
             api = plugin.api
+            # 注册 API 路由
             for route in api._routes:
                 try:
                     app.add_url_rule(
@@ -233,6 +234,29 @@ class PluginLoader:
                     count += 1
                 except Exception as e:
                     logger.error(f"注册插件路由失败 {plugin_id}: {e}")
+
+            # 注册页面路由
+            for page in api._pages:
+                try:
+                    page_html = page.get('html', '')
+                    page_path = page['path']
+
+                    def make_page_handler(html_content):
+                        def page_handler():
+                            from flask import Response
+                            return Response(html_content, mimetype='text/html')
+                        return page_handler
+
+                    app.add_url_rule(
+                        page_path,
+                        f"plugin_page_{plugin_id}_{page_path}",
+                        make_page_handler(page_html),
+                        methods=['GET']
+                    )
+                    count += 1
+                except Exception as e:
+                    logger.error(f"注册插件页面失败 {plugin_id}: {e}")
+
         return count
 
 

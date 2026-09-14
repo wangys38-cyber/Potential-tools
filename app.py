@@ -704,20 +704,21 @@ except Exception as e:
     logger.warning(f'后台服务启动失败: {e}')
 
 
+# ==================== 插件初始化 ====================
+try:
+    from core.plugin import get_plugin_loader
+    loader = get_plugin_loader()
+    loader.init_app(app)
+    plugin_count = loader.load_all_plugins()
+    loader.register_routes(app)
+    logger.info(f"已加载 {plugin_count} 个插件")
+except Exception as e:
+    logger.warning(f"插件加载失败: {e}")
+
+
 # ==================== 应用入口 ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    # 加载插件
-    try:
-        from core.plugin import get_plugin_loader
-        loader = get_plugin_loader()
-        loader.init_app(app)
-        plugin_count = loader.load_all_plugins()
-        loader.register_routes(app)
-        logger.info(f"已加载 {plugin_count} 个插件")
-    except Exception as e:
-        logger.warning(f"插件加载失败: {e}")
-
     logger.info(f"启动 Potential-tools v{APP_VERSION}，端口: {port}")
     # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
     # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
