@@ -5,7 +5,9 @@ import time
 import logging
 from sqlalchemy import text
 """db.config - config 相关数据库操作"""
-from .base import engine, DB_TYPE, _row_to_dict
+from .base import engine, DB_TYPE, _row_to_dict, SYNC_TYPES
+
+logger = logging.getLogger(__name__)
 
 def get_config(key, default=None):
     """读取应用配置"""

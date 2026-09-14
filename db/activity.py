@@ -5,7 +5,9 @@ import time
 import logging
 from sqlalchemy import text
 """db.activity - activity 相关数据库操作"""
-from .base import engine, DB_TYPE, _row_to_dict
+from .base import engine, DB_TYPE, _row_to_dict, _TOOL_PATH_MAP
+
+logger = logging.getLogger(__name__)
 
 def resolve_tool_id(path):
     """从请求路径解析工具 ID 和名称"""

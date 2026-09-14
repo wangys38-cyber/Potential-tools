@@ -7,6 +7,8 @@ from sqlalchemy import text
 """db.security - security 相关数据库操作"""
 from .base import engine, DB_TYPE, _row_to_dict
 
+logger = logging.getLogger(__name__)
+
 def record_login_attempt(user_id=None, ip='', success=False):
     """记录一次登录尝试"""
     try:

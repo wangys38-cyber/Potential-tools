@@ -7,6 +7,8 @@ from sqlalchemy import text
 """db.users - users 相关数据库操作"""
 from .base import engine, DB_TYPE, _row_to_dict
 
+logger = logging.getLogger(__name__)
+
 def upsert_user(provider, provider_uid, name, email, avatar):
     """创建或更新用户，返回用户ID"""
     with engine.begin() as conn:
