@@ -616,6 +616,55 @@ def init_db():
         except Exception:
             pass
 
+        # ==================== v8.0 AI 原生：AI 配置表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS ai_configs (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                provider TEXT DEFAULT 'openai',
+                api_key TEXT DEFAULT '',
+                base_url TEXT DEFAULT '',
+                model TEXT DEFAULT 'gpt-3.5-turbo',
+                temperature REAL DEFAULT 0.7,
+                max_tokens INTEGER DEFAULT 2000,
+                is_active INTEGER DEFAULT 1,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0,
+                UNIQUE(user_id, provider)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_configs_user ON ai_configs(user_id, is_active)"))
+
+        # ==================== v8.0 AI 原生：AI 对话历史表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS ai_conversations (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                session_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT DEFAULT '',
+                tokens_used INTEGER DEFAULT 0,
+                model TEXT DEFAULT '',
+                created_at REAL DEFAULT 0
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_conv_user_session ON ai_conversations(user_id, session_id, created_at)"))
+
+        # ==================== v8.0 AI 原生：AI 报告表 ====================
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS ai_reports (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                report_type TEXT DEFAULT 'custom',
+                title TEXT DEFAULT '',
+                content TEXT DEFAULT '',
+                data_ref TEXT DEFAULT '',
+                tokens_used INTEGER DEFAULT 0,
+                created_at REAL DEFAULT 0
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_reports_user ON ai_reports(user_id, report_type, created_at DESC)"))
+
         # ==================== 阶段五性能优化：补充复合索引 ====================
         # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))

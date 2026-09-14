@@ -10,6 +10,7 @@ from .notes import *
 from .documents import *
 from .notifications import *
 from .security import *
+from .ai import *
 
 # 初始化数据库
 init_db()

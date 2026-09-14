@@ -106,4 +106,8 @@ def create_pages_blueprint(cached_render):
     def team_detail(team_code):
         return cached_render('team_detail.html', nav_title='团队详情', team_code=team_code)
 
+    @bp.route('/ai-assistant')
+    def ai_assistant():
+        return cached_render('ai_assistant.html', nav_title='AI 智能助手')
+
     return bp

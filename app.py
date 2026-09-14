@@ -39,6 +39,7 @@ from routes.knowledge_graph import bp as kg_bp
 from routes.teams import create_teams_blueprint
 from routes.versions import create_versions_blueprint
 from routes.notifications import create_notifications_blueprint
+from routes.ai import bp as ai_bp
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -74,7 +75,7 @@ def _get_static_version():
 _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
-APP_VERSION = '7.0.0'
+APP_VERSION = '8.0.0'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -662,6 +663,9 @@ app.register_blueprint(create_versions_blueprint())
 
 # 通知系统（v12.0）
 app.register_blueprint(create_notifications_blueprint())
+
+# v8.0 AI 原生
+app.register_blueprint(ai_bp)
 
 # HLD 生成器
 try:

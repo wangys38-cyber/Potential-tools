@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%231d1d1f%22 stroke-width=%222%22><path d=%22M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z%22/><path d=%22M4 22v-2a8 8 0 0 1 16 0v2%22/></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/page/ai_assistant.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="ai-container">
+    <!-- 左侧会话列表 -->
+    <div class="ai-sidebar">
+        <div class="ai-sidebar-header">
+            <h3>对话历史</h3>
+            <button class="btn btn-primary btn-sm" onclick="newConversation()">+ 新对话</button>
+        </div>
+        <div class="ai-session-list" id="sessionList">
+            <div class="ai-empty-hint">暂无对话</div>
+        </div>
+        <div class="ai-sidebar-footer">
+            <div class="ai-usage-stats" id="usageStats">
+                <span>Token: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主聊天区域 -->
+    <div class="ai-main">
+        <div class="ai-header">
+            <div class="ai-title">
+                <h2>AI 智能助手</h2>
+                <span class="ai-badge" id="modelBadge">未配置</span>
+            </div>
+            <div class="ai-actions">
+                <button class="btn btn-secondary btn-sm" onclick="toggleConfigPanel()">⚙️ 配置</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearConversation()">🗑️ 清空</button>
+            </div>
+        </div>
+
+        <!-- 配置面板 -->
+        <div class="ai-config-panel" id="configPanel" style="display:none;">
+            <div class="config-card">
+                <h4>AI 配置</h4>
+                <div class="form-group">
+                    <label>提供商</label>
+                    <select id="aiProvider">
+                        <option value="openai">OpenAI 兼容</option>
+                        <option value="doubao">豆包 (字节)</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="ollama">本地 Ollama</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>API Base URL</label>
+                    <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="aiApiKey" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label>模型</label>
+                    <input type="text" id="aiModel" value="gpt-3.5-turbo" placeholder="gpt-3.5-turbo">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Temperature: <span id="tempValue">0.7</span></label>
+                        <input type="range" id="aiTemperature" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('tempValue').textContent=this.value">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Tokens</label>
+                        <input type="number" id="aiMaxTokens" value="2000" min="100" max="8000">
+                    </div>
+                </div>
+                <div class="config-actions">
+                    <button class="btn btn-primary" onclick="saveAiConfig()">保存配置</button>
+                    <button class="btn btn-secondary" onclick="testAiConfig()">测试连接</button>
+                </div>
+                <div id="configStatus" class="config-status"></div>
+            </div>
+        </div>
+
+        <!-- 消息区域 -->
+        <div class="ai-messages" id="messages">
+            <div class="ai-welcome">
+                <div class="ai-welcome-icon">🤖</div>
+                <h3>欢迎使用 AI 智能助手</h3>
+                <p>我可以帮你分析 Bug 数据、生成报告、解释趋势、提供改进建议。</p>
+                <div class="ai-quick-actions">
+                    <button class="quick-action" onclick="sendQuickMessage('分析最近的 CR 数据，找出主要问题')">📊 分析 CR 数据</button>
+                    <button class="quick-action" onclick="sendQuickMessage('生成一份本周研发效率报告')">📝 生成周报</button>
+                    <button class="quick-action" onclick="sendQuickMessage('解释 Bug 趋势变化的原因')">📈 解释趋势</button>
+                    <button class="quick-action" onclick="sendQuickMessage('给出代码质量改进建议')">💡 改进建议</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="ai-input-area">
+            <div class="ai-input-wrapper">
+                <textarea id="aiInput" placeholder="输入你的问题..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                <button class="btn btn-primary ai-send-btn" onclick="sendMessage()" id="sendBtn">
+                    <span>发送</span>
+                </button>
+            </div>
+            <div class="ai-input-hint">
+                <span>Enter 发送，Shift+Enter 换行</span>
+                <span id="streamStatus"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/page/ai_assistant.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>
