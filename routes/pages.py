@@ -114,4 +114,8 @@ def create_pages_blueprint(cached_render):
     def ai_agent():
         return cached_render('ai_agent.html', nav_title='AI Agent')
 
+    @bp.route('/ai-reports')
+    def ai_reports():
+        return cached_render('ai_reports.html', nav_title='智能报告')
+
     return bp

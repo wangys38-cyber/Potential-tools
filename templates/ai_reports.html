@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能报告 - Potential-tools v8.0</title>
+    <link rel="stylesheet" href="/static/css/common.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/page/ai_reports.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="reports-container">
+        <div class="reports-header">
+            <div>
+                <h1>📊 智能报告中心</h1>
+                <p class="reports-subtitle">自动生成质量报告，定时邮件推送</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showScheduleModal()">➕ 新建推送计划</button>
+            </div>
+        </div>
+
+        <div class="reports-grid">
+            <!-- 左侧：推送计划 -->
+            <div class="reports-panel">
+                <div class="panel-header">
+                    <h2>📬 推送计划</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="loadSchedules()">🔄 刷新</button>
+                </div>
+                <div class="panel-body" id="schedulesPanel">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 右侧：推送历史 + 模板 -->
+            <div class="reports-right">
+                <!-- 推送历史 -->
+                <div class="reports-panel">
+                    <div class="panel-header">
+                        <h2>📜 推送历史</h2>
+                    </div>
+                    <div class="panel-body" id="logsPanel">
+                        <div class="empty-state">加载中...</div>
+                    </div>
+                </div>
+
+                <!-- 报告模板 -->
+                <div class="reports-panel">
+                    <div class="panel-header">
+                        <h2>📝 报告模板</h2>
+                    </div>
+                    <div class="panel-body" id="templatesPanel">
+                        <div class="empty-state">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建/编辑推送计划弹窗 -->
+    <div id="scheduleModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="scheduleModalTitle">新建推送计划</h3>
+                <button onclick="closeScheduleModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>计划名称</label>
+                    <input type="text" id="scheduleName" placeholder="例如：每日质量日报">
+                </div>
+                <div class="form-group">
+                    <label>启用</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="scheduleEnabled" checked>
+                        <label for="scheduleEnabled" class="toggle-label"></label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>推送频率</label>
+                        <select id="scheduleType">
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>推送时间</label>
+                        <input type="time" id="scheduleTime" value="09:00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>报告模板</label>
+                    <select id="scheduleTemplate">
+                        <option value="0">每日质量日报（内置）</option>
+                        <option value="0">每周质量周报（内置）</option>
+                        <option value="0">每月质量月报（内置）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>邮件主题</label>
+                    <input type="text" id="scheduleSubject" placeholder="质量日报 - {date}" value="质量日报 - {date}">
+                </div>
+                <div class="form-group">
+                    <label>收件人（多个用逗号分隔）</label>
+                    <input type="text" id="scheduleRecipients" placeholder="user1@example.com, user2@example.com">
+                </div>
+                <div class="form-group">
+                    <label>包含 AI 分析</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="scheduleAIAnalysis" checked>
+                        <label for="scheduleAIAnalysis" class="toggle-label"></label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeScheduleModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveSchedule()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报告预览弹窗 -->
+    <div id="previewModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>报告预览</h3>
+                <button onclick="closePreviewModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="previewContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/page/ai_reports.js?v={{ STATIC_VERSION }}"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ from .notifications import *
 from .security import *
 from .ai import *
 from .agent import *
+from .report import *
 
 # 初始化数据库
 init_db()

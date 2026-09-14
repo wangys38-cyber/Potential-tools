@@ -728,6 +728,63 @@ def init_db():
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_alerts_user ON ai_alerts(user_id, is_read, created_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_alerts_severity ON ai_alerts(severity, created_at DESC)"))
 
+        # ==================== v8.0 智能报告表 ====================
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_report_templates (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                name TEXT DEFAULT '',
+                template_type TEXT DEFAULT 'daily',
+                title_format TEXT DEFAULT '',
+                content_template TEXT DEFAULT '',
+                include_metrics TEXT DEFAULT '[]',
+                include_charts INTEGER DEFAULT 1,
+                include_ai_analysis INTEGER DEFAULT 1,
+                is_default INTEGER DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_report_templates_user ON ai_report_templates(user_id, template_type)"))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_report_schedules (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                name TEXT DEFAULT '',
+                enabled INTEGER DEFAULT 0,
+                template_id INTEGER DEFAULT 0,
+                schedule_type TEXT DEFAULT 'daily',
+                schedule_time TEXT DEFAULT '09:00',
+                recipients TEXT DEFAULT '[]',
+                subject_format TEXT DEFAULT '',
+                email_body_format TEXT DEFAULT '',
+                attach_pdf INTEGER DEFAULT 0,
+                last_sent_at REAL DEFAULT 0,
+                next_send_at REAL DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                updated_at REAL DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_report_schedules_user ON ai_report_schedules(user_id, enabled)"))
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ai_report_push_logs (
+                id {_PK_TYPE},
+                user_id INTEGER NOT NULL,
+                schedule_id INTEGER DEFAULT 0,
+                template_id INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                recipients TEXT DEFAULT '[]',
+                subject TEXT DEFAULT '',
+                content_preview TEXT DEFAULT '',
+                error_message TEXT DEFAULT '',
+                sent_at REAL DEFAULT 0,
+                duration_ms INTEGER DEFAULT 0
+            )
+        """.format(_PK_TYPE=_PK_TYPE)))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_push_logs_user ON ai_report_push_logs(user_id, sent_at DESC)"))
+
         # ==================== 阶段五性能优化：补充复合索引 ====================
         # user_data: 按用户+类型+创建时间排序查询（笔记列表、CR数据列表等）
         conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_data_created ON user_data(user_id, data_type, created_at)"))

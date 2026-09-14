@@ -16,6 +16,8 @@ from services.ai.prompts import get_prompt, render_prompt
 from services.ai import nl2sql
 from services.ai import agent as ai_agent_service
 from db import agent as agent_db
+from db import report as report_db
+from services.ai import report_generator, report_pusher
 
 logger = logging.getLogger(__name__)
 
@@ -616,3 +618,200 @@ def get_agent_status():
         'recent_runs': recent_runs,
         'unread_alerts': unread_count,
     })
+
+
+# ==================== v8.0 智能报告生成与推送 ====================
+
+@bp.route('/report/templates', methods=['GET'])
+def list_report_templates():
+    """列出报告模板"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    templates = report_db.list_report_templates(user_id)
+    # 加上内置模板
+    builtin = []
+    for t_type, t_data in report_generator.BUILTIN_TEMPLATES.items():
+        builtin.append({
+            'id': 0,
+            'name': t_data['name'],
+            'template_type': t_type,
+            'is_builtin': True,
+            'title_format': t_data['title_format'],
+            'include_metrics': t_data['include_metrics'],
+        })
+    return jsonify({'status': 'success', 'templates': templates, 'builtin_templates': builtin})
+
+
+@bp.route('/report/templates', methods=['POST'])
+def save_report_template():
+    """保存报告模板"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    template_id = report_db.save_report_template(user_id, data)
+    return jsonify({'status': 'success', 'template_id': template_id})
+
+
+@bp.route('/report/templates/<int:template_id>', methods=['DELETE'])
+def delete_report_template(template_id):
+    """删除报告模板"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    success = report_db.delete_report_template(user_id, template_id)
+    return jsonify({'status': 'success' if success else 'error'})
+
+
+@bp.route('/report/generate', methods=['POST'])
+def generate_report():
+    """生成报告（预览）"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    issues = data.get('issues', [])
+    daily_data = data.get('daily_data', [])
+    template_type = data.get('template_type', 'daily')
+
+    if not issues:
+        return jsonify({'status': 'error', 'error': '缺少问题数据'}), 400
+
+    template = report_generator.get_builtin_template(template_type)
+    if data.get('template_id'):
+        custom = report_db.get_report_template(data['template_id'])
+        if custom:
+            template = custom
+
+    service = None
+    try:
+        service, _ = _get_user_ai_config(user_id)
+    except:
+        pass
+
+    report = report_generator.generate_report(issues, daily_data, template, service)
+    return jsonify({'status': 'success', 'report': report})
+
+
+@bp.route('/report/schedules', methods=['GET'])
+def list_report_schedules():
+    """列出推送计划"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    schedules = report_db.list_report_schedules(user_id)
+    return jsonify({'status': 'success', 'schedules': schedules})
+
+
+@bp.route('/report/schedules', methods=['POST'])
+def save_report_schedule():
+    """保存推送计划"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    data = request.get_json(silent=True) or {}
+    schedule_id = report_db.save_report_schedule(user_id, data)
+
+    # 如果启用了，计算下次发送时间
+    if data.get('enabled'):
+        schedule = report_db.get_report_schedule(schedule_id)
+        if schedule:
+            next_send = report_pusher.calculate_next_send_time(schedule)
+            report_db.update_schedule_send_time(schedule_id, 0, next_send)
+
+    return jsonify({'status': 'success', 'schedule_id': schedule_id})
+
+
+@bp.route('/report/schedules/<int:schedule_id>', methods=['DELETE'])
+def delete_report_schedule(schedule_id):
+    """删除推送计划"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    success = report_db.delete_report_schedule(user_id, schedule_id)
+    return jsonify({'status': 'success' if success else 'error'})
+
+
+@bp.route('/report/schedules/<int:schedule_id>/run', methods=['POST'])
+def run_report_schedule(schedule_id):
+    """手动触发推送"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    schedule = report_db.get_report_schedule(schedule_id)
+    if not schedule or schedule['user_id'] != user_id:
+        return jsonify({'status': 'error', 'error': '推送计划不存在'}), 404
+
+    # 收集数据
+    from db import user_data as user_data_db
+    issues, daily_data = [], []
+    try:
+        records = user_data_db.list_user_data(user_id, data_type='cr_analysis', limit=1)
+        if not records:
+            records = user_data_db.list_user_data(user_id, limit=5)
+        for record in records:
+            content = record.get('content', '')
+            if content:
+                try:
+                    data = json.loads(content) if isinstance(content, str) else content
+                    issues = data.get('issues') or data.get('bugs') or data.get('rows') or []
+                    daily_data = data.get('dailyTrend') or data.get('daily_data') or []
+                    if issues:
+                        break
+                except:
+                    continue
+    except:
+        pass
+
+    if not issues:
+        return jsonify({'status': 'error', 'error': '没有可分析的 CR 数据，请先上传 CR 数据'}), 400
+
+    # 获取模板
+    template = None
+    if schedule.get('template_id'):
+        template = report_db.get_report_template(schedule['template_id'])
+
+    # 获取 AI 服务
+    service = None
+    try:
+        service, _ = _get_user_ai_config(user_id)
+    except:
+        pass
+
+    # 获取 SMTP 配置
+    from db import get_config
+    smtp_config = get_config('smtp_mail_config') or {}
+
+    # 生成并推送
+    result = report_pusher.generate_and_push_report(
+        user_id=user_id,
+        schedule=schedule,
+        issues=issues,
+        daily_data=daily_data,
+        template=template,
+        ai_service=service,
+        smtp_config=smtp_config,
+    )
+
+    return jsonify(result)
+
+
+@bp.route('/report/logs', methods=['GET'])
+def list_report_logs():
+    """列出推送日志"""
+    user_id, err = _require_login()
+    if err:
+        return err
+
+    limit = int(request.args.get('limit', 20))
+    logs = report_db.list_push_logs(user_id, limit)
+    return jsonify({'status': 'success', 'logs': logs})
