@@ -1,0 +1,33 @@
+{
+  "id": "custom-dashboard",
+  "name": "自定义仪表盘插件",
+  "version": "1.2.0",
+  "description": "拖拽式自定义仪表盘，支持添加图表卡片、数据指标、快捷入口，多套布局模板。",
+  "author": "Potential Tools",
+  "min_app_version": "8.1.0",
+  "permissions": ["database", "database_write", "routes", "pages"],
+  "entry": {
+    "backend": "backend.main:CustomDashboardPlugin",
+    "frontend": "frontend/index.js"
+  },
+  "settings": [
+    {
+      "key": "default_layout",
+      "name": "默认布局",
+      "type": "select",
+      "default": "grid",
+      "options": [
+        {"value": "grid", "label": "网格布局"},
+        {"value": "list", "label": "列表布局"},
+        {"value": "masonry", "label": "瀑布流布局"}
+      ]
+    },
+    {
+      "key": "auto_refresh",
+      "name": "自动刷新(秒)",
+      "type": "string",
+      "default": "0",
+      "description": "0表示不自动刷新"
+    }
+  ]
+}

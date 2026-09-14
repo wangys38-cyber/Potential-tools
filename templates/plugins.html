@@ -18,27 +18,63 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="reloadPlugins()">🔄 重新加载</button>
+                <button class="btn btn-secondary" onclick="showGeneratorModal()">✨ 创建插件</button>
                 <button class="btn btn-secondary" onclick="showInstallModal()">📦 安装插件</button>
             </div>
         </div>
 
-        <div class="plugins-stats">
-            <div class="stat-card">
-                <div class="stat-value" id="totalCount">0</div>
-                <div class="stat-label">总插件数</div>
+        <!-- 标签页 -->
+        <div class="tabs">
+            <div class="tab active" data-tab="installed" onclick="switchTab('installed')">
+                📦 已安装 <span class="tab-badge" id="installedBadge">0</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="enabledCount">0</div>
-                <div class="stat-label">已启用</div>
+            <div class="tab" data-tab="market" onclick="switchTab('market')">
+                🏪 插件市场 <span class="tab-badge" id="marketBadge">0</span>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="disabledCount">0</div>
-                <div class="stat-label">已禁用</div>
+            <div class="tab" data-tab="updates" onclick="switchTab('updates')">
+                ⬆️ 可更新 <span class="tab-badge" id="updatesBadge" style="display:none;">0</span>
             </div>
         </div>
 
-        <div class="plugins-grid" id="pluginsGrid">
-            <div class="empty-state">加载中...</div>
+        <!-- 已安装插件 -->
+        <div id="tab-installed">
+            <div class="plugins-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">总插件数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="enabledCount">0</div>
+                    <div class="stat-label">已启用</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="disabledCount">0</div>
+                    <div class="stat-label">已禁用</div>
+                </div>
+            </div>
+            <div class="plugins-grid" id="pluginsGrid">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 插件市场 -->
+        <div id="tab-market" style="display:none;">
+            <div class="market-toolbar">
+                <div class="search-box">
+                    <input type="text" id="marketSearch" placeholder="🔍 搜索插件..." oninput="searchMarket()">
+                </div>
+                <div class="category-filters" id="categoryFilters"></div>
+            </div>
+            <div class="plugins-grid" id="marketGrid">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 可更新 -->
+        <div id="tab-updates" style="display:none;">
+            <div class="plugins-grid" id="updatesGrid">
+                <div class="empty-state">检查更新中...</div>
+            </div>
         </div>
     </div>
 
@@ -55,12 +91,12 @@
                     <select id="installSource" onchange="switchInstallSource()">
                         <option value="local">本地目录</option>
                         <option value="url">URL 下载</option>
-                        <option value="market">插件市场</option>
+                        <option value="market">从插件市场安装</option>
                     </select>
                 </div>
                 <div id="localInstall" class="form-group">
                     <label>将插件文件夹放入 plugins/ 目录后点击刷新</label>
-                    <button class="btn btn-secondary" onclick="reloadPlugins()">刷新插件列表</button>
+                    <button class="btn btn-secondary" onclick="reloadPlugins(); closeInstallModal();">刷新插件列表</button>
                 </div>
                 <div id="urlInstall" class="form-group" style="display:none;">
                     <label>插件 ZIP 下载地址</label>
@@ -68,7 +104,8 @@
                     <button class="btn btn-primary" onclick="installFromUrl()" style="margin-top:8px;">下载并安装</button>
                 </div>
                 <div id="marketInstall" class="form-group" style="display:none;">
-                    <p style="color:#86868b;font-size:13px;">插件市场即将上线，敬请期待</p>
+                    <p style="color:#86868b;font-size:13px;">切换到「插件市场」标签页浏览并安装</p>
+                    <button class="btn btn-primary" onclick="switchTab('market'); closeInstallModal();">前往插件市场</button>
                 </div>
             </div>
         </div>
@@ -87,6 +124,59 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeSettingsModal()">取消</button>
                 <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建插件弹窗 -->
+    <div class="modal-overlay" id="generatorModal" style="display:none;">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h3>✨ 插件模板生成器</h3>
+                <button class="modal-close" onclick="closeGeneratorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>插件 ID *</label>
+                    <input type="text" id="genId" placeholder="my-plugin（小写字母、数字、连字符）">
+                </div>
+                <div class="form-group">
+                    <label>插件名称 *</label>
+                    <input type="text" id="genName" placeholder="我的插件">
+                </div>
+                <div class="form-group">
+                    <label>插件描述</label>
+                    <textarea id="genDesc" rows="2" placeholder="插件功能描述"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>作者</label>
+                    <input type="text" id="genAuthor" placeholder="Anonymous" value="Anonymous">
+                </div>
+                <div class="form-group">
+                    <label>选择模板</label>
+                    <div id="templateList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
+                </div>
+                <div class="form-group">
+                    <label>权限（自动根据模板设置，可调整）</label>
+                    <div id="permList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeGeneratorModal()">取消</button>
+                <button class="btn btn-primary" onclick="generatePlugin()">🚀 生成插件</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 安全审计弹窗 -->
+    <div class="modal-overlay" id="auditModal" style="display:none;">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h3 id="auditTitle">🔒 安全审计</h3>
+                <button class="modal-close" onclick="closeAuditModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="auditBody">
+                <div class="empty-state">审计中...</div>
             </div>
         </div>
     </div>

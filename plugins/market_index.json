@@ -1,0 +1,126 @@
+{
+  "market_version": "1.0.0",
+  "updated_at": "2026-09-14",
+  "categories": [
+    {"id": "analysis", "name": "数据分析", "icon": "📊"},
+    {"id": "productivity", "name": "效率工具", "icon": "⚡"},
+    {"id": "integration", "name": "系统集成", "icon": "🔗"},
+    {"id": "report", "name": "报告生成", "icon": "📄"},
+    {"id": "example", "name": "示例插件", "icon": "🎯"}
+  ],
+  "plugins": [
+    {
+      "id": "hello-world",
+      "name": "Hello World 示例插件",
+      "version": "1.0.0",
+      "description": "一个简单的示例插件，演示插件开发流程。提供问候 API 和自定义页面。",
+      "author": "Potential Tools",
+      "category": "example",
+      "icon": "👋",
+      "downloads": 128,
+      "rating": 4.8,
+      "min_app_version": "8.1.0",
+      "permissions": ["routes", "pages"],
+      "source": {
+        "type": "local",
+        "path": "plugins/hello-world"
+      },
+      "tags": ["示例", "入门", "教学"]
+    },
+    {
+      "id": "cr-daily-report",
+      "name": "CR 每日报告插件",
+      "version": "1.0.0",
+      "description": "自动生成 CR 分析每日报告，包含 Bug 趋势、模块风险、研发效率排名，支持邮件推送。",
+      "author": "Potential Tools",
+      "category": "report",
+      "icon": "📊",
+      "downloads": 89,
+      "rating": 4.6,
+      "min_app_version": "8.1.0",
+      "permissions": ["database", "routes", "pages"],
+      "source": {
+        "type": "github",
+        "repo": "wangys38-cyber/Potential-tools-plugins",
+        "path": "cr-daily-report"
+      },
+      "tags": ["CR", "报告", "每日", "邮件"]
+    },
+    {
+      "id": "jira-sync",
+      "name": "Jira 数据同步插件",
+      "version": "1.1.0",
+      "description": "通过 Jira REST API 自动同步问题数据，支持定时拉取、增量更新、字段映射配置。",
+      "author": "Potential Tools",
+      "category": "integration",
+      "icon": "🔗",
+      "downloads": 156,
+      "rating": 4.7,
+      "min_app_version": "8.1.0",
+      "permissions": ["database", "database_write", "routes", "network"],
+      "source": {
+        "type": "github",
+        "repo": "wangys38-cyber/Potential-tools-plugins",
+        "path": "jira-sync"
+      },
+      "tags": ["Jira", "同步", "API", "定时"]
+    },
+    {
+      "id": "data-exporter",
+      "name": "数据导出插件",
+      "version": "1.0.0",
+      "description": "一键导出平台数据为 Excel/CSV/JSON，支持自定义字段、筛选条件、定时导出。",
+      "author": "Potential Tools",
+      "category": "productivity",
+      "icon": "📤",
+      "downloads": 203,
+      "rating": 4.5,
+      "min_app_version": "8.1.0",
+      "permissions": ["database", "routes", "pages"],
+      "source": {
+        "type": "github",
+        "repo": "wangys38-cyber/Potential-tools-plugins",
+        "path": "data-exporter"
+      },
+      "tags": ["导出", "Excel", "CSV", "数据"]
+    },
+    {
+      "id": "weekly-digest",
+      "name": "每周摘要插件",
+      "version": "1.0.0",
+      "description": "每周自动汇总 Bug 趋势、MTTF 指标、项目进度，生成图文摘要并推送到飞书/邮件。",
+      "author": "Potential Tools",
+      "category": "report",
+      "icon": "📅",
+      "downloads": 67,
+      "rating": 4.4,
+      "min_app_version": "8.1.0",
+      "permissions": ["database", "routes", "network"],
+      "source": {
+        "type": "github",
+        "repo": "wangys38-cyber/Potential-tools-plugins",
+        "path": "weekly-digest"
+      },
+      "tags": ["周报", "摘要", "飞书", "推送"]
+    },
+    {
+      "id": "custom-dashboard",
+      "name": "自定义仪表盘插件",
+      "version": "1.2.0",
+      "description": "拖拽式自定义仪表盘，支持添加图表卡片、数据指标、快捷入口，多套布局模板。",
+      "author": "Potential Tools",
+      "category": "productivity",
+      "icon": "📈",
+      "downloads": 178,
+      "rating": 4.9,
+      "min_app_version": "8.1.0",
+      "permissions": ["database", "database_write", "routes", "pages"],
+      "source": {
+        "type": "github",
+        "repo": "wangys38-cyber/Potential-tools-plugins",
+        "path": "custom-dashboard"
+      },
+      "tags": ["仪表盘", "自定义", "图表", "拖拽"]
+    }
+  ]
+}

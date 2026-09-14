@@ -245,3 +245,149 @@
     color: #86868b;
     font-size: 14px;
 }
+
+/* 标签页 */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e5ea;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #86868b;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tab:hover {
+    color: #1d1d1f;
+}
+
+.tab.active {
+    color: #007aff;
+    border-bottom-color: #007aff;
+}
+
+.tab-badge {
+    background: #f5f5f7;
+    color: #86868b;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 10px;
+}
+
+.tab.active .tab-badge {
+    background: #007aff;
+    color: #fff;
+}
+
+/* 市场工具栏 */
+.market-toolbar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #d2d2d7;
+    border-radius: 10px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #007aff;
+}
+
+.category-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.category-filter {
+    padding: 6px 14px;
+    border: 1px solid #d2d2d7;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.category-filter:hover {
+    border-color: #007aff;
+    color: #007aff;
+}
+
+.category-filter.active {
+    background: #007aff;
+    color: #fff;
+    border-color: #007aff;
+}
+
+/* 市场插件卡片 */
+.plugin-card .plugin-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.plugin-card .plugin-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: #aeaeb2;
+    margin-bottom: 12px;
+}
+
+.plugin-card .plugin-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.plugin-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f5f5f7;
+    color: #86868b;
+}
+
+.install-btn {
+    background: #34c759 !important;
+    color: #fff !important;
+}
+
+.update-btn {
+    background: #ff9500 !important;
+    color: #fff !important;
+}
+
+.installed-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #34c759;
+    color: #fff;
+}

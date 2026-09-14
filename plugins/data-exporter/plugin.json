@@ -1,0 +1,32 @@
+{
+  "id": "data-exporter",
+  "name": "数据导出插件",
+  "version": "1.0.0",
+  "description": "一键导出平台数据为 Excel/CSV/JSON，支持自定义字段、筛选条件、定时导出。",
+  "author": "Potential Tools",
+  "min_app_version": "8.1.0",
+  "permissions": ["database", "routes", "pages"],
+  "entry": {
+    "backend": "backend.main:DataExporterPlugin",
+    "frontend": "frontend/index.js"
+  },
+  "settings": [
+    {
+      "key": "default_format",
+      "name": "默认导出格式",
+      "type": "select",
+      "default": "excel",
+      "options": [
+        {"value": "excel", "label": "Excel (.xlsx)"},
+        {"value": "csv", "label": "CSV (.csv)"},
+        {"value": "json", "label": "JSON (.json)"}
+      ]
+    },
+    {
+      "key": "include_header",
+      "name": "包含表头",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}
