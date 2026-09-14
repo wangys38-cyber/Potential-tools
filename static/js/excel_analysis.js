@@ -9,10 +9,17 @@ function _getChartBase64(chart){
     return "";
 }
 function _drawTrendChartToBase64(dailyStats){
-    // 优先使用页面已有的"每日趋势与累计Bug曲线"图（双Y轴组合图）
+    // 优先直接从页面canvas元素导出"每日趋势与累计Bug曲线"图
+    try{
+        var _canvas=document.getElementById("dailyCumulativeChart");
+        if(_canvas&&_canvas.toDataURL){
+            var _url=_canvas.toDataURL("image/png");
+            if(_url&&_url.indexOf("data:image")===0&&_url.length>1000)return _url;
+        }
+    }catch(e){console.warn("canvas导出失败",e);}
+    // 其次尝试从Chart实例导出
     var fromCumulative=_getChartBase64(window.__dailyCumulativeChart);
     if(fromCumulative)return fromCumulative;
-    // 其次使用每日趋势图
     var fromChart=_getChartBase64(dailyLineChart);
     if(fromChart)return fromChart;
     // 回退：纯Canvas绘制
