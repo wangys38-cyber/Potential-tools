@@ -705,9 +705,10 @@ def _detect_issue_columns(headers):
         # Status - 精确匹配 "status"，排除 "HW Status", "Test Status" 等
         elif h == 'status' or h == '状态':
             col_map['status'] = i
-        # 研发 - 匹配 "assignee"
-        elif h == 'assignee':
-            col_map['developer'] = i
+        # 研发 - 匹配 assignee/developer/经办人/负责人等（不区分大小写）
+        elif any(kw in h for kw in ['assignee', 'developer', '经办人', '负责人', '处理人', '开发人员', '指派给']):
+            if 'developer' not in col_map:
+                col_map['developer'] = i
         # 创建日期 - 匹配 "created"、"created date"、"创建日期" 等
         elif h == 'created' or 'created date' in h or '创建日期' in h or '创建时间' in h:
             col_map['created_date'] = i

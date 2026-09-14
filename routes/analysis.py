@@ -25,6 +25,7 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context, se
 import auth
 import ai_utils
 from services.ai import cr_enhancer as cr_ai_enhancer
+from services.ai.factory import get_ai_service
 from routes.common import (
     ExcelReader, validate_file_id, render_pdf, MD2PDF_PREVIEW_CSS,
     background_tasks, load_task_meta, save_task_meta, _CST,
