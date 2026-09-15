@@ -86,7 +86,7 @@ def parse_csv_file(file_obj) -> str:
 
 
 def parse_excel_file(file_obj) -> str:
-    """Excel 文件结构化解析"""
+    """Excel 文件结构化解析 - 完整解析所有行"""
     try:
         import pandas as pd
         xls = pd.ExcelFile(file_obj)
@@ -104,11 +104,12 @@ def parse_excel_file(file_obj) -> str:
             result_parts.append(f"字段: {', '.join(df.columns.tolist())}")
             result_parts.append("")
             
-            # 前 30 行数据
-            result_parts.append("前 30 行数据:")
-            for idx, row in df.head(30).iterrows():
+            # 解析所有行数据（不限制 30 行）
+            result_parts.append("完整数据:")
+            for idx, row in df.iterrows():
                 row_str = " | ".join([f"{col}: {row[col]}" for col in df.columns if pd.notna(row[col])])
-                result_parts.append(f"  第{idx+1}行: {row_str}")
+                if row_str.strip():
+                    result_parts.append(f"第{idx+1}行: {row_str}")
             
             # 分类字段统计
             result_parts.append("")
@@ -116,9 +117,9 @@ def parse_excel_file(file_obj) -> str:
             for col in df.columns:
                 unique_count = df[col].nunique()
                 result_parts.append(f"  「{col}」: {len(df[col].dropna())} 条数据，{unique_count} 个不同值")
-                if unique_count <= 20:
+                if unique_count <= 30:
                     counts = df[col].value_counts()
-                    result_parts.append("    分布: " + "、".join([f"{k}={v}个" for k, v in counts.items()]))
+                    result_parts.append("    分布: " + "、".join([f"{k}={v}个" for k, v in counts.head(20).items()]))
             
             result_parts.append("")
         
