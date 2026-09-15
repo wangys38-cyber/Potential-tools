@@ -404,6 +404,7 @@
             <div class="kb-chat-header">
                 <span class="kb-chat-title">问答</span>
                 <div class="kb-header-actions">
+                    <button class="kb-action-btn" onclick="loadInsights()">知识洞察</button>
                     <button class="kb-action-btn" onclick="loadHistory()">历史问答</button>
                     <button class="kb-action-btn" onclick="exportChat()">导出</button>
                     <button class="kb-action-btn" onclick="clearChat()">清空对话</button>
@@ -581,6 +582,36 @@ function removeMessage(id) {
 }
 
 let searchTimer = null;
+
+async function loadInsights() {
+    try {
+        const res = await fetch('/knowledge-base/api/insights');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const ins = data.insights;
+            let html = '## 知识洞察\\n\\n';
+            html += `**覆盖情况**: ${ins.coverage || ''}\\n\\n`;
+            if (ins.gaps && ins.gaps.length) {
+                html += `**缺失文档**: ${ins.gaps.join('、')}\\n\\n`;
+            }
+            if (ins.suggestions && ins.suggestions.length) {
+                html += `**建议补充**: ${ins.suggestions.join('、')}\\n\\n`;
+            }
+            if (ins.categories) {
+                html += `**分类统计**: `;
+                for (const [k,v] of Object.entries(ins.categories)) {
+                    html += `${k}(${v}) `;
+                }
+                html += '\\n';
+            }
+            const area = document.getElementById('chatArea');
+            area.innerHTML = '';
+            addMessage('ai', html);
+        } else {
+            alert('分析失败: ' + data.error);
+        }
+    } catch (e) { alert('加载失败'); }
+}
 
 async function loadHistory() {
     try {

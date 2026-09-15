@@ -529,6 +529,61 @@ def export_chat():
         return str(e), 500
 
 
+@kb_bp.route('/api/insights', methods=['GET'])
+def get_insights():
+    """知识洞察：谁擅长什么、问题集中在哪、缺什么文档"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        
+        # 获取所有文档列表
+        docs = kb.list_documents()
+        if not docs:
+            return jsonify({"status": "error", "error": "暂无文档"}), 400
+        
+        # 获取文档分类统计
+        cat_count = {}
+        for d in docs:
+            cat = d.get('category', '其他')
+            cat_count[cat] = cat_count.get(cat, 0) + 1
+        
+        # 用LLM生成洞察
+        doc_list_text = "\n".join([f"- {d['title']} ({d['category']}, {d['chunk_count']}片段)" for d in docs])
+        
+        prompt = f"""你是研发知识库分析专家。根据以下已上传的文档列表，分析：
+
+{doc_list_text}
+
+请输出JSON格式：
+{{
+  "coverage": "一句话总结文档覆盖情况",
+  "gaps": ["缺失的文档类型，比如没有SOP、没有测试报告等"],
+  "suggestions": ["建议补充的文档"],
+  "entities": [
+    {{"type": "模块/负责人/项目", "name": "xxx", "doc": "来自哪个文档"}}
+  ]
+}}
+
+只输出JSON，不要其他内容。"""
+        
+        from services.ai.knowledge_base import get_llm_response
+        import json as json_lib
+        result = get_llm_response(prompt, system="你是知识库分析专家，只输出JSON。", temperature=0.1)
+        
+        try:
+            insights = json_lib.loads(result)
+        except:
+            insights = {"coverage": f"共{len(docs)}个文档", "gaps": [], "suggestions": [], "entities": []}
+        
+        insights['doc_count'] = len(docs)
+        insights['categories'] = cat_count
+        
+        return jsonify({"status": "success", "insights": insights})
+    except Exception as e:
+        logger.error(f"洞察分析失败: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/clear-history', methods=['POST'])
 def clear_history():
     """清空对话历史"""
