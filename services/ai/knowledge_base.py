@@ -282,9 +282,8 @@ class KnowledgeBase:
             ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
             self.collection.upsert(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
             logger.info(f"文档已添加: {title} ({doc_category}), {len(chunks)} chunks")
-
-            # 重建BM25
-            self._rebuild_bm25()
+            # BM25懒重建：不阻塞响应，下次查询时自动建
+            self._bm25 = None
             return True
         except Exception as e:
             logger.error(f"添加文档失败: {e}")
@@ -516,7 +515,7 @@ class KnowledgeBase:
             data = self.collection.get(where={"doc_id": doc_id})
             if data and data['ids']:
                 self.collection.delete(ids=data['ids'])
-            self._rebuild_bm25()
+            self._bm25 = None  # 懒重建
             return True
         except Exception as e:
             logger.error(f"删除文档失败: {e}")

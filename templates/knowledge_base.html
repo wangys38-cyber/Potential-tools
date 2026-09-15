@@ -321,13 +321,25 @@ async function uploadManual() {
     const title = document.getElementById('manualTitle').value.trim();
     const content = document.getElementById('manualContent').value.trim();
     if (!content) { alert('输入内容'); return; }
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '上传中...';
     const fd = new FormData();
     fd.append('title', title);
     fd.append('content', content);
-    await fetch('/knowledge-base/api/documents', { method: 'POST', body: fd });
-    document.getElementById('manualTitle').value = '';
-    document.getElementById('manualContent').value = '';
-    loadDocs();
+    try {
+        const res = await fetch('/knowledge-base/api/documents', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.status === 'success') {
+            document.getElementById('manualTitle').value = '';
+            document.getElementById('manualContent').value = '';
+            loadDocs();
+        } else {
+            alert('失败: ' + (data.error||''));
+        }
+    } catch (e) { alert('上传失败'); }
+    btn.disabled = false;
+    btn.textContent = '添加文档';
 }
 
 async function sendQuestion() {
