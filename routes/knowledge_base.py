@@ -119,7 +119,8 @@ def parse_excel_file(file_obj) -> str:
                 
                 if header_row is not None:
                     # 甘特图格式：横向时间节点，纵向模块
-                    result_parts.append(f"【{filename} - {sheet_name}工作表 - 项目计划/排期/Schedule】")
+                    file_name = os.path.basename(file_obj.name) if hasattr(file_obj, 'name') else 'Excel文件'
+                    result_parts.append(f"【{file_name} - {sheet_name}工作表 - 项目计划/排期/Schedule】")
                     result_parts.append("（识别为甘特图/排计划格式）")
                     result_parts.append("")
                     
