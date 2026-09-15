@@ -124,15 +124,12 @@ def parse_excel_file(file_obj) -> str:
                     result_parts.append("（识别为甘特图/排计划格式）")
                     result_parts.append("")
                     
-                    # 读取表头（时间节点），从第3列开始（前两列是模块名和Plan/CWV）
-                    time_nodes = []
-                    for j in range(2, df.shape[1]):
-                        if pd.notna(df.iloc[header_row, j]):
-                            time_nodes.append((j, str(df.iloc[header_row, j]).strip()))
-                    
                     # 逐行读取数据，模块名是合并单元格，需要向下继承
+                    # 每个模块的Plan行定义自己的节点名，CWV行是日期
                     current_module = ""
-                    for i in range(header_row + 1, len(df)):
+                    current_plan_nodes = []  # 当前模块Plan行的节点名 [(col, name)]
+                    
+                    for i in range(header_row, len(df)):
                         row = df.iloc[i]
                         
                         # 第一列：模块名（合并单元格，向下继承）
@@ -141,29 +138,46 @@ def parse_excel_file(file_obj) -> str:
                             if current_module == 'nan':
                                 current_module = ""
                         
-                        # 第二列：Plan/CWV
-                        plan_type = str(row.iloc[1]).strip() if len(row) > 1 and pd.notna(row.iloc[1]) else ""
-                        if plan_type == 'nan':
-                            plan_type = ""
+                        # 第二列：Plan/CWV 行名
+                        row_type = str(row.iloc[1]).strip() if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                        if row_type == 'nan':
+                            row_type = ""
                         
                         if not current_module:
                             continue
                         
-                        # 读取每个时间节点的日期值
-                        tasks = []
-                        for col_idx, node_name in time_nodes:
-                            if col_idx < len(row) and pd.notna(row.iloc[col_idx]):
-                                val = str(row.iloc[col_idx]).strip()
-                                if val and val != 'nan' and val != '':
-                                    tasks.append(f"{node_name}: {val}")
-                        
-                        if tasks:
-                            title = current_module
-                            if plan_type:
-                                title += f" ({plan_type})"
-                            result_parts.append(f"【{title}】")
-                            result_parts.append("  时间节点: " + "、".join(tasks))
-                            result_parts.append("")
+                        # 判断是Plan行还是CWV行
+                        # Plan行：第二列是Plan/Bring up等，第三列开始是节点名
+                        # CWV行：第二列是CWV，第三列开始是日期
+                        if row_type.upper() == 'CWV':
+                            # CWV行：用当前模块的Plan节点名来对应日期
+                            tasks = []
+                            for col_idx, node_name in current_plan_nodes:
+                                if col_idx < len(row) and pd.notna(row.iloc[col_idx]):
+                                    val = str(row.iloc[col_idx]).strip()
+                                    if val and val != 'nan' and val != '':
+                                        tasks.append(f"{node_name}: {val}")
+                            
+                            if tasks:
+                                result_parts.append(f"【{current_module} (CWV)】")
+                                result_parts.append("  CWV实际日期: " + "、".join(tasks))
+                                result_parts.append("")
+                        else:
+                            # Plan行：第二列是Plan行名，第三列开始是节点名
+                            # 读取这一行的节点名，作为当前模块的节点定义
+                            current_plan_nodes = []
+                            plan_row_name = row_type
+                            for j in range(2, df.shape[1]):
+                                if pd.notna(row.iloc[j]):
+                                    node_name = str(row.iloc[j]).strip()
+                                    if node_name and node_name != 'nan':
+                                        current_plan_nodes.append((j, node_name))
+                            
+                            # 如果有节点名，也输出一下Plan信息
+                            if current_plan_nodes:
+                                result_parts.append(f"【{current_module} - {plan_row_name}】")
+                                result_parts.append("  计划节点: " + "、".join([n for _, n in current_plan_nodes]))
+                                result_parts.append("")
                 else:
                     # 普通表格格式
                     result_parts.append(f"共 {len(df)} 行，{len(df.columns)} 列")
