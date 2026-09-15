@@ -65,11 +65,16 @@ def parse_csv_file(file_obj) -> str:
                 result_parts.append(f"第{i+1}行: {line}")
             
             # 统计每个字段的唯一值数量
-            result_parts.append(f"\n=== 字段统计 ===")
+            from collections import Counter
             for j, h in enumerate(headers):
                 values = [row[j] for row in data_rows if j < len(row) and row[j].strip()]
                 unique = len(set(values))
                 result_parts.append(f"字段「{h}」: 共 {len(values)} 条有效数据，{unique} 个不同值")
+                
+                # 如果是分类字段（唯一值不多），统计每个值的数量
+                if unique <= 20:
+                    counter = Counter(values)
+                    result_parts.append(f"  分布: " + "、".join([f"{k}={v}个" for k, v in counter.most_common()]))
         
         return "\n".join(result_parts)
     except Exception as e:

@@ -231,8 +231,8 @@ class KnowledgeBase:
     
     def ask(self, question: str) -> Dict[str, Any]:
         """智能问答"""
-        # 1. 检索相关上下文
-        contexts = self.query(question, top_k=5)
+        # 1. 检索相关上下文（增加到10个，确保数据完整）
+        contexts = self.query(question, top_k=10)
         if not contexts:
             return {
                 "answer": "知识库中没有找到相关信息，请先上传文档。",
@@ -254,10 +254,12 @@ class KnowledgeBase:
 {question}
 
 ## 要求：
-1. 基于知识库内容回答，不要编造
-2. 如果知识库中没有相关信息，请明确说明
-3. 回答简洁明了，重点突出
-4. 引用相关文档标题"""
+1. **主动从数据中统计和计算**：如果问题涉及数量、比例、统计，请仔细阅读知识库中的数据，自己计算出答案，不要说"无法确定"
+2. 基于知识库内容回答，不要编造数据
+3. 如果知识库中确实没有相关信息，请明确说明
+4. 回答简洁明了，重点突出
+5. 如果是表格/CSV数据，逐行统计后给出数字
+6. 引用相关文档标题"""
         
         # 3. 调用 AI
         answer = get_llm_response(prompt)
