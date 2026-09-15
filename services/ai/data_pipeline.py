@@ -432,14 +432,17 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
         elif isinstance(module_stats, list):
             modules = module_stats
         
-        # 从 issues 数据中计算每个模块的 blocker+critical 数量
+        # 从 issues 数据中计算每个模块的未解决 blocker+critical 数量
         if issues and modules:
             from collections import defaultdict
             mod_bc = defaultdict(int)
             for issue in issues:
                 mod = issue.get('module', '')
                 sev = (issue.get('severity') or '').lower()
-                if mod and ('blocker' in sev or 'critical' in sev):
+                status = (issue.get('status') or '').lower()
+                resolved_keywords = ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭']
+                is_resolved = any(kw in status for kw in resolved_keywords)
+                if mod and ('blocker' in sev or 'critical' in sev) and not is_resolved:
                     mod_bc[mod] += 1
             for m in modules:
                 m['critical'] = mod_bc.get(m['name'], 0)
