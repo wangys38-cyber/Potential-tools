@@ -264,9 +264,21 @@ class KnowledgeBase:
         # 3. 调用 AI
         answer = get_llm_response(prompt)
         
+        # 4. 按标题去重 context，避免重复显示同一个文档
+        seen_titles = set()
+        unique_contexts = []
+        for c in contexts:
+            title = c['metadata'].get('title', '')
+            if title and title not in seen_titles:
+                seen_titles.add(title)
+                unique_contexts.append({
+                    "title": title,
+                    "content": c['content'][:200]
+                })
+        
         return {
             "answer": answer,
-            "contexts": [{"title": c['metadata'].get('title', ''), "content": c['content'][:200]} for c in contexts]
+            "contexts": unique_contexts
         }
     
     def list_documents(self) -> List[Dict]:
