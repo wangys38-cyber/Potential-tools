@@ -119,7 +119,7 @@ def parse_excel_file(file_obj) -> str:
                 
                 if header_row is not None:
                     # 甘特图格式：横向时间节点，纵向模块
-                    result_parts.append(f"【{sheet_name}工作表 - 项目计划/排期/Schedule】")
+                    result_parts.append(f"【{filename} - {sheet_name}工作表 - 项目计划/排期/Schedule】")
                     result_parts.append("（识别为甘特图/排计划格式）")
                     result_parts.append("")
                     
