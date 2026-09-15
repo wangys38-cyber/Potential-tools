@@ -51,6 +51,7 @@ const TEMPLATES=[{id:"ai-reply",icon:"ai",name:"AI 智能回复",fields:["emailC
         if(data.length>0){
           var item=data[0];
           var content=item.data_content||item.data||{};
+          if(typeof content==="string"){try{content=JSON.parse(content);}catch(e){}}
           _applyDraft(content);
         }else{
           showToast("没有待导入的邮件数据，请先在 CR 分析页面生成邮件");
@@ -79,6 +80,7 @@ window.onPipelineDataImport = function(dataList) {
     var item = dataList && dataList[0];
     if (!item) return;
     var data = item.data_content || item.data || {};
+    if (typeof data === "string") { try { data = JSON.parse(data); } catch (e) {} }
     if (data && data.subject && data.body) {
       generatedEN = data.body;
       generatedZH = data.body;
