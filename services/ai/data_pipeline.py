@@ -223,6 +223,45 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     bc_total = len(blocker) + len(critical)
     bc_rate = f"{bc_resolved/bc_total*100:.1f}%" if bc_total > 0 else "0%"
 
+    # 计算周维度统计（从日维度数据聚合）
+    weekly_stats = []
+    if daily_trend:
+        from collections import defaultdict
+        weekly_data = defaultdict(lambda: {'new': 0, 'resolved': 0})
+        for day in daily_trend:
+            if not isinstance(day, dict):
+                continue
+            date_str = day.get('date') or day.get('day') or day.get('日期') or day.get('create_date') or ''
+            if not date_str:
+                continue
+            try:
+                from datetime import datetime as dt
+                d = dt.strptime(date_str[:10], '%Y-%m-%d')
+                week_num = d.isocalendar()[1]
+                year = d.isocalendar()[0]
+                week_key = f"{year}年第{week_num}周"
+                # 尝试多种字段名
+                new_count = day.get('new') or day.get('new_bugs') or day.get('新增') or day.get('created') or 0
+                resolved_count = day.get('resolved') or day.get('resolved_bugs') or day.get('解决') or day.get('closed') or 0
+                weekly_data[week_key]['new'] += new_count
+                weekly_data[week_key]['resolved'] += resolved_count
+            except:
+                continue
+        
+        cumulative = 0
+        for week_key in sorted(weekly_data.keys()):
+            w = weekly_data[week_key]
+            net = w['new'] - w['resolved']
+            cumulative += net
+            weekly_stats.append({
+                'week': week_key,
+                'new': w['new'],
+                'resolved': w['resolved'],
+                'net': net,
+                'cumulative': cumulative,
+            })
+        weekly_stats = weekly_stats[-12:]
+
     # 构建邮件主题
     today = datetime.now().strftime('%Y-%m-%d')
     subject = f'CR 分析日报 - {today}（共{total}个，未解决{len(unresolved_list)}个，解决率{resolution_rate}）'
@@ -317,6 +356,29 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
                 body += '</tr>'
             body += '</tbody></table>'
 
+    # 每周对比表
+    if weekly_stats:
+        body += '<h3 style="color: #1d1d1f;">📅 每周对比表（近12周）</h3>'
+        body += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">'
+        body += '<thead><tr style="background: #f5f5f7;">'
+        body += '<th style="padding: 8px 12px; text-align: left; color: #86868b;">周</th>'
+        body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">新增</th>'
+        body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">解决</th>'
+        body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">净增</th>'
+        body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">累计未解决</th>'
+        body += '</tr></thead><tbody>'
+        for w in weekly_stats:
+            net_color = '#ff3b30' if w['net'] > 0 else '#34c759'
+            net_sign = '+' if w['net'] > 0 else ''
+            body += '<tr style="border-bottom: 1px solid #e5e5ea;">'
+            body += f'<td style="padding: 8px 12px; color: #1d1d1f;">{w["week"]}</td>'
+            body += f'<td style="padding: 8px 12px; text-align: center; color: #1d1d1f;">{w["new"]}</td>'
+            body += f'<td style="padding: 8px 12px; text-align: center; color: #1d1d1f;">{w["resolved"]}</td>'
+            body += f'<td style="padding: 8px 12px; text-align: center; color: {net_color}; font-weight: 600;">{net_sign}{w["net"]}</td>'
+            body += f'<td style="padding: 8px 12px; text-align: center; color: #1d1d1f; font-weight: 600;">{w["cumulative"]}</td>'
+            body += '</tr>'
+        body += '</tbody></table>'
+
     # AI 智能分析内容
     full_analysis = ai_analysis.get('full_analysis') or {}
     if full_analysis:
@@ -403,6 +465,12 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
         modules.sort(key=lambda x: x.get('total', 0), reverse=True)
         for m in modules[:10]:
             body_text += f'  {m["name"]}: {m["total"]}个 (未解决{m["unresolved"]}个)\n'
+    
+    if weekly_stats:
+        body_text += '\n每周对比表（近12周）:\n'
+        for w in weekly_stats:
+            net_sign = '+' if w['net'] > 0 else ''
+            body_text += f'  {w["week"]}: 新增{w["new"]}, 解决{w["resolved"]}, 净增{net_sign}{w["net"]}, 累计{w["cumulative"]}\n'
     
     if full_analysis:
         body_text += '\n=== AI 智能分析 ===\n'
