@@ -11,6 +11,25 @@
     function saveAIResult(type, data) {
         window.crAIAnalysisResult[type] = data;
         window.crAIAnalysisResult._lastUpdate = new Date().toISOString();
+        
+        // 自动更新历史记录中的 ai_analysis 字段
+        try {
+            const historyKey = (window._USER_PREFIX || '') + 'cr_analysis_history';
+            const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            if (history.length > 0 && currentFileName) {
+                // 找到当前文件对应的历史记录
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].file_name === currentFileName) {
+                        if (!history[i].data) history[i].data = {};
+                        history[i].data.ai_analysis = window.crAIAnalysisResult;
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('更新历史记录AI分析失败:', e);
+        }
     }
 
     // ==================== 工具函数 ====================
