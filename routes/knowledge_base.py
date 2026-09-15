@@ -584,6 +584,41 @@ def get_insights():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@kb_bp.route('/api/stats', methods=['GET'])
+def get_stats():
+    """知识库统计看板"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        docs = kb.list_documents()
+        total_chunks = sum(d.get('chunk_count', 0) for d in docs)
+        
+        # 问答数
+        conn = _get_db()
+        c = conn.cursor()
+        c.execute('SELECT COUNT(*) FROM kb_chat_history WHERE user_id=?', (user_id,))
+        qa_count = c.fetchone()[0]
+        conn.close()
+        
+        # 分类统计
+        cats = {}
+        for d in docs:
+            cat = d.get('category', '其他')
+            cats[cat] = cats.get(cat, 0) + 1
+        
+        return jsonify({
+            "status": "success",
+            "stats": {
+                "doc_count": len(docs),
+                "chunk_count": total_chunks,
+                "qa_count": qa_count,
+                "categories": cats
+            }
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/clear-history', methods=['POST'])
 def clear_history():
     """清空对话历史"""
