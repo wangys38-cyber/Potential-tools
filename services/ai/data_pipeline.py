@@ -207,7 +207,9 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 
     # 统计
     total = len(issues)
-    unresolved_list = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in ('resolved', 'closed', 'done', '已解决', '已关闭'))]
+    # 已解决状态关键词：resolved/closed/done/verified/fixed/已解决/已关闭
+    resolved_keywords = ('resolved', 'closed', 'done', 'verified', 'fixed', '已解决', '已关闭', '已验证')
+    unresolved_list = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in resolved_keywords)]
     resolved_list = [i for i in issues if i not in unresolved_list]
     
     # 严重程度分布
@@ -223,30 +225,43 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     bc_total = len(blocker) + len(critical)
     bc_rate = f"{bc_resolved/bc_total*100:.1f}%" if bc_total > 0 else "0%"
 
-    # 计算周维度统计（从日维度数据聚合）
+    # 计算周维度统计（直接从 issues 的 create_date/resolved_date 计算）
     weekly_stats = []
-    if daily_trend:
+    try:
         from collections import defaultdict
+        from datetime import datetime as dt
         weekly_data = defaultdict(lambda: {'new': 0, 'resolved': 0})
-        for day in daily_trend:
-            if not isinstance(day, dict):
-                continue
-            date_str = day.get('date') or day.get('day') or day.get('日期') or day.get('create_date') or ''
+        
+        # 日期解析：支持 "06/Sep/26 8:56 PM" 格式
+        def parse_date(date_str):
             if not date_str:
-                continue
-            try:
-                from datetime import datetime as dt
-                d = dt.strptime(date_str[:10], '%Y-%m-%d')
-                week_num = d.isocalendar()[1]
-                year = d.isocalendar()[0]
+                return None
+            date_str = str(date_str).strip()
+            # 尝试多种格式
+            formats = ['%d/%b/%y %I:%M %p', '%d/%b/%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']
+            for fmt in formats:
+                try:
+                    return dt.strptime(date_str, fmt)
+                except:
+                    continue
+            return None
+        
+        for issue in issues:
+            # 新增：create_date
+            create_d = parse_date(issue.get('create_date', ''))
+            if create_d:
+                week_num = create_d.isocalendar()[1]
+                year = create_d.isocalendar()[0]
                 week_key = f"{year}年第{week_num}周"
-                # 尝试多种字段名
-                new_count = day.get('new') or day.get('new_bugs') or day.get('新增') or day.get('created') or 0
-                resolved_count = day.get('resolved') or day.get('resolved_bugs') or day.get('解决') or day.get('closed') or 0
-                weekly_data[week_key]['new'] += new_count
-                weekly_data[week_key]['resolved'] += resolved_count
-            except:
-                continue
+                weekly_data[week_key]['new'] += 1
+            
+            # 解决：resolved_date
+            resolved_d = parse_date(issue.get('resolved_date', ''))
+            if resolved_d:
+                week_num = resolved_d.isocalendar()[1]
+                year = resolved_d.isocalendar()[0]
+                week_key = f"{year}年第{week_num}周"
+                weekly_data[week_key]['resolved'] += 1
         
         cumulative = 0
         for week_key in sorted(weekly_data.keys()):
@@ -261,6 +276,9 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
                 'cumulative': cumulative,
             })
         weekly_stats = weekly_stats[-12:]
+    except Exception as e:
+        import logging
+        logging.warning(f"计算周维度统计失败: {e}")
 
     # 构建邮件主题
     today = datetime.now().strftime('%Y-%m-%d')
