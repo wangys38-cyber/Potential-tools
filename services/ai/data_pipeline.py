@@ -253,16 +253,22 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
             return None
         
         for issue in issues:
-            # 新增：create_date
-            create_d = parse_date(issue.get('create_date', ''))
+            # 新增：create_date（兼容多种字段名）
+            create_date_str = (issue.get('create_date') or issue.get('created') or 
+                              issue.get('created_date') or issue.get('Created') or 
+                              issue.get('createTime') or '')
+            create_d = parse_date(create_date_str)
             if create_d:
                 week_num = create_d.isocalendar()[1]
                 year = create_d.isocalendar()[0]
                 week_key = f"{year}年第{week_num}周"
                 weekly_data[week_key]['new'] += 1
             
-            # 解决：resolved_date
-            resolved_d = parse_date(issue.get('resolved_date', ''))
+            # 解决：resolved_date（兼容多种字段名）
+            resolved_date_str = (issue.get('resolved_date') or issue.get('resolved') or 
+                                issue.get('resolved_time') or issue.get('Resolved') or 
+                                issue.get('closed_date') or '')
+            resolved_d = parse_date(resolved_date_str)
             if resolved_d:
                 week_num = resolved_d.isocalendar()[1]
                 year = resolved_d.isocalendar()[0]
