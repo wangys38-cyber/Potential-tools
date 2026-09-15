@@ -404,9 +404,9 @@ def sync_cr_to_kb():
             "",
             "=== 总体概览 ===",
             f"总问题数: {summary.get('total_issues', 0)}",
-            f"已解决: {summary.get('resolved', 0)}",
-            f"未解决: {summary.get('unresolved', 0)}",
-            f"解决率: {summary.get('resolution_rate', '0%')}",
+            f"已解决: {summary.get('total_resolved', 0)}",
+            f"未解决: {summary.get('total_unresolved', 0)}",
+            f"解决率: {summary.get('resolution_rate', '0%')}%",
             "",
             "=== 严重程度分布 ===",
         ]
