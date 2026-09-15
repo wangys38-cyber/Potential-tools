@@ -7,6 +7,10 @@
 - 文档自动分类
 """
 import os
+# 配置HuggingFace国内镜像
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
+
 import logging
 import hashlib
 import time
