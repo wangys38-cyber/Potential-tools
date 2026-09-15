@@ -344,12 +344,14 @@ class KnowledgeBase:
                         did = all_data['ids'][idx]
                         if did not in seen_ids:
                             seen_ids.add(did)
-                            candidates.append({
-                                "content": doc,
-                                "metadata": all_data['metadatas'][idx] or {},
-                                "score": 2.0,  # 最高优先级
-                                "source": "boosted"
-                            })
+                        # 直接加入，score=2.0，不依赖seen_ids
+                        candidates.append({
+                            "content": doc,
+                            "metadata": all_data['metadatas'][idx] or {},
+                            "score": 2.0,
+                            "source": "boosted",
+                            "_did": did
+                        })
 
             # 4. Rerank
             boosted = [c for c in candidates if c.get('score', 0) >= 2.0]
@@ -425,6 +427,8 @@ class KnowledgeBase:
 5. 基于知识库内容回答，不要编造
 6. 如果确实没有相关信息，明确说明
 7. 回答简洁，重点突出
+8. 引用来源用[来源1][来源2]标注
+9. **如果问项目整体里程碑/Schedule日期，优先使用Device HW或Device SW的Plan行数据，不要用Strap/Companion APP/Moto Fit等子模块的日期代替主项目日期**
 8. 引用来源用[来源1][来源2]标注"""
 
         answer = get_llm_response(prompt)
