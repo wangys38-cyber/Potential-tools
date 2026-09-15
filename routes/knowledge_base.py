@@ -250,3 +250,87 @@ def upload_file():
     except Exception as e:
         logger.error(f"文件上传失败: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/sync-cr', methods=['POST'])
+def sync_cr_to_kb():
+    """将 CR 分析数据同步到知识库（每天更新，自动替换旧数据）"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "error": "没有数据"}), 400
+        
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        
+        # 固定的 CR 文档 ID，每天同步时先删除旧的
+        cr_doc_id = "cr_analysis_latest"
+        
+        # 先删除旧的 CR 文档
+        kb.delete_document(cr_doc_id)
+        
+        # 构建结构化的 CR 数据文本
+        summary = data.get('summary', {})
+        module_stats = data.get('module_stats', [])
+        developer_stats = data.get('developer_stats', [])
+        severity_stats = data.get('severity_stats', {})
+        weekly_stats = data.get('weekly_stats', [])
+        issues = data.get('issues', [])
+        
+        content_parts = [
+            "【CR 分析最新数据】",
+            f"更新时间: {data.get('update_time', '今天')}",
+            "",
+            "=== 总体概览 ===",
+            f"总问题数: {summary.get('total_issues', 0)}",
+            f"已解决: {summary.get('resolved', 0)}",
+            f"未解决: {summary.get('unresolved', 0)}",
+            f"解决率: {summary.get('resolution_rate', '0%')}",
+            "",
+            "=== 严重程度分布 ===",
+        ]
+        
+        for sev, count in severity_stats.items():
+            content_parts.append(f"{sev}: {count} 个")
+        
+        content_parts.append("")
+        content_parts.append("=== 模块问题分布（Top 10）===")
+        for i, m in enumerate(module_stats[:10]):
+            content_parts.append(f"{i+1}. {m.get('name', '')}: 共 {m.get('total', 0)} 个，未解决 {m.get('unresolved', 0)} 个")
+        
+        content_parts.append("")
+        content_parts.append("=== 开发者问题分布 ===")
+        for i, d in enumerate(developer_stats[:15]):
+            content_parts.append(f"{i+1}. {d.get('name', '')}: 共 {d.get('total', 0)} 个，未解决 {d.get('unresolved', 0)} 个")
+        
+        if weekly_stats:
+            content_parts.append("")
+            content_parts.append("=== 每周趋势 ===")
+            for w in weekly_stats[-8:]:
+                content_parts.append(f"{w.get('week', '')}: 新增 {w.get('new', 0)}，解决 {w.get('resolved', 0)}，累计未解决 {w.get('cumulative_unresolved', 0)}")
+        
+        # 未解决问题列表
+        resolved_keywords = ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭']
+        unresolved = [i for i in issues if i.get('status', '').lower() not in resolved_keywords]
+        
+        content_parts.append("")
+        content_parts.append("=== 未解决问题列表（前 50 个）===")
+        for i, issue in enumerate(unresolved[:50]):
+            content_parts.append(f"{i+1}. [{issue.get('severity', '')}] {issue.get('title', '')} - 模块: {issue.get('module', '')} - 负责人: {issue.get('developer', '')}")
+        
+        content = "\n".join(content_parts)
+        
+        # 添加到知识库
+        success = kb.add_document(cr_doc_id, "CR分析最新数据（每日更新）", content, metadata={'type': 'cr_analysis'})
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": "CR 数据已同步到知识库",
+                "size": len(content)
+            })
+        else:
+            return jsonify({"status": "error", "error": "同步失败"}), 500
+    except Exception as e:
+        logger.error(f"CR 同步失败: {e}")
+        return jsonify({"status": "error", "error": str(e)}), 500
