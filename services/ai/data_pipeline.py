@@ -274,21 +274,21 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 <h3 style="color: #1d1d1f; margin-top: 20px;">📊 概览</h3>
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
 <tr>
-<td style="padding: 10px; background: #f5f5f7; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #1d1d1f;">{total}</div>
-<div style="font-size: 12px; color: #86868b;">问题总数</div>
+<td style="padding: 8px 6px; background: #f5f5f7; border-radius: 6px; text-align: center;">
+<div style="font-size: 18px; font-weight: 600; color: #1d1d1f;">{total}</div>
+<div style="font-size: 11px; color: #86868b;">问题总数</div>
 </td>
-<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #155724;">{resolved_count}</div>
-<div style="font-size: 12px; color: #155724;">已解决</div>
+<td style="padding: 8px 6px; background: #d4edda; border-radius: 6px; text-align: center;">
+<div style="font-size: 18px; font-weight: 600; color: #155724;">{resolved_count}</div>
+<div style="font-size: 11px; color: #155724;">已解决</div>
 </td>
-<td style="padding: 10px; background: #fff3cd; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #856404;">{len(unresolved_list)}</div>
-<div style="font-size: 12px; color: #856404;">未解决</div>
+<td style="padding: 8px 6px; background: #fff3cd; border-radius: 6px; text-align: center;">
+<div style="font-size: 18px; font-weight: 600; color: #856404;">{len(unresolved_list)}</div>
+<div style="font-size: 11px; color: #856404;">未解决</div>
 </td>
-<td style="padding: 10px; background: #f5f5f7; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #1d1d1f;">{resolution_rate}</div>
-<div style="font-size: 12px; color: #86868b;">解决率</div>
+<td style="padding: 8px 6px; background: #f5f5f7; border-radius: 6px; text-align: center;">
+<div style="font-size: 18px; font-weight: 600; color: #1d1d1f;">{resolution_rate}</div>
+<div style="font-size: 11px; color: #86868b;">解决率</div>
 </td>
 </tr>
 </table>
@@ -296,25 +296,25 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 <h3 style="color: #1d1d1f;">⚠️ 严重程度分布</h3>
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
 <tr>
-<td style="padding: 10px; background: #f8d7da; border-radius: 8px; text-align: center;">
-<div style="font-size: 20px; font-weight: 600; color: #721c24;">{len(blocker)}</div>
-<div style="font-size: 11px; color: #721c24;">Blocker</div>
+<td style="padding: 6px 4px; background: #f8d7da; border-radius: 6px; text-align: center;">
+<div style="font-size: 16px; font-weight: 600; color: #721c24;">{len(blocker)}</div>
+<div style="font-size: 10px; color: #721c24;">Blocker</div>
 </td>
-<td style="padding: 10px; background: #f8d7da; border-radius: 8px; text-align: center;">
-<div style="font-size: 20px; font-weight: 600; color: #721c24;">{len(critical)}</div>
-<div style="font-size: 11px; color: #721c24;">Critical</div>
+<td style="padding: 6px 4px; background: #f8d7da; border-radius: 6px; text-align: center;">
+<div style="font-size: 16px; font-weight: 600; color: #721c24;">{len(critical)}</div>
+<div style="font-size: 10px; color: #721c24;">Critical</div>
 </td>
-<td style="padding: 10px; background: #fff3cd; border-radius: 8px; text-align: center;">
-<div style="font-size: 20px; font-weight: 600; color: #856404;">{len(major)}</div>
-<div style="font-size: 11px; color: #856404;">Major</div>
+<td style="padding: 6px 4px; background: #fff3cd; border-radius: 6px; text-align: center;">
+<div style="font-size: 16px; font-weight: 600; color: #856404;">{len(major)}</div>
+<div style="font-size: 10px; color: #856404;">Major</div>
 </td>
-<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
-<div style="font-size: 20px; font-weight: 600; color: #155724;">{len(minor)}</div>
-<div style="font-size: 11px; color: #155724;">Minor</div>
+<td style="padding: 6px 4px; background: #d4edda; border-radius: 6px; text-align: center;">
+<div style="font-size: 16px; font-weight: 600; color: #155724;">{len(minor)}</div>
+<div style="font-size: 10px; color: #155724;">Minor</div>
 </td>
-<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
-<div style="font-size: 20px; font-weight: 600; color: #155724;">{len(trivial)}</div>
-<div style="font-size: 11px; color: #155724;">Trivial</div>
+<td style="padding: 6px 4px; background: #d4edda; border-radius: 6px; text-align: center;">
+<div style="font-size: 16px; font-weight: 600; color: #155724;">{len(trivial)}</div>
+<div style="font-size: 10px; color: #155724;">Trivial</div>
 </td>
 </tr>
 </table>
