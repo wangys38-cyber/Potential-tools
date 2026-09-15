@@ -214,35 +214,54 @@ def explain_prediction(prediction_result: Dict, ai_service) -> str:
 
 def enhanced_root_cause_analysis(issues: List[Dict], ai_service) -> Dict[str, Any]:
     """
-    增强根因分析：多维度归因
+    增强根因分析 v4.0：多维度归因
     - 按模块归因
+    - 按开发者归因
     - 按严重度归因
-    - 按根因类型归因
-    - 交叉分析
+    - 按时间趋势归因
+    - 问题聚类分析
+    - AI 深度归因 + 修复建议
     """
     if not issues:
         return {'status': 'error', 'error': '没有问题数据'}
 
     # 基础统计
     module_stats = defaultdict(lambda: {'total': 0, 'unresolved': 0, 'critical': 0, 'high': 0})
+    developer_stats = defaultdict(lambda: {'total': 0, 'unresolved': 0, 'critical': 0})
     severity_stats = defaultdict(int)
     status_stats = defaultdict(int)
+    daily_new = defaultdict(int)
+    daily_resolved = defaultdict(int)
 
     for issue in issues:
         module = issue.get('module') or issue.get('模块') or '未知'
         severity = (issue.get('severity') or issue.get('严重性') or 'normal').lower()
         status = (issue.get('status') or issue.get('状态') or '').lower()
+        developer = issue.get('developer') or issue.get('负责人') or '未知'
+        create_date = issue.get('create_date') or issue.get('创建日期') or ''
+        resolved_date = issue.get('resolved_date') or issue.get('解决日期') or ''
 
         module_stats[module]['total'] += 1
+        developer_stats[developer]['total'] += 1
         if not any(k in status for k in ('resolved', 'closed', 'done', '已解决', '已关闭')):
             module_stats[module]['unresolved'] += 1
+            developer_stats[developer]['unresolved'] += 1
         if 'critical' in severity or '致命' in severity or 'blocker' in severity:
             module_stats[module]['critical'] += 1
+            developer_stats[developer]['critical'] += 1
         elif 'high' in severity or '严重' in severity or 'major' in severity:
             module_stats[module]['high'] += 1
 
         severity_stats[severity] += 1
         status_stats[status] += 1
+
+        # 按日期统计（取日期部分）
+        if create_date:
+            date_str = str(create_date).split(' ')[0]
+            daily_new[date_str] += 1
+        if resolved_date and any(k in status for k in ('resolved', 'closed', 'done', '已解决', '已关闭')):
+            date_str = str(resolved_date).split(' ')[0]
+            daily_resolved[date_str] += 1
 
     # 找出高风险模块（未解决多 + 严重度高）
     high_risk_modules = []
@@ -259,20 +278,45 @@ def enhanced_root_cause_analysis(issues: List[Dict], ai_service) -> Dict[str, An
             })
     high_risk_modules.sort(key=lambda x: x['risk_score'], reverse=True)
 
+    # 高风险开发者
+    high_risk_developers = []
+    for dev, stats in developer_stats.items():
+        risk_score = stats['unresolved'] * 2 + stats['critical'] * 3
+        if risk_score > 0:
+            high_risk_developers.append({
+                'developer': dev,
+                'total': stats['total'],
+                'unresolved': stats['unresolved'],
+                'critical': stats['critical'],
+                'risk_score': risk_score,
+            })
+    high_risk_developers.sort(key=lambda x: x['risk_score'], reverse=True)
+
+    # 找出问题集中爆发的时间段
+    sorted_dates = sorted(daily_new.keys())
+    peak_dates = sorted(daily_new.items(), key=lambda x: x[1], reverse=True)[:5]
+    peak_periods = [{'date': d, 'new_count': c} for d, c in peak_dates]
+
     # 用 AI 做深度归因分析
     unresolved_issues = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in ('resolved', 'closed', 'done', '已解决', '已关闭'))]
 
     issues_summary = '\n'.join([
-        f"- [{i.get('key') or i.get('id') or '?'}] {i.get('summary') or i.get('标题') or ''[:80]} (模块:{i.get('module') or '?'}, 严重度:{i.get('severity') or '?'})"
-        for i in unresolved_issues[:30]
+        f"- [{i.get('key') or i.get('id') or '?'}] {i.get('summary') or i.get('title') or i.get('标题') or ''[:100]} (模块:{i.get('module') or '?'}, 严重度:{i.get('severity') or '?'}, 负责人:{i.get('developer') or '?'})"
+        for i in unresolved_issues[:50]
     ])
 
     analysis_prompt = f"""你是资深质量分析专家。请对以下 Bug 数据进行深度归因分析。
 
-## 模块统计
+## 高风险模块 Top 10
 {json.dumps(high_risk_modules[:10], ensure_ascii=False, indent=2)}
 
-## 未解决 Bug（共 {len(unresolved_issues)} 条，显示前30条）
+## 高风险开发者 Top 10
+{json.dumps(high_risk_developers[:10], ensure_ascii=False, indent=2)}
+
+## 问题集中爆发日期 Top 5
+{json.dumps(peak_periods, ensure_ascii=False, indent=2)}
+
+## 未解决 Bug（共 {len(unresolved_issues)} 条，显示前50条）
 {issues_summary}
 
 ## 严重度分布
@@ -283,25 +327,32 @@ def enhanced_root_cause_analysis(issues: List[Dict], ai_service) -> Dict[str, An
   "root_causes": [
     {{
       "cause": "根因描述",
+      "category": "代码缺陷/需求问题/环境问题/交互问题/数据问题",
       "affected_modules": ["模块1", "模块2"],
+      "affected_developers": ["开发者1", "开发者2"],
       "severity": "high/medium/low",
       "evidence": "数据证据",
-      "fix_priority": 1
+      "fix_priority": 1,
+      "fix_suggestion": "修复建议"
     }}
   ],
   "key_findings": ["发现1", "发现2"],
-  "risk_assessment": "整体风险评估"
+  "risk_assessment": "整体风险评估",
+  "quick_wins": ["可以快速解决的问题1", "快速解决的问题2"],
+  "long_term_actions": ["长期改进措施1", "长期改进措施2"]
 }}
 
 要求：
 1. root_causes 列出 3-5 个主要根因，按 fix_priority 排序
-2. 每个根因要有数据证据支撑
+2. 每个根因要分类（category），并给出具体的修复建议
 3. key_findings 列出 3-5 个关键发现
-4. risk_assessment 用一句话总结整体风险"""
+4. quick_wins 列出 2-3 个可以快速解决的问题
+5. long_term_actions 列出 2-3 个长期改进措施
+6. risk_assessment 用一句话总结整体风险"""
 
     try:
         messages = [ChatMessage(role='user', content=analysis_prompt)]
-        response = ai_service.chat(messages, max_tokens=1500, temperature=0.2)
+        response = ai_service.chat(messages, max_tokens=2000, temperature=0.2)
         reply = response.content.strip()
         # 清理 markdown
         if reply.startswith('```'):
@@ -317,11 +368,15 @@ def enhanced_root_cause_analysis(issues: List[Dict], ai_service) -> Dict[str, An
             'root_causes': [],
             'key_findings': [f'共 {len(issues)} 个 Bug，{len(unresolved_issues)} 个未解决'],
             'risk_assessment': 'AI 分析暂时不可用，请查看模块统计',
+            'quick_wins': [],
+            'long_term_actions': [],
         }
 
     return {
         'status': 'success',
         'module_stats': high_risk_modules[:10],
+        'developer_stats': high_risk_developers[:10],
+        'peak_periods': peak_periods,
         'severity_stats': dict(severity_stats),
         'status_stats': dict(status_stats),
         'total_issues': len(issues),
