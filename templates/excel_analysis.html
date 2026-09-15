@@ -393,6 +393,15 @@ function pushToEmail() {
         alert('请先完成 CR 分析');
         return;
     }
+    // 获取趋势图 base64 图片
+    const chartCanvas = document.getElementById('dailyCumulativeChart');
+    if (chartCanvas) {
+        try {
+            data.trend_image = chartCanvas.toDataURL('image/png');
+        } catch(e) {
+            console.warn('获取趋势图失败:', e);
+        }
+    }
     window.pushToPipeline('cr_to_email', data, 'CR 分析邮件').then(function(result) {
         if (result && result.status === 'success') {
             // 推送成功后自动跳转到邮件助手页面

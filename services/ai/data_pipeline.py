@@ -91,7 +91,8 @@ def push_to_pipeline(user_id: int, pipeline_key: str, data: Dict,
     processed_data = data
     if pipeline_key == 'cr_to_email':
         # CR → 邮件：自动生成邮件内容
-        email_result = transform_cr_to_email(data)
+        trend_image = data.get('trend_image')
+        email_result = transform_cr_to_email(data, trend_image)
         processed_data = {
             'subject': email_result['subject'],
             'body': email_result['body'],
@@ -202,15 +203,29 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     issues = cr_data.get('issues') or []
     daily_trend = cr_data.get('dailyTrend') or []
     ai_analysis = cr_data.get('aiAnalysis') or {}
+    module_stats = cr_data.get('moduleStats') or cr_data.get('module_stats') or {}
 
     # 统计
     total = len(issues)
-    unresolved = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in ('resolved', 'closed', 'done', '已解决', '已关闭'))]
-    critical = [i for i in issues if 'critical' in (i.get('severity') or '').lower() or '致命' in (i.get('severity') or '')]
+    unresolved_list = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in ('resolved', 'closed', 'done', '已解决', '已关闭'))]
+    resolved_list = [i for i in issues if i not in unresolved_list]
+    
+    # 严重程度分布
+    blocker = [i for i in issues if 'blocker' in (i.get('severity') or '').lower() or '阻塞' in (i.get('severity') or '')]
+    critical = [i for i in issues if 'critical' in (i.get('severity') or '').lower() or '严重' in (i.get('severity') or '')]
+    major = [i for i in issues if 'major' in (i.get('severity') or '').lower() or '重要' in (i.get('severity') or '')]
+    minor = [i for i in issues if 'minor' in (i.get('severity') or '').lower() or '次要' in (i.get('severity') or '')]
+    trivial = [i for i in issues if 'trivial' in (i.get('severity') or '').lower() or '微不足道' in (i.get('severity') or '')]
+    
+    resolved_count = len(resolved_list)
+    resolution_rate = f"{resolved_count/total*100:.1f}%" if total > 0 else "0%"
+    bc_resolved = len([i for i in (blocker + critical) if i in resolved_list])
+    bc_total = len(blocker) + len(critical)
+    bc_rate = f"{bc_resolved/bc_total*100:.1f}%" if bc_total > 0 else "0%"
 
     # 构建邮件主题
     today = datetime.now().strftime('%Y-%m-%d')
-    subject = f'CR 分析日报 - {today}（共{total}个，未解决{len(unresolved)}个）'
+    subject = f'CR 分析日报 - {today}（共{total}个，未解决{len(unresolved_list)}个，解决率{resolution_rate}）'
 
     # 构建邮件正文
     body = f'''<div style="font-family: sans-serif; max-width: 700px; margin: 0 auto;">
@@ -222,19 +237,85 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 <tr>
 <td style="padding: 10px; background: #f5f5f7; border-radius: 8px; text-align: center;">
 <div style="font-size: 24px; font-weight: 600; color: #1d1d1f;">{total}</div>
-<div style="font-size: 12px; color: #86868b;">总问题数</div>
+<div style="font-size: 12px; color: #86868b;">问题总数</div>
+</td>
+<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
+<div style="font-size: 24px; font-weight: 600; color: #155724;">{resolved_count}</div>
+<div style="font-size: 12px; color: #155724;">已解决</div>
 </td>
 <td style="padding: 10px; background: #fff3cd; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #856404;">{len(unresolved)}</div>
+<div style="font-size: 24px; font-weight: 600; color: #856404;">{len(unresolved_list)}</div>
 <div style="font-size: 12px; color: #856404;">未解决</div>
 </td>
-<td style="padding: 10px; background: #f8d7da; border-radius: 8px; text-align: center;">
-<div style="font-size: 24px; font-weight: 600; color: #721c24;">{len(critical)}</div>
-<div style="font-size: 12px; color: #721c24;">致命/严重</div>
+<td style="padding: 10px; background: #f5f5f7; border-radius: 8px; text-align: center;">
+<div style="font-size: 24px; font-weight: 600; color: #1d1d1f;">{resolution_rate}</div>
+<div style="font-size: 12px; color: #86868b;">解决率</div>
 </td>
 </tr>
 </table>
+
+<h3 style="color: #1d1d1f;">⚠️ 严重程度分布</h3>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+<tr>
+<td style="padding: 10px; background: #f8d7da; border-radius: 8px; text-align: center;">
+<div style="font-size: 20px; font-weight: 600; color: #721c24;">{len(blocker)}</div>
+<div style="font-size: 11px; color: #721c24;">Blocker</div>
+</td>
+<td style="padding: 10px; background: #f8d7da; border-radius: 8px; text-align: center;">
+<div style="font-size: 20px; font-weight: 600; color: #721c24;">{len(critical)}</div>
+<div style="font-size: 11px; color: #721c24;">Critical</div>
+</td>
+<td style="padding: 10px; background: #fff3cd; border-radius: 8px; text-align: center;">
+<div style="font-size: 20px; font-weight: 600; color: #856404;">{len(major)}</div>
+<div style="font-size: 11px; color: #856404;">Major</div>
+</td>
+<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
+<div style="font-size: 20px; font-weight: 600; color: #155724;">{len(minor)}</div>
+<div style="font-size: 11px; color: #155724;">Minor</div>
+</td>
+<td style="padding: 10px; background: #d4edda; border-radius: 8px; text-align: center;">
+<div style="font-size: 20px; font-weight: 600; color: #155724;">{len(trivial)}</div>
+<div style="font-size: 11px; color: #155724;">Trivial</div>
+</td>
+</tr>
+</table>
+<p style="font-size: 12px; color: #86868b; margin-bottom: 20px;">B+C 解决率: {bc_rate}（{bc_resolved}/{bc_total}）</p>
 '''
+
+    # 模块问题分布（Top 10）
+    if module_stats:
+        # 转换为列表并排序
+        modules = []
+        if isinstance(module_stats, dict):
+            for name, stats in module_stats.items():
+                if isinstance(stats, dict):
+                    modules.append({
+                        'name': name,
+                        'total': stats.get('total', 0),
+                        'unresolved': stats.get('unresolved', 0),
+                        'critical': stats.get('critical', 0),
+                    })
+        elif isinstance(module_stats, list):
+            modules = module_stats
+        
+        if modules:
+            modules.sort(key=lambda x: x.get('total', 0), reverse=True)
+            body += '<h3 style="color: #1d1d1f;">📦 模块问题分布（Top 10）</h3>'
+            body += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">'
+            body += '<thead><tr style="background: #f5f5f7;">'
+            body += '<th style="padding: 8px 12px; text-align: left; color: #86868b;">模块</th>'
+            body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">总数</th>'
+            body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">未解决</th>'
+            body += '<th style="padding: 8px 12px; text-align: center; color: #86868b;">致命/严重</th>'
+            body += '</tr></thead><tbody>'
+            for m in modules[:10]:
+                body += '<tr style="border-bottom: 1px solid #e5e5ea;">'
+                body += f'<td style="padding: 8px 12px; color: #1d1d1f;">{m["name"]}</td>'
+                body += f'<td style="padding: 8px 12px; text-align: center; color: #1d1d1f;">{m["total"]}</td>'
+                body += f'<td style="padding: 8px 12px; text-align: center; color: #ff9500;">{m["unresolved"]}</td>'
+                body += f'<td style="padding: 8px 12px; text-align: center; color: #ff3b30;">{m["critical"]}</td>'
+                body += '</tr>'
+            body += '</tbody></table>'
 
     # AI 智能分析内容
     full_analysis = ai_analysis.get('full_analysis') or {}
@@ -293,24 +374,36 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
                 body += '</ul>'
             body += '</div>'
 
-    # 未解决问题列表
-    if unresolved:
-        body += '<h3 style="color: #1d1d1f;">⚠️ 未解决问题（前10条）</h3><ul style="font-size: 13px; line-height: 1.8;">'
-        for issue in unresolved[:10]:
-            key = issue.get('key') or issue.get('id') or '?'
-            summary = issue.get('summary') or issue.get('标题') or ''
-            module = issue.get('module') or issue.get('模块') or ''
-            body += f'<li><strong>[{key}]</strong> {summary} <span style="color: #86868b;">({module})</span></li>'
-        body += '</ul>'
+    # 未解决问题列表（只显示概览，不展示具体问题）
+    body += f'<p style="font-size: 13px; color: #86868b; margin-top: 20px;">共 {len(unresolved_list)} 个未解决问题，详见 CR 分析页面。</p>'
 
     # 趋势图
     if trend_image:
-        body += f'<h3 style="color: #1d1d1f;">📈 趋势图</h3><img src="{trend_image}" style="max-width: 100%; border-radius: 8px;">'
+        body += f'<h3 style="color: #1d1d1f; margin-top: 20px;">📈 每日趋势与累计Bug曲线</h3><img src="{trend_image}" style="max-width: 100%; border-radius: 8px;">'
 
     body += '</div>'
 
     # 构建纯文本版本
-    body_text = f'CR 分析日报 - {today}\n总问题: {total}\n未解决: {len(unresolved)}\n致命/严重: {len(critical)}\n'
+    body_text = f'CR 分析日报 - {today}\n'
+    body_text += f'问题总数: {total}\n'
+    body_text += f'已解决: {resolved_count} ({resolution_rate})\n'
+    body_text += f'未解决: {len(unresolved_list)}\n'
+    body_text += f'Blocker: {len(blocker)}, Critical: {len(critical)}, Major: {len(major)}, Minor: {len(minor)}, Trivial: {len(trivial)}\n'
+    body_text += f'B+C 解决率: {bc_rate} ({bc_resolved}/{bc_total})\n'
+    
+    if module_stats:
+        body_text += '\n模块问题分布 Top 10:\n'
+        modules = []
+        if isinstance(module_stats, dict):
+            for name, stats in module_stats.items():
+                if isinstance(stats, dict):
+                    modules.append({'name': name, 'total': stats.get('total', 0), 'unresolved': stats.get('unresolved', 0)})
+        elif isinstance(module_stats, list):
+            modules = module_stats
+        modules.sort(key=lambda x: x.get('total', 0), reverse=True)
+        for m in modules[:10]:
+            body_text += f'  {m["name"]}: {m["total"]}个 (未解决{m["unresolved"]}个)\n'
+    
     if full_analysis:
         body_text += '\n=== AI 智能分析 ===\n'
         rc_ai = (full_analysis.get('root_cause') or {}).get('ai_analysis') or {}
