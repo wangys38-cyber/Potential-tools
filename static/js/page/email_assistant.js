@@ -32,6 +32,11 @@ const TEMPLATES=[{id:"ai-reply",icon:"ai",name:"AI 智能回复",fields:["emailC
       if(_subjInput)_subjInput.value=_o.subject||"";
       document.getElementById("previewCard").style.display="block";
       renderPreview();
+      // 自动滚动到预览区域
+      setTimeout(function(){
+        var _preview=document.getElementById("previewCard");
+        if(_preview)_preview.scrollIntoView({behavior:"smooth",block:"start"});
+      },100);
       var hasAI = _o.source_data && _o.source_data.has_ai_analysis;
       showToast("已从 CR 分析导入邮件" + (hasAI ? "（含 AI 智能分析）" : ""));
     }
