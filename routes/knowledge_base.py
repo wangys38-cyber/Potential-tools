@@ -122,37 +122,45 @@ def parse_excel_file(file_obj) -> str:
                     result_parts.append("（识别为甘特图/排计划格式）")
                     result_parts.append("")
                     
-                    # 读取表头（时间节点）
+                    # 读取表头（时间节点），从第3列开始（前两列是模块名和Plan/CWV）
                     time_nodes = []
-                    for j in range(df.shape[1]):
+                    for j in range(2, df.shape[1]):
                         if pd.notna(df.iloc[header_row, j]):
                             time_nodes.append((j, str(df.iloc[header_row, j]).strip()))
                     
-                    # 逐行读取数据
+                    # 逐行读取数据，模块名是合并单元格，需要向下继承
+                    current_module = ""
                     for i in range(header_row + 1, len(df)):
                         row = df.iloc[i]
-                        # 第一列通常是模块名
-                        module_name = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
-                        if not module_name or module_name == 'nan':
+                        
+                        # 第一列：模块名（合并单元格，向下继承）
+                        if pd.notna(row.iloc[0]):
+                            current_module = str(row.iloc[0]).strip()
+                            if current_module == 'nan':
+                                current_module = ""
+                        
+                        # 第二列：Plan/CWV
+                        plan_type = str(row.iloc[1]).strip() if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                        if plan_type == 'nan':
+                            plan_type = ""
+                        
+                        if not current_module:
                             continue
                         
-                        # 第二列通常是 Plan/CWV
-                        plan_type = str(row.iloc[1]).strip() if len(row) > 1 and pd.notna(row.iloc[1]) else ""
-                        
-                        # 读取每个时间节点的值
+                        # 读取每个时间节点的日期值
                         tasks = []
                         for col_idx, node_name in time_nodes:
                             if col_idx < len(row) and pd.notna(row.iloc[col_idx]):
                                 val = str(row.iloc[col_idx]).strip()
-                                if val and val != 'nan':
+                                if val and val != 'nan' and val != '':
                                     tasks.append(f"{node_name}: {val}")
                         
                         if tasks:
-                            title = module_name
-                            if plan_type and plan_type != 'nan':
+                            title = current_module
+                            if plan_type:
                                 title += f" ({plan_type})"
                             result_parts.append(f"【{title}】")
-                            result_parts.append("  " + "、".join(tasks))
+                            result_parts.append("  时间节点: " + "、".join(tasks))
                             result_parts.append("")
                 else:
                     # 普通表格格式
