@@ -94,6 +94,10 @@ def create_pages_blueprint(cached_render):
     def knowledge_graph():
         return cached_render('knowledge_graph.html', nav_title='研发知识图谱')
 
+    @bp.route('/knowledge-base')
+    def knowledge_base():
+        return cached_render('knowledge_base.html', nav_title='智能知识库')
+
     @bp.route('/my-activity')
     def my_activity():
         return cached_render('my_activity.html', nav_title='我的活动')

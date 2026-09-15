@@ -41,6 +41,7 @@ from routes.versions import create_versions_blueprint
 from routes.notifications import create_notifications_blueprint
 from routes.ai import bp as ai_bp
 from routes.plugins import bp as plugins_bp
+from routes.knowledge_base import kb_bp
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
 from whitenoise import WhiteNoise
@@ -668,6 +669,7 @@ app.register_blueprint(create_notifications_blueprint())
 # v8.0 AI 原生
 app.register_blueprint(ai_bp)
 app.register_blueprint(plugins_bp)
+app.register_blueprint(kb_bp)
 
 # HLD 生成器
 try:

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能知识库 - 工具集</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/perf-mobile.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ui-polish.css?v={{ STATIC_VERSION }}">
+    <style>
+        .kb-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            height: calc(100vh - 140px);
+        }
+        .kb-sidebar {
+            background: var(--ds-bg-card, #fff);
+            border-radius: 12px;
+            border: 1px solid var(--ds-border, #e5e5ea);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .kb-sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--ds-border, #e5e5ea);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kb-sidebar-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ds-text, #1d1d1f);
+        }
+        .kb-doc-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .kb-doc-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+        }
+        .kb-doc-item:hover {
+            background: var(--ds-bg-secondary, #f5f5f7);
+        }
+        .kb-doc-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ds-text, #1d1d1f);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kb-doc-meta {
+            font-size: 11px;
+            color: var(--ds-text-tertiary, #86868b);
+        }
+        .kb-main {
+            display: flex;
+            flex-direction: column;
+            background: var(--ds-bg-card, #fff);
+            border-radius: 12px;
+            border: 1px solid var(--ds-border, #e5e5ea);
+            overflow: hidden;
+        }
+        .kb-chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        .kb-message {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        .kb-message.user {
+            flex-direction: row-reverse;
+        }
+        .kb-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .kb-message.user .kb-avatar {
+            background: #007aff;
+            color: white;
+        }
+        .kb-message.ai .kb-avatar {
+            background: #f5f5f7;
+        }
+        .kb-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .kb-message.user .kb-bubble {
+            background: #007aff;
+            color: white;
+        }
+        .kb-message.ai .kb-bubble {
+            background: var(--ds-bg-secondary, #f5f5f7);
+            color: var(--ds-text, #1d1d1f);
+        }
+        .kb-context {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 122, 255, 0.05);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--ds-text-secondary, #86868b);
+        }
+        .kb-input-area {
+            padding: 16px;
+            border-top: 1px solid var(--ds-border, #e5e5ea);
+            display: flex;
+            gap: 12px;
+        }
+        .kb-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--ds-border, #e5e5ea);
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .kb-input:focus {
+            border-color: #007aff;
+        }
+        .kb-send-btn {
+            padding: 0 24px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .kb-send-btn:hover {
+            background: #0056b3;
+        }
+        .kb-send-btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        .kb-upload-section {
+            padding: 12px;
+            border-top: 1px solid var(--ds-border, #e5e5ea);
+        }
+        .kb-upload-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--ds-bg-secondary, #f5f5f7);
+            border: 1px dashed var(--ds-border, #e5e5ea);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--ds-text-secondary, #86868b);
+            transition: all 0.2s;
+        }
+        .kb-upload-btn:hover {
+            border-color: #007aff;
+            color: #007aff;
+        }
+        .kb-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--ds-text-tertiary, #86868b);
+        }
+        .kb-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 768px) {
+            .kb-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .kb-sidebar {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">智能知识库</h1>
+        <p class="page-desc">上传历史 Bug 单、会议纪要、技术文档，构建团队知识库，AI 自动关联检索</p>
+    </div>
+
+    <div class="kb-layout">
+        <!-- 左侧：文档列表 -->
+        <div class="kb-sidebar">
+            <div class="kb-sidebar-header">
+                <div class="kb-sidebar-title">📚 知识库文档</div>
+                <button class="btn btn-sm btn-ghost" onclick="loadDocs()">刷新</button>
+            </div>
+            <div class="kb-doc-list" id="docList">
+                <div class="kb-empty" style="padding:30px;">
+                    <div class="kb-empty-icon">📄</div>
+                    <div>暂无文档</div>
+                </div>
+            </div>
+            <div class="kb-upload-section">
+                <label class="kb-upload-btn" for="fileInput">
+                    📤 上传文件（TXT/MD/PDF/Word）
+                </label>
+                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.csv" style="display:none" onchange="uploadFile(this)">
+                <div style="margin-top:8px;">
+                    <textarea id="manualContent" placeholder="或直接粘贴文本内容..." style="width:100%;height:60px;padding:8px;border:1px solid var(--ds-border,#e5e5ea);border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+                    <input type="text" id="manualTitle" placeholder="文档标题" style="width:100%;padding:6px 8px;margin-top:4px;border:1px solid var(--ds-border,#e5e5ea);border-radius:6px;font-size:12px;">
+                    <button class="btn btn-sm btn-primary" style="width:100%;margin-top:4px;" onclick="uploadManual()">添加到知识库</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：对话区 -->
+        <div class="kb-main">
+            <div class="kb-chat-area" id="chatArea">
+                <div class="kb-empty">
+                    <div class="kb-empty-icon">💬</div>
+                    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">智能知识库问答</div>
+                    <div style="font-size:13px;">上传文档后，在这里提问，AI 会基于知识库内容回答</div>
+                </div>
+            </div>
+            <div class="kb-input-area">
+                <input type="text" class="kb-input" id="questionInput" placeholder="输入你的问题，例如：这个崩溃一般是什么原因？" onkeypress="if(event.key==='Enter')sendQuestion()">
+                <button class="kb-send-btn" id="sendBtn" onclick="sendQuestion()">发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 加载文档列表
+async function loadDocs() {
+    try {
+        const res = await fetch('/knowledge-base/api/documents');
+        const data = await res.json();
+        if (data.status === 'success') {
+            renderDocs(data.documents);
+        }
+    } catch (e) {
+        console.error('加载文档失败', e);
+    }
+}
+
+function renderDocs(docs) {
+    const el = document.getElementById('docList');
+    if (!docs || docs.length === 0) {
+        el.innerHTML = '<div class="kb-empty" style="padding:30px;"><div class="kb-empty-icon">📄</div><div>暂无文档</div></div>';
+        return;
+    }
+    el.innerHTML = docs.map(d => `
+        <div class="kb-doc-item">
+            <div class="kb-doc-title">📄 ${d.title}</div>
+            <div class="kb-doc-meta">${d.chunk_count} 个片段 · <span style="color:#ff3b30;cursor:pointer;" onclick="deleteDoc('${d.doc_id}')">删除</span></div>
+        </div>
+    `).join('');
+}
+
+// 删除文档
+async function deleteDoc(docId) {
+    if (!confirm('确定删除该文档？')) return;
+    try {
+        await fetch(`/knowledge-base/api/documents/${docId}`, { method: 'DELETE' });
+        loadDocs();
+    } catch (e) {
+        alert('删除失败');
+    }
+}
+
+// 上传文件
+async function uploadFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const btn = document.querySelector('.kb-upload-btn');
+    btn.textContent = '上传中...';
+    
+    try {
+        const res = await fetch('/knowledge-base/api/upload-file', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert('上传成功！');
+            loadDocs();
+        } else {
+            alert('上传失败: ' + data.error);
+        }
+    } catch (e) {
+        alert('上传失败: ' + e.message);
+    } finally {
+        btn.textContent = '📤 上传文件（TXT/MD/PDF/Word）';
+        input.value = '';
+    }
+}
+
+// 手动添加文本
+async function uploadManual() {
+    const title = document.getElementById('manualTitle').value.trim();
+    const content = document.getElementById('manualContent').value.trim();
+    if (!content) {
+        alert('请输入内容');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    
+    try {
+        const res = await fetch('/knowledge-base/api/documents', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert('添加成功！');
+            document.getElementById('manualTitle').value = '';
+            document.getElementById('manualContent').value = '';
+            loadDocs();
+        } else {
+            alert('添加失败: ' + data.error);
+        }
+    } catch (e) {
+        alert('添加失败: ' + e.message);
+    }
+}
+
+// 发送问题
+async function sendQuestion() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) return;
+    
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.textContent = '思考中...';
+    
+    // 添加用户消息
+    addMessage('user', question);
+    input.value = '';
+    
+    // 添加 loading
+    const loadingId = addMessage('ai', '正在检索知识库...');
+    
+    try {
+        const res = await fetch('/knowledge-base/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+        });
+        const data = await res.json();
+        
+        // 移除 loading
+        removeMessage(loadingId);
+        
+        if (data.status === 'success') {
+            addMessage('ai', data.answer, data.contexts);
+        } else {
+            addMessage('ai', '出错了: ' + data.error);
+        }
+    } catch (e) {
+        removeMessage(loadingId);
+        addMessage('ai', '请求失败: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '发送';
+    }
+}
+
+function addMessage(role, content, contexts = null) {
+    const chatArea = document.getElementById('chatArea');
+    
+    // 清除空状态
+    const empty = chatArea.querySelector('.kb-empty');
+    if (empty) empty.remove();
+    
+    const div = document.createElement('div');
+    div.className = `kb-message ${role}`;
+    div.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    
+    const avatar = role === 'user' ? '👤' : '🤖';
+    let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">${content}`;
+    
+    if (contexts && contexts.length > 0) {
+        html += '<div class="kb-context">📚 参考来源：' + 
+            contexts.map(c => `<span style="color:#007aff;">${c.title}</span>`).join('、') + 
+            '</div>';
+    }
+    
+    html += '</div>';
+    div.innerHTML = html;
+    
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    
+    return div.id;
+}
+
+function removeMessage(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+// 页面加载后自动加载文档
+loadDocs();
+</script>
+</body>
+</html>
