@@ -207,8 +207,8 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 
     # 统计
     total = len(issues)
-    # 已解决状态关键词：resolved/closed/done/verified/fixed/已解决/已关闭
-    resolved_keywords = ('resolved', 'closed', 'done', 'verified', 'fixed', '已解决', '已关闭', '已验证')
+    # 已解决状态关键词（与后端 excel_analyzers.py 保持一致）
+    resolved_keywords = ('resolved', 'fixed', 'closed', 'done', '已解决', '已关闭')
     unresolved_list = [i for i in issues if not any(k in (i.get('status') or '').lower() for k in resolved_keywords)]
     resolved_list = [i for i in issues if i not in unresolved_list]
     
