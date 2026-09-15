@@ -233,11 +233,19 @@ class KnowledgeBase:
                             "distance": results['distances'][0][i] if results['distances'] else 0
                         })
             
-            # 2. 关键词匹配补充：把问题拆成关键词，在所有文档中搜索
+            # 2. 关键词匹配补充：中文用2-gram（两个字符一组）匹配
             all_data = self.collection.get()
             if all_data and all_data['documents']:
-                # 简单分词：按空格和常见标点拆分
-                keywords = [w.strip() for w in question.replace('？', ' ').replace('?', ' ').replace('的', ' ').replace('怎么', ' ').split() if len(w.strip()) >= 2]
+                # 中文2-gram：把问题每两个字符切一组
+                question_clean = question.strip()
+                keywords = []
+                for i in range(len(question_clean) - 1):
+                    kw = question_clean[i:i+2]
+                    if kw.strip() and not kw.isspace():
+                        keywords.append(kw)
+                
+                # 去重
+                keywords = list(set(keywords))
                 
                 if keywords:
                     # 计算每个文档的关键词命中数
@@ -245,7 +253,7 @@ class KnowledgeBase:
                     for idx, doc in enumerate(all_data['documents']):
                         doc_lower = doc.lower()
                         hits = sum(1 for kw in keywords if kw.lower() in doc_lower)
-                        if hits >= 2:  # 至少命中2个关键词
+                        if hits >= 3:  # 至少命中3个2-gram
                             scored.append((hits, idx))
                     
                     # 按命中数排序，取前10个补充
