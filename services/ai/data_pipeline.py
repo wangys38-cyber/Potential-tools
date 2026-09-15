@@ -294,6 +294,62 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
         import logging
         logging.warning(f"计算周维度统计失败: {e}")
 
+    # 生成周维度图表（Bug增长vs解决 + 累计未解决趋势）
+    weekly_chart_image = None
+    cumulative_chart_image = None
+    if weekly_stats and len(weekly_stats) > 1:
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import base64
+            from io import BytesIO
+            
+            # 设置中文字体
+            plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans']
+            plt.rcParams['axes.unicode_minus'] = False
+            
+            weeks = [w['week'].replace('2026年第', '第').replace('周', '周') for w in weekly_stats]
+            new_counts = [w['new'] for w in weekly_stats]
+            resolved_counts = [w['resolved'] for w in weekly_stats]
+            cumulative_counts = [w['cumulative'] for w in weekly_stats]
+            
+            # 图1: Bug 增长 vs 解决曲线
+            fig, ax = plt.subplots(figsize=(10, 4), dpi=100)
+            ax.plot(range(len(weeks)), new_counts, 'o-', color='#ff3b30', linewidth=2, markersize=4, label='新增')
+            ax.plot(range(len(weeks)), resolved_counts, 's--', color='#34c759', linewidth=2, markersize=4, label='解决')
+            ax.fill_between(range(len(weeks)), new_counts, alpha=0.1, color='#ff3b30')
+            ax.set_xticks(range(len(weeks)))
+            ax.set_xticklabels(weeks, rotation=45, ha='right', fontsize=8)
+            ax.set_ylabel('Bug 数量', fontsize=10)
+            ax.set_title('Bug 增长 vs 解决曲线', fontsize=12, fontweight='bold')
+            ax.legend(fontsize=9)
+            ax.grid(True, alpha=0.3)
+            plt.tight_layout()
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight', facecolor='white')
+            buf.seek(0)
+            weekly_chart_image = 'data:image/png;base64,' + base64.b64encode(buf.read()).decode()
+            plt.close()
+            
+            # 图2: 累计未解决 Bug 趋势
+            fig, ax = plt.subplots(figsize=(10, 3.5), dpi=100)
+            ax.fill_between(range(len(weeks)), cumulative_counts, alpha=0.3, color='#007aff')
+            ax.plot(range(len(weeks)), cumulative_counts, 'o-', color='#007aff', linewidth=2, markersize=4)
+            ax.set_xticks(range(len(weeks)))
+            ax.set_xticklabels(weeks, rotation=45, ha='right', fontsize=8)
+            ax.set_ylabel('未解决数', fontsize=10)
+            ax.set_title('累计未解决 Bug 趋势', fontsize=12, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            plt.tight_layout()
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight', facecolor='white')
+            buf.seek(0)
+            cumulative_chart_image = 'data:image/png;base64,' + base64.b64encode(buf.read()).decode()
+            plt.close()
+        except Exception as e:
+            logging.warning(f"生成周维度图表失败: {e}")
+
     # 构建邮件主题
     today = datetime.now().strftime('%Y-%m-%d')
     subject = f'CR 分析日报 - {today}（共{total}个，未解决{len(unresolved_list)}个，解决率{resolution_rate}）'
@@ -410,6 +466,14 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
             body += f'<td style="padding: 8px 12px; text-align: center; color: #1d1d1f; font-weight: 600;">{w["cumulative"]}</td>'
             body += '</tr>'
         body += '</tbody></table>'
+
+    # 周维度图表（Bug增长vs解决 + 累计未解决趋势）
+    if weekly_chart_image:
+        body += '<h3 style="color: #1d1d1f; margin-top: 24px;">📊 Bug 增长 vs 解决曲线</h3>'
+        body += f'<img src="{weekly_chart_image}" style="max-width: 100%; border-radius: 8px; margin-bottom: 16px;">'
+    if cumulative_chart_image:
+        body += '<h3 style="color: #1d1d1f;">📈 累计未解决 Bug 趋势</h3>'
+        body += f'<img src="{cumulative_chart_image}" style="max-width: 100%; border-radius: 8px;">'
 
     # AI 智能分析内容
     full_analysis = ai_analysis.get('full_analysis') or {}
