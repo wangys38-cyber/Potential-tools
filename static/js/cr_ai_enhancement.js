@@ -221,10 +221,13 @@
                 html += '<div style="background:var(--ds-bg-secondary);padding:12px 16px;border-radius:8px;margin-bottom:8px;border-left:3px solid ' + severityColor + ';">';
                 html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
                 html += '<span style="background:' + severityColor + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">P' + (idx + 1) + '</span>';
+                if (cause.category) html += '<span style="background:#f0f0f0;color:#666;padding:2px 8px;border-radius:4px;font-size:11px;">' + cause.category + '</span>';
                 html += '<span style="font-weight:600;color:var(--ds-text);font-size:13px;">' + cause.cause + '</span>';
                 html += '</div>';
                 if (cause.affected_modules) html += '<div style="font-size:12px;color:var(--ds-text-tertiary);margin-bottom:4px;">影响模块: ' + cause.affected_modules.join(', ') + '</div>';
-                if (cause.evidence) html += '<div style="font-size:12px;color:var(--ds-text-secondary);">📊 ' + cause.evidence + '</div>';
+                if (cause.affected_developers) html += '<div style="font-size:12px;color:var(--ds-text-tertiary);margin-bottom:4px;">相关负责人: ' + cause.affected_developers.join(', ') + '</div>';
+                if (cause.evidence) html += '<div style="font-size:12px;color:var(--ds-text-secondary);margin-bottom:4px;">📊 ' + cause.evidence + '</div>';
+                if (cause.fix_suggestion) html += '<div style="font-size:12px;color:var(--ds-text);margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.08);border-radius:4px;">💡 修复建议: ' + cause.fix_suggestion + '</div>';
                 html += '</div>';
             });
             html += '</div>';
@@ -236,6 +239,24 @@
             html += '<h4 style="font-size:14px;font-weight:600;margin:0 0 10px;color:var(--ds-text);">🔍 关键发现</h4>';
             html += '<ul style="margin:0;padding-left:20px;font-size:13px;color:var(--ds-text-secondary);line-height:1.8;">';
             ai.key_findings.forEach(f => { html += '<li>' + f + '</li>'; });
+            html += '</ul></div>';
+        }
+
+        // 快速解决项
+        if (ai.quick_wins && ai.quick_wins.length > 0) {
+            html += '<div style="margin-bottom:20px;">';
+            html += '<h4 style="font-size:14px;font-weight:600;margin:0 0 10px;color:var(--ds-text);">⚡ 快速见效项</h4>';
+            html += '<ul style="margin:0;padding-left:20px;font-size:13px;color:var(--ds-text-secondary);line-height:1.8;">';
+            ai.quick_wins.forEach(q => { html += '<li>' + q + '</li>'; });
+            html += '</ul></div>';
+        }
+
+        // 长期改进措施
+        if (ai.long_term_actions && ai.long_term_actions.length > 0) {
+            html += '<div style="margin-bottom:20px;">';
+            html += '<h4 style="font-size:14px;font-weight:600;margin:0 0 10px;color:var(--ds-text);">📈 长期改进措施</h4>';
+            html += '<ul style="margin:0;padding-left:20px;font-size:13px;color:var(--ds-text-secondary);line-height:1.8;">';
+            ai.long_term_actions.forEach(l => { html += '<li>' + l + '</li>'; });
             html += '</ul></div>';
         }
 
