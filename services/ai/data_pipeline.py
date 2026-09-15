@@ -316,9 +316,14 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
             
             # 图1: Bug 增长 vs 解决曲线
             fig, ax = plt.subplots(figsize=(10, 4), dpi=100)
-            ax.plot(range(len(weeks)), new_counts, 'o-', color='#ff3b30', linewidth=2, markersize=4, label='新增')
-            ax.plot(range(len(weeks)), resolved_counts, 's--', color='#34c759', linewidth=2, markersize=4, label='解决')
+            ax.plot(range(len(weeks)), new_counts, 'o-', color='#ff3b30', linewidth=2, markersize=5, label='新增')
+            ax.plot(range(len(weeks)), resolved_counts, 's--', color='#34c759', linewidth=2, markersize=5, label='解决')
             ax.fill_between(range(len(weeks)), new_counts, alpha=0.1, color='#ff3b30')
+            # 数据点数值标签
+            for i, v in enumerate(new_counts):
+                ax.annotate(str(v), (i, v), textcoords="offset points", xytext=(0, 8), ha='center', fontsize=7, color='#ff3b30')
+            for i, v in enumerate(resolved_counts):
+                ax.annotate(str(v), (i, v), textcoords="offset points", xytext=(0, -12), ha='center', fontsize=7, color='#34c759')
             ax.set_xticks(range(len(weeks)))
             ax.set_xticklabels(weeks, rotation=45, ha='right', fontsize=8)
             ax.set_ylabel('Bug 数量', fontsize=10)
@@ -335,7 +340,10 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
             # 图2: 累计未解决 Bug 趋势
             fig, ax = plt.subplots(figsize=(10, 3.5), dpi=100)
             ax.fill_between(range(len(weeks)), cumulative_counts, alpha=0.3, color='#007aff')
-            ax.plot(range(len(weeks)), cumulative_counts, 'o-', color='#007aff', linewidth=2, markersize=4)
+            ax.plot(range(len(weeks)), cumulative_counts, 'o-', color='#007aff', linewidth=2, markersize=5)
+            # 数据点数值标签
+            for i, v in enumerate(cumulative_counts):
+                ax.annotate(str(v), (i, v), textcoords="offset points", xytext=(0, 8), ha='center', fontsize=7, color='#007aff')
             ax.set_xticks(range(len(weeks)))
             ax.set_xticklabels(weeks, rotation=45, ha='right', fontsize=8)
             ax.set_ylabel('未解决数', fontsize=10)
