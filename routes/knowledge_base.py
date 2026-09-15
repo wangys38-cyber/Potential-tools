@@ -83,6 +83,50 @@ def parse_csv_file(file_obj) -> str:
         raw = file_obj.read()
         return raw.decode('utf-8', errors='ignore')
 
+
+
+def parse_excel_file(file_obj) -> str:
+    """Excel 文件结构化解析"""
+    try:
+        import pandas as pd
+        xls = pd.ExcelFile(file_obj)
+        
+        result_parts = [
+            f"【Excel 表格数据】",
+            f"文件包含 {len(xls.sheet_names)} 个工作表: {', '.join(xls.sheet_names)}",
+            ""
+        ]
+        
+        for sheet_name in xls.sheet_names:
+            df = pd.read_excel(xls, sheet_name=sheet_name)
+            result_parts.append(f"=== 工作表: {sheet_name} ===")
+            result_parts.append(f"共 {len(df)} 行，{len(df.columns)} 列")
+            result_parts.append(f"字段: {', '.join(df.columns.tolist())}")
+            result_parts.append("")
+            
+            # 前 30 行数据
+            result_parts.append("前 30 行数据:")
+            for idx, row in df.head(30).iterrows():
+                row_str = " | ".join([f"{col}: {row[col]}" for col in df.columns if pd.notna(row[col])])
+                result_parts.append(f"  第{idx+1}行: {row_str}")
+            
+            # 分类字段统计
+            result_parts.append("")
+            result_parts.append("字段统计:")
+            for col in df.columns:
+                unique_count = df[col].nunique()
+                result_parts.append(f"  「{col}」: {len(df[col].dropna())} 条数据，{unique_count} 个不同值")
+                if unique_count <= 20:
+                    counts = df[col].value_counts()
+                    result_parts.append("    分布: " + "、".join([f"{k}={v}个" for k, v in counts.items()]))
+            
+            result_parts.append("")
+        
+        return "\n".join(result_parts)
+    except Exception as e:
+        logger.error(f"Excel 解析失败: {e}")
+        return f"Excel 解析失败: {str(e)}"
+
 kb_bp = Blueprint('knowledge_base', __name__, url_prefix='/knowledge-base')
 
 
@@ -207,6 +251,10 @@ def upload_file():
         elif ext == '.csv':
             # CSV 结构化解析
             content = parse_csv_file(file)
+            title = os.path.splitext(filename)[0]
+        elif ext in ['.xlsx', '.xls']:
+            # Excel 结构化解析
+            content = parse_excel_file(file)
             title = os.path.splitext(filename)[0]
         elif ext in ['.txt', '.md']:
             content = file.read().decode('utf-8', errors='ignore')
