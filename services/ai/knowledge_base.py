@@ -370,7 +370,16 @@ class KnowledgeBase:
                     normal.sort(key=lambda x: x["score"], reverse=True)
                     normal = normal[:max(0, top_k - len(boosted))]
 
-            return boosted + normal
+            # 5. 反馈权重调整：点踩多的chunk降权
+            all_results = boosted + normal
+            for c in all_results:
+                fb = c.get('metadata', {}).get('feedback_score', 0)
+                if fb and fb < 0:
+                    c['_adjusted_score'] = c.get('rerank_score', c.get('score', 0)) + fb * 0.1
+                else:
+                    c['_adjusted_score'] = c.get('rerank_score', c.get('score', 0))
+            all_results.sort(key=lambda x: x.get('_adjusted_score', 0), reverse=True)
+            return all_results[:top_k]
         except Exception as e:
             logger.error(f"查询失败: {e}")
             return []
@@ -387,10 +396,36 @@ class KnowledgeBase:
         rewritten = rewrite_query(question)
         logger.info(f"查询改写: '{question}' -> '{rewritten}'")
 
+        # 1.5 Multi-hop：复杂问题拆子问题
+        hop_keywords = ['对比', '比较', '和', '与', '关系', '对得上', '为什么', '原因', '分析', '跨']
+        needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 10
+        extra_contexts = []
+        if needs_multihop:
+            try:
+                split_prompt = f"把这个复杂问题拆成2-3个简单的检索子问题，每个一行，不要编号：\n{question}"
+                sub = get_llm_response(split_prompt, system="只输出子问题，每行一个，不要解释。", temperature=0.1)
+                sub_questions = [l.strip() for l in sub.strip().split('\n') if l.strip() and len(l.strip()) > 3]
+                for sq in sub_questions[:3]:
+                    extra = self.query(sq, top_k=4)
+                    extra_contexts.extend(extra)
+                logger.info(f"Multi-hop: {len(sub_questions)}个子问题，{len(extra_contexts)}个额外chunk")
+            except Exception as e:
+                logger.warning(f"Multi-hop失败: {e}")
+
         # 2. 检索（用改写后的查询）
         contexts = self.query(rewritten, top_k=8)
         if not contexts:
-            contexts = self.query(question, top_k=8)  # 回退原始查询
+            contexts = self.query(question, top_k=8)
+        # 合并Multi-hop结果
+        if extra_contexts:
+            seen = set()
+            for c in contexts:
+                seen.add(c.get('_did', c.get('content', '')[:50]))
+            for ec in extra_contexts:
+                key = ec.get('_did', ec.get('content', '')[:50])
+                if key not in seen:
+                    contexts.append(ec)
+                    seen.add(key)
 
         if not contexts:
             return {"answer": "知识库中没有找到相关信息，请先上传文档。", "contexts": []}
@@ -429,7 +464,7 @@ class KnowledgeBase:
 7. 回答简洁，重点突出
 8. 引用来源用[来源1][来源2]标注
 9. **如果问项目整体里程碑/Schedule日期，优先使用Device HW或Device SW的Plan行数据，不要用Strap/Companion APP/Moto Fit等子模块的日期代替主项目日期**
-8. 引用来源用[来源1][来源2]标注"""
+10. **答案自检**：如果某个结论在知识库中没有直接支撑，标注"(未验证)"；如果有支撑，正常回答"""
 
         answer = get_llm_response(prompt)
 

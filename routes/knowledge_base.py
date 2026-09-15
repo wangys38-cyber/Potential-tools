@@ -8,7 +8,7 @@ import logging
 import sqlite3
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template, g
-from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai
+from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai, get_llm_response
 
 logger = logging.getLogger(__name__)
 
@@ -621,18 +621,202 @@ def get_stats():
 
 @kb_bp.route('/api/feedback', methods=['POST'])
 def save_feedback():
-    """用户反馈：点赞/点踩，用于学习优化"""
+    """用户反馈：点赞/点踩，影响后续检索权重"""
     try:
         data = request.get_json()
         user_id = getattr(g, 'user_id', 1) or 1
         question = data.get('question', '')
         feedback = data.get('feedback', '')
+        
+        # 记录反馈
         conn = _get_db()
         c = conn.cursor()
         c.execute('INSERT INTO kb_feedback (user_id, question, feedback) VALUES (?,?,?)', (user_id, question, feedback))
         conn.commit()
         conn.close()
+        
+        # 学习：点踩时降低相关chunk的权重
+        if feedback == 'down' and question:
+            try:
+                kb = get_knowledge_base(user_id)
+                # 找到和这个问题相关的chunk
+                results = kb.query(question, top_k=5)
+                for r in results:
+                    did = r.get('_did', '')
+                    if did:
+                        meta = r.get('metadata', {})
+                        old_score = meta.get('feedback_score', 0)
+                        new_score = old_score - 1  # 每次点踩-1
+                        # 更新metadata
+                        kb.collection.update(
+                            ids=[did],
+                            metadatas=[{**meta, 'feedback_score': new_score}]
+                        )
+                logger.info(f"反馈学习: 问题'{question[:30]}...' 点踩，{len(results)}个chunk降权")
+            except Exception as e:
+                logger.warning(f"反馈学习失败: {e}")
+        
         return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/daily-brief', methods=['GET'])
+def daily_brief():
+    """每日自动分析：生成CR简报"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        # 检索CR最新数据
+        results = kb.query("CR问题总数 未解决 严重 性能 MTTF 本周新增", top_k=5)
+        if not results:
+            return jsonify({"status": "error", "error": "无CR数据"}), 400
+        
+        context = "\n".join([r['content'] for r in results[:3]])
+        prompt = f"""根据以下知识库数据，生成今日CR简报：
+1. 总体概览（总问题/未解决/解决率）
+2. 严重问题未解决数
+3. 性能/MTTF未解决数
+4. 需要关注的Top3问题
+5. 今日建议
+
+内容：
+{context}
+
+简洁专业，不要废话。"""
+        brief = get_llm_response(prompt, system="你是项目质量分析师。", temperature=0.3)
+        
+        # 存到对话历史
+        save_chat_history(user_id, "[系统] 每日自动分析", brief)
+        
+        return jsonify({"status": "success", "brief": brief})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/graph', methods=['GET'])
+def knowledge_graph():
+    """知识图谱：提取实体和关系"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        docs = kb.list_documents()
+        
+        # 收集文档标题和分类作为节点
+        nodes = []
+        edges = []
+        node_set = set()
+        
+        for d in docs:
+            cat = d.get('category', '其他')
+            # 分类节点
+            if cat not in node_set:
+                nodes.append({"id": cat, "type": "category", "label": cat})
+                node_set.add(cat)
+            # 文档节点
+            title = d.get('title', '')
+            if title not in node_set:
+                nodes.append({"id": title, "type": "document", "label": title})
+                node_set.add(title)
+            edges.append({"source": cat, "target": title})
+        
+        # 用LLM提取关键实体
+        if docs:
+            doc_list = "\n".join([f"- {d['title']} ({d['category']})" for d in docs])
+            prompt = f"""从以下文档列表中提取关键实体（人名、模块名、项目名），输出JSON：
+{{
+  "entities": [
+    {{"name": "实体名", "type": "人/模块/项目", "from": "来源文档"}}
+  ]
+}}
+
+文档：
+{doc_list}
+
+只输出JSON。"""
+            result = get_llm_response(prompt, system="只输出JSON。", temperature=0.1)
+            import json as j
+            try:
+                data = j.loads(result)
+                for e in data.get('entities', []):
+                    name = e.get('name', '')
+                    if name and name not in node_set:
+                        nodes.append({"id": name, "type": e.get('type', '其他'), "label": name})
+                        node_set.add(name)
+                        # 连到来源文档
+                        frm = e.get('from', '')
+                        if frm in node_set:
+                            edges.append({"source": frm, "target": name})
+            except:
+                pass
+        
+        return jsonify({"status": "success", "graph": {"nodes": nodes, "edges": edges}})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/cr-summary', methods=['GET'])
+def cr_summary():
+    """从知识库提取CR周报摘要（供邮件助手/趋势看板调用）"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        # 检索CR数据
+        results = kb.query("CR问题总数 未解决 严重 性能 MTTF", top_k=5)
+        if not results:
+            return jsonify({"status": "error", "error": "知识库中无CR数据"}), 400
+        
+        # 提取关键数字
+        context = "\n".join([r['content'] for r in results[:3]])
+        prompt = f"""从以下知识库内容提取CR周报关键数字，输出JSON：
+{{
+  "total": 总问题数,
+  "unresolved": 未解决数,
+  "resolved": 已解决数,
+  "rate": 解决率,
+  "critical_unresolved": 严重/致命未解决数,
+  "performance_unresolved": 性能未解决数,
+  "mttr_unresolved": MTTF未解决数,
+  "top_issues": ["Top3未解决问题简述"]
+}}
+
+内容：
+{context}
+
+只输出JSON。"""
+        result = get_llm_response(prompt, system="你是数据分析专家，只输出JSON。", temperature=0.1)
+        import json as j
+        try:
+            data = j.loads(result)
+        except:
+            data = {"raw": result}
+        return jsonify({"status": "success", "summary": data})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/feedback-report', methods=['GET'])
+def feedback_report():
+    """学习报告：分析用户反馈"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        conn = _get_db()
+        c = conn.cursor()
+        # 统计
+        c.execute('SELECT feedback, COUNT(*) as cnt FROM kb_feedback WHERE user_id=? GROUP BY feedback', (user_id,))
+        stats = {row[0]: row[1] for row in c.fetchall()}
+        # 最近点踩的问题
+        c.execute('SELECT question, created_at FROM kb_feedback WHERE user_id=? AND feedback=\'down\' ORDER BY id DESC LIMIT 10', (user_id,))
+        down_questions = [{'question': row[0], 'time': row[1]} for row in c.fetchall()]
+        conn.close()
+        return jsonify({
+            "status": "success",
+            "report": {
+                "total_up": stats.get('up', 0),
+                "total_down": stats.get('down', 0),
+                "down_questions": down_questions
+            }
+        })
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
