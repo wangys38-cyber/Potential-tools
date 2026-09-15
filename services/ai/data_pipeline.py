@@ -418,7 +418,7 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 '''
 
     # 模块问题分布（Top 10）
-    if module_stats:
+    if module_stats or issues:
         # 转换为列表并排序
         modules = []
         if isinstance(module_stats, dict):
@@ -428,10 +428,21 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
                         'name': name,
                         'total': stats.get('total', 0),
                         'unresolved': stats.get('unresolved', 0),
-                        'critical': stats.get('critical', 0),
                     })
         elif isinstance(module_stats, list):
             modules = module_stats
+        
+        # 从 issues 数据中计算每个模块的 blocker+critical 数量
+        if issues and modules:
+            from collections import defaultdict
+            mod_bc = defaultdict(int)
+            for issue in issues:
+                mod = issue.get('module', '')
+                sev = (issue.get('severity') or '').lower()
+                if mod and ('blocker' in sev or 'critical' in sev):
+                    mod_bc[mod] += 1
+            for m in modules:
+                m['critical'] = mod_bc.get(m['name'], 0)
         
         if modules:
             modules.sort(key=lambda x: x.get('total', 0), reverse=True)
