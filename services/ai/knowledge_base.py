@@ -208,8 +208,9 @@ class KnowledgeBase:
             return False
     
     def query(self, question: str, top_k: int = 5) -> List[Dict]:
-        """查询知识库"""
+        """查询知识库：embedding检索 + 关键词匹配 双通道"""
         try:
+            # 1. embedding 检索
             q_embedding = get_embedding_func()([question])
             results = self.collection.query(
                 query_embeddings=q_embedding,
@@ -217,13 +218,45 @@ class KnowledgeBase:
             )
             
             docs = []
+            seen_ids = set()
             if results and results['documents'] and results['documents'][0]:
                 for i, doc in enumerate(results['documents'][0]):
-                    docs.append({
-                        "content": doc,
-                        "metadata": results['metadatas'][0][i] if results['metadatas'] else {},
-                        "distance": results['distances'][0][i] if results['distances'] else 0
-                    })
+                    doc_id = results['ids'][0][i] if results['ids'] else f"emb_{i}"
+                    if doc_id not in seen_ids:
+                        seen_ids.add(doc_id)
+                        docs.append({
+                            "content": doc,
+                            "metadata": results['metadatas'][0][i] if results['metadatas'] else {},
+                            "distance": results['distances'][0][i] if results['distances'] else 0
+                        })
+            
+            # 2. 关键词匹配补充：把问题拆成关键词，在所有文档中搜索
+            all_data = self.collection.get()
+            if all_data and all_data['documents']:
+                # 简单分词：按空格和常见标点拆分
+                keywords = [w.strip() for w in question.replace('？', ' ').replace('?', ' ').replace('的', ' ').replace('怎么', ' ').split() if len(w.strip()) >= 2]
+                
+                if keywords:
+                    # 计算每个文档的关键词命中数
+                    scored = []
+                    for idx, doc in enumerate(all_data['documents']):
+                        doc_lower = doc.lower()
+                        hits = sum(1 for kw in keywords if kw.lower() in doc_lower)
+                        if hits >= 2:  # 至少命中2个关键词
+                            scored.append((hits, idx))
+                    
+                    # 按命中数排序，取前5个补充
+                    scored.sort(reverse=True)
+                    for hits, idx in scored[:5]:
+                        doc_id = all_data['ids'][idx]
+                        if doc_id not in seen_ids:
+                            seen_ids.add(doc_id)
+                            docs.append({
+                                "content": all_data['documents'][idx],
+                                "metadata": all_data['metadatas'][idx] if all_data['metadatas'] else {},
+                                "distance": 0  # 关键词命中，距离设为0
+                            })
+            
             return docs
         except Exception as e:
             logger.error(f"查询失败: {e}")
