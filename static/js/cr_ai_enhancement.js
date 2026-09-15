@@ -499,4 +499,30 @@
         }
     });
 
+    // ==================== 从历史记录恢复 ====================
+    window.restoreAIAnalysisFromHistory = function(data) {
+        if (!data) return;
+        window.crAIAnalysisResult = data;
+        
+        // 恢复根因分析
+        if (data.root_cause) {
+            renderEnhancedAnalysis(data.root_cause);
+        }
+        
+        // 恢复趋势预测
+        if (data.prediction && data.prediction.status === 'success') {
+            renderPrediction(data.prediction);
+        }
+        
+        // 恢复改进计划
+        if (data.improvement && data.improvement.plan) {
+            renderImprovementPlan(data.improvement.plan);
+        }
+        
+        // 恢复完整分析摘要
+        if (data.full_analysis) {
+            renderFullAnalysis(data.full_analysis);
+        }
+    };
+
 })();
