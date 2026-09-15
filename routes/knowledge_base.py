@@ -2,11 +2,81 @@
 知识库路由
 """
 import os
+import csv
+import io
 import logging
 from flask import Blueprint, request, jsonify, render_template, g
 from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai
 
 logger = logging.getLogger(__name__)
+
+
+def parse_csv_file(file_obj) -> str:
+    """CSV 文件结构化解析，转为易理解的文本"""
+    try:
+        # 读取内容
+        raw = file_obj.read()
+        # 尝试多种编码
+        for encoding in ['utf-8', 'gbk', 'gb2312', 'latin-1']:
+            try:
+                text = raw.decode(encoding)
+                break
+            except:
+                continue
+        
+        # 用 csv 模块解析
+        reader = csv.reader(io.StringIO(text))
+        rows = list(reader)
+        
+        if len(rows) < 2:
+            return f"CSV 文件内容:\n{text[:2000]}"
+        
+        headers = rows[0]
+        data_rows = rows[1:]
+        
+        # 生成结构化描述
+        result_parts = [
+            f"【CSV 表格数据】",
+            f"文件共 {len(data_rows)} 行数据，{len(headers)} 个字段",
+            f"字段列表: {', '.join(headers)}",
+            f"",
+            f"=== 数据概览 ==="
+        ]
+        
+        # 如果行数不多，逐行描述
+        if len(data_rows) <= 50:
+            for i, row in enumerate(data_rows[:50]):
+                row_dict = {}
+                for j, h in enumerate(headers):
+                    if j < len(row):
+                        row_dict[h] = row[j]
+                # 转成易读格式
+                line = " | ".join([f"{k}: {v}" for k, v in row_dict.items() if v.strip()])
+                result_parts.append(f"第{i+1}行: {line}")
+        else:
+            # 行数多，统计关键字段分布
+            result_parts.append(f"（数据较多，以下为前 20 行 + 字段统计）")
+            for i, row in enumerate(data_rows[:20]):
+                row_dict = {}
+                for j, h in enumerate(headers):
+                    if j < len(row):
+                        row_dict[h] = row[j]
+                line = " | ".join([f"{k}: {v}" for k, v in row_dict.items() if v.strip()])
+                result_parts.append(f"第{i+1}行: {line}")
+            
+            # 统计每个字段的唯一值数量
+            result_parts.append(f"\n=== 字段统计 ===")
+            for j, h in enumerate(headers):
+                values = [row[j] for row in data_rows if j < len(row) and row[j].strip()]
+                unique = len(set(values))
+                result_parts.append(f"字段「{h}」: 共 {len(values)} 条有效数据，{unique} 个不同值")
+        
+        return "\n".join(result_parts)
+    except Exception as e:
+        logger.error(f"CSV 解析失败: {e}")
+        # 降级为纯文本
+        raw = file_obj.read()
+        return raw.decode('utf-8', errors='ignore')
 
 kb_bp = Blueprint('knowledge_base', __name__, url_prefix='/knowledge-base')
 
@@ -129,8 +199,13 @@ def upload_file():
             
             content = f"【图片识别结果】\n文件: {filename}\n\n{recognized_content}"
             title = os.path.splitext(filename)[0]
-        elif ext in ['.txt', '.md', '.csv']:
+        elif ext == '.csv':
+            # CSV 结构化解析
+            content = parse_csv_file(file)
+            title = os.path.splitext(filename)[0]
+        elif ext in ['.txt', '.md']:
             content = file.read().decode('utf-8', errors='ignore')
+            title = os.path.splitext(filename)[0]
         elif ext == '.pdf':
             try:
                 import PyPDF2
