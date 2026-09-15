@@ -257,6 +257,13 @@
 
         <!-- 右侧：对话区 -->
         <div class="kb-main">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:var(--ds-bg-card,#fff);border-radius:12px 12px 0 0;border:1px solid var(--ds-border,#e5e5ea);border-bottom:none;">
+                <span style="font-size:14px;font-weight:600;color:var(--ds-text,#1d1d1f);">💬 智能问答</span>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="clearChat()" style="font-size:12px;padding:4px 10px;border:1px solid #e5e5ea;border-radius:6px;background:#f8f8f8;cursor:pointer;">🗑️ 清空对话</button>
+                    <button onclick="clearCache()" style="font-size:12px;padding:4px 10px;border:1px solid #e5e5ea;border-radius:6px;background:#f8f8f8;cursor:pointer;">🔄 刷新缓存</button>
+                </div>
+            </div>
             <div class="kb-chat-area" id="chatArea">
                 <div class="kb-empty">
                     <div class="kb-empty-icon">💬</div>
@@ -292,12 +299,26 @@ function renderDocs(docs) {
         el.innerHTML = '<div class="kb-empty" style="padding:30px;"><div class="kb-empty-icon">📄</div><div>暂无文档</div></div>';
         return;
     }
-    el.innerHTML = docs.map(d => `
+    el.innerHTML = docs.map(d => {
+        const catColors = {
+            'CR数据': '#ff3b30',
+            'SOP操作指南': '#34c759',
+            '项目计划': '#007aff',
+            '技术文档': '#af52de',
+            '图片资料': '#ff9500',
+            '测试文档': '#5ac8fa',
+            '其他': '#8e8e93'
+        };
+        const color = catColors[d.category] || '#8e8e93';
+        return `
         <div class="kb-doc-item">
             <div class="kb-doc-title">📄 ${d.title}</div>
-            <div class="kb-doc-meta">${d.chunk_count} 个片段 · <span style="color:#ff3b30;cursor:pointer;" onclick="deleteDoc('${d.doc_id}')">删除</span></div>
-        </div>
-    `).join('');
+            <div class="kb-doc-meta">
+                <span style="color:${color};font-size:11px;background:${color}15;padding:1px 6px;border-radius:4px;margin-right:6px;">${d.category}</span>
+                ${d.chunk_count} 个片段 · <span style="color:#ff3b30;cursor:pointer;" onclick="deleteDoc('${d.doc_id}')">删除</span>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 // 删除文档
@@ -308,6 +329,32 @@ async function deleteDoc(docId) {
         loadDocs();
     } catch (e) {
         alert('删除失败');
+    }
+}
+
+// 清空对话
+async function clearChat() {
+    if (!confirm('清空对话历史？')) return;
+    try {
+        await fetch('/knowledge-base/api/clear-history', { method: 'POST' });
+        document.getElementById('chatArea').innerHTML = `
+            <div class="kb-empty">
+                <div class="kb-empty-icon">💬</div>
+                <div style="font-size:16px;font-weight:600;margin-bottom:8px;">智能知识库问答</div>
+                <div style="font-size:13px;">上传文档后，在这里提问，AI 会基于知识库内容回答</div>
+            </div>`;
+    } catch (e) {
+        alert('清空失败');
+    }
+}
+
+// 清空缓存
+async function clearCache() {
+    try {
+        await fetch('/knowledge-base/api/clear-cache', { method: 'POST' });
+        alert('缓存已清空');
+    } catch (e) {
+        alert('清空失败');
     }
 }
 

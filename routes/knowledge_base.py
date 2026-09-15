@@ -455,3 +455,20 @@ def sync_cr_to_kb():
     except Exception as e:
         logger.error(f"CR 同步失败: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+
+@kb_bp.route('/api/clear-history', methods=['POST'])
+def clear_history():
+    """清空对话历史"""
+    kb = get_knowledge_base(g.user_id if hasattr(g, 'user_id') else 1)
+    kb.clear_history()
+    return jsonify({"status": "success", "message": "对话历史已清空"})
+
+
+@kb_bp.route('/api/clear-cache', methods=['POST'])
+def clear_cache():
+    """清空回答缓存"""
+    kb = get_knowledge_base(g.user_id if hasattr(g, 'user_id') else 1)
+    kb.clear_cache()
+    return jsonify({"status": "success", "message": "缓存已清空"})

@@ -1,9 +1,15 @@
 """
-智能知识库服务 - 基于 LightRAG + ChromaDB
-支持文档上传、向量存储、智能问答
+智能知识库服务 v2.0 - 优化版
+- 中文Embedding模型 (bge-small-zh-v1.5)
+- Rerank重排序
+- 对话历史
+- 回答缓存
+- 文档自动分类
 """
 import os
 import logging
+import hashlib
+import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -13,52 +19,98 @@ logger = logging.getLogger(__name__)
 KB_DIR = os.path.join(os.environ.get('DB_DIR', r'D:\app\data'), 'knowledge_base')
 os.makedirs(KB_DIR, exist_ok=True)
 
-# LightRAG 实例缓存
-_rag_instance = None
-_rag_embedding_func = None
+# 全局缓存
+_embedding_model = None
+_rerank_model = None
+_answer_cache: Dict[str, Dict] = {}  # question_hash -> {answer, contexts, timestamp}
+_chat_history: Dict[int, List[Dict]] = {}  # user_id -> [{question, answer}]
+
+CACHE_TTL = 24 * 3600  # 24小时过期
+MAX_HISTORY_TURNS = 5  # 最近5轮对话
 
 
 def get_embedding_func():
-    """获取 embedding 函数（使用 AI 服务的 embedding）"""
-    global _rag_embedding_func
-    if _rag_embedding_func is not None:
-        return _rag_embedding_func
-    
-    # 使用 sentence-transformers 的轻量 embedding
+    """获取中文 embedding 模型"""
+    global _embedding_model
+    if _embedding_model is not None:
+        return _embedding_model
+
     try:
         from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        _rag_embedding_func = lambda texts: model.encode(texts).tolist()
-        return _rag_embedding_func
-    except ImportError:
-        logger.warning("sentence-transformers 未安装，使用简单 hash embedding")
-        # 降级方案：简单 hash 向量
-        def simple_embed(texts):
-            import hashlib
-            vectors = []
-            for text in texts:
-                v = [0.0] * 384
-                for i, ch in enumerate(text):
-                    h = int(hashlib.md5(ch.encode()).hexdigest(), 16)
-                    v[h % 384] += 1.0
-                # 归一化
-                norm = sum(x*x for x in v) ** 0.5 or 1.0
-                vectors.append([x/norm for x in v])
-            return vectors
-        import hashlib
-        _rag_embedding_func = simple_embed
-        return _rag_embedding_func
+        # 中文优化模型，512维，支持中英文混合
+        model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+        logger.info("加载中文Embedding模型: bge-small-zh-v1.5")
+        _embedding_model = lambda texts: model.encode(texts, normalize_embeddings=True).tolist()
+        return _embedding_model
+    except Exception as e:
+        logger.warning(f"bge-small-zh加载失败，回退到all-MiniLM-L6-v2: {e}")
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer('all-MiniLM-L6-v2')
+            _embedding_model = lambda texts: model.encode(texts).tolist()
+            return _embedding_model
+        except Exception as e2:
+            logger.warning(f"sentence-transformers加载失败: {e2}")
+            def simple_embed(texts):
+                vectors = []
+                for text in texts:
+                    v = [0.0] * 512
+                    for i, ch in enumerate(text):
+                        h = int(hashlib.md5(ch.encode()).hexdigest(), 16)
+                        v[h % 512] += 1.0
+                    norm = sum(x*x for x in v) ** 0.5 or 1.0
+                    vectors.append([x/norm for x in v])
+                return vectors
+            _embedding_model = simple_embed
+            return _embedding_model
+
+
+def get_rerank_model():
+    """获取Rerank模型"""
+    global _rerank_model
+    if _rerank_model is not None:
+        return _rerank_model
+
+    try:
+        from sentence_transformers import CrossEncoder
+        # 轻量级cross-encoder，中文优化
+        model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        logger.info("加载Rerank模型: ms-marco-MiniLM-L-6-v2")
+        _rerank_model = model
+        return _rerank_model
+    except Exception as e:
+        logger.warning(f"Rerank模型加载失败: {e}，跳过重排序")
+        return None
+
+
+def classify_document(title: str, content: str) -> str:
+    """自动分类文档类型"""
+    text = (title + " " + content[:500]).lower()
+
+    if any(kw in text for kw in ['cr分析', 'cr问题', 'bug', '问题总数', '解决率']):
+        return 'CR数据'
+    if any(kw in text for kw in ['sop', '操作步骤', '升级流程', '日志拉取']):
+        return 'SOP操作指南'
+    if any(kw in text for kw in ['schedule', '计划', '排期', 'gantt', 'cp1', 'cp2', 'dvt', 'evt', 'tr', 'evb']):
+        return '项目计划'
+    if any(kw in text for kw in ['hld', '设计文档', '架构', '接口定义', 'harmony-fr']):
+        return '技术文档'
+    if any(kw in text for kw in ['截图', 'bug截图', 'error']):
+        return '图片资料'
+    if any(kw in text for kw in ['测试报告', '测试用例']):
+        return '测试文档'
+    return '其他'
 
 
 def get_llm_response(prompt: str) -> str:
     """调用 AI 服务生成回答"""
     from services.ai.factory import get_ai_service
     from services.ai.base import ChatMessage
-    
+
     ai = get_ai_service()
     if not ai:
         return "AI 服务未配置，请先在系统设置中配置 AI。"
-    
+
     try:
         messages = [
             ChatMessage(role="system", content="你是一个专业的研发知识库助手，请根据提供的上下文回答问题。如果上下文中没有相关信息，请明确说明。"),
@@ -78,7 +130,7 @@ def get_ai_config():
         os.environ.setdefault('DB_DIR', r'D:\app\data')
         from db.base import engine
         from sqlalchemy import text
-        
+
         with engine.connect() as conn:
             row = conn.execute(text(
                 "SELECT api_key, base_url, model FROM ai_configs WHERE is_active=1 LIMIT 1"
@@ -98,21 +150,19 @@ def analyze_image_with_ai(image_bytes: bytes, image_format: str = 'png') -> str:
     """使用多模态 AI 分析图片内容"""
     import base64
     import requests
-    
+
     config = get_ai_config()
     if not config:
         return "AI 服务未配置，无法识别图片。"
-    
-    # 转为 base64
+
     b64_image = base64.b64encode(image_bytes).decode('utf-8')
-    
-    # 调用 GLM-4V 多模态接口
+
     url = config['base_url'].rstrip('/') + '/chat/completions'
     headers = {
         'Authorization': f'Bearer {config["api_key"]}',
         'Content-Type': 'application/json'
     }
-    
+
     payload = {
         'model': 'glm-4v-plus',
         'messages': [
@@ -135,7 +185,7 @@ def analyze_image_with_ai(image_bytes: bytes, image_format: str = 'png') -> str:
         'temperature': 0.3,
         'max_tokens': 2000
     }
-    
+
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=60)
         resp.raise_for_status()
@@ -147,153 +197,195 @@ def analyze_image_with_ai(image_bytes: bytes, image_format: str = 'png') -> str:
 
 
 class KnowledgeBase:
-    """智能知识库 - 轻量实现（基于 ChromaDB）"""
-    
+    """智能知识库 v2.0 - 优化版"""
+
     def __init__(self, user_id: int = 1):
         self.user_id = user_id
         self.db_path = os.path.join(KB_DIR, f'user_{user_id}')
         os.makedirs(self.db_path, exist_ok=True)
         self._client = None
         self._collection = None
-    
+
     @property
     def client(self):
         if self._client is None:
             import chromadb
             self._client = chromadb.PersistentClient(path=self.db_path)
         return self._client
-    
+
     @property
     def collection(self):
         if self._collection is None:
             self._collection = self.client.get_or_create_collection(
-                name="knowledge_docs",
+                name="knowledge_docs_v2",
                 metadata={"hnsw:space": "cosine"}
             )
         return self._collection
-    
+
     def add_document(self, doc_id: str, title: str, content: str, metadata: Dict = None) -> bool:
         """添加文档到知识库"""
         try:
-            # 分块（增大到2000，确保完整的甘特图内容在一个块里）
-            chunks = self._split_text(content, chunk_size=2000, overlap=200)
+            # 分块：800字符 + 150重叠，更精准
+            chunks = self._split_text(content, chunk_size=800, overlap=150)
             if not chunks:
                 return False
-            
-            # 每个 chunk 开头都加上文档标题，确保检索时能命中
-            chunks = [f"【文档：{title}】\n{c}" for c in chunks]
-            
+
+            # 自动分类
+            doc_category = classify_document(title, content)
+
+            # 每个 chunk 开头加上文档标题和分类
+            chunks = [f"【文档：{title}】【分类：{doc_category}】\n{c}" for c in chunks]
+
             # 生成 embedding
             embeddings = get_embedding_func()(chunks)
-            
+
             # 元数据
             metadatas = []
             for i in range(len(chunks)):
                 m = {
                     "doc_id": doc_id,
                     "title": title,
+                    "category": doc_category,
                     "chunk_index": i,
                     **(metadata or {})
                 }
                 metadatas.append(m)
-            
+
             ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
-            
+
             self.collection.upsert(
                 ids=ids,
                 documents=chunks,
                 embeddings=embeddings,
                 metadatas=metadatas
             )
+            logger.info(f"文档已添加: {title} ({doc_category}), {len(chunks)} chunks")
             return True
         except Exception as e:
             logger.error(f"添加文档失败: {e}")
             return False
-    
-    def query(self, question: str, top_k: int = 5) -> List[Dict]:
-        """查询知识库：embedding检索 + 关键词匹配 双通道"""
+
+    def query(self, question: str, top_k: int = 8) -> List[Dict]:
+        """查询知识库：embedding检索 + 2-gram关键词 + Rerank重排序"""
         try:
             # 1. embedding 检索
             q_embedding = get_embedding_func()([question])
             results = self.collection.query(
                 query_embeddings=q_embedding,
-                n_results=top_k
+                n_results=20  # 多检索一些，后面rerank
             )
-            
-            docs = []
+
+            candidates = []
             seen_ids = set()
             if results and results['documents'] and results['documents'][0]:
                 for i, doc in enumerate(results['documents'][0]):
                     doc_id = results['ids'][0][i] if results['ids'] else f"emb_{i}"
                     if doc_id not in seen_ids:
                         seen_ids.add(doc_id)
-                        docs.append({
+                        candidates.append({
                             "content": doc,
                             "metadata": results['metadatas'][0][i] if results['metadatas'] else {},
                             "distance": results['distances'][0][i] if results['distances'] else 0
                         })
-            
-            # 2. 关键词匹配补充：中文用2-gram（两个字符一组）匹配
+
+            # 2. 关键词匹配补充：中文2-gram
             all_data = self.collection.get()
             if all_data and all_data['documents']:
-                # 中文2-gram：把问题每两个字符切一组
                 question_clean = question.strip()
                 keywords = []
                 for i in range(len(question_clean) - 1):
                     kw = question_clean[i:i+2]
                     if kw.strip() and not kw.isspace():
                         keywords.append(kw)
-                
-                # 去重
+
                 keywords = list(set(keywords))
-                
+
                 if keywords:
-                    # 计算每个文档的关键词命中数
                     scored = []
                     for idx, doc in enumerate(all_data['documents']):
                         doc_lower = doc.lower()
                         hits = sum(1 for kw in keywords if kw.lower() in doc_lower)
-                        if hits >= 3:  # 至少命中3个2-gram
+                        if hits >= 3:
                             scored.append((hits, idx))
-                    
-                    # 按命中数排序，取前10个补充
+
                     scored.sort(reverse=True)
                     for hits, idx in scored[:10]:
                         doc_id = all_data['ids'][idx]
                         if doc_id not in seen_ids:
                             seen_ids.add(doc_id)
-                            docs.append({
+                            candidates.append({
                                 "content": all_data['documents'][idx],
                                 "metadata": all_data['metadatas'][idx] if all_data['metadatas'] else {},
-                                "distance": 0  # 关键词命中，距离设为0
+                                "distance": 0.5  # 关键词命中，给个中等分
                             })
-            
-            return docs
+
+            # 3. Rerank重排序
+            if len(candidates) > top_k:
+                reranker = get_rerank_model()
+                if reranker:
+                    pairs = [(question, c["content"]) for c in candidates]
+                    scores = reranker.predict(pairs)
+                    for i, c in enumerate(candidates):
+                        c["rerank_score"] = float(scores[i])
+                    candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
+                    candidates = candidates[:top_k]
+                    logger.info(f"Rerank完成: {len(candidates)} 个片段被选中")
+                else:
+                    # 没有rerank模型，按原始distance排序
+                    candidates.sort(key=lambda x: x["distance"])
+                    candidates = candidates[:top_k]
+
+            return candidates
         except Exception as e:
             logger.error(f"查询失败: {e}")
             return []
-    
-    def ask(self, question: str) -> Dict[str, Any]:
-        """智能问答"""
-        # 1. 检索相关上下文（增加到15个，确保CR数据完整）
-        contexts = self.query(question, top_k=15)
+
+    def ask(self, question: str, use_cache: bool = True) -> Dict[str, Any]:
+        """智能问答（带缓存和对话历史）"""
+        global _answer_cache, _chat_history
+
+        # 0. 检查缓存
+        if use_cache:
+            cache_key = hashlib.md5(question.encode()).hexdigest()
+            if cache_key in _answer_cache:
+                cached = _answer_cache[cache_key]
+                if time.time() - cached['timestamp'] < CACHE_TTL:
+                    logger.info("命中缓存，直接返回")
+                    return {
+                        "answer": cached['answer'],
+                        "contexts": cached['contexts'],
+                        "cached": True
+                    }
+
+        # 1. 检索相关上下文
+        contexts = self.query(question, top_k=8)
         if not contexts:
             return {
                 "answer": "知识库中没有找到相关信息，请先上传文档。",
                 "contexts": []
             }
-        
-        # 2. 构建 prompt
+
+        # 2. 构建对话历史
+        history_context = ""
+        if self.user_id in _chat_history and _chat_history[self.user_id]:
+            recent = _chat_history[self.user_id][-MAX_HISTORY_TURNS:]
+            history_lines = []
+            for h in recent:
+                history_lines.append(f"用户之前问过：{h['question']}")
+                history_lines.append(f"之前回答：{h['answer'][:200]}...")
+            history_context = "\n## 对话历史（最近几轮）：\n" + "\n".join(history_lines) + "\n"
+
+        # 3. 构建 prompt
         context_text = "\n\n---\n\n".join([
-            f"[来源: {c['metadata'].get('title', '未知')}]\n{c['content']}"
-            for c in contexts
+            f"[来源{i+1}: {c['metadata'].get('title', '未知')}]\n{c['content']}"
+            for i, c in enumerate(contexts)
         ])
-        
+
         prompt = f"""请根据以下知识库内容回答用户的问题。
 
 ## 知识库内容：
 {context_text}
-
+{history_context}
 ## 用户问题：
 {question}
 
@@ -306,12 +398,20 @@ class KnowledgeBase:
 6. 如果知识库中确实没有相关信息，请明确说明
 7. 回答简洁明了，重点突出
 8. 如果是表格/CSV数据，逐行统计后给出数字
-9. 引用相关文档标题"""
-        
-        # 3. 调用 AI
+9. 引用相关文档标题，用[来源1][来源2]标注"""
+
+        # 4. 调用 AI
         answer = get_llm_response(prompt)
-        
-        # 4. 按标题去重 context，避免重复显示同一个文档
+
+        # 5. 保存对话历史
+        if self.user_id not in _chat_history:
+            _chat_history[self.user_id] = []
+        _chat_history[self.user_id].append({"question": question, "answer": answer})
+        # 只保留最近N轮
+        if len(_chat_history[self.user_id]) > MAX_HISTORY_TURNS * 2:
+            _chat_history[self.user_id] = _chat_history[self.user_id][-MAX_HISTORY_TURNS*2:]
+
+        # 6. 按标题去重 context，加上分类
         seen_titles = set()
         unique_contexts = []
         for c in contexts:
@@ -320,16 +420,25 @@ class KnowledgeBase:
                 seen_titles.add(title)
                 unique_contexts.append({
                     "title": title,
+                    "category": c['metadata'].get('category', '其他'),
                     "content": c['content'][:200]
                 })
-        
+
+        # 7. 存入缓存
+        _answer_cache[cache_key] = {
+            "answer": answer,
+            "contexts": unique_contexts,
+            "timestamp": time.time()
+        }
+
         return {
             "answer": answer,
-            "contexts": unique_contexts
+            "contexts": unique_contexts,
+            "cached": False
         }
-    
+
     def list_documents(self) -> List[Dict]:
-        """列出所有文档"""
+        """列出所有文档（带分类）"""
         try:
             data = self.collection.get()
             docs_map = {}
@@ -340,6 +449,7 @@ class KnowledgeBase:
                         docs_map[doc_id] = {
                             "doc_id": doc_id,
                             "title": meta.get('title', '未命名'),
+                            "category": meta.get('category', '其他'),
                             "chunk_count": 0
                         }
                     if doc_id:
@@ -348,7 +458,7 @@ class KnowledgeBase:
         except Exception as e:
             logger.error(f"列出文档失败: {e}")
             return []
-    
+
     def delete_document(self, doc_id: str) -> bool:
         """删除文档"""
         try:
@@ -359,19 +469,30 @@ class KnowledgeBase:
         except Exception as e:
             logger.error(f"删除文档失败: {e}")
             return False
-    
-    def _split_text(self, text: str, chunk_size: int = 800, overlap: int = 100) -> List[str]:
-        """文本分块"""
+
+    def clear_history(self):
+        """清空对话历史"""
+        global _chat_history
+        if self.user_id in _chat_history:
+            del _chat_history[self.user_id]
+
+    def clear_cache(self):
+        """清空回答缓存"""
+        global _answer_cache
+        _answer_cache.clear()
+
+    def _split_text(self, text: str, chunk_size: int = 800, overlap: int = 150) -> List[str]:
+        """文本分块：按段落边界切分"""
         if len(text) <= chunk_size:
             return [text] if text.strip() else []
-        
+
         chunks = []
         start = 0
         while start < len(text):
             end = start + chunk_size
             if end < len(text):
-                # 尝试在句号/换行处分割
-                for sep in ['。', '！', '？', '\n\n', '\n', '.', '!', '?']:
+                # 尝试在段落/句号处分割
+                for sep in ['\n\n', '。', '！', '？', '\n', '.', '!', '?']:
                     last_sep = text.rfind(sep, start, end)
                     if last_sep > start + chunk_size // 2:
                         end = last_sep + len(sep)
