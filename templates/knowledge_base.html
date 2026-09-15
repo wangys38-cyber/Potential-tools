@@ -404,6 +404,8 @@
             <div class="kb-chat-header">
                 <span class="kb-chat-title">问答</span>
                 <div class="kb-header-actions">
+                    <button class="kb-action-btn" onclick="loadHistory()">历史问答</button>
+                    <button class="kb-action-btn" onclick="exportChat()">导出</button>
                     <button class="kb-action-btn" onclick="clearChat()">清空对话</button>
                     <button class="kb-action-btn" onclick="clearCache()">清缓存</button>
                 </div>
@@ -579,6 +581,28 @@ function removeMessage(id) {
 }
 
 let searchTimer = null;
+
+async function loadHistory() {
+    try {
+        const res = await fetch('/knowledge-base/api/chat-history');
+        const data = await res.json();
+        if (data.status === 'success' && data.history.length > 0) {
+            const area = document.getElementById('chatArea');
+            area.innerHTML = '';
+            for (const h of data.history.reverse()) {
+                addMessage('user', h.question);
+                addMessage('ai', h.answer);
+            }
+        } else {
+            alert('暂无历史记录');
+        }
+    } catch (e) { alert('加载失败'); }
+}
+
+function exportChat() {
+    window.open('/knowledge-base/api/export', '_blank');
+}
+
 function handleSearch(val) {
     clearTimeout(searchTimer);
     if (!val.trim()) {

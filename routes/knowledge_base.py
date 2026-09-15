@@ -5,10 +5,48 @@ import os
 import csv
 import io
 import logging
+import sqlite3
+from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template, g
 from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai
 
 logger = logging.getLogger(__name__)
+
+DB_PATH = r'D:\app\data\users.db'
+
+def _get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def save_doc_meta(doc_id, title, category, tags='', file_hash='', chunk_count=0, user_id=1):
+    conn = _get_db()
+    c = conn.cursor()
+    c.execute('SELECT version FROM knowledge_docs WHERE doc_id=?', (doc_id,))
+    row = c.fetchone()
+    if row:
+        c.execute('UPDATE knowledge_docs SET title=?, category=?, tags=?, file_hash=?, chunk_count=?, updated_at=? WHERE doc_id=?',
+                  (title, category, tags, file_hash, chunk_count, datetime.now(), doc_id))
+    else:
+        c.execute('INSERT INTO knowledge_docs (doc_id, title, category, tags, file_hash, chunk_count, user_id) VALUES (?,?,?,?,?,?,?)',
+                  (doc_id, title, category, tags, file_hash, chunk_count, user_id))
+    conn.commit()
+    conn.close()
+
+def save_chat_history(user_id, question, answer):
+    conn = _get_db()
+    c = conn.cursor()
+    c.execute('INSERT INTO kb_chat_history (user_id, question, answer) VALUES (?,?,?)', (user_id, question, answer))
+    conn.commit()
+    conn.close()
+
+def _get_chat_history_from_db(user_id, limit=20):
+    conn = _get_db()
+    c = conn.cursor()
+    c.execute('SELECT question, answer, created_at FROM kb_chat_history WHERE user_id=? ORDER BY id DESC LIMIT ?', (user_id, limit))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
 
 
 def parse_csv_file(file_obj) -> str:
@@ -204,11 +242,25 @@ def index():
 
 @kb_bp.route('/api/documents', methods=['GET'])
 def list_documents():
-    """列出所有文档"""
+    """列出所有文档（含版本/标签）"""
     try:
         user_id = getattr(g, 'user_id', 1) or 1
         kb = get_knowledge_base(user_id)
         docs = kb.list_documents()
+        # 合并数据库元数据
+        conn = _get_db()
+        c = conn.cursor()
+        for d in docs:
+            c.execute('SELECT version, tags, updated_at FROM knowledge_docs WHERE doc_id=?', (d['doc_id'],))
+            row = c.fetchone()
+            if row:
+                d['version'] = row['version']
+                d['tags'] = row['tags'] or ''
+                d['updated_at'] = row['updated_at']
+            else:
+                d['version'] = 1
+                d['tags'] = ''
+        conn.close()
         return jsonify({"status": "success", "documents": docs})
     except Exception as e:
         logger.error(f"列出文档失败: {e}")
@@ -449,6 +501,32 @@ def sync_cr_to_kb():
         logger.error(f"CR 同步失败: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
 
+
+
+@kb_bp.route('/api/chat-history', methods=['GET'])
+def get_chat_history_api():
+    """获取历史问答记录"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        history = _get_chat_history_from_db(user_id, limit=50)
+        return jsonify({"status": "success", "history": history})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/export', methods=['GET'])
+def export_chat():
+    """导出对话历史为Markdown"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        history = _get_chat_history_from_db(user_id, limit=100)
+        md = "# 知识库问答记录\n\n"
+        for h in reversed(history):
+            md += f"## Q: {h['question']}\n\n{h['answer']}\n\n---\n\n"
+        return md, 200, {'Content-Type': 'text/markdown; charset=utf-8',
+                          'Content-Disposition': 'attachment; filename=chat_history.md'}
+    except Exception as e:
+        return str(e), 500
 
 
 @kb_bp.route('/api/clear-history', methods=['POST'])
