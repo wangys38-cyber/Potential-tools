@@ -228,6 +228,12 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     # 计算周维度统计（直接从 issues 的 create_date/resolved_date 计算）
     weekly_stats = []
     try:
+        import logging
+        logging.info(f"[WeeklyStats] issues count: {len(issues)}")
+        if issues:
+            logging.info(f"[WeeklyStats] first issue keys: {list(issues[0].keys())}")
+            logging.info(f"[WeeklyStats] first issue create_date: {issues[0].get('create_date', 'MISSING')}")
+        
         from collections import defaultdict
         from datetime import datetime as dt
         weekly_data = defaultdict(lambda: {'new': 0, 'resolved': 0})
@@ -262,6 +268,8 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
                 year = resolved_d.isocalendar()[0]
                 week_key = f"{year}年第{week_num}周"
                 weekly_data[week_key]['resolved'] += 1
+        
+        logging.info(f"[WeeklyStats] weekly_data keys: {list(weekly_data.keys())}")
         
         cumulative = 0
         for week_key in sorted(weekly_data.keys()):
