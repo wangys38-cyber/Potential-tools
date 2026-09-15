@@ -483,6 +483,10 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
         body += '<h3 style="color: #1d1d1f;">📈 累计未解决 Bug 趋势</h3>'
         body += f'<img src="{cumulative_chart_image}" style="max-width: 100%; border-radius: 8px;">'
 
+    # 每日趋势与累计Bug曲线（放在AI智能分析前面）
+    if trend_image:
+        body += f'<h3 style="color: #1d1d1f; margin-top: 24px;">📈 每日趋势与累计Bug曲线</h3><img src="{trend_image}" style="max-width: 100%; border-radius: 8px;">'
+
     # AI 智能分析内容
     full_analysis = ai_analysis.get('full_analysis') or {}
     if full_analysis:
@@ -542,10 +546,6 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
 
     # 未解决问题列表（只显示概览，不展示具体问题）
     body += f'<p style="font-size: 13px; color: #86868b; margin-top: 20px;">共 {len(unresolved_list)} 个未解决问题，详见 CR 分析页面。</p>'
-
-    # 趋势图
-    if trend_image:
-        body += f'<h3 style="color: #1d1d1f; margin-top: 20px;">📈 每日趋势与累计Bug曲线</h3><img src="{trend_image}" style="max-width: 100%; border-radius: 8px;">'
 
     body += '</div>'
 
