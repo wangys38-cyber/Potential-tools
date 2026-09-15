@@ -175,8 +175,8 @@ class KnowledgeBase:
     def add_document(self, doc_id: str, title: str, content: str, metadata: Dict = None) -> bool:
         """添加文档到知识库"""
         try:
-            # 分块
-            chunks = self._split_text(content, chunk_size=800, overlap=100)
+            # 分块（增大到2000，确保完整的甘特图内容在一个块里）
+            chunks = self._split_text(content, chunk_size=2000, overlap=200)
             if not chunks:
                 return False
             
