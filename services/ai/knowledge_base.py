@@ -276,7 +276,7 @@ class KnowledgeBase:
             q_embedding = get_embedding_func()([question])
             results = self.collection.query(
                 query_embeddings=q_embedding,
-                n_results=20  # 多检索一些，后面rerank
+                n_results=50  # 多检索一些，后面rerank
             )
 
             candidates = []
@@ -292,7 +292,29 @@ class KnowledgeBase:
                             "distance": results['distances'][0][i] if results['distances'] else 0
                         })
 
-            # 2. 关键词匹配补充：中文2-gram
+            # 2. 语义触发：query包含排期相关词时，强制拉取甘特图chunk
+            schedule_triggers = ['schedule', '排期', '计划', '甘特', '时间节点', '进度', 'cwv', 'plan日期', '什么时候', '几号', '节点']
+            q_lower = question.lower()
+            if any(kw in q_lower for kw in schedule_triggers):
+                all_data = self.collection.get()
+                if all_data and all_data['documents']:
+                    gantt_hits = []
+                    for idx, doc in enumerate(all_data['documents']):
+                        # 甘特图chunk特征：包含"甘特图"或"- Plan】"或"- CWV】"
+                        if '甘特图' in doc or '- Plan】' in doc or '- CWV】' in doc or 'Bring up finish' in doc:
+                            gantt_hits.append(idx)
+                    for idx in gantt_hits:
+                        doc_id = all_data['ids'][idx]
+                        if doc_id not in seen_ids:
+                            seen_ids.add(doc_id)
+                            candidates.append({
+                                "content": all_data['documents'][idx],
+                                "metadata": all_data['metadatas'][idx] if all_data['metadatas'] else {},
+                                "distance": 0.1  # 高优先级
+                            })
+                    logger.info(f"排期触发: 强制加入 {len(gantt_hits)} 个甘特图chunk")
+
+            # 3. 关键词匹配补充：中文2-gram
             all_data = self.collection.get()
             if all_data and all_data['documents']:
                 question_clean = question.strip()
@@ -309,36 +331,40 @@ class KnowledgeBase:
                     for idx, doc in enumerate(all_data['documents']):
                         doc_lower = doc.lower()
                         hits = sum(1 for kw in keywords if kw.lower() in doc_lower)
-                        if hits >= 3:
+                        if hits >= 2:
                             scored.append((hits, idx))
 
                     scored.sort(reverse=True)
-                    for hits, idx in scored[:10]:
+                    for hits, idx in scored[:15]:
                         doc_id = all_data['ids'][idx]
                         if doc_id not in seen_ids:
                             seen_ids.add(doc_id)
                             candidates.append({
                                 "content": all_data['documents'][idx],
                                 "metadata": all_data['metadatas'][idx] if all_data['metadatas'] else {},
-                                "distance": 0.5  # 关键词命中，给个中等分
+                                "distance": 0.5
                             })
 
             # 3. Rerank重排序
-            if len(candidates) > top_k:
+            # 语义触发的chunk（distance=0.1）直接排在最前面，不被rerank压下去
+            boosted = [c for c in candidates if c.get('distance', 1) == 0.1]
+            normal = [c for c in candidates if c.get('distance', 1) != 0.1]
+
+            if len(normal) > top_k - len(boosted):
                 reranker = get_rerank_model()
                 if reranker:
-                    pairs = [(question, c["content"]) for c in candidates]
+                    pairs = [(question, c["content"]) for c in normal]
                     scores = reranker.predict(pairs)
-                    for i, c in enumerate(candidates):
+                    for i, c in enumerate(normal):
                         c["rerank_score"] = float(scores[i])
-                    candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
-                    candidates = candidates[:top_k]
-                    logger.info(f"Rerank完成: {len(candidates)} 个片段被选中")
+                    normal.sort(key=lambda x: x["rerank_score"], reverse=True)
+                    normal = normal[:top_k - len(boosted)]
+                    logger.info(f"Rerank完成: {len(boosted)} 个触发chunk + {len(normal)} 个rerank chunk")
                 else:
-                    # 没有rerank模型，按原始distance排序
-                    candidates.sort(key=lambda x: x["distance"])
-                    candidates = candidates[:top_k]
+                    normal.sort(key=lambda x: x["distance"])
+                    normal = normal[:top_k - len(boosted)]
 
+            candidates = boosted + normal
             return candidates
         except Exception as e:
             logger.error(f"查询失败: {e}")
