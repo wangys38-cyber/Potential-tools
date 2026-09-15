@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能知识库 - 工具集</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
@@ -17,496 +17,318 @@
         .kb-page {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px 24px;
+            padding: 16px 20px;
         }
-        .kb-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .kb-header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .kb-header-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-        }
-        .kb-header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin: 0;
-            letter-spacing: -0.3px;
-        }
-        .kb-header p {
-            font-size: 13px;
-            color: #8e8e93;
-            margin: 2px 0 0;
-        }
-        .kb-header-stats {
-            display: flex;
-            gap: 12px;
-        }
-        .kb-stat-pill {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
-            padding: 6px 14px;
-            font-size: 12px;
-            color: #6366f1;
+        .kb-page h1 {
+            font-size: 18px;
             font-weight: 600;
+            color: #1d1d1f;
+            margin: 0 0 4px;
+        }
+        .kb-page .subtitle {
+            font-size: 13px;
+            color: #86868b;
+            margin: 0 0 16px;
         }
 
         .kb-layout {
             display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 20px;
-            height: calc(100vh - 180px);
-            min-height: 500px;
+            grid-template-columns: 300px 1fr;
+            gap: 16px;
+            height: calc(100vh - 120px);
         }
 
-        /* ===== 左侧侧边栏 ===== */
+        /* 左侧 */
         .kb-sidebar {
             background: #fff;
-            border-radius: 16px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .kb-sidebar-header {
-            padding: 16px 18px;
-            border-bottom: 1px solid #f0f0f3;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e5ea;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #fafafa;
+            background: #f5f5f7;
         }
         .kb-sidebar-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1a1a2e;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1d1d1f;
         }
         .kb-refresh-btn {
             font-size: 12px;
-            padding: 4px 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border: 1px solid #d2d2d7;
+            border-radius: 4px;
             background: #fff;
             cursor: pointer;
-            color: #666;
-            transition: all 0.2s;
+            color: #333;
         }
         .kb-refresh-btn:hover {
-            border-color: #6366f1;
-            color: #6366f1;
+            background: #f5f5f7;
         }
 
         .kb-doc-list {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 6px;
         }
-        .kb-doc-list::-webkit-scrollbar {
-            width: 4px;
-        }
-        .kb-doc-list::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 2px;
-        }
-
         .kb-doc-item {
-            padding: 12px 14px;
-            border-radius: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 6px;
-            transition: all 0.2s;
-            border: 1px solid transparent;
+            margin-bottom: 2px;
         }
         .kb-doc-item:hover {
-            background: #f8f8fc;
-            border-color: #e0e0ff;
+            background: #f5f5f7;
         }
         .kb-doc-title {
             font-size: 13px;
-            font-weight: 600;
-            color: #1a1a2e;
-            margin-bottom: 6px;
+            color: #1d1d1f;
+            margin-bottom: 3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .kb-doc-meta {
             font-size: 11px;
-            color: #8e8e93;
+            color: #86868b;
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
             gap: 4px;
         }
         .kb-cat-tag {
             font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
+            padding: 1px 6px;
+            border-radius: 3px;
         }
         .kb-delete-link {
             color: #ff3b30;
             cursor: pointer;
             margin-left: auto;
             font-size: 11px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        .kb-delete-link:hover {
-            opacity: 1;
-            text-decoration: underline;
         }
 
         .kb-upload-section {
-            padding: 14px;
-            border-top: 1px solid #f0f0f3;
-            background: #fafafa;
+            padding: 10px;
+            border-top: 1px solid #e5e5ea;
         }
         .kb-upload-btn {
             display: block;
             width: 100%;
-            padding: 12px;
-            background: #fff;
-            border: 2px dashed #d1d5db;
-            border-radius: 10px;
+            padding: 8px;
+            background: #f5f5f7;
+            border: 1px dashed #d2d2d7;
+            border-radius: 6px;
             text-align: center;
             cursor: pointer;
-            font-size: 13px;
-            color: #6b7280;
-            transition: all 0.2s;
-            font-weight: 500;
+            font-size: 12px;
+            color: #666;
         }
         .kb-upload-btn:hover {
-            border-color: #6366f1;
-            background: #f5f5ff;
-            color: #6366f1;
+            border-color: #999;
+            color: #333;
         }
-        .kb-paste-area {
-            margin-top: 10px;
-        }
-        .kb-paste-area textarea {
-            width: 100%;
-            height: 60px;
-            padding: 8px 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 12px;
-            resize: vertical;
-            box-sizing: border-box;
-            background: #fff;
-        }
+        .kb-paste-area textarea,
         .kb-paste-area input {
             width: 100%;
-            padding: 7px 10px;
+            padding: 6px 8px;
             margin-top: 6px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+            border: 1px solid #d2d2d7;
+            border-radius: 4px;
             font-size: 12px;
             box-sizing: border-box;
-            background: #fff;
+        }
+        .kb-paste-area textarea {
+            height: 50px;
+            resize: vertical;
         }
         .kb-paste-btn {
             width: 100%;
             margin-top: 6px;
-            padding: 8px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 6px;
+            background: #007aff;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
+            border-radius: 4px;
+            font-size: 12px;
             cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
         }
         .kb-paste-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            background: #0056b3;
         }
 
-        /* ===== 右侧对话区 ===== */
+        /* 右侧 */
         .kb-main {
             display: flex;
             flex-direction: column;
             background: #fff;
-            border-radius: 16px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .kb-chat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 20px;
-            background: #fafafa;
-            border-bottom: 1px solid #f0f0f3;
+            padding: 8px 14px;
+            background: #f5f5f7;
+            border-bottom: 1px solid #e5e5ea;
         }
         .kb-chat-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1a1a2e;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .kb-chat-title-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #34c759;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+            font-size: 13px;
+            font-weight: 600;
+            color: #1d1d1f;
         }
         .kb-header-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
         .kb-action-btn {
             font-size: 12px;
-            padding: 5px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+            padding: 3px 8px;
+            border: 1px solid #d2d2d7;
+            border-radius: 4px;
             background: #fff;
             cursor: pointer;
-            color: #6b7280;
-            transition: all 0.2s;
+            color: #333;
         }
         .kb-action-btn:hover {
-            border-color: #6366f1;
-            color: #6366f1;
-            background: #f5f5ff;
+            background: #f5f5f7;
         }
 
         .kb-chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 24px 28px;
-            background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+            padding: 16px 20px;
         }
-        .kb-chat-area::-webkit-scrollbar {
-            width: 5px;
-        }
-        .kb-chat-area::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 3px;
-        }
-
-        /* 消息气泡 */
         .kb-message {
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             display: flex;
-            gap: 12px;
-            animation: fadeInUp 0.3s ease-out;
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            gap: 10px;
         }
         .kb-message.user {
             flex-direction: row-reverse;
         }
         .kb-avatar {
-            width: 36px;
-            height: 36px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        }
-        .kb-message.user .kb-avatar {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        }
-        .kb-message.ai .kb-avatar {
-            background: #fff;
-            border: 1px solid #e5e7eb;
+            background: #f5f5f7;
+            border: 1px solid #e5e5ea;
         }
         .kb-bubble {
-            max-width: 72%;
-            padding: 14px 18px;
-            border-radius: 16px;
-            font-size: 14px;
-            line-height: 1.75;
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
             word-break: break-word;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            background: #f5f5f7;
         }
         .kb-message.user .kb-bubble {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: #007aff;
             color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-        .kb-message.ai .kb-bubble {
-            background: #fff;
-            color: #1a1a2e;
-            border: 1px solid #e5e7eb;
-            border-bottom-left-radius: 4px;
         }
         .kb-bubble h2, .kb-bubble h3, .kb-bubble h4 {
-            margin: 12px 0 6px;
-            line-height: 1.4;
+            margin: 8px 0 4px;
         }
         .kb-bubble ul {
-            margin: 6px 0;
-            padding-left: 20px;
+            margin: 4px 0;
+            padding-left: 18px;
         }
         .kb-bubble li {
-            margin: 4px 0;
-        }
-        .kb-bubble strong {
-            font-weight: 600;
+            margin: 2px 0;
         }
         .kb-bubble code {
-            background: rgba(99, 102, 241, 0.08);
-            padding: 2px 6px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.06);
+            padding: 1px 4px;
+            border-radius: 3px;
             font-size: 12px;
-            color: #6366f1;
         }
 
         .kb-context {
-            margin-top: 10px;
-            padding: 10px 14px;
-            background: rgba(99, 102, 241, 0.05);
-            border-left: 3px solid #6366f1;
-            border-radius: 0 8px 8px 0;
-            font-size: 12px;
-            color: #6b7280;
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #f0f7ff;
+            border-left: 2px solid #007aff;
+            border-radius: 0 4px 4px 0;
+            font-size: 11px;
+            color: #666;
         }
         .kb-context-title {
             font-weight: 600;
-            color: #6366f1;
-            margin-bottom: 4px;
+            color: #007aff;
+            margin-bottom: 2px;
         }
 
-        /* 输入区 */
         .kb-input-area {
-            padding: 16px 20px;
-            border-top: 1px solid #f0f0f3;
-            background: #fff;
+            padding: 12px;
+            border-top: 1px solid #e5e5ea;
             display: flex;
-            gap: 12px;
-            align-items: center;
+            gap: 8px;
         }
         .kb-input {
             flex: 1;
-            padding: 13px 18px;
-            border: 2px solid #e5e7eb;
-            border-radius: 14px;
-            font-size: 14px;
+            padding: 9px 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 6px;
+            font-size: 13px;
             outline: none;
-            transition: all 0.2s;
-            background: #fafafa;
         }
         .kb-input:focus {
-            border-color: #6366f1;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            border-color: #007aff;
         }
         .kb-send-btn {
-            padding: 12px 28px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 9px 20px;
+            background: #007aff;
             color: #fff;
             border: none;
-            border-radius: 14px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
         }
         .kb-send-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            background: #0056b3;
         }
         .kb-send-btn:disabled {
-            opacity: 0.6;
+            background: #999;
             cursor: not-allowed;
-            transform: none;
         }
 
-        /* 空状态 */
         .kb-empty {
             text-align: center;
-            padding: 80px 20px;
-            color: #9ca3af;
+            padding: 60px 20px;
+            color: #86868b;
         }
         .kb-empty-icon {
-            font-size: 56px;
-            margin-bottom: 16px;
-            opacity: 0.6;
+            font-size: 40px;
+            margin-bottom: 12px;
         }
         .kb-empty-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #374151;
-            margin-bottom: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
         }
         .kb-empty-desc {
-            font-size: 13px;
-            color: #9ca3af;
-            max-width: 400px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-        .kb-suggestions {
-            margin-top: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-        }
-        .kb-suggestion-chip {
-            padding: 8px 16px;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
             font-size: 12px;
-            color: #6b7280;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .kb-suggestion-chip:hover {
-            border-color: #6366f1;
-            color: #6366f1;
-            background: #f5f5ff;
         }
 
         @media (max-width: 900px) {
             .kb-layout {
                 grid-template-columns: 1fr;
                 height: auto;
-            }
-            .kb-sidebar {
-                max-height: 300px;
-            }
-            .kb-bubble {
-                max-width: 85%;
             }
         }
     </style>
@@ -515,332 +337,201 @@
 {% include '_navbar.html' %}
 
 <div class="kb-page">
-    <!-- 顶部标题栏 -->
-    <div class="kb-header">
-        <div class="kb-header-left">
-            <div class="kb-header-icon">📚</div>
-            <div>
-                <h1>智能知识库</h1>
-                <p>上传文档，AI 自动检索关联，智能问答</p>
-            </div>
-        </div>
-        <div class="kb-header-stats">
-            <span class="kb-stat-pill" id="docCountStat">📄 0 个文档</span>
-            <span class="kb-stat-pill">🧠 AI 驱动</span>
-        </div>
-    </div>
+    <h1>智能知识库</h1>
+    <p class="subtitle">上传文档，AI 自动检索关联</p>
 
     <div class="kb-layout">
-        <!-- 左侧：文档列表 -->
+        <!-- 左侧 -->
         <div class="kb-sidebar">
             <div class="kb-sidebar-header">
-                <div class="kb-sidebar-title">📚 知识库文档</div>
-                <button class="kb-refresh-btn" onclick="loadDocs()">🔄 刷新</button>
+                <span class="kb-sidebar-title">文档列表</span>
+                <button class="kb-refresh-btn" onclick="loadDocs()">刷新</button>
             </div>
-            <div class="kb-doc-list" id="docList">
-                <div class="kb-empty" style="padding:30px;">
-                    <div class="kb-empty-icon">📄</div>
-                    <div class="kb-empty-desc">暂无文档，上传开始构建知识库</div>
-                </div>
-            </div>
+            <div class="kb-doc-list" id="docList"></div>
             <div class="kb-upload-section">
                 <label class="kb-upload-btn" for="fileInput">
-                    📤 上传文件（TXT/MD/PDF/Word/Excel/CSV/图片）
+                    上传文件（TXT/PDF/Word/Excel/CSV/图片）
                 </label>
-                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="uploadFile(this)">
+                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.xlsx,.xls,.csv,.png,.jpg,.jpeg" style="display:none" onchange="uploadFile(this)">
                 <div class="kb-paste-area">
-                    <textarea id="manualContent" placeholder="或直接粘贴文本内容..."></textarea>
-                    <input type="text" id="manualTitle" placeholder="文档标题">
-                    <button class="kb-paste-btn" onclick="uploadManual()">+ 添加到知识库</button>
+                    <textarea id="manualContent" placeholder="粘贴文本..."></textarea>
+                    <input type="text" id="manualTitle" placeholder="标题">
+                    <button class="kb-paste-btn" onclick="uploadManual()">添加</button>
                 </div>
             </div>
         </div>
 
-        <!-- 右侧：对话区 -->
+        <!-- 右侧 -->
         <div class="kb-main">
             <div class="kb-chat-header">
-                <div class="kb-chat-title">
-                    <span class="kb-chat-title-dot"></span>
-                    💬 智能问答
-                </div>
+                <span class="kb-chat-title">问答</span>
                 <div class="kb-header-actions">
-                    <button class="kb-action-btn" onclick="clearChat()">🗑️ 清空对话</button>
-                    <button class="kb-action-btn" onclick="clearCache()">🔄 刷新缓存</button>
+                    <button class="kb-action-btn" onclick="clearChat()">清空对话</button>
+                    <button class="kb-action-btn" onclick="clearCache()">清缓存</button>
                 </div>
             </div>
             <div class="kb-chat-area" id="chatArea">
                 <div class="kb-empty">
-                    <div class="kb-empty-icon">🤖</div>
-                    <div class="kb-empty-title">智能知识库问答</div>
-                    <div class="kb-empty-desc">
-                        上传文档后，在这里提问。AI 会基于知识库内容回答，支持连续追问。
-                    </div>
-                    <div class="kb-suggestions">
-                        <div class="kb-suggestion-chip" onclick="askSuggestion('Santos Schedule是什么？')">📅 Santos Schedule</div>
-                        <div class="kb-suggestion-chip" onclick="askSuggestion('现在还有多少CR问题？')">🐛 CR问题统计</div>
-                        <div class="kb-suggestion-chip" onclick="askSuggestion('MotoPIN怎么升级？')">📱 MotoPIN升级</div>
-                        <div class="kb-suggestion-chip" onclick="askSuggestion('Companion APP什么时候launch？')">🚀 项目里程碑</div>
-                    </div>
+                    <div class="kb-empty-icon">💬</div>
+                    <div class="kb-empty-title">知识库问答</div>
+                    <div class="kb-empty-desc">上传文档后在这里提问</div>
                 </div>
             </div>
             <div class="kb-input-area">
-                <input type="text" class="kb-input" id="questionInput" placeholder="输入你的问题，例如：这个崩溃一般是什么原因？" onkeypress="if(event.key==='Enter')sendQuestion()">
-                <button class="kb-send-btn" id="sendBtn" onclick="sendQuestion()">发送 →</button>
+                <input type="text" class="kb-input" id="questionInput" placeholder="输入问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
+                <button class="kb-send-btn" id="sendBtn" onclick="sendQuestion()">发送</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// 加载文档列表
 async function loadDocs() {
     try {
         const res = await fetch('/knowledge-base/api/documents');
         const data = await res.json();
-        if (data.status === 'success') {
-            renderDocs(data.documents);
-            // 更新统计
-            document.getElementById('docCountStat').textContent = `📄 ${data.documents.length} 个文档`;
-        }
-    } catch (e) {
-        console.error('加载文档失败', e);
-    }
+        if (data.status === 'success') renderDocs(data.documents);
+    } catch (e) { console.error(e); }
 }
 
 function renderDocs(docs) {
     const el = document.getElementById('docList');
     if (!docs || docs.length === 0) {
-        el.innerHTML = '<div class="kb-empty" style="padding:30px;"><div class="kb-empty-icon">📄</div><div class="kb-empty-desc">暂无文档</div></div>';
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:12px;">暂无文档</div>';
         return;
     }
     const catColors = {
-        'CR数据': { bg: '#fee2e2', fg: '#dc2626' },
-        'SOP操作指南': { bg: '#dcfce7', fg: '#16a34a' },
-        '项目计划': { bg: '#dbeafe', fg: '#2563eb' },
-        '技术文档': { bg: '#f3e8ff', fg: '#9333ea' },
-        '图片资料': { bg: '#fff7ed', fg: '#ea580c' },
-        '测试文档': { bg: '#cffafe', fg: '#0891b2' },
-        '其他': { bg: '#f3f4f6', fg: '#6b7280' }
+        'CR数据': '#fee2e2', 'SOP操作指南': '#dcfce7', '项目计划': '#dbeafe',
+        '技术文档': '#f3e8ff', '图片资料': '#fff7ed', '测试文档': '#cffafe', '其他': '#f3f4f6'
     };
-    el.innerHTML = docs.map(d => {
-        const c = catColors[d.category] || catColors['其他'];
-        return `
+    el.innerHTML = docs.map(d => `
         <div class="kb-doc-item">
-            <div class="kb-doc-title">📄 ${d.title}</div>
+            <div class="kb-doc-title">${d.title}</div>
             <div class="kb-doc-meta">
-                <span class="kb-cat-tag" style="background:${c.bg};color:${c.fg};">${d.category}</span>
+                <span class="kb-cat-tag" style="background:${catColors[d.category]||'#f3f4f6'};">${d.category||'其他'}</span>
                 <span>${d.chunk_count} 片段</span>
                 <span class="kb-delete-link" onclick="deleteDoc('${d.doc_id}')">删除</span>
             </div>
-        </div>`;
-    }).join('');
+        </div>`).join('');
 }
 
-// 删除文档
-async function deleteDoc(docId) {
-    if (!confirm('确定删除该文档？')) return;
-    try {
-        await fetch(`/knowledge-base/api/documents/${docId}`, { method: 'DELETE' });
-        loadDocs();
-    } catch (e) {
-        alert('删除失败');
-    }
+async function deleteDoc(id) {
+    if (!confirm('删除该文档？')) return;
+    await fetch(`/knowledge-base/api/documents/${id}`, { method: 'DELETE' });
+    loadDocs();
 }
 
-// 清空对话
 async function clearChat() {
     if (!confirm('清空对话历史？')) return;
-    try {
-        await fetch('/knowledge-base/api/clear-history', { method: 'POST' });
-        document.getElementById('chatArea').innerHTML = `
-            <div class="kb-empty">
-                <div class="kb-empty-icon">🤖</div>
-                <div class="kb-empty-title">智能知识库问答</div>
-                <div class="kb-empty-desc">上传文档后，在这里提问。AI 会基于知识库内容回答，支持连续追问。</div>
-                <div class="kb-suggestions">
-                    <div class="kb-suggestion-chip" onclick="askSuggestion('Santos Schedule是什么？')">📅 Santos Schedule</div>
-                    <div class="kb-suggestion-chip" onclick="askSuggestion('现在还有多少CR问题？')">🐛 CR问题统计</div>
-                    <div class="kb-suggestion-chip" onclick="askSuggestion('MotoPIN怎么升级？')">📱 MotoPIN升级</div>
-                    <div class="kb-suggestion-chip" onclick="askSuggestion('Companion APP什么时候launch？')">🚀 项目里程碑</div>
-                </div>
-            </div>`;
-    } catch (e) {
-        alert('清空失败');
-    }
+    await fetch('/knowledge-base/api/clear-history', { method: 'POST' });
+    document.getElementById('chatArea').innerHTML = `
+        <div class="kb-empty">
+            <div class="kb-empty-icon">💬</div>
+            <div class="kb-empty-title">知识库问答</div>
+            <div class="kb-empty-desc">上传文档后在这里提问</div>
+        </div>`;
 }
 
-// 清空缓存
 async function clearCache() {
-    try {
-        await fetch('/knowledge-base/api/clear-cache', { method: 'POST' });
-        alert('缓存已清空');
-    } catch (e) {
-        alert('清空失败');
-    }
+    await fetch('/knowledge-base/api/clear-cache', { method: 'POST' });
+    alert('缓存已清');
 }
 
-// 快捷提问
-function askSuggestion(q) {
-    document.getElementById('questionInput').value = q;
-    sendQuestion();
-}
-
-// 上传文件
 async function uploadFile(input) {
     const file = input.files[0];
     if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
     const btn = document.querySelector('.kb-upload-btn');
-    
     const isImage = file.type.startsWith('image/');
-    btn.textContent = isImage ? '🤖 AI 识别图片中...' : '上传中...';
-    
+    btn.textContent = isImage ? '识别中...' : '上传中...';
+    const fd = new FormData();
+    fd.append('file', file);
     try {
-        const res = await fetch('/knowledge-base/api/upload-file', {
-            method: 'POST',
-            body: formData
-        });
+        const res = await fetch('/knowledge-base/api/upload-file', { method: 'POST', body: fd });
         const data = await res.json();
-        if (data.status === 'success') {
-            alert(isImage ? '图片识别成功，已存入知识库！' : '上传成功！');
-            loadDocs();
-        } else {
-            alert('上传失败: ' + data.error);
-        }
-    } catch (e) {
-        alert('上传失败: ' + e.message);
-    } finally {
-        btn.textContent = '📤 上传文件（TXT/MD/PDF/Word/Excel/CSV/图片）';
-        input.value = '';
-    }
+        alert(data.status === 'success' ? '完成' : '失败: ' + (data.error||''));
+        loadDocs();
+    } catch (e) { alert('失败'); }
+    btn.textContent = '上传文件（TXT/PDF/Word/Excel/CSV/图片）';
+    input.value = '';
 }
 
-// 手动添加文本
 async function uploadManual() {
     const title = document.getElementById('manualTitle').value.trim();
     const content = document.getElementById('manualContent').value.trim();
-    if (!content) {
-        alert('请输入内容');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-    
-    try {
-        const res = await fetch('/knowledge-base/api/documents', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
-        if (data.status === 'success') {
-            alert('添加成功！');
-            document.getElementById('manualTitle').value = '';
-            document.getElementById('manualContent').value = '';
-            loadDocs();
-        } else {
-            alert('添加失败: ' + data.error);
-        }
-    } catch (e) {
-        alert('添加失败: ' + e.message);
-    }
+    if (!content) { alert('输入内容'); return; }
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('content', content);
+    const res = await fetch('/knowledge-base/api/documents', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.status === 'success') {
+        document.getElementById('manualTitle').value = '';
+        document.getElementById('manualContent').value = '';
+        loadDocs();
+    } else { alert('失败'); }
 }
 
-// 发送问题
 async function sendQuestion() {
     const input = document.getElementById('questionInput');
-    const question = input.value.trim();
-    if (!question) return;
-    
+    const q = input.value.trim();
+    if (!q) return;
     const btn = document.getElementById('sendBtn');
     btn.disabled = true;
-    btn.textContent = '思考中...';
-    
-    addMessage('user', question);
+    btn.textContent = '...';
+    addMessage('user', q);
     input.value = '';
-    
-    const loadingId = addMessage('ai', '正在检索知识库...');
-    
+    const loadingId = addMessage('ai', '检索中...');
     try {
         const res = await fetch('/knowledge-base/api/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
+            body: JSON.stringify({ question: q })
         });
         const data = await res.json();
-        
         removeMessage(loadingId);
-        
-        if (data.status === 'success') {
-            addMessage('ai', data.answer, data.contexts);
-        } else {
-            addMessage('ai', '出错了: ' + data.error);
-        }
+        if (data.status === 'success') addMessage('ai', data.answer, data.contexts);
+        else addMessage('ai', '出错: ' + (data.error||''));
     } catch (e) {
         removeMessage(loadingId);
-        addMessage('ai', '请求失败: ' + e.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '发送 →';
+        addMessage('ai', '请求失败');
     }
+    btn.disabled = false;
+    btn.textContent = '发送';
 }
 
-// 简单 Markdown 渲染
 function renderMarkdown(text) {
     if (!text) return '';
-    let html = text;
-    
-    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    html = html.replace(/^### (.*?)$/gm, '<h4 style="margin:12px 0 6px;font-size:14px;font-weight:600;">$1</h4>');
-    html = html.replace(/^## (.*?)$/gm, '<h3 style="margin:14px 0 8px;font-size:15px;font-weight:600;">$1</h3>');
-    html = html.replace(/^# (.*?)$/gm, '<h2 style="margin:16px 0 10px;font-size:16px;font-weight:600;">$1</h2>');
-    
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    
-    html = html.replace(/^[-*] (.*?)$/gm, '<li style="margin:4px 0;">$1</li>');
-    html = html.replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:8px 0;padding-left:20px;">$&</ul>');
-    html = html.replace(/^\d+\. (.*?)$/gm, '<li style="margin:4px 0;">$1</li>');
-    
-    html = html.replace(/\n/g, '<br>');
-    html = html.replace(/<\/li><br>/g, '</li>');
-    html = html.replace(/<br><li/g, '<li');
-    
-    return html;
+    let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    h = h.replace(/^### (.*)$/gm, '<h4 style="margin:8px 0 4px;font-size:13px;">$1</h4>');
+    h = h.replace(/^## (.*)$/gm, '<h3 style="margin:10px 0 6px;font-size:14px;">$1</h3>');
+    h = h.replace(/^# (.*)$/gm, '<h2 style="margin:12px 0 8px;font-size:15px;">$1</h2>');
+    h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+    h = h.replace(/^[-*] (.*)$/gm, '<li>$1</li>');
+    h = h.replace(/(<li>.*<\/li>\n?)+/g, '<ul style="margin:4px 0;padding-left:18px;">$&</ul>');
+    h = h.replace(/\n/g, '<br>');
+    h = h.replace(/<\/li><br>/g, '</li>').replace(/<br><li/g, '<li');
+    return h;
 }
 
-function addMessage(role, content, contexts = null) {
-    const chatArea = document.getElementById('chatArea');
-    
-    const empty = chatArea.querySelector('.kb-empty');
+function addMessage(role, content, contexts) {
+    const area = document.getElementById('chatArea');
+    const empty = area.querySelector('.kb-empty');
     if (empty) empty.remove();
-    
     const div = document.createElement('div');
-    div.className = `kb-message ${role}`;
-    div.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-    
+    div.className = 'kb-message ' + role;
+    div.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
     const avatar = role === 'user' ? '👤' : '🤖';
-    const renderedContent = role === 'ai' ? renderMarkdown(content) : content;
-    
-    let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">${renderedContent}`;
-    
+    const body = role === 'ai' ? renderMarkdown(content) : content;
+    let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">${body}`;
     if (contexts && contexts.length > 0) {
-        html += '<div class="kb-context"><div class="kb-context-title">📚 参考来源</div>' + 
-            contexts.map(c => `<div>• ${c.title}${c.category ? ' <span style="opacity:0.6;">(' + c.category + ')</span>' : ''}</div>`).join('') + 
-            '</div>';
+        html += '<div class="kb-context"><div class="kb-context-title">参考来源</div>' +
+            contexts.map(c => `• ${c.title}`).join('<br>') + '</div>';
     }
-    
     html += '</div>';
     div.innerHTML = html;
-    
-    chatArea.appendChild(div);
-    chatArea.scrollTop = chatArea.scrollHeight;
-    
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
     return div.id;
 }
 
@@ -849,7 +540,6 @@ function removeMessage(id) {
     if (el) el.remove();
 }
 
-// 页面加载后自动加载文档
 loadDocs();
 </script>
 </body>
