@@ -619,6 +619,24 @@ def get_stats():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@kb_bp.route('/api/feedback', methods=['POST'])
+def save_feedback():
+    """用户反馈：点赞/点踩，用于学习优化"""
+    try:
+        data = request.get_json()
+        user_id = getattr(g, 'user_id', 1) or 1
+        question = data.get('question', '')
+        feedback = data.get('feedback', '')
+        conn = _get_db()
+        c = conn.cursor()
+        c.execute('INSERT INTO kb_feedback (user_id, question, feedback) VALUES (?,?,?)', (user_id, question, feedback))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/clear-history', methods=['POST'])
 def clear_history():
     """清空对话历史"""

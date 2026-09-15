@@ -14,463 +14,251 @@
     <link rel="stylesheet" href="/static/css/perf-mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/ui-polish.css?v={{ STATIC_VERSION }}">
     <style>
-        :root {
-            --kb-bg: #fafafa;
-            --kb-card: #ffffff;
-            --kb-border: #e5e7eb;
-            --kb-border-light: #f3f4f6;
-            --kb-text: #111827;
-            --kb-text-secondary: #6b7280;
-            --kb-text-tertiary: #9ca3af;
-            --kb-accent: #3b82f6;
-            --kb-accent-hover: #2563eb;
-            --kb-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-            --kb-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.03);
-        }
-
-        .kb-page {
-            max-width: 1400px;
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fafafa; }
+        
+        .kb-fullpage {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 56px);
+            max-width: 900px;
             margin: 0 auto;
-            padding: 20px 24px;
-        }
-        .kb-page h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--kb-text);
-            margin: 0 0 2px;
-            letter-spacing: -0.02em;
-        }
-        .kb-page .subtitle {
-            font-size: 13px;
-            color: var(--kb-text-tertiary);
-            margin: 0 0 20px;
+            padding: 0 20px;
         }
 
-        .kb-layout {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 16px;
-            height: calc(100vh - 130px);
-        }
-
-        /* 左侧 */
-        .kb-sidebar {
-            background: var(--kb-card);
-            border: 1px solid var(--kb-border);
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: var(--kb-shadow);
-        }
-        .kb-sidebar-header {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--kb-border-light);
+        /* 顶栏 */
+        .kb-topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 16px 0 12px;
+            border-bottom: 1px solid #e5e7eb;
         }
-        .kb-sidebar-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--kb-text);
-            letter-spacing: -0.01em;
+        .kb-topbar h1 { font-size: 18px; font-weight: 700; margin: 0; color: #111827; }
+        .kb-topbar .actions { display: flex; gap: 6px; }
+        .kb-btn {
+            font-size: 12px; padding: 5px 12px; border: 1px solid #e5e7eb; border-radius: 6px;
+            background: #fff; cursor: pointer; color: #6b7280; transition: all .15s;
         }
-        .kb-refresh-btn {
-            font-size: 12px;
-            padding: 4px 10px;
-            border: 1px solid var(--kb-border);
-            border-radius: 6px;
-            background: var(--kb-card);
-            cursor: pointer;
-            color: var(--kb-text-secondary);
-            transition: all 0.15s;
-        }
-        .kb-refresh-btn:hover {
-            background: var(--kb-bg);
-            color: var(--kb-text);
-        }
+        .kb-btn:hover { background: #f9fafb; color: #111827; border-color: #d1d5db; }
+        .kb-btn-primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .kb-btn-primary:hover { background: #2563eb; }
 
-        .kb-doc-list {
+        /* 聊天区 */
+        .kb-chat {
             flex: 1;
             overflow-y: auto;
-            padding: 6px;
+            padding: 24px 0;
         }
-        .kb-doc-list::-webkit-scrollbar { width: 4px; }
-        .kb-doc-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+        .kb-chat::-webkit-scrollbar { width: 5px; }
+        .kb-chat::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 
-        .kb-doc-item {
-            padding: 8px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-bottom: 2px;
-            transition: background 0.12s;
-        }
-        .kb-doc-item:hover { background: var(--kb-bg); }
-        .kb-doc-title {
-            font-size: 13px;
-            color: var(--kb-text);
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: 500;
-        }
-        .kb-doc-meta {
-            font-size: 11px;
-            color: var(--kb-text-tertiary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .kb-cat-tag {
-            font-size: 10px;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-weight: 500;
-        }
-        .kb-delete-link {
-            color: #ef4444;
-            cursor: pointer;
-            margin-left: auto;
-            font-size: 11px;
-            opacity: 0;
-            transition: opacity 0.15s;
-        }
-        .kb-doc-item:hover .kb-delete-link { opacity: 0.8; }
-        .kb-delete-link:hover { opacity: 1; }
-
-        .kb-upload-section {
-            padding: 10px;
-            border-top: 1px solid var(--kb-border-light);
-        }
-        .kb-upload-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background: var(--kb-bg);
-            border: 1px dashed var(--kb-border);
-            border-radius: 6px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 12px;
-            color: var(--kb-text-secondary);
-            transition: all 0.15s;
-        }
-        .kb-upload-btn:hover {
-            border-color: var(--kb-accent);
-            background: #eff6ff;
-            color: var(--kb-accent);
-        }
-        .kb-paste-area textarea,
-        .kb-paste-area input {
-            width: 100%;
-            padding: 7px 10px;
-            margin-top: 6px;
-            border: 1px solid var(--kb-border);
-            border-radius: 6px;
-            font-size: 12px;
-            box-sizing: border-box;
-            background: var(--kb-card);
-            transition: border-color 0.15s;
-        }
-        .kb-paste-area textarea:focus,
-        .kb-paste-area input:focus {
-            outline: none;
-            border-color: var(--kb-accent);
-        }
-        .kb-paste-area textarea { height: 50px; resize: vertical; }
-        .kb-paste-btn {
-            width: 100%;
-            margin-top: 6px;
-            padding: 7px;
-            background: var(--kb-accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .kb-paste-btn:hover { background: var(--kb-accent-hover); }
-
-        /* 右侧 */
-        .kb-main {
-            display: flex;
-            flex-direction: column;
-            background: var(--kb-card);
-            border: 1px solid var(--kb-border);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: var(--kb-shadow);
-        }
-        .kb-chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--kb-border-light);
-        }
-        .kb-chat-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--kb-text);
-            letter-spacing: -0.01em;
-        }
-        .kb-header-actions { display: flex; gap: 6px; }
-        .kb-action-btn {
-            font-size: 12px;
-            padding: 4px 10px;
-            border: 1px solid var(--kb-border);
-            border-radius: 6px;
-            background: var(--kb-card);
-            cursor: pointer;
-            color: var(--kb-text-secondary);
-            transition: all 0.15s;
-        }
-        .kb-action-btn:hover {
-            background: var(--kb-bg);
-            color: var(--kb-text);
-        }
-
-        .kb-chat-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-        }
-        .kb-chat-area::-webkit-scrollbar { width: 5px; }
-        .kb-chat-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-
-        .kb-message {
-            margin-bottom: 16px;
+        .kb-msg {
+            margin-bottom: 20px;
             display: flex;
             gap: 10px;
-            animation: fadeIn 0.2s ease-out;
+            animation: fadeIn .2s ease-out;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .kb-message.user { flex-direction: row-reverse; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+        .kb-msg.user { flex-direction: row-reverse; }
         .kb-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-            background: var(--kb-bg);
-            border: 1px solid var(--kb-border);
+            width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 15px;
+            background: #f3f4f6; border: 1px solid #e5e7eb;
         }
         .kb-bubble {
-            max-width: 75%;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.65;
-            word-break: break-word;
+            max-width: 75%; padding: 12px 16px; border-radius: 10px;
+            font-size: 14px; line-height: 1.7; word-break: break-word;
         }
-        .kb-message.ai .kb-bubble {
-            background: var(--kb-bg);
-            color: var(--kb-text);
-            border: 1px solid var(--kb-border-light);
-        }
-        .kb-message.user .kb-bubble {
-            background: var(--kb-accent);
-            color: #fff;
-        }
-        .kb-bubble h2, .kb-bubble h3, .kb-bubble h4 {
-            margin: 8px 0 4px;
-            font-weight: 600;
-        }
+        .kb-msg.ai .kb-bubble { background: #fff; border: 1px solid #e5e7eb; }
+        .kb-msg.user .kb-bubble { background: #3b82f6; color: #fff; }
+        .kb-bubble h3 { margin: 8px 0 4px; font-size: 14px; }
         .kb-bubble ul { margin: 4px 0; padding-left: 18px; }
         .kb-bubble li { margin: 2px 0; }
-        .kb-bubble code {
-            background: rgba(0,0,0,0.06);
-            padding: 1px 5px;
-            border-radius: 4px;
-            font-size: 12px;
+        .kb-bubble code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+        /* 反馈按钮 */
+        .kb-feedback {
+            display: flex; gap: 4px; margin-top: 6px;
         }
+        .kb-fb-btn {
+            font-size: 12px; padding: 2px 8px; border: 1px solid #e5e7eb; border-radius: 4px;
+            background: #fff; cursor: pointer; color: #9ca3af; transition: all .15s;
+        }
+        .kb-fb-btn:hover { color: #111827; border-color: #d1d5db; }
+        .kb-fb-btn.active-up { color: #10b981; border-color: #10b981; }
+        .kb-fb-btn.active-down { color: #ef4444; border-color: #ef4444; }
 
         .kb-context {
-            margin-top: 8px;
-            padding: 8px 10px;
-            background: #f8fafc;
-            border-left: 2px solid var(--kb-accent);
-            border-radius: 0 6px 6px 0;
-            font-size: 11px;
-            color: var(--kb-text-secondary);
+            margin-top: 8px; padding: 8px 10px; background: #f8fafc;
+            border-left: 2px solid #3b82f6; border-radius: 0 6px 6px 0;
+            font-size: 12px; color: #6b7280;
         }
-        .kb-context-title {
-            font-weight: 600;
-            color: var(--kb-accent);
-            margin-bottom: 3px;
-        }
+        .kb-context-title { font-weight: 600; color: #3b82f6; margin-bottom: 3px; }
 
-        .kb-input-area {
-            padding: 12px 16px;
-            border-top: 1px solid var(--kb-border-light);
-            display: flex;
-            gap: 10px;
+        /* 输入区 */
+        .kb-inputbar {
+            padding: 12px 0 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .kb-input-wrap {
+            display: flex; gap: 10px; align-items: center;
         }
         .kb-input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid var(--kb-border);
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            transition: all 0.15s;
-            background: var(--kb-bg);
+            flex: 1; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px;
+            font-size: 14px; outline: none; transition: all .15s; background: #fff;
         }
-        .kb-input:focus {
-            border-color: var(--kb-accent);
-            background: var(--kb-card);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        .kb-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+        .kb-send {
+            padding: 12px 24px; background: #3b82f6; color: #fff; border: none;
+            border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s;
         }
-        .kb-send-btn {
-            padding: 10px 20px;
-            background: var(--kb-accent);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .kb-send-btn:hover { background: var(--kb-accent-hover); }
-        .kb-send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .kb-send:hover { background: #2563eb; }
+        .kb-send:disabled { opacity: .5; cursor: not-allowed; }
 
         .kb-empty {
-            text-align: center;
-            padding: 80px 20px;
-            color: var(--kb-text-tertiary);
+            text-align: center; padding: 80px 20px; color: #9ca3af;
         }
-        .kb-empty-icon { font-size: 40px; margin-bottom: 12px; }
-        .kb-empty-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--kb-text);
-            margin-bottom: 6px;
-        }
-        .kb-empty-desc { font-size: 12px; }
+        .kb-empty .icon { font-size: 48px; margin-bottom: 12px; }
+        .kb-empty .title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+        .kb-empty .desc { font-size: 13px; }
 
-        @media (max-width: 900px) {
-            .kb-layout { grid-template-columns: 1fr; height: auto; }
+        /* 抽屉 */
+        .kb-drawer-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 100;
+        }
+        .kb-drawer-overlay.open { display: block; }
+        .kb-drawer {
+            position: fixed; top: 0; right: -400px; width: 380px; height: 100vh;
+            background: #fff; z-index: 101; transition: right .25s ease-out;
+            box-shadow: -4px 0 20px rgba(0,0,0,.1); display: flex; flex-direction: column;
+        }
+        .kb-drawer.open { right: 0; }
+        .kb-drawer-header {
+            padding: 16px; border-bottom: 1px solid #e5e7eb;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .kb-drawer-header h3 { margin: 0; font-size: 15px; }
+        .kb-drawer-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .kb-doc-item {
+            padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 2px;
+            transition: background .12s;
+        }
+        .kb-doc-item:hover { background: #f9fafb; }
+        .kb-doc-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+        .kb-doc-meta { font-size: 11px; color: #9ca3af; display: flex; gap: 6px; align-items: center; }
+        .kb-cat-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+        .kb-delete { color: #ef4444; cursor: pointer; margin-left: auto; opacity: 0; transition: opacity .15s; }
+        .kb-doc-item:hover .kb-delete { opacity: .8; }
+        .kb-upload-area {
+            padding: 12px; border-top: 1px solid #e5e7eb;
         }
     </style>
 </head>
 <body>
 {% include '_navbar.html' %}
 
-<div class="kb-page">
-    <h1>智能知识库</h1>
-    <p class="subtitle">上传文档，AI 自动检索关联</p>
-
-    <div class="kb-layout">
-        <div class="kb-sidebar">
-            <div class="kb-sidebar-header">
-                <span class="kb-sidebar-title">文档列表</span>
-                <button class="kb-refresh-btn" onclick="loadDocs()">刷新</button>
-            </div>
-            <div style="padding:8px 10px;border-bottom:1px solid var(--kb-border-light);">
-                <input type="text" id="docSearchInput" placeholder="全文搜索..." 
-                       style="width:100%;padding:6px 10px;border:1px solid var(--kb-border);border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;"
-                       oninput="handleSearch(this.value)">
-            </div>
-            <div class="kb-doc-list" id="docList"></div>
-            <div id="searchResults" style="display:none;padding:8px 10px;max-height:300px;overflow-y:auto;border-bottom:1px solid var(--kb-border-light);"></div>
-            <div class="kb-upload-section">
-                <label class="kb-upload-btn" for="fileInput">
-                    上传文件（TXT/PDF/Word/Excel/CSV/图片）
-                </label>
-                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.xlsx,.xls,.csv,.png,.jpg,.jpeg" style="display:none" onchange="uploadFile(this)">
-                <div class="kb-paste-area">
-                    <textarea id="manualContent" placeholder="粘贴文本..."></textarea>
-                    <input type="text" id="manualTitle" placeholder="标题">
-                    <button class="kb-paste-btn" onclick="uploadManual()">添加</button>
-                </div>
-            </div>
+<div class="kb-fullpage">
+    <div class="kb-topbar">
+        <h1>智能知识库</h1>
+        <div class="actions">
+            <button class="kb-btn" onclick="loadInsights()">洞察</button>
+            <button class="kb-btn" onclick="loadHistory()">历史</button>
+            <button class="kb-btn" onclick="exportChat()">导出</button>
+            <button class="kb-btn" onclick="clearChat()">清空</button>
+            <button class="kb-btn" onclick="clearCache()">清缓存</button>
+            <button class="kb-btn kb-btn-primary" onclick="openDrawer()">📁 文档</button>
         </div>
+    </div>
 
-        <div class="kb-main">
-            <div class="kb-chat-header">
-                <span class="kb-chat-title">问答</span>
-                <div class="kb-header-actions">
-                    <button class="kb-action-btn" onclick="loadInsights()">知识洞察</button>
-                    <button class="kb-action-btn" onclick="loadHistory()">历史问答</button>
-                    <button class="kb-action-btn" onclick="exportChat()">导出</button>
-                    <button class="kb-action-btn" onclick="clearChat()">清空对话</button>
-                    <button class="kb-action-btn" onclick="clearCache()">清缓存</button>
-                </div>
-            </div>
-            <div class="kb-chat-area" id="chatArea">
-                <div class="kb-empty">
-                    <div class="kb-empty-icon">💬</div>
-                    <div class="kb-empty-title">知识库问答</div>
-                    <div class="kb-empty-desc">上传文档后在这里提问</div>
-                </div>
-            </div>
-            <div class="kb-input-area">
-                <input type="text" class="kb-input" id="questionInput" placeholder="输入问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
-                <button class="kb-send-btn" id="sendBtn" onclick="sendQuestion()">发送</button>
-            </div>
+    <div class="kb-chat" id="chatArea">
+        <div class="kb-empty">
+            <div class="icon">💬</div>
+            <div class="title">智能知识库问答</div>
+            <div class="desc">上传文档后在这里提问，AI自动检索关联</div>
+        </div>
+    </div>
+
+    <div class="kb-inputbar">
+        <div class="kb-input-wrap">
+            <input type="text" class="kb-input" id="questionInput" placeholder="输入问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
+            <button class="kb-send" id="sendBtn" onclick="sendQuestion()">发送</button>
         </div>
     </div>
 </div>
 
+<!-- 抽屉：文档管理 -->
+<div class="kb-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="kb-drawer" id="drawer">
+    <div class="kb-drawer-header">
+        <h3>文档管理</h3>
+        <button class="kb-btn" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="kb-drawer-body">
+        <input type="text" id="docSearchInput" placeholder="全文搜索..." 
+               style="width:100%;padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:8px;"
+               oninput="handleSearch(this.value)">
+        <div id="docList"></div>
+        <div id="searchResults" style="display:none;"></div>
+    </div>
+    <div class="kb-upload-area">
+        <label style="display:block;padding:10px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:6px;text-align:center;cursor:pointer;font-size:12px;color:#6b7280;" for="fileInput">
+            📎 上传文件（TXT/PDF/Word/Excel/CSV/图片）
+        </label>
+        <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.xlsx,.xls,.csv,.png,.jpg,.jpeg" style="display:none" onchange="uploadFile(this)">
+        <textarea id="manualContent" placeholder="粘贴文本..." style="width:100%;padding:7px;margin-top:6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;box-sizing:border-box;height:40px;resize:vertical;"></textarea>
+        <input type="text" id="manualTitle" placeholder="标题" style="width:100%;padding:7px;margin-top:4px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;box-sizing:border-box;">
+        <button class="kb-btn kb-btn-primary" style="width:100%;margin-top:6px;" onclick="uploadManual()">添加文档</button>
+    </div>
+</div>
+
 <script>
+let lastMsgId = null;
+
+function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawerOverlay').classList.add('open');
+    loadDocs();
+}
+function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+}
+
 async function loadDocs() {
     try {
         const res = await fetch('/knowledge-base/api/documents');
         const data = await res.json();
         if (data.status === 'success') renderDocs(data.documents);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
 }
 
 function renderDocs(docs) {
     const el = document.getElementById('docList');
-    if (!docs || docs.length === 0) {
-        el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:12px;">暂无文档</div>';
-        return;
-    }
-    const catColors = {
-        'CR数据': '#fee2e2', 'SOP操作指南': '#dcfce7', '项目计划': '#dbeafe',
-        '技术文档': '#f3e8ff', '图片资料': '#fff7ed', '测试文档': '#cffafe', '其他': '#f3f4f6'
-    };
+    if (!docs || !docs.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">暂无文档</div>'; return; }
+    const colors = {'CR数据':'#fee2e2','SOP操作指南':'#dcfce7','项目计划':'#dbeafe','技术文档':'#f3e8ff','图片资料':'#fff7ed','测试文档':'#cffafe','其他':'#f3f4f6'};
     el.innerHTML = docs.map(d => `
         <div class="kb-doc-item">
             <div class="kb-doc-title">${d.title}</div>
             <div class="kb-doc-meta">
-                <span class="kb-cat-tag" style="background:${catColors[d.category]||'#f3f4f6'};">${d.category||'其他'}</span>
-                <span>${d.chunk_count} 片段</span>
-                <span class="kb-delete-link" onclick="deleteDoc('${d.doc_id}')">删除</span>
+                <span class="kb-cat-tag" style="background:${colors[d.category]||'#f3f4f6'}">${d.category||'其他'}</span>
+                <span>${d.chunk_count}片段</span>
+                <span class="kb-delete" onclick="deleteDoc('${d.doc_id}')">删除</span>
             </div>
         </div>`).join('');
 }
 
 async function deleteDoc(id) {
-    if (!confirm('删除该文档？')) return;
+    if (!confirm('删除？')) return;
     await fetch(`/knowledge-base/api/documents/${id}`, { method: 'DELETE' });
     loadDocs();
 }
 
 async function clearChat() {
-    if (!confirm('清空对话历史？')) return;
+    if (!confirm('清空对话？')) return;
     await fetch('/knowledge-base/api/clear-history', { method: 'POST' });
     document.getElementById('chatArea').innerHTML = `
-        <div class="kb-empty">
-            <div class="kb-empty-icon">💬</div>
-            <div class="kb-empty-title">知识库问答</div>
-            <div class="kb-empty-desc">上传文档后在这里提问</div>
-        </div>`;
+        <div class="kb-empty"><div class="icon">💬</div><div class="title">智能知识库问答</div><div class="desc">上传文档后在这里提问</div></div>`;
 }
 
 async function clearCache() {
@@ -478,12 +266,45 @@ async function clearCache() {
     alert('缓存已清');
 }
 
+async function loadInsights() {
+    try {
+        const res = await fetch('/knowledge-base/api/insights');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const ins = data.insights;
+            let html = '## 知识洞察\\n\\n';
+            html += `**覆盖**: ${ins.coverage||''}\\n\\n`;
+            if (ins.gaps) html += `**缺失**: ${ins.gaps.join('、')}\\n\\n`;
+            if (ins.suggestions) html += `**建议**: ${ins.suggestions.join('、')}\\n\\n`;
+            if (ins.categories) { html += '**分类**: '; for (const [k,v] of Object.entries(ins.categories)) html += `${k}(${v}) `; html += '\\n'; }
+            document.getElementById('chatArea').innerHTML = '';
+            addMessage('ai', html);
+        }
+    } catch (e) { alert('失败'); }
+}
+
+async function loadHistory() {
+    try {
+        const res = await fetch('/knowledge-base/api/chat-history');
+        const data = await res.json();
+        if (data.status === 'success' && data.history.length) {
+            document.getElementById('chatArea').innerHTML = '';
+            for (const h of data.history.reverse()) {
+                addMessage('user', h.question);
+                addMessage('ai', h.answer);
+            }
+        } else { alert('暂无历史'); }
+    } catch (e) { alert('失败'); }
+}
+
+function exportChat() { window.open('/knowledge-base/api/export', '_blank'); }
+
 async function uploadFile(input) {
     const file = input.files[0];
     if (!file) return;
-    const btn = document.querySelector('.kb-upload-btn');
-    const isImage = file.type.startsWith('image/');
-    btn.textContent = isImage ? '识别中...' : '上传中...';
+    const isImg = file.type.startsWith('image/');
+    const label = document.querySelector('.kb-upload-area label');
+    label.textContent = isImg ? '识别中...' : '上传中...';
     const fd = new FormData();
     fd.append('file', file);
     try {
@@ -492,7 +313,7 @@ async function uploadFile(input) {
         alert(data.status === 'success' ? '完成' : '失败: ' + (data.error||''));
         loadDocs();
     } catch (e) { alert('失败'); }
-    btn.textContent = '上传文件（TXT/PDF/Word/Excel/CSV/图片）';
+    label.textContent = '📎 上传文件（TXT/PDF/Word/Excel/CSV/图片）';
     input.value = '';
 }
 
@@ -503,13 +324,10 @@ async function uploadManual() {
     const fd = new FormData();
     fd.append('title', title);
     fd.append('content', content);
-    const res = await fetch('/knowledge-base/api/documents', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (data.status === 'success') {
-        document.getElementById('manualTitle').value = '';
-        document.getElementById('manualContent').value = '';
-        loadDocs();
-    } else { alert('失败'); }
+    await fetch('/knowledge-base/api/documents', { method: 'POST', body: fd });
+    document.getElementById('manualTitle').value = '';
+    document.getElementById('manualContent').value = '';
+    loadDocs();
 }
 
 async function sendQuestion() {
@@ -517,35 +335,32 @@ async function sendQuestion() {
     const q = input.value.trim();
     if (!q) return;
     const btn = document.getElementById('sendBtn');
-    btn.disabled = true;
-    btn.textContent = '...';
+    btn.disabled = true; btn.textContent = '...';
     addMessage('user', q);
     input.value = '';
     const loadingId = addMessage('ai', '检索中...');
     try {
         const res = await fetch('/knowledge-base/api/ask', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: q })
         });
         const data = await res.json();
         removeMessage(loadingId);
-        if (data.status === 'success') addMessage('ai', data.answer, data.contexts);
-        else addMessage('ai', '出错: ' + (data.error||''));
-    } catch (e) {
-        removeMessage(loadingId);
-        addMessage('ai', '请求失败');
-    }
-    btn.disabled = false;
-    btn.textContent = '发送';
+        if (data.status === 'success') {
+            lastMsgId = addMessage('ai', data.answer, data.contexts);
+        } else {
+            addMessage('ai', '出错: ' + (data.error||''));
+        }
+    } catch (e) { removeMessage(loadingId); addMessage('ai', '请求失败'); }
+    btn.disabled = false; btn.textContent = '发送';
 }
 
-function renderMarkdown(text) {
+function renderMD(text) {
     if (!text) return '';
     let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    h = h.replace(/^### (.*)$/gm, '<h4 style="margin:8px 0 4px;font-size:13px;">$1</h4>');
-    h = h.replace(/^## (.*)$/gm, '<h3 style="margin:10px 0 6px;font-size:14px;">$1</h3>');
-    h = h.replace(/^# (.*)$/gm, '<h2 style="margin:12px 0 8px;font-size:15px;">$1</h2>');
+    h = h.replace(/^### (.*)$/gm, '<h4 style="margin:8px 0 4px;font-size:14px;">$1</h4>');
+    h = h.replace(/^## (.*)$/gm, '<h3 style="margin:10px 0 6px;font-size:15px;">$1</h3>');
+    h = h.replace(/^# (.*)$/gm, '<h2 style="margin:12px 0 8px;font-size:16px;">$1</h2>');
     h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
     h = h.replace(/^[-*] (.*)$/gm, '<li>$1</li>');
@@ -560,20 +375,27 @@ function addMessage(role, content, contexts) {
     const empty = area.querySelector('.kb-empty');
     if (empty) empty.remove();
     const div = document.createElement('div');
-    div.className = 'kb-message ' + role;
-    div.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+    div.className = 'kb-msg ' + role;
+    const id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+    div.id = id;
     const avatar = role === 'user' ? '👤' : '🤖';
-    const body = role === 'ai' ? renderMarkdown(content) : content;
-    let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">${body}`;
-    if (contexts && contexts.length > 0) {
+    let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">`;
+    html += role === 'ai' ? renderMD(content) : content;
+    if (contexts && contexts.length) {
         html += '<div class="kb-context"><div class="kb-context-title">参考来源</div>' +
             contexts.map(c => `• ${c.title}`).join('<br>') + '</div>';
+    }
+    if (role === 'ai') {
+        html += `<div class="kb-feedback">
+            <button class="kb-fb-btn" onclick="feedback(this,'up')">👍 有用</button>
+            <button class="kb-fb-btn" onclick="feedback(this,'down')">👎 没用</button>
+        </div>`;
     }
     html += '</div>';
     div.innerHTML = html;
     area.appendChild(div);
     area.scrollTop = area.scrollHeight;
-    return div.id;
+    return id;
 }
 
 function removeMessage(id) {
@@ -581,59 +403,22 @@ function removeMessage(id) {
     if (el) el.remove();
 }
 
+async function feedback(btn, type) {
+    const msgDiv = btn.closest('.kb-msg');
+    const q = msgDiv.querySelector('.kb-bubble').innerText.substring(0, 200);
+    // 取消其他按钮
+    btn.parentElement.querySelectorAll('.kb-fb-btn').forEach(b => b.classList.remove('active-up','active-down'));
+    btn.classList.add(type === 'up' ? 'active-up' : 'active-down');
+    // 记录反馈
+    try {
+        await fetch('/knowledge-base/api/feedback', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: q, feedback: type })
+        });
+    } catch (e) {}
+}
+
 let searchTimer = null;
-
-async function loadInsights() {
-    try {
-        const res = await fetch('/knowledge-base/api/insights');
-        const data = await res.json();
-        if (data.status === 'success') {
-            const ins = data.insights;
-            let html = '## 知识洞察\\n\\n';
-            html += `**覆盖情况**: ${ins.coverage || ''}\\n\\n`;
-            if (ins.gaps && ins.gaps.length) {
-                html += `**缺失文档**: ${ins.gaps.join('、')}\\n\\n`;
-            }
-            if (ins.suggestions && ins.suggestions.length) {
-                html += `**建议补充**: ${ins.suggestions.join('、')}\\n\\n`;
-            }
-            if (ins.categories) {
-                html += `**分类统计**: `;
-                for (const [k,v] of Object.entries(ins.categories)) {
-                    html += `${k}(${v}) `;
-                }
-                html += '\\n';
-            }
-            const area = document.getElementById('chatArea');
-            area.innerHTML = '';
-            addMessage('ai', html);
-        } else {
-            alert('分析失败: ' + data.error);
-        }
-    } catch (e) { alert('加载失败'); }
-}
-
-async function loadHistory() {
-    try {
-        const res = await fetch('/knowledge-base/api/chat-history');
-        const data = await res.json();
-        if (data.status === 'success' && data.history.length > 0) {
-            const area = document.getElementById('chatArea');
-            area.innerHTML = '';
-            for (const h of data.history.reverse()) {
-                addMessage('user', h.question);
-                addMessage('ai', h.answer);
-            }
-        } else {
-            alert('暂无历史记录');
-        }
-    } catch (e) { alert('加载失败'); }
-}
-
-function exportChat() {
-    window.open('/knowledge-base/api/export', '_blank');
-}
-
 function handleSearch(val) {
     clearTimeout(searchTimer);
     if (!val.trim()) {
@@ -645,20 +430,17 @@ function handleSearch(val) {
         try {
             const res = await fetch(`/knowledge-base/api/search?q=${encodeURIComponent(val)}`);
             const data = await res.json();
-            if (data.status === 'success' && data.results.length > 0) {
+            if (data.status === 'success' && data.results.length) {
                 document.getElementById('docList').style.display = 'none';
                 const sr = document.getElementById('searchResults');
                 sr.style.display = '';
-                sr.innerHTML = '<div style="font-size:11px;color:var(--kb-text-tertiary);margin-bottom:4px;">找到 ' + data.count + ' 条</div>' +
-                    data.results.map(r => `<div style="padding:6px 8px;margin-bottom:2px;background:var(--kb-bg);border-radius:4px;font-size:12px;">
-                        <div style="font-weight:600;color:var(--kb-text);margin-bottom:2px;">${r.title}</div>
-                        <div style="color:var(--kb-text-secondary);font-size:11px;">${r.content.substring(0,150)}...</div>
+                sr.innerHTML = '<div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">' + data.count + '条结果</div>' +
+                    data.results.map(r => `<div style="padding:6px 8px;margin-bottom:2px;background:#f9fafb;border-radius:4px;font-size:12px;">
+                        <div style="font-weight:600;">${r.title}</div>
+                        <div style="color:#6b7280;font-size:11px;">${r.content.substring(0,120)}...</div>
                     </div>`).join('');
-            } else {
-                document.getElementById('searchResults').style.display = 'none';
-                document.getElementById('docList').style.display = '';
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     }, 300);
 }
 
