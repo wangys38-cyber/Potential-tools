@@ -248,9 +248,9 @@ class KnowledgeBase:
                         if hits >= 2:  # 至少命中2个关键词
                             scored.append((hits, idx))
                     
-                    # 按命中数排序，取前5个补充
+                    # 按命中数排序，取前10个补充
                     scored.sort(reverse=True)
-                    for hits, idx in scored[:5]:
+                    for hits, idx in scored[:10]:
                         doc_id = all_data['ids'][idx]
                         if doc_id not in seen_ids:
                             seen_ids.add(doc_id)
