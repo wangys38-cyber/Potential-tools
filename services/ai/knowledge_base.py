@@ -264,6 +264,18 @@ class KnowledgeBase:
 
     def add_document(self, doc_id: str, title: str, content: str, metadata: Dict = None) -> bool:
         try:
+            # 同名替换：如果已有同名文档，先删旧版本
+            existing = self.list_documents()
+            for doc in existing:
+                if doc.get('title') == title and doc.get('doc_id') != doc_id:
+                    old_id = doc.get('doc_id')
+                    if old_id:
+                        try:
+                            self.delete_document(old_id)
+                            logger.info(f"替换旧版本: {old_id} -> {doc_id}")
+                        except Exception as e:
+                            logger.warning(f"删除旧版本失败: {e}")
+            
             chunks = self._split_text(content, chunk_size=800, overlap=150)
             if not chunks:
                 return False
@@ -378,7 +390,17 @@ class KnowledgeBase:
                 else:
                     c['_adjusted_score'] = c.get('rerank_score', c.get('score', 0))
             all_results.sort(key=lambda x: x.get('_adjusted_score', 0), reverse=True)
-            return all_results[:top_k]
+            # 按文档聚合：同一文档的多个chunk合并，保留最高分chunk的分数
+            by_doc = {}
+            for c in all_results:
+                did = c.get('metadata', {}).get('doc_id', c.get('_did', ''))
+                if did not in by_doc:
+                    by_doc[did] = c
+                else:
+                    # 合并内容
+                    by_doc[did]['content'] += '\n' + c['content']
+            merged = sorted(by_doc.values(), key=lambda x: x.get('_adjusted_score', 0), reverse=True)
+            return merged[:top_k]
         except Exception as e:
             logger.error(f"查询失败: {e}")
             return []

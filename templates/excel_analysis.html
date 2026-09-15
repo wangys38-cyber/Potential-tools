@@ -389,7 +389,7 @@ function getCRDataForPipeline() {
 function pushToTrend() {
     const data = getCRDataForPipeline();
     if (!data.issues || data.issues.length === 0) {
-        alert('请先完成 CR 分析');
+        if (!silent) alert('请先完成 CR 分析');
         return;
     }
     window.pushToPipeline('cr_to_trend', data, 'CR 分析趋势数据');
@@ -427,7 +427,7 @@ function pushToEmail() {
     }
 }
 
-function syncToKnowledgeBase() {
+function syncToKnowledgeBase(silent) {
     const data = getCRDataForPipeline();
     if (!data.issues || data.issues.length === 0) {
         alert('请先完成 CR 分析');
@@ -458,14 +458,16 @@ function syncToKnowledgeBase() {
         })
         .then(r => r.json())
         .then(result => {
-            if (result.status === 'success') {
-                alert('✅ ' + result.message + '\n现在可以在智能知识库中提问 CR 相关问题了');
-            } else {
-                alert('同步失败: ' + result.error);
+            if (!silent) {
+                if (result.status === 'success') {
+                    alert('✅ ' + result.message + '\n现在可以在智能知识库中提问 CR 相关问题了');
+                } else {
+                    alert('同步失败: ' + result.error);
+                }
             }
         })
         .catch(e => {
-            alert('同步失败: ' + e.message);
+            if (!silent) alert('同步失败: ' + e.message);
         })
         .finally(() => {
             btn.textContent = originalText;
@@ -498,5 +500,23 @@ function pushFullWorkflow() {
 }
 </script>
 <script src="/static/js/page/excel_analysis.js?v={{ STATIC_VERSION }}"></script>
+
+<script>
+// 自动同步到知识库：CR分析完成后静默同步一次
+(function(){
+    let synced = false;
+    setInterval(function(){
+        if (synced) return;
+        try {
+            var data = getCRDataForPipeline();
+            if (data && data.issues && data.issues.length > 0) {
+                synced = true;
+                console.log('[自动同步] CR分析完成，同步到知识库...');
+                syncToKnowledgeBase(true);
+            }
+        } catch(e) {}
+    }, 3000);
+})();
+</script>
 </body>
 </html>

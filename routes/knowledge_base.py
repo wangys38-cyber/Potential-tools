@@ -661,6 +661,68 @@ def save_feedback():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@kb_bp.route('/api/export-report', methods=['GET'])
+def export_weekly_report():
+    """导出为周报格式（Markdown）"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        conn = _get_db()
+        c = conn.cursor()
+        c.execute('SELECT question, answer, created_at FROM kb_chat_history WHERE user_id=? ORDER BY id DESC LIMIT 20', (user_id,))
+        rows = c.fetchall()
+        conn.close()
+        
+        from datetime import datetime
+        report = f"# 知识库周报\n\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        report += "## 近期问答摘要\n\n"
+        for q, a, t in reversed(rows):
+            report += f"### Q: {q}\n\n{a[:500]}\n\n---\n\n"
+        
+        return jsonify({"status": "success", "report": report})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/health', methods=['GET'])
+def kb_health():
+    """知识库健康度：过期文档/重复检测/统计"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        kb = get_knowledge_base(user_id)
+        docs = kb.list_documents()
+        
+        import time
+        now = time.time()
+        stale_days = 30 * 86400
+        stale_docs = []
+        for d in docs:
+            created = d.get('created_at', '')
+            try:
+                if isinstance(created, str):
+                    ct = time.mktime(time.strptime(created[:19], '%Y-%m-%d %H:%M:%S'))
+                else:
+                    ct = float(created)
+                if now - ct > stale_days:
+                    stale_docs.append({
+                        'title': d.get('title', ''),
+                        'days_old': int((now - ct) / 86400)
+                    })
+            except:
+                pass
+        
+        return jsonify({
+            "status": "success",
+            "health": {
+                "total_docs": len(docs),
+                "stale_docs": stale_docs,
+                "stale_count": len(stale_docs),
+                "categories": list(set(d.get('category', '其他') for d in docs))
+            }
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/daily-brief', methods=['GET'])
 def daily_brief():
     """每日自动分析：生成CR简报"""
