@@ -86,7 +86,7 @@ def parse_csv_file(file_obj) -> str:
 
 
 def parse_excel_file(file_obj) -> str:
-    """Excel 文件结构化解析 - 完整解析所有行"""
+    """Excel 文件结构化解析 - 识别甘特图/排计划格式"""
     try:
         import pandas as pd
         xls = pd.ExcelFile(file_obj)
@@ -99,7 +99,7 @@ def parse_excel_file(file_obj) -> str:
         
         for sheet_name in xls.sheet_names:
             try:
-                df = pd.read_excel(xls, sheet_name=sheet_name)
+                df = pd.read_excel(xls, sheet_name=sheet_name, header=None)
                 result_parts.append(f"=== 工作表: {sheet_name} ===")
                 
                 if len(df) == 0:
@@ -107,26 +107,64 @@ def parse_excel_file(file_obj) -> str:
                     result_parts.append("")
                     continue
                 
-                result_parts.append(f"共 {len(df)} 行，{len(df.columns)} 列")
-                result_parts.append(f"字段: {', '.join(df.columns.tolist())}")
-                result_parts.append("")
+                # 尝试识别甘特图格式（前几行是时间节点表头）
+                gantt_keywords = ['TR', 'EVB', 'EVT', 'DVT', 'PVT', 'CP1', 'CP2', 'SR5', 'SR6', 'Plan', 'CWV', 'Bring', 'launch', 'FC', 'CF', 'LC']
+                header_row = None
+                for i in range(min(5, len(df))):
+                    row_vals = [str(v).strip() for v in df.iloc[i].values if pd.notna(v)]
+                    match_count = sum(1 for kw in gantt_keywords if any(kw in v for v in row_vals))
+                    if match_count >= 3:
+                        header_row = i
+                        break
                 
-                # 解析所有行数据（不限制行数）
-                result_parts.append("完整数据:")
-                for idx, row in df.iterrows():
-                    row_str = " | ".join([f"{col}: {row[col]}" for col in df.columns if pd.notna(row[col])])
-                    if row_str.strip():
-                        result_parts.append(f"第{idx+1}行: {row_str}")
-                
-                # 分类字段统计
-                result_parts.append("")
-                result_parts.append("字段统计:")
-                for col in df.columns:
-                    unique_count = df[col].nunique()
-                    result_parts.append(f"  「{col}」: {len(df[col].dropna())} 条数据，{unique_count} 个不同值")
-                    if unique_count <= 30:
-                        counts = df[col].value_counts()
-                        result_parts.append("    分布: " + "、".join([f"{k}={v}个" for k, v in counts.head(20).items()]))
+                if header_row is not None:
+                    # 甘特图格式：横向时间节点，纵向模块
+                    result_parts.append("（识别为甘特图/排计划格式）")
+                    result_parts.append("")
+                    
+                    # 读取表头（时间节点）
+                    time_nodes = []
+                    for j in range(df.shape[1]):
+                        if pd.notna(df.iloc[header_row, j]):
+                            time_nodes.append((j, str(df.iloc[header_row, j]).strip()))
+                    
+                    # 逐行读取数据
+                    for i in range(header_row + 1, len(df)):
+                        row = df.iloc[i]
+                        # 第一列通常是模块名
+                        module_name = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
+                        if not module_name or module_name == 'nan':
+                            continue
+                        
+                        # 第二列通常是 Plan/CWV
+                        plan_type = str(row.iloc[1]).strip() if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                        
+                        # 读取每个时间节点的值
+                        tasks = []
+                        for col_idx, node_name in time_nodes:
+                            if col_idx < len(row) and pd.notna(row.iloc[col_idx]):
+                                val = str(row.iloc[col_idx]).strip()
+                                if val and val != 'nan':
+                                    tasks.append(f"{node_name}: {val}")
+                        
+                        if tasks:
+                            title = module_name
+                            if plan_type and plan_type != 'nan':
+                                title += f" ({plan_type})"
+                            result_parts.append(f"【{title}】")
+                            result_parts.append("  " + "、".join(tasks))
+                            result_parts.append("")
+                else:
+                    # 普通表格格式
+                    result_parts.append(f"共 {len(df)} 行，{len(df.columns)} 列")
+                    result_parts.append("")
+                    
+                    # 完整数据
+                    result_parts.append("完整数据:")
+                    for idx, row in df.iterrows():
+                        row_str = " | ".join([f"{df.columns[j] if j < len(df.columns) else f'列{j}'}: {row.iloc[j]}" for j in range(len(row)) if pd.notna(row.iloc[j])])
+                        if row_str.strip():
+                            result_parts.append(f"第{idx+1}行: {row_str}")
                 
                 result_parts.append("")
             except Exception as sheet_err:
