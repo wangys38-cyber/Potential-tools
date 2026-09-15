@@ -465,3 +465,14 @@ def clear_cache():
     kb = get_knowledge_base(g.user_id if hasattr(g, 'user_id') else 1)
     kb.clear_cache()
     return jsonify({"status": "success", "message": "缓存已清空"})
+
+@kb_bp.route('/api/search', methods=['GET'])
+def full_search():
+    """全文精确搜索（不经过AI）"""
+    keyword = request.args.get('q', '').strip()
+    if not keyword:
+        return jsonify({"status": "error", "error": "请输入搜索关键词"}), 400
+    kb = get_knowledge_base(g.user_id if hasattr(g, 'user_id') else 1)
+    results = kb.full_text_search(keyword, top_k=20)
+    return jsonify({"status": "success", "results": results, "count": len(results)})
+

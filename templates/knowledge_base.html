@@ -380,7 +380,13 @@
                 <span class="kb-sidebar-title">文档列表</span>
                 <button class="kb-refresh-btn" onclick="loadDocs()">刷新</button>
             </div>
+            <div style="padding:8px 10px;border-bottom:1px solid var(--kb-border-light);">
+                <input type="text" id="docSearchInput" placeholder="全文搜索..." 
+                       style="width:100%;padding:6px 10px;border:1px solid var(--kb-border);border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;"
+                       oninput="handleSearch(this.value)">
+            </div>
             <div class="kb-doc-list" id="docList"></div>
+            <div id="searchResults" style="display:none;padding:8px 10px;max-height:300px;overflow-y:auto;border-bottom:1px solid var(--kb-border-light);"></div>
             <div class="kb-upload-section">
                 <label class="kb-upload-btn" for="fileInput">
                     上传文件（TXT/PDF/Word/Excel/CSV/图片）
@@ -570,6 +576,35 @@ function addMessage(role, content, contexts) {
 function removeMessage(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
+}
+
+let searchTimer = null;
+function handleSearch(val) {
+    clearTimeout(searchTimer);
+    if (!val.trim()) {
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('docList').style.display = '';
+        return;
+    }
+    searchTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(`/knowledge-base/api/search?q=${encodeURIComponent(val)}`);
+            const data = await res.json();
+            if (data.status === 'success' && data.results.length > 0) {
+                document.getElementById('docList').style.display = 'none';
+                const sr = document.getElementById('searchResults');
+                sr.style.display = '';
+                sr.innerHTML = '<div style="font-size:11px;color:var(--kb-text-tertiary);margin-bottom:4px;">找到 ' + data.count + ' 条</div>' +
+                    data.results.map(r => `<div style="padding:6px 8px;margin-bottom:2px;background:var(--kb-bg);border-radius:4px;font-size:12px;">
+                        <div style="font-weight:600;color:var(--kb-text);margin-bottom:2px;">${r.title}</div>
+                        <div style="color:var(--kb-text-secondary);font-size:11px;">${r.content.substring(0,150)}...</div>
+                    </div>`).join('');
+            } else {
+                document.getElementById('searchResults').style.display = 'none';
+                document.getElementById('docList').style.display = '';
+            }
+        } catch (e) { console.error(e); }
+    }, 300);
 }
 
 loadDocs();
