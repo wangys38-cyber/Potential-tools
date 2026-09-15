@@ -180,6 +180,9 @@ class KnowledgeBase:
             if not chunks:
                 return False
             
+            # 每个 chunk 开头都加上文档标题，确保检索时能命中
+            chunks = [f"【文档：{title}】\n{c}" for c in chunks]
+            
             # 生成 embedding
             embeddings = get_embedding_func()(chunks)
             
