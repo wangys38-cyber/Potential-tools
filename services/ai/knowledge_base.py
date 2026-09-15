@@ -71,6 +71,81 @@ def get_llm_response(prompt: str) -> str:
         return f"AI 回答失败: {str(e)}"
 
 
+def get_ai_config():
+    """从数据库获取 AI 配置"""
+    try:
+        import os
+        os.environ.setdefault('DB_DIR', r'D:\app\data')
+        from db.base import engine
+        from sqlalchemy import text
+        
+        with engine.connect() as conn:
+            row = conn.execute(text(
+                "SELECT api_key, base_url, model FROM ai_configs WHERE is_active=1 LIMIT 1"
+            )).fetchone()
+            if row:
+                return {
+                    'api_key': row[0],
+                    'base_url': row[1] or 'https://open.bigmodel.cn/api/paas/v4',
+                    'model': row[2] or 'glm-4-plus'
+                }
+    except Exception as e:
+        logger.error(f"获取AI配置失败: {e}")
+    return None
+
+
+def analyze_image_with_ai(image_bytes: bytes, image_format: str = 'png') -> str:
+    """使用多模态 AI 分析图片内容"""
+    import base64
+    import requests
+    
+    config = get_ai_config()
+    if not config:
+        return "AI 服务未配置，无法识别图片。"
+    
+    # 转为 base64
+    b64_image = base64.b64encode(image_bytes).decode('utf-8')
+    
+    # 调用 GLM-4V 多模态接口
+    url = config['base_url'].rstrip('/') + '/chat/completions'
+    headers = {
+        'Authorization': f'Bearer {config["api_key"]}',
+        'Content-Type': 'application/json'
+    }
+    
+    payload = {
+        'model': 'glm-4v-plus',
+        'messages': [
+            {
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'image_url',
+                        'image_url': {
+                            'url': f'data:image/{image_format};base64,{b64_image}'
+                        }
+                    },
+                    {
+                        'type': 'text',
+                        'text': '请详细描述这张图片的内容，包括：\n1. 图片类型（截图/照片/图表/流程图等）\n2. 所有文字内容（OCR识别）\n3. 如果是Bug截图，描述界面和错误信息\n4. 如果是图表，描述数据趋势\n5. 如果是流程图，描述流程步骤\n\n请用结构化的方式输出，方便存入知识库。'
+                    }
+                ]
+            }
+        ],
+        'temperature': 0.3,
+        'max_tokens': 2000
+    }
+    
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        resp.raise_for_status()
+        result = resp.json()
+        return result['choices'][0]['message']['content']
+    except Exception as e:
+        logger.error(f"多模态AI识别失败: {e}")
+        return f"图片识别失败: {str(e)}. 请确认 AI 模型支持多模态（如 glm-4v-plus）。"
+
+
 class KnowledgeBase:
     """智能知识库 - 轻量实现（基于 ChromaDB）"""
     

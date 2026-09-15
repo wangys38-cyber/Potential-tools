@@ -4,7 +4,7 @@
 import os
 import logging
 from flask import Blueprint, request, jsonify, render_template, g
-from services.ai.knowledge_base import get_knowledge_base
+from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +116,20 @@ def upload_file():
         filename = file.filename
         ext = os.path.splitext(filename)[1].lower()
         
-        # 读取文件内容
-        if ext in ['.txt', '.md', '.csv']:
+        # 图片文件 - 用多模态 AI 识别
+        if ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']:
+            image_bytes = file.read()
+            image_format = ext[1:]  # 去掉点号
+            
+            # 调用多模态 AI 识别图片内容
+            recognized_content = analyze_image_with_ai(image_bytes, image_format)
+            
+            if not recognized_content or recognized_content.startswith('图片识别失败'):
+                return jsonify({"status": "error", "error": recognized_content}), 500
+            
+            content = f"【图片识别结果】\n文件: {filename}\n\n{recognized_content}"
+            title = os.path.splitext(filename)[0]
+        elif ext in ['.txt', '.md', '.csv']:
             content = file.read().decode('utf-8', errors='ignore')
         elif ext == '.pdf':
             try:

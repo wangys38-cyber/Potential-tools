@@ -244,9 +244,9 @@
             </div>
             <div class="kb-upload-section">
                 <label class="kb-upload-btn" for="fileInput">
-                    📤 上传文件（TXT/MD/PDF/Word）
+                    📤 上传文件（TXT/MD/PDF/Word/图片）
                 </label>
-                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.csv" style="display:none" onchange="uploadFile(this)">
+                <input type="file" id="fileInput" accept=".txt,.md,.pdf,.docx,.csv,.png,.jpg,.jpeg,.gif,.bmp,.webp" style="display:none" onchange="uploadFile(this)">
                 <div style="margin-top:8px;">
                     <textarea id="manualContent" placeholder="或直接粘贴文本内容..." style="width:100%;height:60px;padding:8px;border:1px solid var(--ds-border,#e5e5ea);border-radius:6px;font-size:12px;resize:vertical;"></textarea>
                     <input type="text" id="manualTitle" placeholder="文档标题" style="width:100%;padding:6px 8px;margin-top:4px;border:1px solid var(--ds-border,#e5e5ea);border-radius:6px;font-size:12px;">
@@ -320,7 +320,10 @@ async function uploadFile(input) {
     formData.append('file', file);
     
     const btn = document.querySelector('.kb-upload-btn');
-    btn.textContent = '上传中...';
+    
+    // 判断是否是图片
+    const isImage = file.type.startsWith('image/');
+    btn.textContent = isImage ? '🤖 AI 识别图片中...' : '上传中...';
     
     try {
         const res = await fetch('/knowledge-base/api/upload-file', {
@@ -329,7 +332,7 @@ async function uploadFile(input) {
         });
         const data = await res.json();
         if (data.status === 'success') {
-            alert('上传成功！');
+            alert(isImage ? '图片识别成功，已存入知识库！' : '上传成功！');
             loadDocs();
         } else {
             alert('上传失败: ' + data.error);
@@ -337,7 +340,7 @@ async function uploadFile(input) {
     } catch (e) {
         alert('上传失败: ' + e.message);
     } finally {
-        btn.textContent = '📤 上传文件（TXT/MD/PDF/Word）';
+        btn.textContent = '📤 上传文件（TXT/MD/PDF/Word/图片）';
         input.value = '';
     }
 }
