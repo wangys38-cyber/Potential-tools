@@ -461,6 +461,93 @@ def get_graph_stats():
     })
 
 
+
+
+
+@bp.route('/api/kg/expertise', methods=['GET'])
+def get_expertise_analysis():
+    """研发能力画像：分析每个研发善于处理哪些模块/类型的问题"""
+    user_id = getattr(g, 'user_id', None)
+    graph = load_graph(user_id)
+
+    nodes = graph.get('nodes', [])
+    relations = graph.get('relations', [])
+
+    # 建立节点ID到节点的映射
+    node_map = {n['id']: n for n in nodes}
+
+    # 找出所有人员节点
+    persons = [n for n in nodes if n['type'] == 'person']
+
+    # 为每个人员统计关联的模块和bug
+    person_expertise = []
+
+    for person in persons:
+        person_id = person['id']
+        person_name = person['name']
+
+        # 找出与该人员相关的所有关系
+        related_modules = set()
+        fixed_bugs = []
+        assigned_bugs = []
+
+        for rel in relations:
+            # 人员作为源（负责/修复）
+            if rel['source'] == person_id:
+                target_node = node_map.get(rel['target'])
+                if target_node:
+                    if rel['type'] == 'assigned':
+                        if target_node['type'] == 'bug':
+                            assigned_bugs.append(target_node)
+                        elif target_node['type'] == 'module':
+                            related_modules.add(target_node['name'])
+                    elif rel['type'] == 'fixed':
+                        if target_node['type'] == 'bug':
+                            fixed_bugs.append(target_node)
+                    elif rel['type'] == 'part_of':
+                        if target_node['type'] == 'module':
+                            related_modules.add(target_node['name'])
+
+            # 人员作为目标（被负责/被修复）
+            elif rel['target'] == person_id:
+                source_node = node_map.get(rel['source'])
+                if source_node:
+                    if rel['type'] in ('assigned', 'fixed'):
+                        if source_node['type'] == 'module':
+                            related_modules.add(source_node['name'])
+
+        # 统计严重程度分布
+        severity_dist = defaultdict(int)
+        for bug in fixed_bugs + assigned_bugs:
+            sev = bug.get('properties', {}).get('severity', 'unknown')
+            severity_dist[sev] += 1
+
+        total_bugs = len(fixed_bugs) + len(assigned_bugs)
+
+        # 计算能力得分（修复过的bug数 + 涉及的模块数）
+        expertise_score = len(fixed_bugs) * 2 + len(assigned_bugs) + len(related_modules)
+
+        if total_bugs > 0 or related_modules:
+            person_expertise.append({
+                'name': person_name,
+                'total_bugs': total_bugs,
+                'fixed_count': len(fixed_bugs),
+                'assigned_count': len(assigned_bugs),
+                'expertise_modules': sorted(list(related_modules))[:10],
+                'module_count': len(related_modules),
+                'severity_distribution': dict(severity_dist),
+                'expertise_score': expertise_score,
+            })
+
+    # 按能力得分排序
+    person_expertise.sort(key=lambda x: x['expertise_score'], reverse=True)
+
+    return jsonify({
+        'status': 'success',
+        'total_persons': len(persons),
+        'person_expertise': person_expertise,
+    })
+
 # ==================== 自动知识抽取 ====================
 
 @bp.route('/api/kg/extract', methods=['POST'])
