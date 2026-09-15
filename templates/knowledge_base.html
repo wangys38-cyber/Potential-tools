@@ -392,10 +392,24 @@ function addMessage(role, content, contexts) {
     div.id = id;
     const avatar = role === 'user' ? '👤' : '🤖';
     let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">`;
-    html += role === 'ai' ? renderMD(content) : content;
+    let answerHtml = role === 'ai' ? renderMD(content) : content;
+    // 把[来源N]替换成灰色小号文档名
+    if (role === 'ai' && contexts && contexts.length) {
+        for (let i = 0; i < contexts.length; i++) {
+            const n = i + 1;
+            const title = contexts[i].title || '文档' + n;
+            // 转义HTML
+            const safeTitle = title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const tag = `<span style="color:#999;font-size:11px;background:#f5f5f5;padding:1px 4px;border-radius:3px;margin:0 1px;">${safeTitle}</span>`;
+            answerHtml = answerHtml.replace(new RegExp('\\[来源' + n + '\\]', 'g'), tag);
+            // 也处理[1][2]这种简写
+            answerHtml = answerHtml.replace(new RegExp('\\[' + n + '\\]', 'g'), tag);
+        }
+    }
+    html += answerHtml;
     if (contexts && contexts.length) {
         html += '<div class="kb-context"><div class="kb-context-title">参考来源</div>' +
-            contexts.map(c => `• ${c.title}`).join('<br>') + '</div>';
+            contexts.map((c,i) => `<span style="color:#999;font-size:11px;">[${i+1}] ${c.title}</span>`).join('<br>') + '</div>';
     }
     if (role === 'ai') {
         html += `<div class="kb-feedback">
