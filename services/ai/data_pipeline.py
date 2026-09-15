@@ -498,21 +498,21 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
     if trend_image:
         body += f'<h3 style="color: #1d1d1f; margin-top: 24px;">📈 每日趋势与累计Bug曲线</h3><img src="{trend_image}" style="max-width: 100%; border-radius: 8px;">'
 
-    # AI 智能分析内容
+    # 分析摘要内容（去掉AI感，改成自然周报风格）
     full_analysis = ai_analysis.get('full_analysis') or {}
     if full_analysis:
-        body += '<h3 style="color: #1d1d1f;">🤖 AI 智能分析</h3>'
+        body += '<h3 style="color: #1d1d1f; margin-top: 24px;">分析摘要</h3>'
 
         # 根因分析
         root_cause = full_analysis.get('root_cause') or {}
         rc_ai = root_cause.get('ai_analysis') or {}
         if rc_ai:
-            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f0f7ff; border-radius: 8px; border-left: 3px solid #007aff;">'
-            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">🎯 根因分析</div>'
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f5f5f7; border-radius: 8px;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">关键发现</div>'
             if rc_ai.get('risk_assessment'):
                 body += f'<div style="font-size: 13px; color: #1d1d1f; margin-bottom: 8px; line-height: 1.6;">{rc_ai["risk_assessment"]}</div>'
             if rc_ai.get('key_findings'):
-                body += '<ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #86868b; line-height: 1.8;">'
+                body += '<ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #48484a; line-height: 1.8;">'
                 for finding in rc_ai['key_findings'][:5]:
                     body += f'<li>{finding}</li>'
                 body += '</ul>'
@@ -521,21 +521,21 @@ def transform_cr_to_email(cr_data: Dict, trend_image: str = None) -> Dict:
         # 趋势预测
         prediction = full_analysis.get('prediction') or {}
         if prediction.get('status') == 'success':
-            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f0fff4; border-radius: 8px; border-left: 3px solid #34c759;">'
-            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">📈 趋势预测</div>'
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f5f5f7; border-radius: 8px;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">趋势判断</div>'
             body += '<table style="width: 100%; border-collapse: collapse;">'
             body += '<tr>'
-            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">趋势</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("trend_icon", "")} {prediction.get("trend", "-")}</div></td>'
-            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">未来7天新增</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("total_predicted_new", 0)}</div></td>'
-            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">置信度</div><div style="font-size: 18px; font-weight: 600;">{prediction.get("confidence", 0)}%</div></td>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">趋势</div><div style="font-size: 16px; font-weight: 600;">{prediction.get("trend", "-")}</div></td>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">未来7天预计新增</div><div style="font-size: 16px; font-weight: 600;">{prediction.get("total_predicted_new", 0)}</div></td>'
+            body += f'<td style="text-align: center; padding: 8px;"><div style="font-size: 11px; color: #86868b;">置信度</div><div style="font-size: 16px; font-weight: 600;">{prediction.get("confidence", 0)}%</div></td>'
             body += '</tr></table></div>'
 
         # 改进计划
         improvement = full_analysis.get('improvement') or {}
         imp_plan = improvement.get('plan') or {}
         if imp_plan.get('short_term'):
-            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #fff8f0; border-radius: 8px; border-left: 3px solid #ff9500;">'
-            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">📋 改进建议</div>'
+            body += '<div style="margin-bottom: 16px; padding: 12px 16px; background: #f5f5f7; border-radius: 8px;">'
+            body += '<div style="font-weight: 600; font-size: 14px; color: #1d1d1f; margin-bottom: 8px;">改进建议</div>'
             body += '<div style="font-size: 12px; font-weight: 600; color: #86868b; margin-bottom: 4px;">短期（1-2周）</div>'
             body += '<ul style="margin: 0 0 8px; padding-left: 20px; font-size: 12px; color: #1d1d1f; line-height: 1.8;">'
             for item in imp_plan['short_term'][:3]:
