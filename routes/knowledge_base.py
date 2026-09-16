@@ -3,6 +3,7 @@
 """
 import os
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_XET'] = '1'
 import csv
 import io
 import logging
@@ -725,6 +726,7 @@ def mic_stop():
         
         # whisper识别
         os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_DISABLE_XET'] = '1'
         from faster_whisper import WhisperModel
         if not hasattr(mic_stop, '_model'):
             mic_stop._model = WhisperModel('tiny', device='cpu', compute_type='int8')
