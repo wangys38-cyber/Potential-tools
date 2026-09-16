@@ -109,6 +109,13 @@
             font-size: 14px; outline: none; transition: all .15s; background: #fff;
         }
         .kb-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+        .kb-mic {
+            padding: 12px 14px; background: #f5f5f5; border: 1px solid #e5e7eb; border-radius: 10px;
+            font-size: 16px; cursor: pointer; transition: all .15s;
+        }
+        .kb-mic:hover { background: #e5e7eb; }
+        .kb-mic.recording { background: #ef4444; border-color: #ef4444; animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
         .kb-send {
             padding: 12px 24px; background: #3b82f6; color: #fff; border: none;
             border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s;
@@ -182,6 +189,7 @@
     <div class="kb-inputbar">
         <div class="kb-input-wrap">
             <input type="text" class="kb-input" id="questionInput" placeholder="输入问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
+            <button class="kb-mic" id="micBtn" onclick="toggleMic()" title="语音输入">🎤</button>
             <button class="kb-send" id="sendBtn" onclick="sendQuestion()">发送</button>
         </div>
     </div>
@@ -340,6 +348,48 @@ async function uploadManual() {
     } catch (e) { alert('上传失败'); }
     btn.disabled = false;
     btn.textContent = '添加文档';
+}
+
+let _recognition = null;
+function toggleMic() {
+    const btn = document.getElementById('micBtn');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        alert('浏览器不支持语音识别，请用Chrome或Edge');
+        return;
+    }
+    if (_recognition && _recognition._active) {
+        _recognition.stop();
+        return;
+    }
+    const rec = new SR();
+    rec.lang = 'zh-CN';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onstart = function() {
+        btn.classList.add('recording');
+        btn.textContent = '⏹';
+        rec._active = true;
+    };
+    rec.onresult = function(e) {
+        const text = e.results[0][0].transcript;
+        const input = document.getElementById('questionInput');
+        input.value = input.value ? input.value + ' ' + text : text;
+        input.focus();
+    };
+    rec.onend = function() {
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+        rec._active = false;
+    };
+    rec.onerror = function(e) {
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+        rec._active = false;
+        if (e.error !== 'aborted') alert('语音识别失败: ' + e.error);
+    };
+    _recognition = rec;
+    rec.start();
 }
 
 async function sendQuestion() {
