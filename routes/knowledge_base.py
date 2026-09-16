@@ -729,7 +729,7 @@ def mic_stop():
         os.environ['HF_HUB_DISABLE_XET'] = '1'
         from faster_whisper import WhisperModel
         if not hasattr(mic_stop, '_model'):
-            mic_stop._model = WhisperModel('tiny', device='cpu', compute_type='int8')
+            mic_stop._model = WhisperModel('small', device='cpu', compute_type='int8')
         segments, info = mic_stop._model.transcribe(tmp.name, language='zh')
         text = ''.join([s.text for s in segments]).strip()
         _os.unlink(tmp.name)
@@ -755,7 +755,7 @@ def speech_to_text():
         tmp.close()
         
         from faster_whisper import WhisperModel
-        model = WhisperModel('tiny', device='cpu', compute_type='int8')
+        model = WhisperModel('small', device='cpu', compute_type='int8')
         segments, info = model.transcribe(tmp.name, language='zh')
         text = ''.join([s.text for s in segments]).strip()
         os.unlink(tmp.name)
