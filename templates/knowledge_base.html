@@ -386,7 +386,11 @@ function toggleMic() {
         btn.classList.remove('recording');
         btn.textContent = '🎤';
         rec._active = false;
-        if (e.error !== 'aborted') alert('语音识别失败: ' + e.error);
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            alert('当前浏览器不支持语音识别或麦克风权限被拒绝。\n请用系统 Chrome 或 Edge 浏览器打开此页面。');
+        } else if (e.error !== 'aborted') {
+            alert('语音识别失败: ' + e.error);
+        }
     };
     _recognition = rec;
     rec.start();
