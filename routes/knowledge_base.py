@@ -490,8 +490,8 @@ def sync_cr_to_kb():
         content = "\n".join(content_parts)
         
         # 添加到知识库
-        success = kb.add_document(cr_doc_id, f"CR分析最新数据（{data.get(\"project_name\", \"\").replace(\".\", \"\")}）", content, metadata={'type': 'cr_analysis'})
-        
+        proj_name = data.get("project_name", "").replace(".", "")
+        success = kb.add_document(cr_doc_id, f"CR分析最新数据（{proj_name}）", content, metadata={"type": "cr_analysis"})
         if success:
             return jsonify({
                 "status": "success",
