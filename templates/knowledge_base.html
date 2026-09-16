@@ -350,60 +350,53 @@ async function uploadManual() {
     btn.textContent = '添加文档';
 }
 
-let _mediaRecorder = null;
-let _audioChunks = [];
-let _recording = false;
-
+let _micBusy = false;
 function toggleMic() {
     const btn = document.getElementById('micBtn');
-    if (_recording) {
+    if (_micBusy) return;
+    if (btn.classList.contains('recording')) {
         // 停止录音
-        _mediaRecorder.stop();
-        _recording = false;
-        return;
-    }
-    // 开始录音
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(function(stream) {
-            _mediaRecorder = new MediaRecorder(stream);
-            _audioChunks = [];
-            _mediaRecorder.ondataavailable = function(e) {
-                if (e.data.size > 0) _audioChunks.push(e.data);
-            };
-            _mediaRecorder.onstop = function() {
+        _micBusy = true;
+        btn.textContent = '识别中...';
+        fetch('/knowledge-base/api/mic-stop', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                _micBusy = false;
                 btn.classList.remove('recording');
                 btn.textContent = '🎤';
-                stream.getTracks().forEach(function(t) { t.stop(); });
-                btn.textContent = '识别中...';
-                // 上传识别
-                const blob = new Blob(_audioChunks, { type: 'audio/webm' });
-                const fd = new FormData();
-                fd.append('audio', blob, 'recording.webm');
-                fetch('/knowledge-base/api/speech-to-text', { method: 'POST', body: fd })
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        btn.textContent = '🎤';
-                        if (data.status === 'success' && data.text) {
-                            const input = document.getElementById('questionInput');
-                            input.value = input.value ? input.value + ' ' + data.text : data.text;
-                            input.focus();
-                        } else {
-                            alert('识别失败: ' + (data.error || '未知错误'));
-                        }
-                    })
-                    .catch(function(e) {
-                        btn.textContent = '🎤';
-                        alert('上传失败: ' + e.message);
-                    });
-            };
-            _mediaRecorder.start();
-            _recording = true;
-            btn.classList.add('recording');
-            btn.textContent = '⏹';
-        })
-        .catch(function(e) {
-            alert('无法访问麦克风: ' + e.message + '\\n请允许麦克风权限');
-        });
+                if (data.status === 'success' && data.text) {
+                    const input = document.getElementById('questionInput');
+                    input.value = input.value ? input.value + ' ' + data.text : data.text;
+                    input.focus();
+                } else if (data.status !== 'success') {
+                    alert('识别失败: ' + (data.error || ''));
+                }
+            })
+            .catch(function(e) {
+                _micBusy = false;
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+                alert('停止失败: ' + e.message);
+            });
+    } else {
+        // 开始录音
+        _micBusy = true;
+        fetch('/knowledge-base/api/mic-start', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                _micBusy = false;
+                if (data.status === 'recording' || data.status === 'already') {
+                    btn.classList.add('recording');
+                    btn.textContent = '⏹';
+                } else {
+                    alert('启动失败: ' + (data.error || ''));
+                }
+            })
+            .catch(function(e) {
+                _micBusy = false;
+                alert('启动失败: ' + e.message);
+            });
+    }
 }
 
 async function sendQuestion() {

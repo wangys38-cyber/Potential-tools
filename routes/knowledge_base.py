@@ -661,6 +661,82 @@ def save_feedback():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+# 系统麦克风录音（不依赖浏览器权限）
+import threading as _threading
+import numpy as _np
+import sounddevice as _sd
+import tempfile as _tempfile
+import os as _os
+
+_mic_state = {
+    "recording": False,
+    "frames": [],
+    "samplerate": 16000,
+    "stream": None,
+    "result": None,
+    "error": None
+}
+
+def _audio_callback(indata, frames, time, status):
+    if _mic_state["recording"]:
+        _mic_state["frames"].append(indata.copy())
+
+@kb_bp.route('/api/mic-start', methods=['POST'])
+def mic_start():
+    """开始系统麦克风录音"""
+    try:
+        if _mic_state["recording"]:
+            return jsonify({"status": "already"})
+        _mic_state["recording"] = True
+        _mic_state["frames"] = []
+        _mic_state["result"] = None
+        _mic_state["error"] = None
+        _mic_state["stream"] = _sd.InputStream(
+            samplerate=16000, channels=1, dtype='float32',
+            callback=_audio_callback
+        )
+        _mic_state["stream"].start()
+        return jsonify({"status": "recording"})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@kb_bp.route('/api/mic-stop', methods=['POST'])
+def mic_stop():
+    """停止录音并识别"""
+    try:
+        if not _mic_state["recording"]:
+            return jsonify({"status": "error", "error": "未在录音"}), 400
+        _mic_state["recording"] = False
+        if _mic_state["stream"]:
+            _mic_state["stream"].stop()
+            _mic_state["stream"].close()
+            _mic_state["stream"] = None
+        
+        if not _mic_state["frames"]:
+            return jsonify({"status": "error", "error": "没有录到声音"}), 400
+        
+        audio = _np.concatenate(_mic_state["frames"], axis=0).flatten()
+        # 保存wav
+        import soundfile as sf
+        tmp = _tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+        sf.write(tmp.name, audio, 16000)
+        tmp.close()
+        
+        # whisper识别
+        from faster_whisper import WhisperModel
+        if not hasattr(mic_stop, '_model'):
+            mic_stop._model = WhisperModel('tiny', device='cpu', compute_type='int8')
+        segments, info = mic_stop._model.transcribe(tmp.name, language='zh')
+        text = ''.join([s.text for s in segments]).strip()
+        _os.unlink(tmp.name)
+        
+        return jsonify({"status": "success", "text": text})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/speech-to-text', methods=['POST'])
 def speech_to_text():
     """语音识别：接收webm音频，返回文字"""
