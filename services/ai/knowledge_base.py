@@ -430,13 +430,14 @@ class KnowledgeBase:
             if time.time() - cached['timestamp'] < CACHE_TTL:
                 return {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
 
-        # 1. 查询改写
-        rewritten = rewrite_query(question)
+        # 1. 查询改写（简单问题跳过，省一次LLM调用）
+        rewrite_needed = len(question) > 15 or any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些'])
+        rewritten = rewrite_query(question) if rewrite_needed else question
         logger.info(f"查询改写: '{question}' -> '{rewritten}'")
 
-        # 1.5 Multi-hop：复杂问题拆子问题
-        hop_keywords = ['对比', '比较', '和', '与', '关系', '对得上', '为什么', '原因', '分析', '跨']
-        needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 10
+        # 1.5 Multi-hop：收紧触发条件，避免简单问题也拆子问题
+        hop_keywords = ['对比', '比较', '和上周', '和本周', '和昨天', '关系', '对得上', '为什么', '原因', '跨']
+        needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 15
         extra_contexts = []
         if needs_multihop:
             try:
@@ -451,9 +452,9 @@ class KnowledgeBase:
                 logger.warning(f"Multi-hop失败: {e}")
 
         # 2. 检索（用改写后的查询）
-        contexts = self.query(rewritten, top_k=8)
+        contexts = self.query(rewritten, top_k=5)
         if not contexts:
-            contexts = self.query(question, top_k=8)
+            contexts = self.query(question, top_k=5)
         # 合并Multi-hop结果
         if extra_contexts:
             seen = set()
