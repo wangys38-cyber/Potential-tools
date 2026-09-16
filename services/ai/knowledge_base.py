@@ -364,6 +364,23 @@ class KnowledgeBase:
                             "_did": did
                         })
 
+            # 3.5 语义触发：CR/bug类查询强制拉cr_analysis_latest的概览chunk
+            cr_triggers = ['cr', 'bug', '问题状态', '未解决', '严重', '阻塞', 'blocker', 'critical',
+                          '解决率', '新增问题', '本周', '趋势', 'mttr', 'mttf', '性能', 'summary',
+                          '概览', '总数', '还有多少', '剩多少']
+            if any(kw in q_lower for kw in cr_triggers):
+                for idx, doc in enumerate(all_data['documents']):
+                    meta = all_data['metadatas'][idx] or {}
+                    if meta.get('doc_id') == 'cr_analysis_latest' and ('总问题数' in doc or '未解决' in doc or '解决率' in doc):
+                        did = all_data['ids'][idx]
+                        candidates.append({
+                            "content": doc,
+                            "metadata": meta,
+                            "score": 2.5,
+                            "source": "cr_boosted",
+                            "_did": did
+                        })
+
             # 4. Rerank
             boosted = [c for c in candidates if c.get('score', 0) >= 2.0]
             normal = [c for c in candidates if c.get('score', 0) < 2.0]
