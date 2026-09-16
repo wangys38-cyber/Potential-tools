@@ -331,6 +331,9 @@ def ask():
         kb = get_knowledge_base(user_id)
         result = kb.ask(question)
         
+        # 保存到历史
+        save_chat_history(user_id, question, result['answer'])
+        
         return jsonify({
             "status": "success",
             "answer": result['answer'],
