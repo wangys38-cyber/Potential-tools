@@ -442,6 +442,7 @@ function syncToKnowledgeBase(silent) {
     try {
         // 构建同步数据
         const syncData = {
+            project_name: (typeof currentFileName !== 'undefined' ? currentFileName : '') || '',
             summary: data.summary || {},
             module_stats: data.module_stats || [],
             developer_stats: data.developer_stats || [],

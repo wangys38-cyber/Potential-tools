@@ -447,6 +447,7 @@ def sync_cr_to_kb():
         
         content_parts = [
             "【CR 分析最新数据】",
+            f"项目名称: {data.get('project_name', '未知项目')}",
             f"更新时间: {data.get('update_time', '今天')}",
             "",
             "=== 总体概览 ===",
@@ -489,7 +490,7 @@ def sync_cr_to_kb():
         content = "\n".join(content_parts)
         
         # 添加到知识库
-        success = kb.add_document(cr_doc_id, "CR分析最新数据（每日更新）", content, metadata={'type': 'cr_analysis'})
+        success = kb.add_document(cr_doc_id, f"CR分析最新数据（{data.get(\"project_name\", \"\").replace(\".\", \"\")}）", content, metadata={'type': 'cr_analysis'})
         
         if success:
             return jsonify({
