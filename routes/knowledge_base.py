@@ -661,6 +661,32 @@ def save_feedback():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@kb_bp.route('/api/speech-to-text', methods=['POST'])
+def speech_to_text():
+    """语音识别：接收webm音频，返回文字"""
+    try:
+        if 'audio' not in request.files:
+            return jsonify({"status": "error", "error": "没有音频文件"}), 400
+        audio_file = request.files['audio']
+        # 保存临时文件
+        import tempfile, os
+        tmp = tempfile.NamedTemporaryFile(suffix='.webm', delete=False)
+        audio_file.save(tmp.name)
+        tmp.close()
+        
+        from faster_whisper import WhisperModel
+        model = WhisperModel('tiny', device='cpu', compute_type='int8')
+        segments, info = model.transcribe(tmp.name, language='zh')
+        text = ''.join([s.text for s in segments]).strip()
+        os.unlink(tmp.name)
+        
+        return jsonify({"status": "success", "text": text})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/export-report', methods=['GET'])
 def export_weekly_report():
     """导出为周报格式（Markdown）"""

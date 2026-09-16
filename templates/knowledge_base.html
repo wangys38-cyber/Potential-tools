@@ -350,50 +350,60 @@ async function uploadManual() {
     btn.textContent = '添加文档';
 }
 
-let _recognition = null;
+let _mediaRecorder = null;
+let _audioChunks = [];
+let _recording = false;
+
 function toggleMic() {
     const btn = document.getElementById('micBtn');
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-        alert('浏览器不支持语音识别，请用Chrome或Edge');
+    if (_recording) {
+        // 停止录音
+        _mediaRecorder.stop();
+        _recording = false;
         return;
     }
-    if (_recognition && _recognition._active) {
-        _recognition.stop();
-        return;
-    }
-    const rec = new SR();
-    rec.lang = 'zh-CN';
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.onstart = function() {
-        btn.classList.add('recording');
-        btn.textContent = '⏹';
-        rec._active = true;
-    };
-    rec.onresult = function(e) {
-        const text = e.results[0][0].transcript;
-        const input = document.getElementById('questionInput');
-        input.value = input.value ? input.value + ' ' + text : text;
-        input.focus();
-    };
-    rec.onend = function() {
-        btn.classList.remove('recording');
-        btn.textContent = '🎤';
-        rec._active = false;
-    };
-    rec.onerror = function(e) {
-        btn.classList.remove('recording');
-        btn.textContent = '🎤';
-        rec._active = false;
-        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-            alert('当前浏览器不支持语音识别或麦克风权限被拒绝。\n请用系统 Chrome 或 Edge 浏览器打开此页面。');
-        } else if (e.error !== 'aborted') {
-            alert('语音识别失败: ' + e.error);
-        }
-    };
-    _recognition = rec;
-    rec.start();
+    // 开始录音
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function(stream) {
+            _mediaRecorder = new MediaRecorder(stream);
+            _audioChunks = [];
+            _mediaRecorder.ondataavailable = function(e) {
+                if (e.data.size > 0) _audioChunks.push(e.data);
+            };
+            _mediaRecorder.onstop = function() {
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+                stream.getTracks().forEach(function(t) { t.stop(); });
+                btn.textContent = '识别中...';
+                // 上传识别
+                const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+                const fd = new FormData();
+                fd.append('audio', blob, 'recording.webm');
+                fetch('/knowledge-base/api/speech-to-text', { method: 'POST', body: fd })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btn.textContent = '🎤';
+                        if (data.status === 'success' && data.text) {
+                            const input = document.getElementById('questionInput');
+                            input.value = input.value ? input.value + ' ' + data.text : data.text;
+                            input.focus();
+                        } else {
+                            alert('识别失败: ' + (data.error || '未知错误'));
+                        }
+                    })
+                    .catch(function(e) {
+                        btn.textContent = '🎤';
+                        alert('上传失败: ' + e.message);
+                    });
+            };
+            _mediaRecorder.start();
+            _recording = true;
+            btn.classList.add('recording');
+            btn.textContent = '⏹';
+        })
+        .catch(function(e) {
+            alert('无法访问麦克风: ' + e.message + '\\n请允许麦克风权限');
+        });
 }
 
 async function sendQuestion() {
