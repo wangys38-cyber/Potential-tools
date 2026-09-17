@@ -395,12 +395,8 @@ def ask():
                 answer = '目前还没有记住任何事实。你可以说"记住：XXX"来教我。'
             result = {'answer': answer, 'contexts': []}
         else:
-            # 把用户事实拼到问题前面
-            if facts:
-                enriched_q = '用户已知事实：' + '；'.join(facts) + '。\n问题：' + question
-            else:
-                enriched_q = question
-            result = kb.ask(enriched_q)
+            # 检索用原始问题，facts只加到LLM prompt
+            result = kb.ask(question, extra_facts=facts)
         
         # 保存到历史
         save_chat_history(user_id, question, result['answer'])

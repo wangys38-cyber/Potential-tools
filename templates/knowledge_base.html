@@ -506,7 +506,7 @@ function addMessage(role, content, contexts) {
             contexts.map((c,i) => {
                 let line = `<span style="color:#999;font-size:11px;">[${i+1}] ${c.title}</span>`;
                 if (c.doc_id && !c.doc_id.startsWith('cr_')) {
-                    line += ` <a href="/knowledge-base/api/download/${c.doc_id}" style="font-size:11px;color:#3b82f6;text-decoration:none;">[下载]</a>`;
+                    line += ` <a href="/knowledge-base/api/download/${c.doc_id}" style="display:inline-flex;align-items:center;gap:2px;font-size:10px;color:#3b82f6;background:#eff6ff;padding:1px 6px;border-radius:4px;text-decoration:none;margin-left:4px;border:1px solid #bfdbfe;">⬇ 下载</a>`;
                 }
                 return line;
             }).join('<br>') + '</div>';

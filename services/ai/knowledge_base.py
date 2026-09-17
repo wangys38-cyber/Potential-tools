@@ -422,7 +422,7 @@ class KnowledgeBase:
             logger.error(f"查询失败: {e}")
             return []
 
-    def ask(self, question: str, use_cache: bool = True) -> Dict[str, Any]:
+    def ask(self, question: str, use_cache: bool = True, extra_facts=None) -> Dict[str, Any]:
         # 0. 缓存
         cache_key = hashlib.md5(question.encode()).hexdigest()
         if use_cache and cache_key in _answer_cache:
@@ -479,6 +479,11 @@ class KnowledgeBase:
                 lines.append(f"之前回答：{h['answer'][:150]}...")
             history_context = "\n## 对话历史：\n" + "\n".join(lines) + "\n"
 
+        # 3.5 用户自定义事实
+        facts_context = ""
+        if extra_facts:
+            facts_context = "\n## 用户自定义事实（必须优先参考）：\n" + "\n".join([f"- {f}" for f in extra_facts]) + "\n"
+
         # 4. 构建prompt
         context_text = "\n\n---\n\n".join([
             f"[来源{i+1}: {c['metadata'].get('title', '未知')} | {c['metadata'].get('category', '其他')}]\n{c['content']}"
@@ -489,7 +494,7 @@ class KnowledgeBase:
 
 ## 知识库内容：
 {context_text}
-{history_context}
+{facts_context}{history_context}
 ## 用户问题：
 {question}
 
