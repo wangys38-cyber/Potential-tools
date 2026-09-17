@@ -512,8 +512,17 @@ class KnowledgeBase:
             except Exception as e:
                 logger.warning(f"Multi-hop失败: {e}")
 
+        # 1.6 短问题联系上文：如果问题很短且包含excel/表格/导出，拼上一轮主题
+        search_query = rewritten
+        if len(question) < 15 and any(kw in question.lower() for kw in ['excel', 'excle', '表格', '导出', 'xlsx', 'csv']):
+            if history and history:
+                last_q = history[-1].get('question', '')
+                if last_q and len(last_q) > 10:
+                    search_query = last_q + ' ' + question
+                    logger.info(f"短问题联系上文: '{question}' -> '{search_query}'")
+
         # 2. 检索（用改写后的查询）
-        contexts = self.query(rewritten, top_k=5)
+        contexts = self.query(search_query, top_k=5)
         if not contexts:
             contexts = self.query(question, top_k=5)
         # 合并Multi-hop结果
@@ -570,7 +579,8 @@ class KnowledgeBase:
 8. 引用来源用[来源1][来源2]标注
 9. **如果问项目整体里程碑/Schedule日期，优先使用Device HW或Device SW的Plan行数据，不要用Strap/Companion APP/Moto Fit等子模块的日期代替主项目日期**
 10. **答案自检**：如果某个结论在知识库中没有直接支撑，标注"(未验证)"；如果有支撑，正常回答
-11. **冲突检测**：如果不同来源对同一问题给出不同答案（如不同文档对同一角色/日期/人员说法不同），必须列出所有说法并标注来源，例如：
+11. 用户说"生成excel/表格"时，直接输出Markdown表格即可，不要说"无法生成Excel"，前端有导出按钮。
+12. **冲突检测**：如果不同来源对同一问题给出不同答案（如不同文档对同一角色/日期/人员说法不同），必须列出所有说法并标注来源，例如：
    "关于XX，不同来源说法不一：
    - [来源1]：说法A
    - [来源2]：说法B
