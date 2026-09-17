@@ -329,7 +329,42 @@ def ask():
         
         user_id = getattr(g, 'user_id', 1) or 1
         kb = get_knowledge_base(user_id)
-        result = kb.ask(question)
+        
+        # 学习：检测"记住"指令
+        learn_match = None
+        if question.startswith('记住') or question.startswith('记一下') or '记住一件事' in question:
+            # 提取要记住的内容
+            fact = question
+            for prefix in ['记住一件事：', '记住一件事:', '记住：', '记住:', '记一下：', '记一下:']:
+                if fact.startswith(prefix):
+                    fact = fact[len(prefix):]
+                    break
+            fact = fact.strip()
+            if fact:
+                conn = _get_db()
+                cur = conn.cursor()
+                cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
+                conn.commit()
+                conn.close()
+                learn_match = fact
+        
+        # 把用户自定义事实加入上下文
+        conn = _get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT fact FROM user_facts WHERE user_id=? ORDER BY id DESC LIMIT 50', (user_id,))
+        facts = [r[0] for r in cur.fetchall()]
+        conn.close()
+        
+        if learn_match:
+            answer = f'好的，我记住了：{learn_match}。之后回答会参考这个信息。'
+            result = {'answer': answer, 'contexts': []}
+        else:
+            # 把用户事实拼到问题前面
+            if facts:
+                enriched_q = '用户已知事实：' + '；'.join(facts) + '。\n问题：' + question
+            else:
+                enriched_q = question
+            result = kb.ask(enriched_q)
         
         # 保存到历史
         save_chat_history(user_id, question, result['answer'])
