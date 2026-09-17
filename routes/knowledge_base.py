@@ -330,10 +330,15 @@ def ask():
         user_id = getattr(g, 'user_id', 1) or 1
         kb = get_knowledge_base(user_id)
         
-        # 学习：检测"记住"指令
+        # 学习：检测"记住/纠正/忘记"指令
         learn_match = None
-        if question.startswith('记住') or question.startswith('记一下') or '记住一件事' in question:
-            # 提取要记住的内容
+        forget_match = None
+        list_facts = False
+        
+        q_lower = question.lower().strip()
+        
+        # 记住
+        if question.startswith('记住') or question.startswith('记一下') or '记住一件事' in question or '记住：' in question:
             fact = question
             for prefix in ['记住一件事：', '记住一件事:', '记住：', '记住:', '记一下：', '记一下:']:
                 if fact.startswith(prefix):
@@ -348,6 +353,42 @@ def ask():
                 conn.close()
                 learn_match = fact
         
+        # 纠正学习："不对，XXX" / "错了，应该是XXX"
+        elif question.startswith('不对') or question.startswith('错了') or question.startswith('不是'):
+            fact = question
+            for prefix in ['不对，', '不对:', '错了，', '错了:', '不是，', '不是:']:
+                if fact.startswith(prefix):
+                    fact = fact[len(prefix):]
+                    break
+            fact = fact.strip()
+            if fact:
+                conn = _get_db()
+                cur = conn.cursor()
+                cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
+                conn.commit()
+                conn.close()
+                learn_match = '纠正：' + fact
+        
+        # 忘记
+        elif question.startswith('忘记') or question.startswith('删掉'):
+            fact = question
+            for prefix in ['忘记：', '忘记:', '忘记', '删掉：', '删掉:', '删掉']:
+                if fact.startswith(prefix):
+                    fact = fact[len(prefix):].strip('，,：: ')
+                    break
+            if fact:
+                conn = _get_db()
+                cur = conn.cursor()
+                cur.execute('DELETE FROM user_facts WHERE user_id=? AND fact LIKE ?', (user_id, f'%{fact}%'))
+                deleted = cur.rowcount
+                conn.commit()
+                conn.close()
+                forget_match = fact if deleted > 0 else None
+        
+        # 列出记忆
+        elif '你记住了什么' in question or '你记住了哪些' in question or '你的记忆' in question:
+            list_facts = True
+        
         # 把用户自定义事实加入上下文
         conn = _get_db()
         cur = conn.cursor()
@@ -357,6 +398,20 @@ def ask():
         
         if learn_match:
             answer = f'好的，我记住了：{learn_match}。之后回答会参考这个信息。'
+            result = {'answer': answer, 'contexts': []}
+        elif forget_match:
+            answer = f'好的，我已经忘记了关于"{forget_match}"的记忆。'
+            result = {'answer': answer, 'contexts': []}
+        elif list_facts:
+            conn = _get_db()
+            cur = conn.cursor()
+            cur.execute('SELECT fact FROM user_facts WHERE user_id=? ORDER BY id DESC LIMIT 50', (user_id,))
+            facts_list = [r[0] for r in cur.fetchall()]
+            conn.close()
+            if facts_list:
+                answer = '我记住了以下事实：\n' + '\n'.join([f'{i+1}. {f}' for i, f in enumerate(facts_list)])
+            else:
+                answer = '目前还没有记住任何事实。你可以说"记住：XXX"来教我。'
             result = {'answer': answer, 'contexts': []}
         else:
             # 把用户事实拼到问题前面
