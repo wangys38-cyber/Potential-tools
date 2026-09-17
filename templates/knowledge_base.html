@@ -536,7 +536,10 @@ function removeMessage(id) {
 
 async function exportAnswer(btn, format) {
     const msgDiv = btn.closest('.kb-msg');
-    const text = msgDiv.querySelector('.kb-bubble').innerText;
+    const bubble = msgDiv.querySelector('.kb-bubble');
+    // 排除反馈按钮区域
+    const feedback = bubble.querySelector('.kb-feedback');
+    const text = feedback ? bubble.innerText.replace(feedback.innerText, '') : bubble.innerText;
     btn.textContent = '导出中...';
     try {
         const res = await fetch('/knowledge-base/api/export-answer', {
@@ -551,7 +554,9 @@ async function exportAnswer(btn, format) {
         a.href = url;
         const now = new Date().toISOString().slice(0,10);
         a.download = `知识库回答_${now}.${format}`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } catch (e) {
         alert('导出失败: ' + e.message);
