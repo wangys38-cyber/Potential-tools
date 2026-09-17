@@ -335,26 +335,41 @@ def ask():
         forget_match = None
         list_facts = False
         
-        try:
-            classify_prompt = ("你是意图分类器。只回复以下四个词之一：question、remember、forget、list。\n"
-    "规则：用户在教你东西（记得、记住、要、应该、以后）回复remember；问问题回复question；让你忘记回复forget；要看记忆回复list。\n"
-    "如果是remember，格式：remember:提取的核心事实\n"
-    "示例：\n"
-    "你要记得分工表里有成员 -> remember:分工表可以找到项目成员\n"
-    "moto pin是什么 -> question\n"
-    "忘记moto pin -> forget\n\n"
-    "用户这句话：" + question + "\n只回复 remember:xxx 或 question 或 forget 或 list")
-            intent_raw = get_llm_response(classify_prompt, system="你是分类器，只回复intent或intent:fact格式。", temperature=0.1).strip().lower()
-        except:
-            intent_raw = 'question'
+        # 关键词快速判断（避免LLM延迟）
+        q_lower = question.lower()
+        remember_keywords = ['记得', '记住', '要记得', '应该', '以后', '注意', '不要', '必须', '提醒我', '切记']
+        forget_keywords = ['忘记', '删掉', '忘了']
+        list_keywords = ['你记住了什么', '你记住了哪些', '你的记忆', '你知道什么']
         
-        if ':' in intent_raw:
-            intent, fact_extracted = intent_raw.split(':', 1)
-            intent = intent.strip()
-            fact_extracted = fact_extracted.strip()
-        else:
-            intent = intent_raw.strip()
+        if any(kw in question for kw in forget_keywords):
+            intent = 'forget'
+            fact_extracted = question.replace('忘记','').replace('删掉','').replace('忘了','').strip('，,：: ')
+        elif any(kw in question for kw in list_keywords):
+            intent = 'list'
             fact_extracted = None
+        elif any(kw in question for kw in remember_keywords):
+            intent = 'remember'
+            fact_extracted = question
+            # 去掉前缀
+            for prefix in ['你要记得', '要记得', '记住：', '记住:', '记住', '记得：', '记得:', '记得', '以后', '应该']:
+                if fact_extracted.startswith(prefix):
+                    fact_extracted = fact_extracted[len(prefix):]
+                    break
+            fact_extracted = fact_extracted.strip('，,：: ')
+        else:
+            # LLM分类兜底
+            try:
+                classify_prompt = ("判断意图：question/remember/forget/list。用户这句话：" + question + "。只回复一个词")
+                intent_raw = get_llm_response(classify_prompt, system="只回复一个英文词", temperature=0.1).strip().lower()
+            except:
+                intent_raw = 'question'
+            if ':' in intent_raw:
+                intent, fact_extracted = intent_raw.split(':', 1)
+                intent = intent.strip()
+                fact_extracted = fact_extracted.strip()
+            else:
+                intent = intent_raw.strip()
+                fact_extracted = None
         
         if 'remember' in intent:
             fact = fact_extracted if fact_extracted else question
@@ -405,6 +420,11 @@ def ask():
         facts = [r[0] for r in cur.fetchall()]
         conn.close()
         
+        with open('D:/Potential-tools/_debug_intent.txt', 'w', encoding='utf-8') as df:
+            df.write(f'question={question!r}\n')
+            df.write(f'intent={intent!r} learn_match={learn_match!r} forget_match={forget_match!r} list_facts={list_facts!r}\n')
+            import inspect
+            df.write(f'file={inspect.currentframe().f_code.co_filename}\n')
         if learn_match:
             if learn_match.startswith('已更新：'):
                 answer = '好的，我更新了这条记忆：' + learn_match[4:] + '。'
