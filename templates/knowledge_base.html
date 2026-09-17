@@ -192,7 +192,7 @@
 
     <div class="kb-inputbar">
         <div class="kb-input-wrap">
-            <input type="text" class="kb-input" id="questionInput" placeholder="输入问题..." onkeypress="if(event.key==='Enter')sendQuestion()">
+            <input type="text" class="kb-input" id="questionInput" placeholder="输入问题，或Ctrl+V粘贴图片..." onkeypress="if(event.key==='Enter')sendQuestion()" onpaste="handlePaste(event)">
             <button class="kb-mic" id="micBtn" onclick="toggleMic()" title="语音输入">🎤</button>
             <button class="kb-send" id="sendBtn" onclick="sendQuestion()">发送</button>
         </div>
@@ -403,6 +403,39 @@ function toggleMic() {
     }
 }
 
+function handlePaste(e) {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+        if (item.type.startsWith('image/')) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            uploadPastedImage(file);
+            return;
+        }
+    }
+}
+
+async function uploadPastedImage(file) {
+    const input = document.getElementById('questionInput');
+    const placeholder = input.placeholder;
+    input.placeholder = '图片识别中...';
+    const fd = new FormData();
+    fd.append('file', file, 'pasted.png');
+    try {
+        const res = await fetch('/knowledge-base/api/upload-file', { method: 'POST', body: fd });
+        const data = await res.json();
+        input.placeholder = placeholder;
+        if (data.status === 'success') {
+            alert('图片已识别并加入知识库：' + (data.title || ''));
+        } else {
+            alert('图片识别失败: ' + (data.error || ''));
+        }
+    } catch (e) {
+        input.placeholder = placeholder;
+        alert('图片上传失败: ' + e.message);
+    }
+}
+
 async function sendQuestion() {
     const input = document.getElementById('questionInput');
     const q = input.value.trim();
@@ -476,6 +509,9 @@ function addMessage(role, content, contexts) {
         html += `<div class="kb-feedback">
             <button class="kb-fb-btn" onclick="feedback(this,'up')">👍 有用</button>
             <button class="kb-fb-btn" onclick="feedback(this,'down')">👎 没用</button>
+            <button class="kb-fb-btn" onclick="exportAnswer(this,'md')">📄 MD</button>
+            <button class="kb-fb-btn" onclick="exportAnswer(this,'xlsx')">📊 Excel</button>
+            <button class="kb-fb-btn" onclick="exportAnswer(this,'docx')">📝 Word</button>
         </div>`;
     }
     html += '</div>';
@@ -488,6 +524,26 @@ function addMessage(role, content, contexts) {
 function removeMessage(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
+}
+
+function exportAnswer(btn, format) {
+    const msgDiv = btn.closest('.kb-msg');
+    const text = msgDiv.querySelector('.kb-bubble').innerText;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date().toISOString().slice(0,10);
+    if (format === 'md') {
+        a.download = `知识库回答_${now}.md`;
+    } else if (format === 'xlsx') {
+        // 简单CSV（Excel能打开）
+        a.download = `知识库回答_${now}.csv`;
+    } else {
+        a.download = `知识库回答_${now}.docx`;
+    }
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 async function feedback(btn, type) {
