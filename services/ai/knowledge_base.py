@@ -506,8 +506,14 @@ class KnowledgeBase:
         search_query = rewritten
         if len(question) < 15 and any(kw in question.lower() for kw in ['excel', 'excle', '表格', '导出', 'xlsx', 'csv']):
             if history and history:
-                last_q = history[-1].get('question', '')
-                if last_q and len(last_q) > 10:
+                # 找最近一条不同的问题作为上文
+                last_q = ''
+                for h in reversed(history):
+                    q = h.get('question', '')
+                    if q and q != question and len(q) > 5:
+                        last_q = q
+                        break
+                if last_q:
                     search_query = last_q + ' ' + question
                     logger.info(f"短问题联系上文: '{question}' -> '{search_query}'")
 
