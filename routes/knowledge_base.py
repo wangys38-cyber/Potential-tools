@@ -330,35 +330,54 @@ def ask():
         user_id = getattr(g, 'user_id', 1) or 1
         kb = get_knowledge_base(user_id)
         
-        # 学习：LLM判断用户意图
+        # 学习：LLM判断用户意图 + 智能提取
         learn_match = None
         forget_match = None
         list_facts = False
         
-        # 先用LLM判断意图
         try:
-            classify_prompt = f"判断这句话的意图，只回复一个词：\nquestion（用户在问问题） / remember（用户在教你一条规则或事实） / forget（用户让你忘掉某事） / list（用户想看你记住了什么）\n\n这句话：{question}"
-            intent = get_llm_response(classify_prompt, system="你是意图分类器，只回复一个英文词：question/remember/forget/list。", temperature=0.1).strip().lower()
+            classify_prompt = "你是意图分类器。判断用户这句话是：question（问问题）/ remember（教规则事实）/ forget（忘掉）/ list（看记忆）。如果是remember，提取核心事实，格式 intent:fact。用户这句话：" + question + "\n只回复 intent 或 intent:fact"
+            intent_raw = get_llm_response(classify_prompt, system="你是分类器，只回复intent或intent:fact格式。", temperature=0.1).strip().lower()
         except:
-            intent = 'question'
+            intent_raw = 'question'
         
-        if 'remember' in intent or '记住' in question[:3]:
-            fact = question
-            # 去掉前缀
-            for prefix in ['记住一件事：', '记住一件事:', '记住：', '记住:', '记一下：', '记一下:']:
-                if fact.startswith(prefix):
-                    fact = fact[len(prefix):]
-                    break
-            fact = fact.strip()
+        if ':' in intent_raw:
+            intent, fact_extracted = intent_raw.split(':', 1)
+            intent = intent.strip()
+            fact_extracted = fact_extracted.strip()
+        else:
+            intent = intent_raw.strip()
+            fact_extracted = None
+        
+        if 'remember' in intent:
+            fact = fact_extracted if fact_extracted else question
+            fact = fact.strip().rstrip('。.！!')
             if fact:
                 conn = _get_db()
                 cur = conn.cursor()
-                cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
+                cur.execute('SELECT fact FROM user_facts WHERE user_id=?', (user_id,))
+                existing = [r[0] for r in cur.fetchall()]
+                is_duplicate = False
+                is_conflict = False
+                for old_f in existing:
+                    old_words = set(old_f.replace('，',' ').replace('：',' ').split())
+                    new_words = set(fact.replace('，',' ').replace('：',' ').split())
+                    overlap = len(old_words & new_words) / max(len(old_words | new_words), 1)
+                    if overlap > 0.6:
+                        is_duplicate = True
+                        if old_f != fact:
+                            is_conflict = True
+                            cur.execute('UPDATE user_facts SET fact=? WHERE user_id=? AND fact=?', (fact, user_id, old_f))
+                if not is_duplicate:
+                    cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
                 conn.commit()
                 conn.close()
-                learn_match = fact
+                if is_conflict:
+                    learn_match = '已更新：' + fact
+                elif not is_duplicate:
+                    learn_match = fact
         elif 'forget' in intent:
-            fact = question.replace('忘记', '').replace('删掉', '').strip('，,：: ')
+            fact = fact_extracted if fact_extracted else question.replace('忘记', '').replace('删掉', '').strip('，,：: ')
             if fact:
                 conn = _get_db()
                 cur = conn.cursor()
@@ -378,7 +397,10 @@ def ask():
         conn.close()
         
         if learn_match:
-            answer = f'好的，我记住了：{learn_match}。之后回答会参考这个信息。'
+            if learn_match.startswith('已更新：'):
+                answer = '好的，我更新了这条记忆：' + learn_match[4:] + '。'
+            else:
+                answer = '好的，我记住了：' + learn_match + '。之后回答会参考这个信息。'
             result = {'answer': answer, 'contexts': []}
         elif forget_match:
             answer = f'好的，我已经忘记了关于"{forget_match}"的记忆。'
