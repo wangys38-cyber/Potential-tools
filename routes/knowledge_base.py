@@ -386,7 +386,9 @@ def ask():
                 conn.close()
                 if is_conflict:
                     learn_match = '已更新：' + fact
-                elif not is_duplicate:
+                elif is_duplicate:
+                    learn_match = '已记住：' + fact
+                else:
                     learn_match = fact
         elif 'forget' in intent:
             fact = fact_extracted if fact_extracted else question.replace('忘记', '').replace('删掉', '').strip('，,：: ')
