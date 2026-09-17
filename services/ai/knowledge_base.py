@@ -31,6 +31,7 @@ _rerank_model = None
 _answer_cache: Dict[str, Dict] = {}
 _chat_history: Dict[int, List[Dict]] = {}
 _bm25_index = None  # BM25索引 {user_id: (docs, bm25_obj)}
+_embedding_cache = {}  # query->embedding缓存
 
 CACHE_TTL = 24 * 3600
 MAX_HISTORY_TURNS = 5
@@ -309,26 +310,50 @@ class KnowledgeBase:
                 return []
 
             # 1. 向量检索
-            q_embedding = get_embedding_func()([question])
-            vec_results = self.collection.query(
-                query_embeddings=q_embedding, n_results=50,
-                where={"category": category} if category else None
-            )
+            # Query扩展：空格/下划线变体一起搜
+            variants = [question]
+            # "AI 003" -> "AI_003"
+            if ' ' in question and any(ch.isdigit() for ch in question):
+                variants.append(question.replace(' ', '_'))
+                variants.append(question.replace(' ', ''))
+            
+            if question in _embedding_cache:
+                q_embedding = _embedding_cache[question]
+            else:
+                q_embedding = get_embedding_func()([question])
+                _embedding_cache[question] = q_embedding
+            
+            all_vec_docs = []
+            all_vec_metas = []
+            all_vec_ids = []
+            all_vec_dists = []
+            for v in variants[:3]:
+                if v in _embedding_cache:
+                    ve = _embedding_cache[v]
+                else:
+                    ve = get_embedding_func()([v])
+                    _embedding_cache[v] = ve
+                vr = self.collection.query(query_embeddings=ve, n_results=15,
+                    where={"category": category} if category else None)
+                if vr and vr['documents'] and vr['documents'][0]:
+                    all_vec_docs.extend(vr['documents'][0])
+                    all_vec_metas.extend(vr['metadatas'][0])
+                    all_vec_ids.extend(vr['ids'][0])
+                    all_vec_dists.extend(vr['distances'][0] if vr['distances'] else [0]*len(vr['documents'][0]))
 
             candidates = []
             seen_ids = set()
 
-            if vec_results and vec_results['documents'] and vec_results['documents'][0]:
-                for i, doc in enumerate(vec_results['documents'][0]):
-                    did = vec_results['ids'][0][i]
-                    if did not in seen_ids:
-                        seen_ids.add(did)
-                        candidates.append({
-                            "content": doc,
-                            "metadata": vec_results['metadatas'][0][i] or {},
-                            "score": 1 - (vec_results['distances'][0][i] if vec_results['distances'] else 0),
-                            "source": "vector"
-                        })
+            for i, doc in enumerate(all_vec_docs):
+                did = all_vec_ids[i]
+                if did not in seen_ids:
+                    seen_ids.add(did)
+                    candidates.append({
+                        "content": doc,
+                        "metadata": all_vec_metas[i] or {},
+                        "score": 1 - all_vec_dists[i],
+                        "source": "vector"
+                    })
 
             # 2. BM25关键词检索
             if self._bm25 is None:
