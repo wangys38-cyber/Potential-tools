@@ -1064,6 +1064,50 @@ def feedback_report():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@kb_bp.route('/api/export-answer', methods=['POST'])
+def export_answer():
+    """导出单条回答为xlsx/docx/md"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        fmt = data.get('format', 'md')
+        from flask import send_file
+        import io
+        
+        if fmt == 'xlsx':
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "回答"
+            for i, line in enumerate(text.split('\n'), 1):
+                ws.cell(row=i, column=1, value=line)
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                           as_attachment=True, download_name='answer.xlsx')
+        
+        elif fmt == 'docx':
+            from docx import Document
+            doc = Document()
+            for line in text.split('\n'):
+                doc.add_paragraph(line)
+            buf = io.BytesIO()
+            doc.save(buf)
+            buf.seek(0)
+            return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                           as_attachment=True, download_name='answer.docx')
+        
+        else:
+            buf = io.BytesIO(text.encode('utf-8'))
+            return send_file(buf, mimetype='text/markdown', as_attachment=True, download_name='answer.md')
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @kb_bp.route('/api/clear-history', methods=['POST'])
 def clear_history():
     """清空对话历史"""
