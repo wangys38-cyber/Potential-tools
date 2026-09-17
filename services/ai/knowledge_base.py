@@ -424,7 +424,8 @@ class KnowledgeBase:
 
     def ask(self, question: str, use_cache: bool = True, extra_facts=None) -> Dict[str, Any]:
         # 0. 缓存
-        cache_key = hashlib.md5(question.encode()).hexdigest()
+        facts_str = '|'.join(extra_facts) if extra_facts else ''
+        cache_key = hashlib.md5((question + facts_str).encode()).hexdigest()
         if use_cache and cache_key in _answer_cache:
             cached = _answer_cache[cache_key]
             if time.time() - cached['timestamp'] < CACHE_TTL:

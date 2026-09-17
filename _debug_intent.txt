@@ -1,3 +1,0 @@
-question='你要记得分工表里也是可以找到项目成员的'
-intent='remember' learn_match='分工表里也是可以找到项目成员的' forget_match=None list_facts=False
-file=D:\Potential-tools\routes\knowledge_base.py

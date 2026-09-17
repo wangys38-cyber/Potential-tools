@@ -336,8 +336,7 @@ def ask():
         list_facts = False
         
         # 关键词快速判断（避免LLM延迟）
-        q_lower = question.lower()
-        remember_keywords = ['记得', '记住', '要记得', '应该', '以后', '注意', '不要', '必须', '提醒我', '切记']
+        remember_keywords = ['记得', '记住', '要记得', '切记', '提醒我', '你要记住', '你要记得', '别忘了']
         forget_keywords = ['忘记', '删掉', '忘了']
         list_keywords = ['你记住了什么', '你记住了哪些', '你的记忆', '你知道什么']
         
@@ -420,11 +419,6 @@ def ask():
         facts = [r[0] for r in cur.fetchall()]
         conn.close()
         
-        with open('D:/Potential-tools/_debug_intent.txt', 'w', encoding='utf-8') as df:
-            df.write(f'question={question!r}\n')
-            df.write(f'intent={intent!r} learn_match={learn_match!r} forget_match={forget_match!r} list_facts={list_facts!r}\n')
-            import inspect
-            df.write(f'file={inspect.currentframe().f_code.co_filename}\n')
         if learn_match:
             if learn_match.startswith('已更新：'):
                 answer = '好的，我更新了这条记忆：' + learn_match[4:] + '。'
