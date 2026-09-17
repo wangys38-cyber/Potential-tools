@@ -336,19 +336,14 @@ def ask():
         list_facts = False
         
         try:
-            classify_prompt = ("你是意图分类器。判断用户这句话的意图：\n"
-    "- question：用户在问问题，想得到信息\n"
-    "- remember：用户在教你规则/事实/信息源/工作方式，关键词：记得、记住、以后、注意、不要、应该、要、必须、提醒我\n"
-    "- forget：用户让你忘掉某事\n"
-    "- list：用户想看你记住了什么\n\n"
+            classify_prompt = ("你是意图分类器。只回复以下四个词之一：question、remember、forget、list。\n"
+    "规则：用户在教你东西（记得、记住、要、应该、以后）回复remember；问问题回复question；让你忘记回复forget；要看记忆回复list。\n"
+    "如果是remember，格式：remember:提取的核心事实\n"
     "示例：\n"
-    '"分工表里有项目成员" -> remember:分工表可以找到项目成员\n'
-    '"你要记得XXX" -> remember:XXX\n'
-    '"信息冲突以最新为准" -> remember:信息冲突以最新为准\n'
-    '"XXX是什么意思" -> question\n'
-    '"moto pin是什么" -> question\n'
-    '"忘记moto pin" -> forget\n\n'
-    "用户这句话：" + question + "\n只回复 intent 或 intent:fact")
+    "你要记得分工表里有成员 -> remember:分工表可以找到项目成员\n"
+    "moto pin是什么 -> question\n"
+    "忘记moto pin -> forget\n\n"
+    "用户这句话：" + question + "\n只回复 remember:xxx 或 question 或 forget 或 list")
             intent_raw = get_llm_response(classify_prompt, system="你是分类器，只回复intent或intent:fact格式。", temperature=0.1).strip().lower()
         except:
             intent_raw = 'question'
