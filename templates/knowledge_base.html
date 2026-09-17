@@ -488,7 +488,7 @@ function addMessage(role, content, contexts) {
     div.id = id;
     const avatar = role === 'user' ? '👤' : '🤖';
     let html = `<div class="kb-avatar">${avatar}</div><div class="kb-bubble">`;
-    let answerHtml = role === 'ai' ? renderMD(content) : content;
+    let answerHtml = (role === 'ai' && content.includes('<span')) ? content : (role === 'ai' ? renderMD(content) : content);
     // 把[来源N]替换成灰色小号文档名
     if (role === 'ai' && contexts && contexts.length) {
         for (let i = 0; i < contexts.length; i++) {
