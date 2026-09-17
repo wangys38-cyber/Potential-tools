@@ -423,6 +423,41 @@ class KnowledgeBase:
                     normal.sort(key=lambda x: x["score"], reverse=True)
                     normal = normal[:max(0, top_k - len(boosted))]
 
+            # 4.5 如果问"所有人/名单/roster/团队"，拉命中文档的所有chunk
+            roster_keywords = ['所有人', '名单', 'roster', '团队', 'contact', '人员', '同事', '成员']
+            if any(kw in question.lower() for kw in roster_keywords):
+                hit_doc_ids = set()
+                for r in boosted + normal:
+                    did = r.get('metadata', {}).get('doc_id', '')
+                    if did and 'roster' in r['metadata'].get('title', '').lower():
+                        hit_doc_ids.add(did)
+                if hit_doc_ids:
+                    for idx, doc in enumerate(all_data['documents']):
+                        meta = all_data['metadatas'][idx] or {}
+                        if meta.get('doc_id') in hit_doc_ids:
+                            did = all_data['ids'][idx]
+                            if did not in seen_ids:
+                                seen_ids.add(did)
+                                candidates.append({
+                                    "content": doc,
+                                    "metadata": meta,
+                                    "score": 1.5,
+                                    "source": "roster_boost",
+                                    "_did": did
+                                })
+                    boosted = [c for c in candidates if c.get('score', 0) >= 2.0]
+                    normal = [c for c in candidates if c.get('score', 0) < 2.0 and c.get('score', 0) >= 1.5]
+                    # 重新rerank normal
+                    if normal and len(normal) > top_k - len(boosted):
+                        reranker = get_rerank_model()
+                        if reranker:
+                            pairs = [(question, c["content"]) for c in normal]
+                            scores = reranker.predict(pairs)
+                            for i, c in enumerate(normal):
+                                c["rerank_score"] = float(scores[i])
+                            normal.sort(key=lambda x: x["rerank_score"], reverse=True)
+                        normal = normal[:max(0, top_k - len(boosted))]
+
             # 5. 反馈权重调整：点踩多的chunk降权
             all_results = boosted + normal
             for c in all_results:
