@@ -506,11 +506,12 @@ class KnowledgeBase:
         search_query = rewritten
         if len(question) < 15 and any(kw in question.lower() for kw in ['excel', 'excle', '表格', '导出', 'xlsx', 'csv']):
             if history and history:
-                # 找最近一条不同的问题作为上文
+                # 找最近一条非导出类问题作为上文
+                export_kws = ['excel', 'excle', '表格', '导出', 'xlsx', 'csv', '输出']
                 last_q = ''
                 for h in reversed(history):
                     q = h.get('question', '')
-                    if q and q != question and len(q) > 5:
+                    if q and q != question and len(q) > 5 and not any(ek in q.lower() for ek in export_kws):
                         last_q = q
                         break
                 if last_q:
