@@ -524,7 +524,8 @@ class KnowledgeBase:
                 unique_contexts.append({
                     "title": t,
                     "category": c['metadata'].get('category', '其他'),
-                    "content": c['content'][:200]
+                    "content": c['content'][:200],
+                    "doc_id": c['metadata'].get('doc_id', '')
                 })
 
         _answer_cache[cache_key] = {"answer": answer, "contexts": unique_contexts, "timestamp": time.time()}

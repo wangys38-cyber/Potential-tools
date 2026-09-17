@@ -503,7 +503,13 @@ function addMessage(role, content, contexts) {
     html += answerHtml;
     if (contexts && contexts.length) {
         html += '<div class="kb-context"><div class="kb-context-title">参考来源</div>' +
-            contexts.map((c,i) => `<span style="color:#999;font-size:11px;">[${i+1}] ${c.title}</span>`).join('<br>') + '</div>';
+            contexts.map((c,i) => {
+                let line = `<span style="color:#999;font-size:11px;">[${i+1}] ${c.title}</span>`;
+                if (c.doc_id && !c.doc_id.startsWith('cr_')) {
+                    line += ` <a href="/knowledge-base/api/download/${c.doc_id}" style="font-size:11px;color:#3b82f6;text-decoration:none;">[下载]</a>`;
+                }
+                return line;
+            }).join('<br>') + '</div>';
     }
     if (role === 'ai') {
         html += `<div class="kb-feedback">

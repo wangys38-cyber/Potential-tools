@@ -479,7 +479,26 @@ def upload_file():
         title = os.path.splitext(filename)[0]
         success = kb.add_document(doc_id, title, content)
         
+        # 保存原始文件到磁盘，供下载
+        saved_path = ""
+        try:
+            upload_dir = os.path.join('data', 'kb_files', f'user_{user_id}')
+            os.makedirs(upload_dir, exist_ok=True)
+            safe_name = filename.replace('/', '_').replace('\\', '_')
+            saved_path = os.path.join(upload_dir, f'{doc_id}_{safe_name}')
+            file.seek(0)
+            file.save(saved_path)
+        except Exception as e:
+            logger.warning(f"保存原始文件失败: {e}")
+        
         if success:
+            # 记录文件路径到数据库
+            conn = _get_db()
+            cur = conn.cursor()
+            cur.execute('INSERT OR IGNORE INTO knowledge_docs (doc_id, user_id, title, file_path, file_name) VALUES (?,?,?,?,?)',
+                       (doc_id, user_id, title, saved_path, filename))
+            conn.commit()
+            conn.close()
             return jsonify({
                 "status": "success",
                 "message": "文件上传成功",
@@ -1105,6 +1124,23 @@ def export_answer():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/download/<doc_id>', methods=['GET'])
+def download_doc(doc_id):
+    """下载原始文件"""
+    try:
+        user_id = getattr(g, 'user_id', 1) or 1
+        conn = _get_db()
+        c = conn.cursor()
+        c.execute('SELECT file_path, file_name FROM knowledge_docs WHERE doc_id=?', (doc_id,))
+        row = c.fetchone()
+        conn.close()
+        if not row or not row[0]:
+            return jsonify({"status": "error", "error": "文件不存在"}), 404
+        return send_file(row[0], as_attachment=True, download_name=row[1] or 'file')
+    except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
