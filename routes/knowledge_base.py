@@ -328,7 +328,8 @@ def detect_intent(question):
         return 'forget', fact
     if any(kw in question for kw in list_keywords):
         return 'list', None
-    if any(kw in question for kw in remember_keywords):
+    # 冲突选择："以1为准"/"选2"/"选A"
+    if any(kw in question for kw in remember_keywords) or '为准' in question or question.strip().startswith('选'):
         fact = question
         for prefix in ['你要记得', '你要记住', '要记得', '记住：', '记住:', '记住', '记得：', '记得:', '记得']:
             if fact.startswith(prefix):
