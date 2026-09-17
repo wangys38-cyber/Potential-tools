@@ -317,6 +317,27 @@ def delete_document(doc_id):
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+def detect_intent(question):
+    """快速判断用户意图：question/remember/forget/list"""
+    remember_keywords = ['记得', '记住', '要记得', '切记', '提醒我', '你要记住', '你要记得', '别忘了']
+    forget_keywords = ['忘记', '删掉', '忘了']
+    list_keywords = ['你记住了什么', '你记住了哪些', '你的记忆', '你知道什么']
+    
+    if any(kw in question for kw in forget_keywords):
+        fact = question.replace('忘记','').replace('删掉','').replace('忘了','').strip('，,：: ')
+        return 'forget', fact
+    if any(kw in question for kw in list_keywords):
+        return 'list', None
+    if any(kw in question for kw in remember_keywords):
+        fact = question
+        for prefix in ['你要记得', '你要记住', '要记得', '记住：', '记住:', '记住', '记得：', '记得:', '记得']:
+            if fact.startswith(prefix):
+                fact = fact[len(prefix):]
+                break
+        return 'remember', fact.strip('，,：: ')
+    return 'question', None
+
+
 @kb_bp.route('/api/ask', methods=['POST'])
 def ask():
     """智能问答"""
@@ -335,40 +356,17 @@ def ask():
         forget_match = None
         list_facts = False
         
-        # 关键词快速判断（避免LLM延迟）
-        remember_keywords = ['记得', '记住', '要记得', '切记', '提醒我', '你要记住', '你要记得', '别忘了']
-        forget_keywords = ['忘记', '删掉', '忘了']
-        list_keywords = ['你记住了什么', '你记住了哪些', '你的记忆', '你知道什么']
-        
-        if any(kw in question for kw in forget_keywords):
-            intent = 'forget'
-            fact_extracted = question.replace('忘记','').replace('删掉','').replace('忘了','').strip('，,：: ')
-        elif any(kw in question for kw in list_keywords):
-            intent = 'list'
-            fact_extracted = None
-        elif any(kw in question for kw in remember_keywords):
-            intent = 'remember'
-            fact_extracted = question
-            # 去掉前缀
-            for prefix in ['你要记得', '要记得', '记住：', '记住:', '记住', '记得：', '记得:', '记得', '以后', '应该']:
-                if fact_extracted.startswith(prefix):
-                    fact_extracted = fact_extracted[len(prefix):]
-                    break
-            fact_extracted = fact_extracted.strip('，,：: ')
-        else:
-            # LLM分类兜底
+        intent, fact_extracted = detect_intent(question)
+        # 关键词没命中时LLM兜底
+        if intent == 'question' and any(kw in question for kw in ['应该', '以后', '注意', '不要', '必须']):
             try:
                 classify_prompt = ("判断意图：question/remember/forget/list。用户这句话：" + question + "。只回复一个词")
                 intent_raw = get_llm_response(classify_prompt, system="只回复一个英文词", temperature=0.1).strip().lower()
+                if 'remember' in intent_raw:
+                    intent = 'remember'
+                    fact_extracted = question
             except:
-                intent_raw = 'question'
-            if ':' in intent_raw:
-                intent, fact_extracted = intent_raw.split(':', 1)
-                intent = intent.strip()
-                fact_extracted = fact_extracted.strip()
-            else:
-                intent = intent_raw.strip()
-                fact_extracted = None
+                pass
         
         if 'remember' in intent:
             fact = fact_extracted if fact_extracted else question
@@ -380,11 +378,14 @@ def ask():
                 existing = [r[0] for r in cur.fetchall()]
                 is_duplicate = False
                 is_conflict = False
+                def _ngram_sim(a, b):
+                    sa = set(a[i:i+2] for i in range(len(a)-1))
+                    sb = set(b[i:i+2] for i in range(len(b)-1))
+                    if not sa or not sb: return 0
+                    return len(sa & sb) / max(len(sa | sb), 1)
                 for old_f in existing:
-                    old_words = set(old_f.replace('，',' ').replace('：',' ').split())
-                    new_words = set(fact.replace('，',' ').replace('：',' ').split())
-                    overlap = len(old_words & new_words) / max(len(old_words | new_words), 1)
-                    if overlap > 0.6:
+                    overlap = _ngram_sim(old_f, fact)
+                    if overlap > 0.5:
                         is_duplicate = True
                         if old_f != fact:
                             is_conflict = True
@@ -441,7 +442,8 @@ def ask():
             result = {'answer': answer, 'contexts': []}
         else:
             # 检索用原始问题，facts只加到LLM prompt
-            result = kb.ask(question, extra_facts=facts)
+            recent = _get_chat_history_from_db(user_id, limit=10)
+            result = kb.ask(question, extra_facts=facts, history=recent)
         
         # 保存到历史
         save_chat_history(user_id, question, result['answer'])

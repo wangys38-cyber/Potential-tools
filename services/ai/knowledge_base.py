@@ -422,7 +422,7 @@ class KnowledgeBase:
             logger.error(f"查询失败: {e}")
             return []
 
-    def ask(self, question: str, use_cache: bool = True, extra_facts=None) -> Dict[str, Any]:
+    def ask(self, question: str, use_cache: bool = True, extra_facts=None, history=None) -> Dict[str, Any]:
         # 0. 缓存
         facts_str = '|'.join(extra_facts) if extra_facts else ''
         cache_key = hashlib.md5((question + facts_str).encode()).hexdigest()
@@ -431,14 +431,14 @@ class KnowledgeBase:
             if time.time() - cached['timestamp'] < CACHE_TTL:
                 return {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
 
-        # 1. 查询改写（简单问题跳过，省一次LLM调用）
-        rewrite_needed = len(question) > 15 or any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些'])
+        # 1. 查询改写（短问题跳过，省一次LLM调用）
+        rewrite_needed = len(question) > 12 and any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些', '怎么修', '状态'])
         rewritten = rewrite_query(question) if rewrite_needed else question
         logger.info(f"查询改写: '{question}' -> '{rewritten}'")
 
-        # 1.5 Multi-hop：收紧触发条件，避免简单问题也拆子问题
-        hop_keywords = ['对比', '比较', '和上周', '和本周', '和昨天', '关系', '对得上', '为什么', '原因', '跨']
-        needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 15
+        # 1.5 Multi-hop：仅复杂对比问题才拆
+        hop_keywords = ['对比', '比较', '和上周', '和本周', '和昨天', '对得上', '跨']
+        needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 20
         extra_contexts = []
         if needs_multihop:
             try:
@@ -470,14 +470,14 @@ class KnowledgeBase:
         if not contexts:
             return {"answer": "知识库中没有找到相关信息，请先上传文档。", "contexts": []}
 
-        # 3. 对话历史
+        # 3. 对话历史（优先DB传入，否则内存）
         history_context = ""
-        if self.user_id in _chat_history and _chat_history[self.user_id]:
-            recent = _chat_history[self.user_id][-MAX_HISTORY_TURNS:]
+        recent = history if history else (_chat_history.get(self.user_id, [])[-MAX_HISTORY_TURNS:])
+        if recent:
             lines = []
-            for h in recent:
-                lines.append(f"用户之前问：{h['question']}")
-                lines.append(f"之前回答：{h['answer'][:150]}...")
+            for h in recent[-MAX_HISTORY_TURNS:]:
+                lines.append(f"用户之前问：{h.get('question','')}")
+                lines.append(f"之前回答：{h.get('answer','')[:150]}...")
             history_context = "\n## 对话历史：\n" + "\n".join(lines) + "\n"
 
         # 3.5 用户自定义事实

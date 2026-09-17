@@ -80,6 +80,8 @@
         .kb-bubble ul { margin: 2px 0; padding-left: 18px; }
         .kb-bubble li { margin: 1px 0; }
         .kb-bubble code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+        .dots::after { content: ''; animation: dots 1.5s steps(4) infinite; }
+        @keyframes dots { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
 
         /* 反馈按钮 */
         .kb-feedback {
@@ -444,7 +446,7 @@ async function sendQuestion() {
     btn.disabled = true; btn.textContent = '...';
     addMessage('user', q);
     input.value = '';
-    const loadingId = addMessage('ai', '检索中...');
+    const loadingId = addMessage('ai', '<span style="color:#999;">正在思考<span class="dots">...</span></span>');
     try {
         const res = await fetch('/knowledge-base/api/ask', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
