@@ -330,16 +330,21 @@ def ask():
         user_id = getattr(g, 'user_id', 1) or 1
         kb = get_knowledge_base(user_id)
         
-        # 学习：检测"记住/纠正/忘记"指令
+        # 学习：LLM判断用户意图
         learn_match = None
         forget_match = None
         list_facts = False
         
-        q_lower = question.lower().strip()
+        # 先用LLM判断意图
+        try:
+            classify_prompt = f"判断这句话的意图，只回复一个词：\nquestion（用户在问问题） / remember（用户在教你一条规则或事实） / forget（用户让你忘掉某事） / list（用户想看你记住了什么）\n\n这句话：{question}"
+            intent = get_llm_response(classify_prompt, system="你是意图分类器，只回复一个英文词：question/remember/forget/list。", temperature=0.1).strip().lower()
+        except:
+            intent = 'question'
         
-        # 记住
-        if question.startswith('记住') or question.startswith('记一下') or '记住一件事' in question or '记住：' in question:
+        if 'remember' in intent or '记住' in question[:3]:
             fact = question
+            # 去掉前缀
             for prefix in ['记住一件事：', '记住一件事:', '记住：', '记住:', '记一下：', '记一下:']:
                 if fact.startswith(prefix):
                     fact = fact[len(prefix):]
@@ -352,30 +357,8 @@ def ask():
                 conn.commit()
                 conn.close()
                 learn_match = fact
-        
-        # 纠正学习："不对，XXX" / "错了，应该是XXX"
-        elif question.startswith('不对') or question.startswith('错了') or question.startswith('不是'):
-            fact = question
-            for prefix in ['不对，', '不对:', '错了，', '错了:', '不是，', '不是:']:
-                if fact.startswith(prefix):
-                    fact = fact[len(prefix):]
-                    break
-            fact = fact.strip()
-            if fact:
-                conn = _get_db()
-                cur = conn.cursor()
-                cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
-                conn.commit()
-                conn.close()
-                learn_match = '纠正：' + fact
-        
-        # 忘记
-        elif question.startswith('忘记') or question.startswith('删掉'):
-            fact = question
-            for prefix in ['忘记：', '忘记:', '忘记', '删掉：', '删掉:', '删掉']:
-                if fact.startswith(prefix):
-                    fact = fact[len(prefix):].strip('，,：: ')
-                    break
+        elif 'forget' in intent:
+            fact = question.replace('忘记', '').replace('删掉', '').strip('，,：: ')
             if fact:
                 conn = _get_db()
                 cur = conn.cursor()
@@ -384,9 +367,7 @@ def ask():
                 conn.commit()
                 conn.close()
                 forget_match = fact if deleted > 0 else None
-        
-        # 列出记忆
-        elif '你记住了什么' in question or '你记住了哪些' in question or '你的记忆' in question:
+        elif 'list' in intent:
             list_facts = True
         
         # 把用户自定义事实加入上下文
