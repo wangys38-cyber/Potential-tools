@@ -543,6 +543,22 @@ def upload_file():
                        (doc_id, user_id, title, saved_path, filename))
             conn.commit()
             conn.close()
+
+            # 异步同步到OneDrive
+            if saved_path:
+                try:
+                    import threading as _th
+                    from services.onedrive import get_valid_token as _gvt, upload_file as _odup
+                    def _sync_od():
+                        try:
+                            if _gvt(user_id):
+                                _odup(user_id, saved_path, f'{doc_id}_{filename}')
+                        except Exception:
+                            pass
+                    _th.Thread(target=_sync_od, daemon=True).start()
+                except Exception:
+                    pass
+
             return jsonify({
                 "status": "success",
                 "message": "文件上传成功",
@@ -1281,3 +1297,79 @@ def full_search():
     results = kb.full_text_search(keyword, top_k=20)
     return jsonify({"status": "success", "results": results, "count": len(results)})
 
+
+
+# ========== OneDrive 云盘集成 ==========
+
+@kb_bp.route('/onedrive/status', methods=['GET'])
+def onedrive_status():
+    from services.onedrive import get_status
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    return jsonify(get_status(user_id))
+
+
+@kb_bp.route('/onedrive/bind', methods=['GET'])
+def onedrive_bind():
+    from services.onedrive import get_auth_url, CLIENT_ID
+    if not CLIENT_ID:
+        return jsonify({"status": "error", "error": "未配置OneDrive应用，请先设置环境变量"}), 400
+    return jsonify({"auth_url": get_auth_url()})
+
+
+@kb_bp.route('/onedrive/callback', methods=['GET'])
+def onedrive_callback():
+    from services.onedrive import exchange_code, save_tokens
+    code = request.args.get('code')
+    error = request.args.get('error')
+    if error:
+        return f'<html><body><h3>授权失败</h3><p>{error}</p><a href="/knowledge-base">返回</a></body></html>'
+    if not code:
+        return '<html><body><h3>未收到授权码</h3><a href="/knowledge-base">返回</a></body></html>'
+    try:
+        tokens = exchange_code(code)
+        user_id = g.user_id if hasattr(g, 'user_id') else 1
+        save_tokens(user_id, tokens)
+        return '<html><body><h3>OneDrive绑定成功！</h3><script>setTimeout(()=>window.close(),2000);</script><p>此窗口将自动关闭...</p></body></html>'
+    except Exception as e:
+        logger.error(f"OneDrive回调失败: {e}")
+        return f'<html><body><h3>绑定失败</h3><p>{str(e)[:200]}</p><a href="/knowledge-base">返回</a></body></html>'
+
+
+@kb_bp.route('/onedrive/unbind', methods=['POST'])
+def onedrive_unbind():
+    from services.onedrive import unbind
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    unbind(user_id)
+    return jsonify({"status": "success", "message": "已解绑OneDrive"})
+
+
+@kb_bp.route('/onedrive/sync', methods=['POST'])
+def onedrive_sync():
+    """将本地所有文档同步到OneDrive"""
+    from services.onedrive import get_valid_token, upload_file
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    token = get_valid_token(user_id)
+    if not token:
+        return jsonify({"status": "error", "error": "未绑定OneDrive"}), 400
+
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT doc_id, title, file_path, file_name FROM knowledge_docs WHERE user_id=? AND file_path != ""', (user_id,))
+    docs = cur.fetchall()
+    conn.close()
+
+    success = 0
+    failed = []
+    for doc_id, title, file_path, file_name in docs:
+        try:
+            if file_path and os.path.exists(file_path):
+                remote_name = f'{doc_id}_{file_name}'
+                fid = upload_file(user_id, file_path, remote_name)
+                if fid:
+                    success += 1
+                else:
+                    failed.append(title)
+        except Exception as e:
+            failed.append(f'{title}({str(e)[:30]})')
+
+    return jsonify({"status": "success", "message": f"同步完成: {success}个成功", "failed": failed})

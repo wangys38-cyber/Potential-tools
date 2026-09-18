@@ -264,6 +264,10 @@ body.kb-centered .kb-send { padding: 16px 28px; }
         <h3>文档管理</h3>
         <button class="kb-btn" onclick="closeDrawer()">✕</button>
     </div>
+    <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.4);display:flex;align-items:center;gap:8px;font-size:12px;" id="onedriveBar">
+        <span id="onedriveStatus" style="color:#999;">检查云盘...</span>
+        <button class="kb-btn" id="onedriveBtn" style="margin-left:auto;font-size:11px;padding:3px 10px;" onclick="onedriveAction()">绑定</button>
+    </div>
     <div class="kb-drawer-body">
         <input type="text" id="docSearchInput" placeholder="全文搜索..." 
                style="width:100%;padding:7px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:8px;"
@@ -695,6 +699,50 @@ function handleSearch(val) {
 loadDocs();
 loadChatHistory();
 checkReindexStatus();
+loadOneDriveStatus();
+
+async function loadOneDriveStatus() {
+    try {
+        const r = await fetch('/knowledge-base/onedrive/status');
+        const s = await r.json();
+        const status = document.getElementById('onedriveStatus');
+        const btn = document.getElementById('onedriveBtn');
+        if (s.bound) {
+            status.innerHTML = `☁️ <b>${s.account_name||'OneDrive'}</b>`;
+            btn.textContent = '同步';
+            btn.onclick = syncOneDrive;
+        } else if (s.configured) {
+            status.textContent = '☁️ 未绑定云盘';
+            btn.textContent = '绑定';
+            btn.onclick = bindOneDrive;
+        } else {
+            status.textContent = '☁️ 云盘未配置';
+            btn.textContent = '帮助';
+            btn.onclick = () => alert('请在系统环境变量设置：\\nONEDRIVE_CLIENT_ID\\nONEDRIVE_CLIENT_SECRET\\n\\n注册地址：portal.azure.com → Microsoft Entra ID → 应用注册');
+        }
+    } catch (e) {}
+}
+
+async function bindOneDrive() {
+    const r = await fetch('/knowledge-base/onedrive/bind');
+    const j = await r.json();
+    if (j.auth_url) window.open(j.auth_url, '_blank', 'width=600,height=700');
+    else alert(j.error || '绑定失败');
+    setTimeout(loadOneDriveStatus, 5000);
+}
+
+async function syncOneDrive() {
+    const btn = document.getElementById('onedriveBtn');
+    btn.textContent = '同步中...';
+    btn.disabled = true;
+    try {
+        const r = await fetch('/knowledge-base/onedrive/sync', {method:'POST'});
+        const j = await r.json();
+        alert(j.message || j.error);
+    } catch(e) { alert('同步失败'); }
+    btn.textContent = '同步';
+    btn.disabled = false;
+}
 
 async function checkReindexStatus() {
     try {
