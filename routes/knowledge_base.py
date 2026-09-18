@@ -9,7 +9,7 @@ import io
 import logging
 import sqlite3
 from datetime import datetime
-from flask import Blueprint, request, jsonify, render_template, g
+from flask import Blueprint, request, jsonify, render_template, g, Response
 from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai, get_llm_response
 
 logger = logging.getLogger(__name__)
@@ -457,6 +457,100 @@ def ask():
     except Exception as e:
         logger.error(f"问答失败: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@kb_bp.route('/api/ask-stream', methods=['POST'])
+def ask_stream_route():
+    """流式问答（SSE）：检索后逐token返回，首字延迟低"""
+    import json as _json
+    data = request.get_json(silent=True) or {}
+    question = (data.get('question') or '').strip()
+    if not question:
+        return jsonify({"status": "error", "error": "问题不能为空"}), 400
+    user_id = getattr(g, 'user_id', 1) or 1
+    kb = get_knowledge_base(user_id)
+
+    def sse(obj):
+        return f"data: {_json.dumps(obj, ensure_ascii=False)}\n\n"
+
+    def generate():
+        try:
+            # 学习意图识别（remember/forget/list），命中则直接返回整句
+            intent, fact_extracted = detect_intent(question)
+            direct_answer = None
+            if intent == 'question' and any(kw in question for kw in ['应该', '以后', '注意', '不要', '必须']):
+                try:
+                    raw = get_llm_response("判断意图：question/remember/forget/list。用户这句话：" + question + "。只回复一个词", system="只回复一个英文词", temperature=0.1).strip().lower()
+                    if 'remember' in raw:
+                        intent, fact_extracted = 'remember', question
+                except Exception:
+                    pass
+
+            if 'remember' in intent:
+                fact = (fact_extracted or question).strip().rstrip('。.！!')
+                if fact:
+                    conn = _get_db(); cur = conn.cursor()
+                    cur.execute('SELECT fact FROM user_facts WHERE user_id=?', (user_id,))
+                    existing = [r[0] for r in cur.fetchall()]
+                    dup, conflict = False, False
+                    def _gsim(a, b):
+                        sa = set(a[i:i+2] for i in range(len(a)-1)); sb = set(b[i:i+2] for i in range(len(b)-1))
+                        return len(sa & sb)/max(len(sa | sb), 1) if sa and sb else 0
+                    for of in existing:
+                        if _gsim(of, fact) > 0.5:
+                            dup = True
+                            if of != fact:
+                                conflict = True
+                                cur.execute('UPDATE user_facts SET fact=? WHERE user_id=? AND fact=?', (fact, user_id, of))
+                    if not dup:
+                        cur.execute('INSERT INTO user_facts (user_id, fact) VALUES (?,?)', (user_id, fact))
+                    conn.commit(); conn.close()
+                    direct_answer = ('好的，我更新了这条记忆：' + fact + '。') if conflict else ('好的，我记住了：' + fact + '。之后回答会参考这个信息。')
+            elif 'forget' in intent:
+                fact = fact_extracted or question.replace('忘记', '').replace('删掉', '').strip('，,：: ')
+                if fact:
+                    conn = _get_db(); cur = conn.cursor()
+                    cur.execute('DELETE FROM user_facts WHERE user_id=? AND fact LIKE ?', (user_id, f'%{fact}%'))
+                    deleted = cur.rowcount; conn.commit(); conn.close()
+                    if deleted:
+                        direct_answer = f'好的，我已经忘记了关于"{fact}"的记忆。'
+            elif 'list' in intent:
+                conn = _get_db(); cur = conn.cursor()
+                cur.execute('SELECT fact FROM user_facts WHERE user_id=? ORDER BY id DESC LIMIT 50', (user_id,))
+                fl = [r[0] for r in cur.fetchall()]; conn.close()
+                direct_answer = ('我记住了以下事实：\n' + '\n'.join(f'{i+1}. {x}' for i, x in enumerate(fl))) if fl else '目前还没有记住任何事实。你可以说"记住：XXX"来教我。'
+
+            if direct_answer is not None:
+                yield sse({"type": "token", "token": direct_answer})
+                yield sse({"type": "done", "contexts": []})
+                save_chat_history(user_id, question, direct_answer)
+                return
+
+            conn = _get_db(); cur = conn.cursor()
+            cur.execute('SELECT fact FROM user_facts WHERE user_id=? ORDER BY id DESC LIMIT 50', (user_id,))
+            facts = [r[0] for r in cur.fetchall()]; conn.close()
+            recent = _get_chat_history_from_db(user_id, limit=10)
+
+            final_answer_parts = []
+            final_contexts = []
+            for ev in kb.ask_stream(question, extra_facts=facts, history=recent):
+                if ev.get("type") == "token":
+                    final_answer_parts.append(ev["token"])
+                    yield sse(ev)
+                elif ev.get("type") == "empty":
+                    msg = "知识库中没有找到相关信息，请先上传文档。"
+                    final_answer_parts.append(msg)
+                    yield sse({"type": "token", "token": msg})
+                elif ev.get("type") == "done":
+                    final_contexts = ev.get("contexts", [])
+                    yield sse({"type": "done", "contexts": final_contexts})
+            save_chat_history(user_id, question, "".join(final_answer_parts))
+        except Exception as e:
+            logger.error(f"流式问答失败: {e}")
+            yield sse({"type": "error", "error": str(e)})
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'})
 
 
 @kb_bp.route('/api/upload-file', methods=['POST'])

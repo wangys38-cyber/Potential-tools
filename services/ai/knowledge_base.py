@@ -127,6 +127,28 @@ def get_llm_response(prompt: str, system: str = None, temperature: float = 0.3) 
         return f"AI 回答失败: {str(e)}"
 
 
+def get_llm_stream(prompt, system=None, temperature=0.3):
+    # 流式LLM生成，逐token yield字符串
+    from services.ai.factory import get_ai_service
+    from services.ai.base import ChatMessage
+    ai = get_ai_service()
+    if not ai:
+        yield "AI 服务未配置。"
+        return
+    sys_msg = system or "你是一个专业的研发知识库助手。"
+    messages = [
+        ChatMessage(role="system", content=sys_msg),
+        ChatMessage(role="user", content=prompt)
+    ]
+    try:
+        for chunk in ai.chat_stream(messages, temperature=temperature, max_tokens=2000):
+            if chunk:
+                yield chunk
+    except Exception as e:
+        logger.error(f"AI 流式调用失败: {e}")
+        yield f"AI 回答失败: {str(e)}"
+
+
 def get_ai_config():
     try:
         import os
@@ -488,45 +510,39 @@ class KnowledgeBase:
             logger.error(f"查询失败: {e}")
             return []
 
-    def ask(self, question: str, use_cache: bool = True, extra_facts=None, history=None) -> Dict[str, Any]:
-        # 0. 缓存
+    def _cache_lookup(self, question, extra_facts, use_cache):
         facts_str = '|'.join(extra_facts) if extra_facts else ''
         cache_key = hashlib.md5((question + facts_str).encode()).hexdigest()
         if use_cache and cache_key in _answer_cache:
             cached = _answer_cache[cache_key]
             if time.time() - cached['timestamp'] < CACHE_TTL:
-                return {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
-
-        # 0.5 语义缓存：相似问题直接命中
+                return cache_key, {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
         if use_cache:
             try:
                 emb_func = get_embedding_func()
                 q_emb = emb_func([question])[0]
-                best_sim = 0
-                best_cache = None
+                best_sim, best_cache = 0, None
                 for ck, cv in _answer_cache.items():
                     if 'q_emb' in cv:
-                        sim = sum(a*b for a,b in zip(q_emb, cv['q_emb']))
+                        sim = sum(a*b for a, b in zip(q_emb, cv['q_emb']))
                         if sim > best_sim:
-                            best_sim = sim
-                            best_cache = cv
+                            best_sim, best_cache = sim, cv
                 if best_cache and best_sim > 0.95 and time.time() - best_cache['timestamp'] < CACHE_TTL:
                     logger.info(f"语义缓存命中: sim={best_sim:.3f}")
-                    return {"answer": best_cache['answer'], "contexts": best_cache['contexts'], "cached": True}
+                    return cache_key, {"answer": best_cache['answer'], "contexts": best_cache['contexts'], "cached": True}
             except Exception:
                 pass
+        return cache_key, None
 
-        # 1. 查询路由：简单问题跳过LLM改写
-        # 含明确项目名/人名的问题直接检索，不做改写和multihop
+    def _retrieve(self, question, history=None):
+        """检索管线：路由/改写/multihop/联系上文/HyDE/混合检索，返回contexts"""
         has_specific_entity = any(kw in question for kw in ['andes', 'arceau', 'santos', 'harmony', 'madison', 'qira', 'cwv', 'spm', '负责人', '成员', '名单', '分工', 'roster', '计划', '排期'])
         is_simple = len(question) < 15 and has_specific_entity
 
-        # 1.1 查询改写（简单问题跳过）
         rewrite_needed = not is_simple and len(question) > 12 and any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些', '怎么修', '状态'])
         rewritten = rewrite_query(question) if rewrite_needed else question
         logger.info(f"查询改写: '{question}' -> '{rewritten}'")
 
-        # 1.5 Multi-hop：仅复杂对比问题才拆
         hop_keywords = ['对比', '比较', '和上周', '和本周', '和昨天', '对得上', '跨']
         needs_multihop = any(kw in question for kw in hop_keywords) and len(question) > 20
         extra_contexts = []
@@ -536,30 +552,24 @@ class KnowledgeBase:
                 sub = get_llm_response(split_prompt, system="只输出子问题，每行一个，不要解释。", temperature=0.1)
                 sub_questions = [l.strip() for l in sub.strip().split('\n') if l.strip() and len(l.strip()) > 3]
                 for sq in sub_questions[:3]:
-                    extra = self.query(sq, top_k=4)
-                    extra_contexts.extend(extra)
+                    extra_contexts.extend(self.query(sq, top_k=4))
                 logger.info(f"Multi-hop: {len(sub_questions)}个子问题，{len(extra_contexts)}个额外chunk")
             except Exception as e:
                 logger.warning(f"Multi-hop失败: {e}")
 
-        # 1.6 短问题联系上文：如果问题很短且包含excel/表格/导出，拼上一轮主题
         search_query = rewritten
-        # 短问题/追问联系上文：只在问题极短且不含明确实体名时才拼上文
-        # 如果问题本身已经提到具体项目名/人名/产品名，直接用原问题检索
-        if len(question) < 10:
-            if history and history:
-                export_kws = ['excel', 'excle', '导出', 'xlsx', 'csv', '输出']
-                last_q = ''
-                for h in reversed(history):
-                    q = h.get('question', '')
-                    if q and q != question and len(q) > 5 and not any(ek in q.lower() for ek in export_kws):
-                        last_q = q
-                        break
-                if last_q:
-                    search_query = last_q + ' ' + question
-                    logger.info(f"短问题联系上文: '{question}' -> '{search_query}'")
+        if len(question) < 10 and history:
+            export_kws = ['excel', 'excle', '导出', 'xlsx', 'csv', '输出']
+            last_q = ''
+            for h in reversed(history):
+                q = h.get('question', '')
+                if q and q != question and len(q) > 5 and not any(ek in q.lower() for ek in export_kws):
+                    last_q = q
+                    break
+            if last_q:
+                search_query = last_q + ' ' + question
+                logger.info(f"短问题联系上文: '{question}' -> '{search_query}'")
 
-        # 1.7 HyDE：对模糊问题生成假设文档增强检索
         hyde_query = search_query
         if not is_simple and len(question) > 10 and any(kw in question for kw in ['是什么', '有什么', '怎么', '如何', '为什么', '哪些', '多少', '状态', '趋势']):
             try:
@@ -567,15 +577,12 @@ class KnowledgeBase:
                 hyde_doc = get_llm_response(hyde_prompt, system="你是检索增强专家，生成假设性回答帮助检索。", temperature=0.3)
                 if hyde_doc and len(hyde_doc) > 20:
                     hyde_query = search_query + " " + hyde_doc[:300]
-                    logger.info(f"HyDE增强: +{len(hyde_doc)}字")
             except Exception:
                 pass
 
-        # 2. 检索（用改写后的查询）
         contexts = self.query(hyde_query, top_k=5)
         if not contexts:
             contexts = self.query(question, top_k=5)
-        # 合并Multi-hop结果
         if extra_contexts:
             seen = set()
             for c in contexts:
@@ -585,11 +592,9 @@ class KnowledgeBase:
                 if key not in seen:
                     contexts.append(ec)
                     seen.add(key)
+        return contexts
 
-        if not contexts:
-            return {"answer": "知识库中没有找到相关信息，请先上传文档。", "contexts": []}
-
-        # 3. 对话历史（优先DB传入，否则内存）
+    def _build_prompt(self, question, contexts, extra_facts, history):
         history_context = ""
         recent = history if history else (_chat_history.get(self.user_id, [])[-MAX_HISTORY_TURNS:])
         if recent:
@@ -598,21 +603,13 @@ class KnowledgeBase:
                 lines.append(f"用户之前问：{h.get('question','')}")
                 lines.append(f"之前回答：{h.get('answer','')[:150]}...")
             history_context = "\n## 对话历史：\n" + "\n".join(lines) + "\n"
-
-        # 3.5 用户自定义事实
         facts_context = ""
         if extra_facts:
             facts_context = "\n## 用户自定义事实（必须优先参考）：\n" + "\n".join([f"- {f}" for f in extra_facts]) + "\n"
-
-        # 4. 构建prompt
         context_text = "\n\n---\n\n".join([
             f"[来源{i+1}: {c['metadata'].get('title', '未知')} | {c['metadata'].get('category', '其他')}]\n{c['content']}"
             for i, c in enumerate(contexts)
         ])
-        print(f"DEBUG ask: question='{question}' contexts={len(contexts)}")
-        for i, cc in enumerate(contexts):
-            print(f"  ctx[{i}] = {cc['metadata'].get('title','')}")
-
         prompt = f"""请根据以下知识库内容回答用户的问题。
 
 ## 知识库内容：
@@ -633,24 +630,11 @@ class KnowledgeBase:
 9. **如果问项目整体里程碑/Schedule日期，优先使用Device HW或Device SW的Plan行数据，不要用Strap/Companion APP/Moto Fit等子模块的日期代替主项目日期**
 10. **答案自检**：如果某个结论在知识库中没有直接支撑，标注"(未验证)"；如果有支撑，正常回答
 11. 用户说"生成excel/表格"时，直接输出Markdown表格即可，不要说"无法生成Excel"，前端有导出按钮。
-12. **冲突检测**：如果不同来源对同一问题给出不同答案（如不同文档对同一角色/日期/人员说法不同），必须列出所有说法并标注来源，例如：
-   "关于XX，不同来源说法不一：
-   - [来源1]：说法A
-   - [来源2]：说法B
-   请告诉我以哪个为准。"""
+12. **冲突检测**：如果不同来源对同一问题给出不同答案（如不同文档对同一角色/日期/人员说法不同），必须列出所有说法并标注来源。"""
+        return prompt
 
-        answer = get_llm_response(prompt)
-
-        # 5. 保存历史
-        if self.user_id not in _chat_history:
-            _chat_history[self.user_id] = []
-        _chat_history[self.user_id].append({"question": question, "answer": answer})
-        if len(_chat_history[self.user_id]) > MAX_HISTORY_TURNS * 2:
-            _chat_history[self.user_id] = _chat_history[self.user_id][-MAX_HISTORY_TURNS*2:]
-
-        # 6. 去重context
-        seen_titles = set()
-        unique_contexts = []
+    def _dedup_contexts(self, contexts):
+        seen_titles, unique_contexts = set(), []
         for c in contexts:
             t = c['metadata'].get('title', '')
             if t and t not in seen_titles:
@@ -661,10 +645,62 @@ class KnowledgeBase:
                     "content": c['content'][:200],
                     "doc_id": c['metadata'].get('doc_id', '')
                 })
+        return unique_contexts
 
-        _answer_cache[cache_key] = {"answer": answer, "contexts": unique_contexts, "timestamp": time.time()}
+    def _save_turn(self, question, answer):
+        self.user_id and _chat_history.setdefault(self.user_id, []).append({"question": question, "answer": answer})
+        if self.user_id in _chat_history and len(_chat_history[self.user_id]) > MAX_HISTORY_TURNS * 2:
+            _chat_history[self.user_id] = _chat_history[self.user_id][-MAX_HISTORY_TURNS*2:]
 
+    def ask(self, question, use_cache=True, extra_facts=None, history=None):
+        cache_key, cached = self._cache_lookup(question, extra_facts, use_cache)
+        if cached:
+            return cached
+        contexts = self._retrieve(question, history)
+        if not contexts:
+            return {"answer": "知识库中没有找到相关信息，请先上传文档。", "contexts": []}
+        prompt = self._build_prompt(question, contexts, extra_facts, history)
+        answer = get_llm_response(prompt)
+        self._save_turn(question, answer)
+        unique_contexts = self._dedup_contexts(contexts)
+        try:
+            q_emb = get_embedding_func()([question])[0]
+        except Exception:
+            q_emb = None
+        entry = {"answer": answer, "contexts": unique_contexts, "timestamp": time.time()}
+        if q_emb:
+            entry['q_emb'] = q_emb
+        _answer_cache[cache_key] = entry
         return {"answer": answer, "contexts": unique_contexts, "cached": False}
+
+    def ask_stream(self, question, extra_facts=None, history=None):
+        """流式问答生成器：yield dict事件 {type: token/done/empty}"""
+        cache_key, cached = self._cache_lookup(question, extra_facts, True)
+        if cached:
+            yield {"type": "token", "token": cached["answer"]}
+            yield {"type": "done", "contexts": cached["contexts"], "cached": True}
+            return
+        contexts = self._retrieve(question, history)
+        if not contexts:
+            yield {"type": "empty"}
+            return
+        prompt = self._build_prompt(question, contexts, extra_facts, history)
+        parts = []
+        for token in get_llm_stream(prompt):
+            parts.append(token)
+            yield {"type": "token", "token": token}
+        answer = "".join(parts)
+        self._save_turn(question, answer)
+        unique_contexts = self._dedup_contexts(contexts)
+        try:
+            q_emb = get_embedding_func()([question])[0]
+        except Exception:
+            q_emb = None
+        entry = {"answer": answer, "contexts": unique_contexts, "timestamp": time.time()}
+        if q_emb:
+            entry['q_emb'] = q_emb
+        _answer_cache[cache_key] = entry
+        yield {"type": "done", "contexts": unique_contexts, "cached": False}
 
     def list_documents(self) -> List[Dict]:
         try:

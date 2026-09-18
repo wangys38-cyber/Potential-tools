@@ -247,6 +247,11 @@
 </div>
 
 <style>
+/* 流式输出光标 */
+.kb-cursor { display:inline-block; color:#6366f1; animation: kb-blink 0.8s steps(2) infinite; margin-left:1px; font-weight:normal; }
+@keyframes kb-blink { 0%,50%{opacity:1;} 51%,100%{opacity:0;} }
+.kb-stream-content { line-height:1.7; word-break:break-word; }
+
 /* 豆包风格：首次进入输入框居中 */
 body.kb-centered .kb-fullpage { justify-content: flex-start; }
 body.kb-centered .kb-chat { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: visible; }
@@ -547,6 +552,36 @@ async function uploadPastedImage(file) {
     }
 }
 
+function createStreamBubble() {
+    const area = document.getElementById('chatArea');
+    const empty = area.querySelector('.kb-empty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.className = 'kb-msg ai';
+    const id = 'stream_' + Date.now();
+    div.id = id;
+    div.innerHTML = '<div class="kb-avatar">🤖</div><div class="kb-bubble"><div class="kb-stream-content" style="color:#999;">正在检索相关文档<span class="dots">...</span></div></div>';
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+    return id;
+}
+
+let _streamRaf = null;
+function updateStreamBubble(id, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cc = el.querySelector('.kb-stream-content');
+    if (!cc) return;
+    if (_streamRaf) return;
+    _streamRaf = requestAnimationFrame(() => {
+        _streamRaf = null;
+        const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+        cc.innerHTML = safe + '<span class="kb-cursor">▍</span>';
+        const area = document.getElementById('chatArea');
+        area.scrollTop = area.scrollHeight;
+    });
+}
+
 async function sendQuestion() {
     const input = document.getElementById('questionInput');
     const q = input.value.trim();
@@ -556,20 +591,38 @@ async function sendQuestion() {
     btn.disabled = true; btn.textContent = '...';
     addMessage('user', q);
     input.value = '';
-    const loadingId = addMessage('ai', '<span style="color:#999;">正在思考<span class="dots">...</span></span>');
+    const streamId = createStreamBubble();
+    let fullText = '', finalContexts = [];
     try {
-        const res = await fetch('/knowledge-base/api/ask', {
+        const res = await fetch('/knowledge-base/api/ask-stream', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: q })
         });
-        const data = await res.json();
-        removeMessage(loadingId);
-        if (data.status === 'success') {
-            lastMsgId = addMessage('ai', data.answer, data.contexts);
-        } else {
-            addMessage('ai', '出错: ' + (data.error||''));
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                let ev;
+                try { ev = JSON.parse(line.slice(6)); } catch (e) { continue; }
+                if (ev.type === 'token') { fullText += ev.token; updateStreamBubble(streamId, fullText); }
+                else if (ev.type === 'empty') { fullText = '知识库中没有找到相关信息，请先上传文档。'; updateStreamBubble(streamId, fullText); }
+                else if (ev.type === 'done') { finalContexts = ev.contexts || []; }
+                else if (ev.type === 'error') { fullText = '出错: ' + (ev.error || ''); updateStreamBubble(streamId, fullText); }
+            }
         }
-    } catch (e) { removeMessage(loadingId); addMessage('ai', '请求失败'); }
+        removeMessage(streamId);
+        lastMsgId = addMessage('ai', fullText || '（无回答）', finalContexts);
+    } catch (e) {
+        removeMessage(streamId);
+        addMessage('ai', '请求失败：' + e.message);
+    }
     btn.disabled = false; btn.textContent = '发送';
 }
 
