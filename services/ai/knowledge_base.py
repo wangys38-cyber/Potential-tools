@@ -43,19 +43,19 @@ def get_embedding_func():
         return _embedding_model
     try:
         from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
-        logger.info("加载中文Embedding模型: bge-small-zh-v1.5")
+        model = SentenceTransformer('BAAI/bge-large-zh-v1.5')
+        logger.info("加载Embedding模型: bge-large-zh-v1.5")
         _embedding_model = lambda texts: model.encode(texts, normalize_embeddings=True).tolist()
         return _embedding_model
     except Exception as e:
-        logger.warning(f"bge-small-zh加载失败: {e}")
+        logger.warning(f"bge-large-zh加载失败: {e}")
         def simple_embed(texts):
             vectors = []
             for text in texts:
-                v = [0.0] * 512
+                v = [0.0] * 1024
                 for i, ch in enumerate(text):
                     h = int(hashlib.md5(ch.encode()).hexdigest(), 16)
-                    v[h % 512] += 1.0
+                    v[h % 1024] += 1.0
                 norm = sum(x*x for x in v) ** 0.5 or 1.0
                 vectors.append([x/norm for x in v])
             return vectors
@@ -69,8 +69,8 @@ def get_rerank_model():
         return _rerank_model
     try:
         from sentence_transformers import CrossEncoder
-        model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-        logger.info("加载Rerank模型: ms-marco-MiniLM-L-6-v2")
+        model = CrossEncoder('BAAI/bge-reranker-v2-m3')
+        logger.info("加载Rerank模型: bge-reranker-v2-m3")
         _rerank_model = model
         return _rerank_model
     except Exception as e:
@@ -476,13 +476,37 @@ class KnowledgeBase:
         # 0. 缓存
         facts_str = '|'.join(extra_facts) if extra_facts else ''
         cache_key = hashlib.md5((question + facts_str).encode()).hexdigest()
-        if False and use_cache and cache_key in _answer_cache:
+        if use_cache and cache_key in _answer_cache:
             cached = _answer_cache[cache_key]
             if time.time() - cached['timestamp'] < CACHE_TTL:
                 return {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
 
-        # 1. 查询改写（短问题跳过，省一次LLM调用）
-        rewrite_needed = len(question) > 12 and any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些', '怎么修', '状态'])
+        # 0.5 语义缓存：相似问题直接命中
+        if use_cache:
+            try:
+                emb_func = get_embedding_func()
+                q_emb = emb_func([question])[0]
+                best_sim = 0
+                best_cache = None
+                for ck, cv in _answer_cache.items():
+                    if 'q_emb' in cv:
+                        sim = sum(a*b for a,b in zip(q_emb, cv['q_emb']))
+                        if sim > best_sim:
+                            best_sim = sim
+                            best_cache = cv
+                if best_cache and best_sim > 0.95 and time.time() - best_cache['timestamp'] < CACHE_TTL:
+                    logger.info(f"语义缓存命中: sim={best_sim:.3f}")
+                    return {"answer": best_cache['answer'], "contexts": best_cache['contexts'], "cached": True}
+            except Exception:
+                pass
+
+        # 1. 查询路由：简单问题跳过LLM改写
+        # 含明确项目名/人名的问题直接检索，不做改写和multihop
+        has_specific_entity = any(kw in question for kw in ['andes', 'arceau', 'santos', 'harmony', 'madison', 'qira', 'cwv', 'spm', '负责人', '成员', '名单', '分工', 'roster', '计划', '排期'])
+        is_simple = len(question) < 15 and has_specific_entity
+
+        # 1.1 查询改写（简单问题跳过）
+        rewrite_needed = not is_simple and len(question) > 12 and any(kw in question for kw in ['怎么', '为什么', '如何', '区别', '对比', '分析', '多少', '哪些', '怎么修', '状态'])
         rewritten = rewrite_query(question) if rewrite_needed else question
         logger.info(f"查询改写: '{question}' -> '{rewritten}'")
 
@@ -519,8 +543,20 @@ class KnowledgeBase:
                     search_query = last_q + ' ' + question
                     logger.info(f"短问题联系上文: '{question}' -> '{search_query}'")
 
+        # 1.7 HyDE：对模糊问题生成假设文档增强检索
+        hyde_query = search_query
+        if not is_simple and len(question) > 10 and any(kw in question for kw in ['是什么', '有什么', '怎么', '如何', '为什么', '哪些', '多少', '状态', '趋势']):
+            try:
+                hyde_prompt = f"请用2-3句话假设性回答这个问题，用于知识库检索增强。问题：{question}"
+                hyde_doc = get_llm_response(hyde_prompt, system="你是检索增强专家，生成假设性回答帮助检索。", temperature=0.3)
+                if hyde_doc and len(hyde_doc) > 20:
+                    hyde_query = search_query + " " + hyde_doc[:300]
+                    logger.info(f"HyDE增强: +{len(hyde_doc)}字")
+            except Exception:
+                pass
+
         # 2. 检索（用改写后的查询）
-        contexts = self.query(search_query, top_k=5)
+        contexts = self.query(hyde_query, top_k=5)
         if not contexts:
             contexts = self.query(question, top_k=5)
         # 合并Multi-hop结果
