@@ -1203,28 +1203,25 @@ def clear_cache():
     kb.clear_cache()
     return jsonify({"status": "success", "message": "缓存已清空"})
 
-@kb_bp.route('/api/reindex-all', methods=['POST'])
-def reindex_all():
-    """重新索引所有已上传文档（换embedding模型后用）"""
-    user_id = g.user_id if hasattr(g, 'user_id') else 1
+_reindex_status = {"running": False, "done": 0, "total": 0, "failed": [], "current": ""}
+
+def _do_reindex(user_id):
+    global _reindex_status
     conn = _get_db()
     cur = conn.cursor()
     cur.execute('SELECT doc_id, title, file_path, file_name FROM knowledge_docs WHERE user_id=?', (user_id,))
     docs = cur.fetchall()
     conn.close()
-
-    if not docs:
-        return jsonify({"status": "success", "message": "没有文档需要重新索引", "reindexed": 0})
+    _reindex_status = {"running": True, "done": 0, "total": len(docs), "failed": [], "current": ""}
 
     kb = get_knowledge_base(user_id)
     kb.clear_cache()
-    success = 0
-    failed = []
 
     for doc_id, title, file_path, file_name in docs:
+        _reindex_status["current"] = title
         try:
             if not file_path or not os.path.exists(file_path):
-                failed.append(f"{title}(文件不存在)")
+                _reindex_status["failed"].append(f"{title}(文件不存在)")
                 continue
             ext = os.path.splitext(file_path)[1].lower()
             with open(file_path, 'rb') as f:
@@ -1243,23 +1240,35 @@ def reindex_all():
                     doc = Document(f)
                     content = "\n".join([p.text for p in doc.paragraphs])
                 else:
-                    failed.append(f"{title}(不支持{ext})")
+                    _reindex_status["failed"].append(f"{title}(不支持{ext})")
                     continue
             if not content or not content.strip():
-                failed.append(f"{title}(内容为空)")
+                _reindex_status["failed"].append(f"{title}(内容为空)")
                 continue
             kb.delete_document(doc_id)
             kb.add_document(doc_id, title, content)
-            success += 1
+            _reindex_status["done"] += 1
         except Exception as e:
-            failed.append(f"{title}({str(e)[:50]})")
+            _reindex_status["failed"].append(f"{title}({str(e)[:50]})")
+    _reindex_status["running"] = False
+    _reindex_status["current"] = ""
 
-    return jsonify({
-        "status": "success",
-        "message": f"重新索引完成: {success}个成功, {len(failed)}个失败",
-        "reindexed": success,
-        "failed": failed
-    })
+
+@kb_bp.route('/api/reindex-all', methods=['POST'])
+def reindex_all():
+    """后台重新索引所有文档"""
+    if _reindex_status["running"]:
+        return jsonify({"status": "running", "message": "索引进行中", "done": _reindex_status["done"], "total": _reindex_status["total"]})
+    import threading
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    t = threading.Thread(target=_do_reindex, args=(user_id,), daemon=True)
+    t.start()
+    return jsonify({"status": "started", "message": "开始重新索引"})
+
+
+@kb_bp.route('/api/reindex-status', methods=['GET'])
+def reindex_status():
+    return jsonify(_reindex_status)
 
 
 @kb_bp.route('/api/search', methods=['GET'])

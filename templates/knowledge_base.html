@@ -298,20 +298,29 @@ async function clearCache() {
 }
 
 async function reindexAll() {
-    if (!confirm('重新索引所有文档？\\n\\n用于换模型后重建向量库，可能需要几分钟。')) return;
+    if (!confirm('重新索引所有文档？\n\n用于换模型后重建向量库，可能需要几分钟。')) return;
     const btn = event.target;
-    btn.textContent = '索引中...';
     btn.disabled = true;
     try {
-        const r = await fetch('/knowledge-base/api/reindex-all', { method: 'POST' });
-        const j = await r.json();
-        alert(j.message + (j.failed && j.failed.length ? '\\n失败: ' + j.failed.join(', ') : ''));
-        loadDocuments();
+        await fetch('/knowledge-base/api/reindex-all', { method: 'POST' });
+        // 轮询进度
+        const timer = setInterval(async () => {
+            const r = await fetch('/knowledge-base/api/reindex-status');
+            const s = await r.json();
+            btn.textContent = `索引中 ${s.done}/${s.total}`;
+            if (!s.running) {
+                clearInterval(timer);
+                btn.textContent = '重建索引';
+                btn.disabled = false;
+                alert(`完成: ${s.done}个成功${s.failed.length ? ', 失败: ' + s.failed.length + '个' : ''}`);
+                loadDocuments();
+            }
+        }, 2000);
     } catch (e) {
         alert('失败: ' + e.message);
+        btn.textContent = '重建索引';
+        btn.disabled = false;
     }
-    btn.textContent = '重建索引';
-    btn.disabled = false;
 }
 
 async function loadInsights() {
