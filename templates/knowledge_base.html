@@ -235,8 +235,11 @@
     </div>
 
     <div class="kb-inputbar" id="inputBar">
+        <!-- 隐藏假输入框，吸收浏览器账号密码自动填充 -->
+        <input type="text" name="fakeusernameremembered" autocomplete="username" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;" tabindex="-1" aria-hidden="true">
+        <input type="password" name="fakepasswordremembered" autocomplete="new-password" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;" tabindex="-1" aria-hidden="true">
         <div class="kb-input-wrap">
-            <input type="text" class="kb-input" id="questionInput" placeholder="输入问题，或Ctrl+V粘贴图片..." onkeypress="if(event.key==='Enter')sendQuestion()" onpaste="handlePaste(event)">
+            <input type="text" class="kb-input" id="questionInput" name="kb_query_field" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入问题，或Ctrl+V粘贴图片..." onkeypress="if(event.key==='Enter')sendQuestion()" onpaste="handlePaste(event)">
             <button class="kb-mic" id="micBtn" onclick="toggleMic()" title="语音输入">🎤</button>
             <button class="kb-send" id="sendBtn" onclick="sendQuestion()">发送</button>
         </div>
@@ -716,6 +719,8 @@ loadDocs();
 loadChatHistory();
 checkReindexStatus();
 loadCloudStatus();
+// 防止浏览器自动填充用户名
+setTimeout(() => { const qi = document.getElementById('questionInput'); if (qi) qi.value = ''; }, 300);
 
 async function scanFolder() {
     const btn = event.target;
