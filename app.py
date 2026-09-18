@@ -731,10 +731,13 @@ if __name__ == '__main__':
                 try:
                     import time as _t
                     _t.sleep(3)
-                    from services.ai.knowledge_base import get_knowledge_base
+                    from services.ai.knowledge_base import (
+                        get_knowledge_base, get_embedding_func, get_rerank_model)
+                    get_embedding_func()      # 预热embedding模型
+                    get_rerank_model()        # 预热reranker模型
                     kb = get_knowledge_base(1)
-                    kb.query('预热', top_k=1)
-                    logger.info("知识库模型预热完成")
+                    kb.query('项目计划排期成员名单', top_k=3)  # 触发完整检索链路
+                    logger.info("知识库模型预热完成(embedding+reranker)")
                 except Exception as e:
                     logger.warning(f"知识库预热失败(可忽略): {e}")
             _th.Thread(target=_do, daemon=True).start()

@@ -11,6 +11,15 @@
 import os
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
+os.environ['HF_HUB_DISABLE_XET'] = '1'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+# CPU推理线程优化：充分利用多核，避免默认线程数不足导致embedding/rerank慢
+try:
+    import torch as _torch
+    _torch.set_num_threads(max(4, (os.cpu_count() or 8) - 2))
+except Exception:
+    pass
 
 import logging
 import hashlib
@@ -69,8 +78,12 @@ def get_rerank_model():
         return _rerank_model
     try:
         from sentence_transformers import CrossEncoder
-        model = CrossEncoder('BAAI/bge-reranker-v2-m3')
-        logger.info("加载Rerank模型: bge-reranker-v2-m3")
+        import glob
+        local = glob.glob(os.path.expanduser(
+            '~/.cache/huggingface/hub/models--BAAI--bge-reranker-base/snapshots/*'))
+        model_path = local[0] if local else 'BAAI/bge-reranker-base'
+        model = CrossEncoder(model_path, device='cpu')
+        logger.info(f"加载Rerank模型: bge-reranker-base")
         _rerank_model = model
         return _rerank_model
     except Exception as e:
@@ -410,18 +423,21 @@ class KnowledgeBase:
             boosted = [c for c in candidates if c.get('score', 0) >= 2.0]
             normal = [c for c in candidates if c.get('score', 0) < 2.0]
 
+            # 先用向量粗排截断到15段，再送reranker精排，控制CPU耗时
+            normal.sort(key=lambda x: x["score"], reverse=True)
+            rerank_budget = max(top_k - len(boosted), 6)
+            normal_for_rerank = normal[:15]
             if len(normal) > top_k - len(boosted):
                 reranker = get_rerank_model()
                 if reranker:
-                    pairs = [(question, c["content"]) for c in normal]
+                    pairs = [(question, c["content"]) for c in normal_for_rerank]
                     scores = reranker.predict(pairs)
-                    for i, c in enumerate(normal):
+                    for i, c in enumerate(normal_for_rerank):
                         c["rerank_score"] = float(scores[i])
-                    normal.sort(key=lambda x: x["rerank_score"], reverse=True)
-                    normal = normal[:max(0, top_k - len(boosted))]
+                    normal_for_rerank.sort(key=lambda x: x["rerank_score"], reverse=True)
+                    normal = normal_for_rerank[:max(0, top_k - len(boosted))]
                 else:
-                    normal.sort(key=lambda x: x["score"], reverse=True)
-                    normal = normal[:max(0, top_k - len(boosted))]
+                    normal = normal_for_rerank[:max(0, top_k - len(boosted))]
 
             # 4.5 如果问"所有人/名单/roster/团队"，追加命中文档的所有chunk
             roster_keywords = ['所有人', '名单', 'roster', '团队', 'contact', '人员', '同事', '成员', '分工', '分工表', 'project member', '人员表']
