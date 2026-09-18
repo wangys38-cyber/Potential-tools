@@ -1203,6 +1203,65 @@ def clear_cache():
     kb.clear_cache()
     return jsonify({"status": "success", "message": "缓存已清空"})
 
+@kb_bp.route('/api/reindex-all', methods=['POST'])
+def reindex_all():
+    """重新索引所有已上传文档（换embedding模型后用）"""
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT doc_id, title, file_path, file_name FROM knowledge_docs WHERE user_id=?', (user_id,))
+    docs = cur.fetchall()
+    conn.close()
+
+    if not docs:
+        return jsonify({"status": "success", "message": "没有文档需要重新索引", "reindexed": 0})
+
+    kb = get_knowledge_base(user_id)
+    kb.clear_cache()
+    success = 0
+    failed = []
+
+    for doc_id, title, file_path, file_name in docs:
+        try:
+            if not file_path or not os.path.exists(file_path):
+                failed.append(f"{title}(文件不存在)")
+                continue
+            ext = os.path.splitext(file_path)[1].lower()
+            with open(file_path, 'rb') as f:
+                if ext in ['.xlsx', '.xls']:
+                    content = parse_excel_file(f)
+                elif ext == '.csv':
+                    content = parse_csv_file(f)
+                elif ext in ['.txt', '.md']:
+                    content = f.read().decode('utf-8', errors='ignore')
+                elif ext == '.pdf':
+                    import PyPDF2
+                    reader = PyPDF2.PdfReader(f)
+                    content = "\n".join([p.extract_text() for p in reader.pages])
+                elif ext in ['.doc', '.docx']:
+                    from docx import Document
+                    doc = Document(f)
+                    content = "\n".join([p.text for p in doc.paragraphs])
+                else:
+                    failed.append(f"{title}(不支持{ext})")
+                    continue
+            if not content or not content.strip():
+                failed.append(f"{title}(内容为空)")
+                continue
+            kb.delete_document(doc_id)
+            kb.add_document(doc_id, title, content)
+            success += 1
+        except Exception as e:
+            failed.append(f"{title}({str(e)[:50]})")
+
+    return jsonify({
+        "status": "success",
+        "message": f"重新索引完成: {success}个成功, {len(failed)}个失败",
+        "reindexed": success,
+        "failed": failed
+    })
+
+
 @kb_bp.route('/api/search', methods=['GET'])
 def full_search():
     """全文精确搜索（不经过AI）"""

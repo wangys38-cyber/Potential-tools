@@ -180,6 +180,7 @@
             <button class="kb-btn" onclick="exportChat()">导出</button>
             <button class="kb-btn" onclick="clearChat()">清空</button>
             <button class="kb-btn" onclick="clearCache()">清缓存</button>
+            <button class="kb-btn" onclick="reindexAll()">重建索引</button>
             <button class="kb-btn kb-btn-primary" onclick="openDrawer()">📁 文档</button>
         </div>
     </div>
@@ -278,6 +279,23 @@ async function clearChat() {
 async function clearCache() {
     await fetch('/knowledge-base/api/clear-cache', { method: 'POST' });
     alert('缓存已清');
+}
+
+async function reindexAll() {
+    if (!confirm('重新索引所有文档？\\n\\n用于换模型后重建向量库，可能需要几分钟。')) return;
+    const btn = event.target;
+    btn.textContent = '索引中...';
+    btn.disabled = true;
+    try {
+        const r = await fetch('/knowledge-base/api/reindex-all', { method: 'POST' });
+        const j = await r.json();
+        alert(j.message + (j.failed && j.failed.length ? '\\n失败: ' + j.failed.join(', ') : ''));
+        loadDocuments();
+    } catch (e) {
+        alert('失败: ' + e.message);
+    }
+    btn.textContent = '重建索引';
+    btn.disabled = false;
 }
 
 async function loadInsights() {
