@@ -245,12 +245,13 @@
 
 <style>
 /* 豆包风格：首次进入输入框居中 */
-body.kb-centered .kb-chat { display: flex; flex-direction: column; justify-content: center; }
+body.kb-centered .kb-fullpage { justify-content: center; }
+body.kb-centered .kb-chat { flex: 0; overflow: visible; }
 body.kb-centered .kb-empty { padding: 0 0 24px; }
 body.kb-centered .kb-empty .icon { font-size: 64px; margin-bottom: 16px; }
 body.kb-centered .kb-empty .title { font-size: 22px; margin-bottom: 6px; }
 body.kb-centered .kb-empty .desc { font-size: 14px; margin-bottom: 24px; }
-body.kb-centered .kb-inputbar { border-top: none; padding-top: 0; }
+body.kb-centered .kb-inputbar { border-top: none; padding-top: 0; padding-bottom: 0; }
 body.kb-centered .kb-inputbar .kb-input-wrap { max-width: 700px; margin: 0 auto; }
 body.kb-centered .kb-input { padding: 16px 20px; font-size: 15px; }
 body.kb-centered .kb-send { padding: 16px 28px; }
