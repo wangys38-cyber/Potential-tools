@@ -476,7 +476,7 @@ class KnowledgeBase:
         # 0. 缓存
         facts_str = '|'.join(extra_facts) if extra_facts else ''
         cache_key = hashlib.md5((question + facts_str).encode()).hexdigest()
-        if use_cache and cache_key in _answer_cache:
+        if False and use_cache and cache_key in _answer_cache:
             cached = _answer_cache[cache_key]
             if time.time() - cached['timestamp'] < CACHE_TTL:
                 return {"answer": cached['answer'], "contexts": cached['contexts'], "cached": True}
@@ -504,8 +504,9 @@ class KnowledgeBase:
 
         # 1.6 短问题联系上文：如果问题很短且包含excel/表格/导出，拼上一轮主题
         search_query = rewritten
-        # 短问题/追问联系上文
-        if len(question) < 20:
+        # 短问题/追问联系上文：只在问题极短且不含明确实体名时才拼上文
+        # 如果问题本身已经提到具体项目名/人名/产品名，直接用原问题检索
+        if len(question) < 10:
             if history and history:
                 export_kws = ['excel', 'excle', '导出', 'xlsx', 'csv', '输出']
                 last_q = ''
@@ -556,6 +557,9 @@ class KnowledgeBase:
             f"[来源{i+1}: {c['metadata'].get('title', '未知')} | {c['metadata'].get('category', '其他')}]\n{c['content']}"
             for i, c in enumerate(contexts)
         ])
+        print(f"DEBUG ask: question='{question}' contexts={len(contexts)}")
+        for i, cc in enumerate(contexts):
+            print(f"  ctx[{i}] = {cc['metadata'].get('title','')}")
 
         prompt = f"""请根据以下知识库内容回答用户的问题。
 
@@ -571,7 +575,7 @@ class KnowledgeBase:
 3. 优先使用知识库中的具体数字和日期，不要说"无法确定"
 4. 主动从数据中统计计算
 5. 基于知识库内容回答，不要编造
-6. 如果确实没有相关信息，明确说明
+6. **不要轻易说"找不到"**：如果知识库内容里有表格、人员列表、分工表、花名册等数据，即使格式是表格形式，也必须从中提取信息回答。只有当知识库内容完全不涉及问题主题时，才说明找不到。
 7. 回答简洁，重点突出
 8. 引用来源用[来源1][来源2]标注
 9. **如果问项目整体里程碑/Schedule日期，优先使用Device HW或Device SW的Plan行数据，不要用Strap/Companion APP/Moto Fit等子模块的日期代替主项目日期**
