@@ -287,6 +287,11 @@ body.kb-centered .kb-send { padding: 16px 28px; }
         <div id="searchResults" style="display:none;"></div>
     </div>
     <div class="kb-upload-area">
+        <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#6366f1;">
+            <div style="font-weight:600;margin-bottom:2px;">📂 本地文件夹导入</div>
+            <div id="inboxPath" style="color:#9ca3af;word-break:break-all;font-size:10px;margin-bottom:4px;">加载中...</div>
+            <button class="kb-btn kb-btn-primary" style="width:100%;padding:6px;font-size:11px;" onclick="scanFolder()">扫描并导入</button>
+        </div>
         <label style="display:block;padding:12px;background:rgba(255,255,255,.4);backdrop-filter:blur(12px);border:1.5px dashed rgba(99,102,241,.3);border-radius:14px;text-align:center;cursor:pointer;font-size:12px;color:#6366f1;transition:all .2s;" for="fileInput">
             📎 上传文件（TXT/PDF/Word/Excel/CSV/图片）
         </label>
@@ -711,6 +716,30 @@ loadDocs();
 loadChatHistory();
 checkReindexStatus();
 loadCloudStatus();
+
+async function scanFolder() {
+    const btn = event.target;
+    btn.textContent = '扫描中...'; btn.disabled = true;
+    try {
+        const r = await fetch('/knowledge-base/api/scan-folder', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+        });
+        const j = await r.json();
+        if (j.status === 'success') {
+            document.getElementById('inboxPath').textContent = j.inbox_dir;
+            let msg = `导入 ${j.added.length} 个文件`;
+            if (j.skipped.length) msg += `\\n跳过(已存在) ${j.skipped.length} 个`;
+            if (j.failed.length) msg += `\\n失败 ${j.failed.length} 个:\\n${j.failed.join('\\n')}`;
+            if (!j.added.length && !j.failed.length) msg = '没有发现新文件\\n\\n请把文件复制到：\\n' + j.inbox_dir;
+            alert(msg);
+            loadDocs();
+        }
+    } catch(e) { alert('扫描失败: ' + e.message); }
+    btn.textContent = '扫描并导入'; btn.disabled = false;
+}
+
+// 收件箱路径在首次扫描后显示
+document.getElementById('inboxPath').textContent = '点击扫描后显示路径，将文件复制进去即可';
 
 async function loadCloudStatus() {
     try {

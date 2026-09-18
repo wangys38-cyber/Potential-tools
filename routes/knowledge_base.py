@@ -1359,3 +1359,116 @@ def cloud_sync():
             failed.append(f'{title}')
 
     return jsonify({"status": "success", "message": f"同步完成: {success}个成功, {len(failed)}个失败", "failed": failed})
+
+
+# ========== 本地文件夹扫描导入 ==========
+
+@kb_bp.route('/api/scan-folder', methods=['POST'])
+def scan_folder():
+    """扫描本地文件夹，自动导入新文件（用户可直接复制文件到该目录）"""
+    import shutil
+    data = request.get_json(silent=True) or {}
+    user_id = getattr(g, 'user_id', 1) or 1
+
+    # 默认扫描目录，也可自定义
+    default_dir = os.path.abspath(os.path.join('data', 'kb_files', f'user_{user_id}'))
+    watch_dir = os.path.abspath(data.get('folder', '') or default_dir)
+    inbox_dir = os.path.abspath(os.path.join('data', 'kb_inbox', f'user_{user_id}'))
+
+    results = {'added': [], 'skipped': [], 'failed': [], 'watch_dir': '', 'inbox_dir': inbox_dir}
+
+    # 确保收件箱目录存在
+    os.makedirs(inbox_dir, exist_ok=True)
+    results['watch_dir'] = inbox_dir
+
+    supported = {'.txt', '.md', '.pdf', '.docx', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg'}
+
+    # 查询已入库文件名
+    conn = _get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT file_name FROM knowledge_docs WHERE user_id=?', (user_id,))
+    existing = {row[0] for row in cur.fetchall()}
+    conn.close()
+
+    kb = get_knowledge_base(user_id)
+    upload_dir = default_dir
+    os.makedirs(upload_dir, exist_ok=True)
+
+    def _import_file(fpath, original_name):
+        """解析并导入单个文件"""
+        ext = os.path.splitext(original_name)[1].lower()
+        doc_id = f"doc_{os.urandom(4).hex()}"
+        title = os.path.splitext(original_name)[0]
+        content = ''
+
+        if ext == '.csv':
+            with open(fpath, 'rb') as f:
+                content = parse_csv_file(f)
+        elif ext in ('.xlsx', '.xls'):
+            with open(fpath, 'rb') as f:
+                content = parse_excel_file(f)
+        elif ext in ('.txt', '.md'):
+            with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        elif ext == '.pdf':
+            import PyPDF2
+            reader = PyPDF2.PdfReader(fpath)
+            content = "\n".join([p.extract_text() or '' for p in reader.pages])
+        elif ext in ('.doc', '.docx'):
+            from docx import Document
+            doc = Document(fpath)
+            content = "\n".join([p.text for p in doc.paragraphs])
+        elif ext in ('.png', '.jpg', '.jpeg'):
+            # 图片走多模态
+            content = analyze_image_with_ai(fpath) or f'图片: {original_name}'
+        else:
+            return False, '不支持的格式'
+
+        if not content or not content.strip():
+            return False, '内容为空'
+
+        ok = kb.add_document(doc_id, title, content)
+        if not ok:
+            return False, '索引失败'
+
+        # 复制到正式目录并登记
+        safe_name = original_name.replace('/', '_').replace('\\', '_')
+        saved_path = os.path.join(upload_dir, f'{doc_id}_{safe_name}')
+        if os.path.abspath(fpath) != os.path.abspath(saved_path):
+            shutil.copy2(fpath, saved_path)
+
+        conn = _get_db()
+        cur = conn.cursor()
+        cur.execute('INSERT OR IGNORE INTO knowledge_docs (doc_id, user_id, title, file_path, file_name) VALUES (?,?,?,?,?)',
+                   (doc_id, user_id, title, saved_path, original_name))
+        conn.commit()
+        conn.close()
+        return True, doc_id
+
+    # 扫描收件箱目录
+    for scan_dir in [inbox_dir]:
+        if not os.path.isdir(scan_dir):
+            continue
+        for fname in sorted(os.listdir(scan_dir)):
+            fpath = os.path.join(scan_dir, fname)
+            if not os.path.isfile(fpath):
+                continue
+            ext = os.path.splitext(fname)[1].lower()
+            if ext not in supported:
+                continue
+            # 去掉doc_id前缀来比对原始文件名
+            base_name = fname
+            if base_name in existing:
+                results['skipped'].append(base_name)
+                continue
+            try:
+                ok, info = _import_file(fpath, base_name)
+                if ok:
+                    results['added'].append(base_name)
+                    existing.add(base_name)
+                else:
+                    results['failed'].append(f'{base_name}({info})')
+            except Exception as e:
+                results['failed'].append(f'{base_name}({str(e)[:50]})')
+
+    return jsonify({"status": "success", **results})
