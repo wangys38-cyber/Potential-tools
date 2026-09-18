@@ -548,7 +548,7 @@ def upload_file():
             if saved_path:
                 try:
                     import threading as _th
-                    from services.onedrive import get_valid_token as _gvt, upload_file as _odup
+                    from services.webdav_cloud import _get_creds as _gvt, upload_file as _odup
                     def _sync_od():
                         try:
                             if _gvt(user_id):
@@ -1297,60 +1297,46 @@ def full_search():
     results = kb.full_text_search(keyword, top_k=20)
     return jsonify({"status": "success", "results": results, "count": len(results)})
 
+# ========== 坚果云 WebDAV 云盘集成 ==========
 
-
-# ========== OneDrive 云盘集成 ==========
-
-@kb_bp.route('/onedrive/status', methods=['GET'])
-def onedrive_status():
-    from services.onedrive import get_status
+@kb_bp.route('/cloud/status', methods=['GET'])
+def cloud_status():
+    from services.webdav_cloud import get_status
     user_id = g.user_id if hasattr(g, 'user_id') else 1
     return jsonify(get_status(user_id))
 
 
-@kb_bp.route('/onedrive/bind', methods=['GET'])
-def onedrive_bind():
-    from services.onedrive import get_auth_url, CLIENT_ID
-    if not CLIENT_ID:
-        return jsonify({"status": "error", "error": "未配置OneDrive应用，请先设置环境变量"}), 400
-    return jsonify({"auth_url": get_auth_url()})
+@kb_bp.route('/cloud/bind', methods=['POST'])
+def cloud_bind():
+    from services.webdav_cloud import test_connection, save_config
+    data = request.get_json() or {}
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+    webdav_url = (data.get('webdav_url') or '').strip() or None
+    if not username or not password:
+        return jsonify({"status": "error", "error": "请填写账号和应用密码"}), 400
+    if not test_connection(username, password, webdav_url):
+        return jsonify({"status": "error", "error": "连接失败，请检查账号和应用密码"}), 400
+    user_id = g.user_id if hasattr(g, 'user_id') else 1
+    save_config(user_id, username, password, webdav_url)
+    return jsonify({"status": "success", "message": "绑定成功"})
 
 
-@kb_bp.route('/onedrive/callback', methods=['GET'])
-def onedrive_callback():
-    from services.onedrive import exchange_code, save_tokens
-    code = request.args.get('code')
-    error = request.args.get('error')
-    if error:
-        return f'<html><body><h3>授权失败</h3><p>{error}</p><a href="/knowledge-base">返回</a></body></html>'
-    if not code:
-        return '<html><body><h3>未收到授权码</h3><a href="/knowledge-base">返回</a></body></html>'
-    try:
-        tokens = exchange_code(code)
-        user_id = g.user_id if hasattr(g, 'user_id') else 1
-        save_tokens(user_id, tokens)
-        return '<html><body><h3>OneDrive绑定成功！</h3><script>setTimeout(()=>window.close(),2000);</script><p>此窗口将自动关闭...</p></body></html>'
-    except Exception as e:
-        logger.error(f"OneDrive回调失败: {e}")
-        return f'<html><body><h3>绑定失败</h3><p>{str(e)[:200]}</p><a href="/knowledge-base">返回</a></body></html>'
-
-
-@kb_bp.route('/onedrive/unbind', methods=['POST'])
-def onedrive_unbind():
-    from services.onedrive import unbind
+@kb_bp.route('/cloud/unbind', methods=['POST'])
+def cloud_unbind():
+    from services.webdav_cloud import unbind
     user_id = g.user_id if hasattr(g, 'user_id') else 1
     unbind(user_id)
-    return jsonify({"status": "success", "message": "已解绑OneDrive"})
+    return jsonify({"status": "success", "message": "已解绑"})
 
 
-@kb_bp.route('/onedrive/sync', methods=['POST'])
-def onedrive_sync():
-    """将本地所有文档同步到OneDrive"""
-    from services.onedrive import get_valid_token, upload_file
+@kb_bp.route('/cloud/sync', methods=['POST'])
+def cloud_sync():
+    """将本地所有文档同步到云盘"""
+    from services.webdav_cloud import _get_creds, upload_file
     user_id = g.user_id if hasattr(g, 'user_id') else 1
-    token = get_valid_token(user_id)
-    if not token:
-        return jsonify({"status": "error", "error": "未绑定OneDrive"}), 400
+    if not _get_creds(user_id):
+        return jsonify({"status": "error", "error": "未绑定云盘"}), 400
 
     conn = _get_db()
     cur = conn.cursor()
@@ -1370,6 +1356,6 @@ def onedrive_sync():
                 else:
                     failed.append(title)
         except Exception as e:
-            failed.append(f'{title}({str(e)[:30]})')
+            failed.append(f'{title}')
 
-    return jsonify({"status": "success", "message": f"同步完成: {success}个成功", "failed": failed})
+    return jsonify({"status": "success", "message": f"同步完成: {success}个成功, {len(failed)}个失败", "failed": failed})

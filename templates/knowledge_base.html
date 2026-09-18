@@ -264,9 +264,20 @@ body.kb-centered .kb-send { padding: 16px 28px; }
         <h3>文档管理</h3>
         <button class="kb-btn" onclick="closeDrawer()">✕</button>
     </div>
-    <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.4);display:flex;align-items:center;gap:8px;font-size:12px;" id="onedriveBar">
-        <span id="onedriveStatus" style="color:#999;">检查云盘...</span>
-        <button class="kb-btn" id="onedriveBtn" style="margin-left:auto;font-size:11px;padding:3px 10px;" onclick="onedriveAction()">绑定</button>
+    <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.4);font-size:12px;" id="cloudBar">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span id="cloudStatus" style="color:#999;">检查云盘...</span>
+            <button class="kb-btn" id="cloudBtn" style="margin-left:auto;font-size:11px;padding:3px 10px;">绑定</button>
+        </div>
+        <div id="cloudForm" style="display:none;margin-top:8px;">
+            <input type="text" id="cloudUser" placeholder="坚果云账号（邮箱）" style="width:100%;padding:6px 8px;margin-bottom:4px;border:1px solid rgba(255,255,255,.5);border-radius:8px;font-size:11px;box-sizing:border-box;background:rgba(255,255,255,.6);outline:none;">
+            <input type="password" id="cloudPass" placeholder="应用密码（非登录密码）" style="width:100%;padding:6px 8px;margin-bottom:4px;border:1px solid rgba(255,255,255,.5);border-radius:8px;font-size:11px;box-sizing:border-box;background:rgba(255,255,255,.6);outline:none;">
+            <div style="display:flex;gap:4px;">
+                <button class="kb-btn kb-btn-primary" style="flex:1;font-size:11px;padding:5px;" onclick="bindCloud()">确认绑定</button>
+                <button class="kb-btn" style="font-size:11px;padding:5px;" onclick="document.getElementById('cloudForm').style.display='none'">取消</button>
+            </div>
+            <a href="https://help.jianguoyun.com/?p=2064" target="_blank" style="font-size:10px;color:#6366f1;display:block;margin-top:4px;">如何获取应用密码？</a>
+        </div>
     </div>
     <div class="kb-drawer-body">
         <input type="text" id="docSearchInput" placeholder="全文搜索..." 
@@ -699,49 +710,60 @@ function handleSearch(val) {
 loadDocs();
 loadChatHistory();
 checkReindexStatus();
-loadOneDriveStatus();
+loadCloudStatus();
 
-async function loadOneDriveStatus() {
+async function loadCloudStatus() {
     try {
-        const r = await fetch('/knowledge-base/onedrive/status');
+        const r = await fetch('/knowledge-base/cloud/status');
         const s = await r.json();
-        const status = document.getElementById('onedriveStatus');
-        const btn = document.getElementById('onedriveBtn');
+        const status = document.getElementById('cloudStatus');
+        const btn = document.getElementById('cloudBtn');
         if (s.bound) {
-            status.innerHTML = `☁️ <b>${s.account_name||'OneDrive'}</b>`;
+            status.innerHTML = `☁️ <b>${s.account_name||'坚果云'}</b>`;
             btn.textContent = '同步';
-            btn.onclick = syncOneDrive;
-        } else if (s.configured) {
+            btn.onclick = syncCloud;
+        } else {
             status.textContent = '☁️ 未绑定云盘';
             btn.textContent = '绑定';
-            btn.onclick = bindOneDrive;
-        } else {
-            status.textContent = '☁️ 云盘未配置';
-            btn.textContent = '帮助';
-            btn.onclick = () => alert('请在系统环境变量设置：\\nONEDRIVE_CLIENT_ID\\nONEDRIVE_CLIENT_SECRET\\n\\n注册地址：portal.azure.com → Microsoft Entra ID → 应用注册');
+            btn.onclick = () => {
+                const f = document.getElementById('cloudForm');
+                f.style.display = f.style.display === 'none' ? 'block' : 'none';
+            };
         }
     } catch (e) {}
 }
 
-async function bindOneDrive() {
-    const r = await fetch('/knowledge-base/onedrive/bind');
-    const j = await r.json();
-    if (j.auth_url) window.open(j.auth_url, '_blank', 'width=600,height=700');
-    else alert(j.error || '绑定失败');
-    setTimeout(loadOneDriveStatus, 5000);
+async function bindCloud() {
+    const username = document.getElementById('cloudUser').value.trim();
+    const password = document.getElementById('cloudPass').value.trim();
+    if (!username || !password) { alert('请填写账号和应用密码'); return; }
+    const btn = event.target;
+    btn.textContent = '绑定中...'; btn.disabled = true;
+    try {
+        const r = await fetch('/knowledge-base/cloud/bind', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        const j = await r.json();
+        if (j.status === 'success') {
+            document.getElementById('cloudForm').style.display = 'none';
+            loadCloudStatus();
+        } else {
+            alert(j.error || '绑定失败');
+        }
+    } catch(e) { alert('绑定失败: ' + e.message); }
+    btn.textContent = '确认绑定'; btn.disabled = false;
 }
 
-async function syncOneDrive() {
-    const btn = document.getElementById('onedriveBtn');
-    btn.textContent = '同步中...';
-    btn.disabled = true;
+async function syncCloud() {
+    const btn = document.getElementById('cloudBtn');
+    btn.textContent = '同步中...'; btn.disabled = true;
     try {
-        const r = await fetch('/knowledge-base/onedrive/sync', {method:'POST'});
+        const r = await fetch('/knowledge-base/cloud/sync', {method:'POST'});
         const j = await r.json();
         alert(j.message || j.error);
     } catch(e) { alert('同步失败'); }
-    btn.textContent = '同步';
-    btn.disabled = false;
+    btn.textContent = '同步'; btn.disabled = false;
 }
 
 async function checkReindexStatus() {
