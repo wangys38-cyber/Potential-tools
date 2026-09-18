@@ -694,6 +694,36 @@ function handleSearch(val) {
 
 loadDocs();
 loadChatHistory();
+checkReindexStatus();
+
+async function checkReindexStatus() {
+    try {
+        const r = await fetch('/knowledge-base/api/reindex-status');
+        const s = await r.json();
+        const btns = document.querySelectorAll('.kb-btn');
+        for (const b of btns) {
+            if (b.textContent.includes('重建索引') || b.textContent.includes('索引中')) {
+                if (s.running) {
+                    b.textContent = `索引中 ${s.done}/${s.total}`;
+                    b.disabled = true;
+                    const timer = setInterval(async () => {
+                        const r2 = await fetch('/knowledge-base/api/reindex-status');
+                        const s2 = await r2.json();
+                        b.textContent = `索引中 ${s2.done}/${s2.total}`;
+                        if (!s2.running) {
+                            clearInterval(timer);
+                            b.textContent = '重建索引';
+                            b.disabled = false;
+                        }
+                    }, 2000);
+                } else {
+                    b.textContent = '重建索引';
+                    b.disabled = false;
+                }
+            }
+        }
+    } catch (e) {}
+}
 
 async function loadChatHistory() {
     try {
