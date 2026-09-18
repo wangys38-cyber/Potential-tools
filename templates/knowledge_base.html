@@ -234,7 +234,7 @@
         </div>
     </div>
 
-    <div class="kb-inputbar">
+    <div class="kb-inputbar" id="inputBar">
         <div class="kb-input-wrap">
             <input type="text" class="kb-input" id="questionInput" placeholder="输入问题，或Ctrl+V粘贴图片..." onkeypress="if(event.key==='Enter')sendQuestion()" onpaste="handlePaste(event)">
             <button class="kb-mic" id="micBtn" onclick="toggleMic()" title="语音输入">🎤</button>
@@ -242,6 +242,19 @@
         </div>
     </div>
 </div>
+
+<style>
+/* 豆包风格：首次进入输入框居中 */
+body.kb-centered .kb-chat { display: flex; flex-direction: column; justify-content: center; }
+body.kb-centered .kb-empty { padding: 0 0 24px; }
+body.kb-centered .kb-empty .icon { font-size: 64px; margin-bottom: 16px; }
+body.kb-centered .kb-empty .title { font-size: 22px; margin-bottom: 6px; }
+body.kb-centered .kb-empty .desc { font-size: 14px; margin-bottom: 24px; }
+body.kb-centered .kb-inputbar { border-top: none; padding-top: 0; }
+body.kb-centered .kb-inputbar .kb-input-wrap { max-width: 700px; margin: 0 auto; }
+body.kb-centered .kb-input { padding: 16px 20px; font-size: 15px; }
+body.kb-centered .kb-send { padding: 16px 28px; }
+</style>
 
 <!-- 抽屉：文档管理 -->
 <div class="kb-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
@@ -514,6 +527,7 @@ async function sendQuestion() {
     const input = document.getElementById('questionInput');
     const q = input.value.trim();
     if (!q) return;
+    document.body.classList.remove('kb-centered');
     const btn = document.getElementById('sendBtn');
     btn.disabled = true; btn.textContent = '...';
     addMessage('user', q);
@@ -693,8 +707,12 @@ async function loadChatHistory() {
                 addMessage('ai', item.answer);
             }
             area.scrollTop = area.scrollHeight;
+        } else {
+            document.body.classList.add('kb-centered');
         }
-    } catch (e) {}
+    } catch (e) {
+        document.body.classList.add('kb-centered');
+    }
 }
 </script>
 </body>
