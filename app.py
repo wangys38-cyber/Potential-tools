@@ -722,6 +722,26 @@ except Exception as e:
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     logger.info(f"启动 Potential-tools v{APP_VERSION}，端口: {port}")
+
+    # 后台预热知识库模型（embedding + reranker），避免首次问答长时间加载超时
+    def _warmup_kb():
+        try:
+            import threading as _th
+            def _do():
+                try:
+                    import time as _t
+                    _t.sleep(3)
+                    from services.ai.knowledge_base import get_knowledge_base
+                    kb = get_knowledge_base(1)
+                    kb.query('预热', top_k=1)
+                    logger.info("知识库模型预热完成")
+                except Exception as e:
+                    logger.warning(f"知识库预热失败(可忽略): {e}")
+            _th.Thread(target=_do, daemon=True).start()
+        except Exception:
+            pass
+    _warmup_kb()
+
     # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
     # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
     app.run(host='0.0.0.0', port=port, debug=not _is_production, use_reloader=False)
