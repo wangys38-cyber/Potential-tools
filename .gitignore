@@ -28,3 +28,9 @@ backups/
 优化分析报告.html
 _extract_*.py
 _batch_*.py
+
+# 运行时数据
+data/kb_vector/
+data/kb_files/
+data/kb_inbox/
+*.log
