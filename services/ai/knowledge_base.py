@@ -424,7 +424,7 @@ class KnowledgeBase:
                     normal = normal[:max(0, top_k - len(boosted))]
 
             # 4.5 如果问"所有人/名单/roster/团队"，追加命中文档的所有chunk
-            roster_keywords = ['所有人', '名单', 'roster', '团队', 'contact', '人员', '同事', '成员']
+            roster_keywords = ['所有人', '名单', 'roster', '团队', 'contact', '人员', '同事', '成员', '分工', '分工表', 'project member', '人员表']
             if any(kw in question.lower() for kw in roster_keywords):
                 hit_doc_ids = set()
                 for r in boosted + normal:
@@ -504,10 +504,10 @@ class KnowledgeBase:
 
         # 1.6 短问题联系上文：如果问题很短且包含excel/表格/导出，拼上一轮主题
         search_query = rewritten
-        if len(question) < 15 and any(kw in question.lower() for kw in ['excel', 'excle', '表格', '导出', 'xlsx', 'csv']):
+        # 短问题/追问联系上文
+        if len(question) < 20:
             if history and history:
-                # 找最近一条非导出类问题作为上文
-                export_kws = ['excel', 'excle', '表格', '导出', 'xlsx', 'csv', '输出']
+                export_kws = ['excel', 'excle', '导出', 'xlsx', 'csv', '输出']
                 last_q = ''
                 for h in reversed(history):
                     q = h.get('question', '')
