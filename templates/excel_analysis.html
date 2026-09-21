@@ -305,6 +305,7 @@
                     <button class="btn btn-secondary" onclick="pushToEmail()" style="padding:6px 14px;font-size:12px;">📧 生成邮件</button>
                     <button class="btn btn-secondary" onclick="pushToTasks()" style="padding:6px 14px;font-size:12px;">✅ 创建任务</button>
                     <button class="btn btn-primary" onclick="pushFullWorkflow()" style="padding:6px 14px;font-size:12px;">⚡ 完整工作流</button>
+                    <button class="btn btn-secondary" onclick="syncStatusNote(this)" style="padding:6px 14px;font-size:12px;">📝 同步状态笔记</button>
                 </div>
                 <div id="enhancedAIContent" style="min-height:60px;margin-bottom:16px;">
                     <div style="text-align:center;padding:20px;color:var(--ds-text-tertiary);font-size:13px;">
@@ -498,6 +499,43 @@ function pushFullWorkflow() {
     }
     if (!confirm('将执行完整工作流：导入趋势看板 + 生成邮件 + 创建任务，确定继续？')) return;
     window.executeFullWorkflow(data);
+}
+
+function getCRProjectName() {
+    var fn = (typeof currentFileName !== 'undefined' ? currentFileName : '') || '';
+    var known = ['Santos','Andes','Arceau','Harmony','Madison','Qira','CWV','Lite','MotoPIN'];
+    for (var i = 0; i < known.length; i++) {
+        if (fn.toLowerCase().indexOf(known[i].toLowerCase()) >= 0) return known[i];
+    }
+    var m = fn.split(/[\s_\-\.()]/)[0];
+    return (m && m.length <= 20) ? m : 'Santos';
+}
+
+function syncStatusNote(btn) {
+    var data = getCRDataForPipeline();
+    if (!data.issues || data.issues.length === 0) { alert('请先完成 CR 分析'); return; }
+    var orig = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '同步中...'; }
+    fetch('/api/cr/sync-status-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            issues: data.issues,
+            project_name: getCRProjectName(),
+            date: new Date().toISOString().slice(0, 10)
+        })
+    }).then(function(r){ return r.json(); })
+    .then(function(res){
+        if (res.status === 'success') {
+            alert('✅ ' + res.message + '\n已同步到牛马笔记（置顶，固定一条，每日覆盖更新）');
+        } else {
+            alert('同步失败：' + (res.error || '未知错误'));
+        }
+    }).catch(function(e){
+        alert('同步失败：' + e.message);
+    }).finally(function(){
+        if (btn) { btn.disabled = false; btn.textContent = orig; }
+    });
 }
 </script>
 <script src="/static/js/page/excel_analysis.js?v={{ STATIC_VERSION }}"></script>

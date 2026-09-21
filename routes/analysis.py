@@ -1776,6 +1776,36 @@ def create_analysis_blueprint():
             logger.error(f'全量分析失败: {e}')
             return jsonify({'error': f'分析失败: {str(e)}'}), 500
 
+    @bp.route('/api/cr/sync-status-note', methods=['POST'])
+    @login_required_or_guest
+    def api_cr_sync_status_note():
+        # 逐模块生成 CR 项目状态总结(pass/fail + Top问题 + CR单号)，同步到牛马笔记
+        from flask import session
+        from services.cr_status_summary import sync_to_notes
+        data = request.get_json(silent=True) or {}
+        issues = data.get('issues') or []
+        if not issues:
+            return jsonify({'status': 'error', 'error': '请先完成 CR 分析'}), 400
+        project_name = (data.get('project_name') or 'Santos').strip() or 'Santos'
+        date_str = (data.get('date') or '').strip() or None
+        user_id = session.get('user_id') or 1
+        try:
+            stats, note, created = sync_to_notes(
+                issues, user_id, project_name=project_name, date_str=date_str
+            )
+            return jsonify({
+                'status': 'success',
+                'created': created,
+                'message': (
+                    f"已{'创建' if created else '更新'}牛马笔记：{stats['fail']} 个 FAIL / "
+                    f"{stats['pass']} 个 PASS，未解决BC {stats['bc_unresolved']} 个"
+                ),
+                'stats': stats,
+            })
+        except Exception as e:
+            logger.error(f'同步CR状态总结到笔记失败: {e}')
+            return jsonify({'status': 'error', 'error': f'同步失败: {str(e)}'}), 500
+
     return bp
 
 
