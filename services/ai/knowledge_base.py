@@ -317,19 +317,22 @@ class KnowledgeBase:
                 return False
             doc_category = classify_document(title, content)
             chunks = [f"【文档：{title}】【分类：{doc_category}】\n{c}" for c in chunks]
-            embeddings = get_embedding_func()(chunks)
+            n = len(chunks)
+            metadatas = [{
+                "doc_id": doc_id, "title": title, "category": doc_category,
+                "chunk_index": i, **(metadata or {})
+            } for i in range(n)]
+            ids = [f"{doc_id}_chunk_{i}" for i in range(n)]
 
-            metadatas = []
-            for i in range(len(chunks)):
-                m = {
-                    "doc_id": doc_id, "title": title, "category": doc_category,
-                    "chunk_index": i, **(metadata or {})
-                }
-                metadatas.append(m)
-
-            ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
-            self.collection.upsert(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
-            logger.info(f"文档已添加: {title} ({doc_category}), {len(chunks)} chunks")
+            # 分批 embedding + upsert，避免大文档一次性 CPU 编码/写入造成卡死或内存峰值
+            BATCH = 32
+            embed_fn = get_embedding_func()
+            for _s in range(0, n, BATCH):
+                _e = min(_s + BATCH, n)
+                _emb = embed_fn(chunks[_s:_e])
+                self.collection.upsert(ids=ids[_s:_e], documents=chunks[_s:_e],
+                                       embeddings=_emb, metadatas=metadatas[_s:_e])
+            logger.info(f"文档已添加: {title} ({doc_category}), {n} chunks")
             # BM25懒重建：不阻塞响应，下次查询时自动建
             self._bm25 = None
             return True

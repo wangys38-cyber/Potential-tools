@@ -177,7 +177,7 @@ else:
 app.config['UPLOAD_FOLDER'] = os.path.join(_runtime_dir, 'uploads')
 app.config['PDF_FOLDER'] = os.path.join(_runtime_dir, 'pdfs')
 app.config['AI_CONFIG_FILE'] = os.path.join(_runtime_dir, 'ai_config.json')
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB - 音频文件上传限制
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB - 大文件(含截图的Excel/CR CSV)上传限制
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PDF_FOLDER'], exist_ok=True)

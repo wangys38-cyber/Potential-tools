@@ -427,22 +427,43 @@ async function loadHistory() {
 
 function exportChat() { window.open('/knowledge-base/api/export', '_blank'); }
 
-async function uploadFile(input) {
+function uploadFile(input) {
     const file = input.files[0];
     if (!file) return;
     const isImg = file.type.startsWith('image/');
     const label = document.querySelector('.kb-upload-area label');
-    label.textContent = isImg ? '识别中...' : '上传中...';
+    const GB = 1024 * 1024 * 1024;
+    if (file.size > GB) {
+        alert('文件超过 1GB 上限。含大量截图的 Excel 请先移除表内图片或拆分工作表后再上传。');
+        input.value = '';
+        return;
+    }
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    const reset = function(){ label.textContent = '📎 上传文件（TXT/PDF/Word/Excel/CSV/图片）'; input.value = ''; };
+    label.textContent = (isImg ? '识别中...' : '上传中 0%（' + mb + 'MB）');
     const fd = new FormData();
     fd.append('file', file);
-    try {
-        const res = await fetch('/knowledge-base/api/upload-file', { method: 'POST', body: fd });
-        const data = await res.json();
-        alert(data.status === 'success' ? '完成' : '失败: ' + (data.error||''));
-        loadDocs();
-    } catch (e) { alert('失败'); }
-    label.textContent = '📎 上传文件（TXT/PDF/Word/Excel/CSV/图片）';
-    input.value = '';
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/knowledge-base/api/upload-file');
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const p = Math.round(e.loaded / e.total * 100);
+            label.textContent = p >= 100 ? '已上传，正在解析与建立索引，请稍候…' : ('上传中 ' + p + '%（' + mb + 'MB）');
+        }
+    };
+    xhr.onload = function() {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (_) {}
+        if (xhr.status === 200 && data.status === 'success') {
+            alert('完成：' + (data.title || file.name) + ' 已入库');
+            loadDocs();
+        } else {
+            alert('失败: ' + (data.error || ('HTTP ' + xhr.status)));
+        }
+        reset();
+    };
+    xhr.onerror = function() { alert('上传失败：网络错误，或文件被服务端拒绝（可能过大）'); reset(); };
+    xhr.send(fd);
 }
 
 async function uploadManual() {

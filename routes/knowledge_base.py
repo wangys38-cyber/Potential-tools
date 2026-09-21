@@ -9,7 +9,8 @@ import io
 import logging
 import sqlite3
 from datetime import datetime
-from flask import Blueprint, request, jsonify, render_template, g, Response
+from flask import Blueprint, request, jsonify, render_template, g, Response, current_app
+from werkzeug.exceptions import RequestEntityTooLarge
 from services.ai.knowledge_base import get_knowledge_base, analyze_image_with_ai, get_llm_response
 
 logger = logging.getLogger(__name__)
@@ -557,9 +558,14 @@ def ask_stream_route():
 def upload_file():
     """上传文件"""
     try:
+        # 显式大小预检：给出清晰中文提示，避免 Werkzeug 原始 413 英文文本
+        _max_len = current_app.config.get('MAX_CONTENT_LENGTH') or 0
+        if _max_len and request.content_length and request.content_length > _max_len:
+            return jsonify({"status": "error",
+                            "error": f"文件过大（约 {request.content_length // 1024 // 1024}MB），最大支持 {_max_len // 1024 // 1024}MB。含大量截图的 Excel 建议先移除表内图片或拆分工作表后再上传。"}), 413
         if 'file' not in request.files:
             return jsonify({"status": "error", "error": "没有文件"}), 400
-        
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({"status": "error", "error": "没有选择文件"}), 400
@@ -662,6 +668,10 @@ def upload_file():
             })
         else:
             return jsonify({"status": "error", "error": "文档处理失败"}), 500
+    except RequestEntityTooLarge:
+        _max_len = current_app.config.get('MAX_CONTENT_LENGTH') or 0
+        mb = _max_len // 1024 // 1024 if _max_len else 1024
+        return jsonify({"status": "error", "error": f"文件过大，最大支持 {mb}MB。含大量截图的 Excel 建议先移除表内图片或拆分工作表后再上传。"}), 413
     except Exception as e:
         logger.error(f"文件上传失败: {e}")
         return jsonify({"status": "error", "error": str(e)}), 500
