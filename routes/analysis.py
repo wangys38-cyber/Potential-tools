@@ -1776,10 +1776,19 @@ def create_analysis_blueprint():
             logger.error(f'全量分析失败: {e}')
             return jsonify({'error': f'分析失败: {str(e)}'}), 500
 
+    def _status_note_chart_path(user_id):
+        # CR 趋势图固定存储路径（供牛马笔记一键复制图表）
+        import os as _os
+        assets_dir = _os.path.join(current_app.root_path, 'data', 'note_assets')
+        _os.makedirs(assets_dir, exist_ok=True)
+        return _os.path.join(assets_dir, f'cr_trend_{user_id}.png')
+
     @bp.route('/api/cr/sync-status-note', methods=['POST'])
     @login_required_or_guest
     def api_cr_sync_status_note():
-        # 逐模块生成 CR 项目状态总结(pass/fail + Top问题 + CR单号)，同步到牛马笔记
+        # 逐模块生成 CR 项目状态总结(pass/fail + FAIL模块Top5)，同步到牛马笔记；可选附带趋势图
+        import os as _os
+        import base64 as _b64
         from flask import session
         from services.cr_status_summary import sync_to_notes
         data = request.get_json(silent=True) or {}
@@ -1789,22 +1798,48 @@ def create_analysis_blueprint():
         project_name = (data.get('project_name') or 'Santos').strip() or 'Santos'
         date_str = (data.get('date') or '').strip() or None
         user_id = session.get('user_id') or 1
+        chart_saved = False
         try:
             stats, note, created = sync_to_notes(
                 issues, user_id, project_name=project_name, date_str=date_str
             )
+            # 附带趋势图（前端 canvas dataURL）
+            trend_image = data.get('trend_image') or ''
+            if trend_image.startswith('data:image'):
+                try:
+                    b64part = trend_image.split(',', 1)[1]
+                    raw = _b64.b64decode(b64part)
+                    with open(_status_note_chart_path(user_id), 'wb') as imgf:
+                        imgf.write(raw)
+                    chart_saved = True
+                except Exception as imge:
+                    logger.warning(f'保存CR趋势图失败: {imge}')
             return jsonify({
                 'status': 'success',
                 'created': created,
+                'chart_saved': chart_saved,
                 'message': (
                     f"已{'创建' if created else '更新'}牛马笔记：{stats['fail']} 个 FAIL / "
                     f"{stats['pass']} 个 PASS，未解决BC {stats['bc_unresolved']} 个"
+                    + ("（含趋势图）" if chart_saved else "")
                 ),
                 'stats': stats,
             })
         except Exception as e:
             logger.error(f'同步CR状态总结到笔记失败: {e}')
             return jsonify({'status': 'error', 'error': f'同步失败: {str(e)}'}), 500
+
+    @bp.route('/api/cr/status-note-chart', methods=['GET'])
+    @login_required_or_guest
+    def api_cr_status_note_chart():
+        # 返回当前用户最近一次同步的 CR 趋势图 PNG
+        import os as _os
+        from flask import session, send_file
+        user_id = session.get('user_id') or 1
+        path = _status_note_chart_path(user_id)
+        if not _os.path.exists(path):
+            return jsonify({'status': 'error', 'error': '该笔记暂无关联趋势图'}), 404
+        return send_file(path, mimetype='image/png', max_age=0)
 
     return bp
 

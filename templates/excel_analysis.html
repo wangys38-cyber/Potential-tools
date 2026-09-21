@@ -516,13 +516,20 @@ function syncStatusNote(btn) {
     if (!data.issues || data.issues.length === 0) { alert('请先完成 CR 分析'); return; }
     var orig = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = '同步中...'; }
+    // 附带「每日趋势与累计Bug曲线」图，供牛马笔记一键复制图表
+    var trendImage = '';
+    var chartCanvas = document.getElementById('dailyCumulativeChart');
+    if (chartCanvas) {
+        try { trendImage = chartCanvas.toDataURL('image/png'); } catch (e) { console.warn('趋势图获取失败', e); }
+    }
     fetch('/api/cr/sync-status-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             issues: data.issues,
             project_name: getCRProjectName(),
-            date: new Date().toISOString().slice(0, 10)
+            date: new Date().toISOString().slice(0, 10),
+            trend_image: trendImage
         })
     }).then(function(r){ return r.json(); })
     .then(function(res){
