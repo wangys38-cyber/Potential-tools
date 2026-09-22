@@ -829,3 +829,34 @@ body[data-theme="dark"] .pa-bc-item {
   border-color: rgba(255,59,48,0.35);
   background: rgba(255,59,48,0.06);
 }
+
+/* 对话工具栏(chips+清空) */
+.pa-chat-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pa-chat-tools .pa-chips {
+  flex: 1;
+  margin-bottom: 0;
+}
+.pa-clear-btn {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(120,120,128,0.22);
+  background: var(--pa-glass-strong);
+  color: var(--pa-text-2);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all .15s ease;
+}
+.pa-clear-btn:hover {
+  color: #d70015;
+  border-color: rgba(255,59,48,0.4);
+  background: rgba(255,59,48,0.06);
+}
