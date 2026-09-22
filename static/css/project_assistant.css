@@ -510,3 +510,303 @@ body[data-theme="dark"] .pa-rca-status-tag { background: rgba(52,199,89,.22); co
   .pa-stat-grid { grid-template-columns: repeat(2, 1fr); }
   .pa-chart-box { height: 260px; }
 }
+
+/* ===== v3 全面质感升级 ===== */
+
+/* 卡片统一 */
+.pa-card {
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: 0 1px 4px rgba(31,38,135,0.04), 0 6px 24px rgba(31,38,135,0.07);
+  transition: box-shadow .25s ease, transform .25s ease;
+}
+.pa-card:hover {
+  box-shadow: 0 2px 8px rgba(31,38,135,0.06), 0 10px 36px rgba(31,38,135,0.10);
+}
+
+/* 卡片标题 */
+.pa-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(120,120,128,0.10);
+  margin-bottom: 16px;
+}
+
+/* 统计卡：左侧色条 + 图标 + 悬浮 */
+.pa-stat {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 18px 18px 16px 48px;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.pa-stat::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 14px; bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--pa-accent);
+}
+.pa-stat.red::before { background: var(--pa-red); }
+.pa-stat.orange::before { background: var(--pa-orange); }
+.pa-stat.green::before { background: var(--pa-green); }
+.pa-stat::after {
+  position: absolute;
+  left: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  line-height: 1;
+}
+.pa-stat-grid .pa-stat:nth-child(1)::after { content: '\1F4CA'; }
+.pa-stat-grid .pa-stat:nth-child(2)::after { content: '\23F3'; }
+.pa-stat-grid .pa-stat:nth-child(3)::after { content: '\26A0\FE0F'; }
+.pa-stat-grid .pa-stat:nth-child(4)::after { content: '\274C'; }
+.pa-stat-grid .pa-stat:nth-child(5)::after { content: '\2705'; }
+.pa-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(31,38,135,0.14);
+}
+.pa-stat .v {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.pa-stat .k {
+  font-size: 12.5px;
+  color: var(--pa-text-2);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* 时间范围按钮 */
+.pa-range-toggle button {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  transition: all .15s ease;
+}
+.pa-range-toggle button.on {
+  background: var(--pa-accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(10,132,255,0.30);
+}
+
+/* 模块行 */
+.pa-mod-line {
+  border-radius: 12px;
+  padding: 11px 14px;
+  transition: background .15s ease;
+  border-bottom: none;
+  margin-bottom: 3px;
+}
+.pa-mod-line:hover {
+  background: rgba(10,132,255,0.05);
+}
+.pa-mod-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.pa-mod-sub {
+  font-size: 11.5px;
+  color: var(--pa-text-3);
+  margin-top: 3px;
+}
+
+/* FAIL / PASS pill */
+.pa-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+}
+.pa-pill.fail {
+  background: rgba(255,59,48,0.10);
+  color: #d70015;
+  border: 1px solid rgba(255,59,48,0.20);
+}
+.pa-pill.pass {
+  background: rgba(52,199,89,0.10);
+  color: #1a7f37;
+  border: 1px solid rgba(52,199,89,0.20);
+}
+
+/* B/C 数字徽章 */
+.pa-bc-num {
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  gap: 4px;
+  min-width: auto;
+}
+.pa-bc-num .b, .pa-bc-num .c {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pa-bc-num .b {
+  background: rgba(255,59,48,0.10);
+  color: #d70015;
+}
+.pa-bc-num .c {
+  background: rgba(255,149,0,0.12);
+  color: #c93400;
+}
+
+/* Top BC 列表项 */
+.pa-bc-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-top: 6px;
+  background: rgba(120,120,128,0.04);
+  border: 1px solid rgba(120,120,128,0.08);
+  transition: background .15s ease;
+}
+.pa-bc-item:hover {
+  background: rgba(10,132,255,0.04);
+}
+
+/* 根因按钮 */
+.pa-rca-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #5e5ce6, #bf5af2);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.pa-rca-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 快捷问题 chips */
+.pa-chip {
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(120,120,128,0.15);
+  background: var(--pa-glass-strong);
+  color: var(--pa-text-2);
+  transition: all .15s ease;
+}
+.pa-chip:hover {
+  color: var(--pa-accent);
+  border-color: var(--pa-accent);
+  background: rgba(10,132,255,0.05);
+  transform: translateY(-1px);
+}
+
+/* 输入区 */
+.pa-input-row textarea {
+  border-radius: 14px;
+  border: 1px solid rgba(120,120,128,0.20);
+  background: var(--pa-glass-strong);
+  font-size: 14px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.pa-input-row textarea:focus {
+  border-color: var(--pa-accent);
+  box-shadow: 0 0 0 3px rgba(10,132,255,0.12);
+}
+
+/* 对话气泡 */
+.pa-msg { margin-bottom: 16px; }
+.pa-bubble {
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.pa-msg.bot .pa-bubble {
+  background: var(--pa-glass-strong);
+  border: 1px solid rgba(120,120,128,0.12);
+  box-shadow: 0 2px 8px rgba(31,38,135,0.05);
+}
+.pa-msg.user .pa-bubble {
+  background: linear-gradient(135deg, #0a84ff, #0066d6);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(10,132,255,0.25);
+}
+
+/* 表格样式 */
+.pa-bubble table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 500px;
+  font-size: 13px;
+  margin: 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(120,120,128,0.15);
+}
+.pa-bubble th {
+  background: rgba(10,132,255,0.08);
+  font-weight: 700;
+  color: var(--pa-text);
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid rgba(10,132,255,0.15);
+}
+.pa-bubble td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(120,120,128,0.10);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.pa-bubble tr:nth-child(even) td {
+  background: rgba(120,120,128,0.03);
+}
+.pa-bubble tr:hover td {
+  background: rgba(10,132,255,0.04);
+}
+
+/* 代码块 */
+.pa-bubble pre {
+  background: rgba(0,0,0,0.05);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(120,120,128,0.10);
+}
+.pa-bubble code {
+  background: rgba(120,120,128,0.12);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 12.5px;
+}
+
+/* 深色模式 */
+:root[data-theme="dark"] .pa-card,
+body[data-theme="dark"] .pa-card {
+  border-color: rgba(255,255,255,0.08);
+}
+:root[data-theme="dark"] .pa-mod-line:hover,
+body[data-theme="dark"] .pa-mod-line:hover {
+  background: rgba(10,132,255,0.10);
+}
+:root[data-theme="dark"] .pa-bubble pre,
+body[data-theme="dark"] .pa-bubble pre {
+  background: rgba(255,255,255,0.06);
+}
+:root[data-theme="dark"] .pa-bc-item,
+body[data-theme="dark"] .pa-bc-item {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+}

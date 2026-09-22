@@ -313,7 +313,23 @@
   }
   function renderMD(src) {
     if (!src) return '';
-    var lines = String(src).replace(/\r\n/g, '\n').split('\n');
+    // 预处理：AI 可能把 Markdown 表格所有行输出在同一行（用空格分隔），
+    // 检测到 |---| 分隔符时把 | | 拆成多行；并把 "## 标题 |表格|" 拆开
+    var raw = String(src).replace(/\r\n/g, '\n');
+    raw = raw.split('\n').map(function (line) {
+      if (/\|[\s:|-]{3,}\|/.test(line)) {
+        line = line.replace(/\|\s+\|/g, '|\n|');
+      }
+      return line;
+    }).join('\n');
+    raw = raw.split('\n').map(function (line) {
+      var hm = line.match(/^(#{1,6}\s+.+?)\s+(\|[^\n]+\|)\s*$/);
+      if (hm && (hm[2].match(/\|/g) || []).length >= 4) {
+        return hm[1] + '\n' + hm[2];
+      }
+      return line;
+    }).join('\n');
+    var lines = raw.split('\n');
     var html = [], i = 0, inList = null;
     function closeList() { if (inList) { html.push(inList === 'ul' ? '</ul>' : '</ol>'); inList = null; } }
     while (i < lines.length) {
