@@ -98,7 +98,11 @@
       <!-- 下排：对话 / 根因分析（通栏，表格与报告可完整铺开） -->
       <div class="pa-row-chat">
         <div class="pa-card pa-glass pa-chat">
-          <h3>就这个项目继续追问</h3>
+          <h3>就这个项目继续追问
+            <span class="pa-card-act">
+              <button class="pa-clear-btn" id="paClearChat" title="清空对话记录">清空</button>
+            </span>
+          </h3>
           <div class="pa-chips" id="paChips">
             <button class="pa-chip" data-q="生成一份可直接发送的项目放行状态报告（Markdown，含模块 PASS/FAIL 表和 Top 问题 CR 单号）">生成放行报告</button>
             <button class="pa-chip" data-q="列出当前所有未解决的 Blocker 问题单，按模块分组">未解决 Blocker</button>

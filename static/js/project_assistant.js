@@ -393,6 +393,12 @@
   function saveChatHistory() {
     try { localStorage.setItem(lsChatKey(state.key), JSON.stringify(state.history.slice(-40))); } catch (e) {}
   }
+  function clearChat() {
+    state.history = [];
+    state.rcaHistory = [];
+    try { localStorage.removeItem(lsChatKey(state.key)); } catch (e) {}
+    msgs.innerHTML = '<div class="pa-empty-tip">已基于 ' + esc(state.name || '该项目') + ' 实时数据，可直接提问，或点击上方快捷问题。</div>';
+  }
   function appendMessage(role, content, asMarkdown) {
     var empty = msgs.querySelector('.pa-empty-tip');
     if (empty) empty.remove();
@@ -699,6 +705,7 @@
     b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
   });
   sendBtn.addEventListener('click', function () { sendQuestion(); });
+  $('paClearChat').addEventListener('click', function () { clearChat(); });
   chatInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
   });
