@@ -56,9 +56,9 @@ body[data-theme="dark"] .pa-page {
 }
 
 .pa-wrap {
-  max-width: 1180px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 28px 22px 64px;
+  padding: 28px 28px 64px;
   box-sizing: border-box;
 }
 
@@ -465,8 +465,8 @@ body[data-theme="dark"] .pa-rca-status-tag { background: rgba(52,199,89,.22); co
   gap: 18px; align-items: start; margin-bottom: 18px;
 }
 .pa-row-top .pa-card { margin-bottom: 0; }
-.pa-chart-box { height: 320px; }
-.pa-mod-card .pa-mod-table { max-height: 520px; }
+.pa-chart-box { height: 360px; }
+.pa-mod-card .pa-mod-table { max-height: 580px; }
 .pa-row-chat .pa-chat { margin-bottom: 0; }
 .pa-card { padding: 20px 22px; border-radius: 22px; }
 
