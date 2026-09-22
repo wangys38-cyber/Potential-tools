@@ -461,11 +461,11 @@ body[data-theme="dark"] .pa-rca-status-tag { background: rgba(52,199,89,.22); co
 
 /* 结果区信息架构：上排 趋势+模块，下排 通栏对话 */
 .pa-row-top {
-  display: grid; grid-template-columns: minmax(0,5fr) minmax(0,6.5fr);
+  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
   gap: 18px; align-items: start; margin-bottom: 18px;
 }
 .pa-row-top .pa-card { margin-bottom: 0; }
-.pa-chart-box { height: 360px; }
+.pa-chart-box { height: 420px; }
 .pa-mod-card .pa-mod-table { max-height: 580px; }
 .pa-row-chat .pa-chat { margin-bottom: 0; }
 .pa-card { padding: 20px 22px; border-radius: 22px; }
