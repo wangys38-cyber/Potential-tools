@@ -145,7 +145,7 @@ def _names(value, key="name") -> str:
 
 class JiraClient:
     def __init__(self, base_url, auth_mode="dc", email="", token="",
-                 verify_ssl=True, timeout=30):
+                 verify_ssl=True, timeout=30, max_retries=5, min_interval=0.5):
         """
         :param auth_mode: 'dc' -> Bearer PAT；'cloud' -> Basic(email:api_token)
         """
@@ -155,8 +155,11 @@ class JiraClient:
         self.token = (token or "").strip()
         self.verify_ssl = bool(verify_ssl)
         self.timeout = timeout
+        self.max_retries = int(max_retries)
+        self.min_interval = float(min_interval)
         self._session = None
         self._field_map = None
+        self._last_request_ts = 0.0
 
     # ---------- 连接 ----------
     def _make_session(self) -> requests.Session:
@@ -186,38 +189,75 @@ class JiraClient:
             self._session = self._make_session()
         return self._session
 
+    def _throttle(self):
+        """两次请求之间保持最小间隔，降低触发服务端限流(429)的概率。"""
+        if self.min_interval and self.min_interval > 0:
+            wait = self.min_interval - (time.monotonic() - self._last_request_ts)
+            if wait > 0:
+                time.sleep(wait)
+        self._last_request_ts = time.monotonic()
+
+    @staticmethod
+    def _retry_after(resp, attempt):
+        ra = resp.headers.get("Retry-After") or resp.headers.get("X-Authentication-Delay")
+        if ra:
+            try:
+                return min(max(float(ra), 0.0), 60.0)
+            except (TypeError, ValueError):
+                pass
+        return min(2.0 * (2 ** attempt), 30.0)  # 2,4,8,16,30...
+
     def _get(self, path, params=None):
         url = self.base_url + path
-        try:
-            resp = self.session.get(url, params=params, timeout=self.timeout)
-        except requests.exceptions.SSLError as e:
-            raise JiraError(
-                "SSL 证书校验失败（内网自签证书常见）。可在配置中勾选「忽略证书校验」后重试。"
-                f"（{type(e).__name__}）")
-        except requests.exceptions.ConnectTimeout:
-            raise JiraError(f"连接超时（{self.timeout}s）。若 eDart 是内网系统，请确认已连接公司网络/VPN。")
-        except requests.exceptions.ConnectionError:
-            raise JiraError(
-                f"无法连接到 {self.base_url}。请检查地址是否正确，以及是否需要连接公司网络/VPN。")
-        except requests.RequestException as e:
-            raise JiraError(f"请求失败：{type(e).__name__}: {e}")
+        last_snippet = ""
+        for attempt in range(self.max_retries + 1):
+            self._throttle()
+            try:
+                resp = self.session.get(url, params=params, timeout=self.timeout)
+            except requests.exceptions.SSLError as e:
+                raise JiraError(
+                    "SSL 证书校验失败（内网自签证书常见）。可在配置中勾选「忽略证书校验」后重试。"
+                    f"（{type(e).__name__}）")
+            except requests.exceptions.ConnectTimeout:
+                raise JiraError(f"连接超时（{self.timeout}s）。若 eDart 是内网系统，请确认已连接公司网络/VPN。")
+            except requests.exceptions.ConnectionError:
+                raise JiraError(
+                    f"无法连接到 {self.base_url}。请检查地址是否正确，以及是否需要连接公司网络/VPN。")
+            except requests.RequestException as e:
+                raise JiraError(f"请求失败：{type(e).__name__}: {e}")
 
-        if resp.status_code in (401, 403):
-            raise JiraError(
-                f"认证失败（HTTP {resp.status_code}）。请检查 Token 是否正确/过期、"
-                "Data Center 用 Personal Access Token（Bearer），Cloud 用邮箱+API Token（Basic），"
-                "并确认账号有该项目的访问权限。")
-        if resp.status_code == 404:
-            raise JiraError(
-                f"接口不存在（HTTP 404）：{path}。该站点可能不是 Jira，或 REST API 被 IT 关闭。"
-                "可在浏览器登录后访问 <站点>/rest/api/2/serverInfo 自测。")
-        if resp.status_code >= 400:
-            snippet = (resp.text or "")[:300]
-            raise JiraError(f"Jira 返回错误 HTTP {resp.status_code}：{snippet}")
-        try:
-            return resp.json()
-        except Exception:
-            raise JiraError("返回内容不是 JSON，可能被重定向到了 SSO 登录页。请确认 Token 认证可用（而非网页单点登录）。")
+            code = resp.status_code
+            if code in (401, 403):
+                raise JiraError(
+                    f"认证失败（HTTP {code}）。请检查 Token 是否正确/过期、"
+                    "Data Center 用 Personal Access Token（Bearer），Cloud 用邮箱+API Token（Basic），"
+                    "并确认账号有该项目的访问权限。")
+            if code == 404:
+                raise JiraError(
+                    f"接口不存在（HTTP 404）：{path}。该站点可能不是 Jira，或 REST API 被 IT 关闭。"
+                    "可在浏览器登录后访问 <站点>/rest/api/2/serverInfo 自测。")
+            # 限流(429) / 服务端临时错误(5xx)：按 Retry-After 或指数退避重试
+            if code == 429 or code >= 500:
+                last_snippet = (resp.text or "")[:300]
+                if attempt < self.max_retries:
+                    wait = self._retry_after(resp, attempt)
+                    logger.warning("Jira HTTP %s（第%d次），%.1fs 后重试 %s", code, attempt + 1, wait, path)
+                    time.sleep(wait)
+                    self._last_request_ts = time.monotonic()
+                    continue
+                if code == 429:
+                    raise JiraError(
+                        "eDart 接口限流（HTTP 429），多次重试后仍被拒绝。请稍后再试；"
+                        "数据量大时建议改用「增量拉取（近 N 天）」减小单次范围。")
+                raise JiraError(f"Jira 服务端错误 HTTP {code}（多次重试失败）：{last_snippet}")
+            if code >= 400:
+                raise JiraError(f"Jira 返回错误 HTTP {code}：{(resp.text or '')[:300]}")
+            self._last_request_ts = time.monotonic()
+            try:
+                return resp.json()
+            except Exception:
+                raise JiraError("返回内容不是 JSON，可能被重定向到了 SSO 登录页。请确认 Token 认证可用（而非网页单点登录）。")
+        raise JiraError(f"Jira 请求失败（重试耗尽）：{last_snippet}")
 
     def test_connection(self) -> dict:
         """测试连通性与认证，返回账号/版本/部署形态信息。"""
@@ -239,9 +279,45 @@ class JiraClient:
         }
 
     # ---------- 字段自动探测 ----------
+    def _pick_custom_field(self, fields, keywords, value_ok):
+        """在 /field 列表里按名称找候选自定义字段，再用真实数据（非空 + 取值校验）
+        选出真正在用的那个。实例里常存在多个同名字段（如两个都叫 Severity），
+        仅按名称取第一个会选到全库为空的废弃字段，故必须以数据为准。"""
+        cands = []
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            fid = f.get("id", "")
+            name = str(f.get("name", "")).strip().lower()
+            if fid.startswith("customfield_") and any(k in name for k in keywords):
+                if fid not in cands:
+                    cands.append(fid)
+        fallback = None
+        for cid in cands[:6]:  # 最多探测 6 个候选，控制请求数
+            num = cid.split("_", 1)[-1]
+            try:
+                d = self._get(f"{_API}/search", params={
+                    "jql": f"cf[{num}] is not EMPTY",
+                    "maxResults": 1,
+                    "fields": cid,
+                })
+                issues = d.get("issues") or []
+                if int(d.get("total", 0)) > 0 and issues:
+                    val = (issues[0].get("fields") or {}).get(cid)
+                    if val in (None, [], {}, ""):
+                        continue
+                    if fallback is None:
+                        fallback = cid  # 第一个“有数据”的候选，作为兜底
+                    if value_ok(val):
+                        return cid
+            except JiraError as e:
+                logger.info("字段探测跳过 %s：%s", cid, e)
+                continue
+        return fallback
+
     def discover_fields(self, force=False) -> dict:
-        """GET /rest/api/2/field，自动定位 Severity / Closed Date 等自定义字段 id。
-        返回 {逻辑字段: jira_field_id}。"""
+        """GET /rest/api/2/field，自动定位 Severity / Closed Date 自定义字段 id。
+        同名字段不止一个时，以「是否真有数据 + 取值是否合理」挑选，返回 {逻辑字段: id}。"""
         if self._field_map is not None and not force:
             return self._field_map
         fields = self._get(f"{_API}/field")
@@ -249,43 +325,46 @@ class JiraClient:
             raise JiraError("字段接口 /rest/api/2/field 返回异常。")
 
         fmap = dict(_SYSTEM_FIELDS)
-
-        def _match(names_kw):
-            for f in fields:
-                name = str(f.get("name", "")).strip().lower()
-                fid = f.get("id", "")
-                if not fid:
-                    continue
-                for kw in names_kw:
-                    if kw in name:
-                        return fid
-            return None
-
-        # Severity：优先精确/包含 severity，其次中文「严重」
-        sev = _match(["severity", "严重级别", "严重程度", "严重"])
+        sev_levels = {"blocker", "critical", "major", "minor", "trivial"}
+        sev = self._pick_custom_field(
+            fields, ["severity", "严重级别", "严重程度", "严重"],
+            lambda v: str(_extract_option(v)).strip().lower() in sev_levels)
         if sev:
             fmap["severity"] = sev
-        # Closed Date
-        closed = _match(["closed date", "close date", "关闭日期", "关闭时间"])
+        else:
+            logger.warning("未能定位到有数据的 Severity 自定义字段，严重度列将为空")
+        closed = self._pick_custom_field(
+            fields, ["closed date", "close date", "关闭日期", "关闭时间"],
+            lambda v: bool(_fmt_datetime(v)))
         if closed:
             fmap["closed_date"] = closed
+        else:
+            logger.warning("未能定位到有数据的 Closed Date 自定义字段，关闭日期列将为空")
 
         self._field_map = fmap
         logger.info("Jira 字段映射: %s", fmap)
         return fmap
 
     # ---------- JQL 检索（分页） ----------
-    def search(self, jql, fields=None, page_size=1000,
+    def search(self, jql, fields=None, page_size=100,
                on_progress: Optional[Callable[[int, int, int], None]] = None) -> list:
         """按 JQL 分页拉取 issue，返回原始 issue 列表。
         on_progress(fetched, total, page_no)。"""
         if fields is None:
-            fields = list(self.discover_fields().values())
+            try:
+                fields = list(self.discover_fields().values())
+            except JiraError as e:
+                logger.warning("字段自动探测失败，回退系统字段（Severity 等自定义字段可能缺失）：%s", e)
+                fields = list(_SYSTEM_FIELDS.values())
         # 去重并保序
         seen = set()
         field_param = []
         for f in fields:
-            if f and f not in seen:
+            if not f or f == "key":
+                # 'key' 是 issue 顶层元数据、始终返回，放进 fields 参数反而会让
+                # 某些 Jira 版本的字段过滤异常（assignee/components 等被丢弃）。
+                continue
+            if f not in seen:
                 seen.add(f)
                 field_param.append(f)
 
@@ -363,7 +442,9 @@ class JiraClient:
             summary = (fields.get("summary") or "").strip()
             status = _names(fields.get("status"))
             a = fields.get("assignee") or {}
-            assignee = a.get("displayName") or a.get("name") or a.get("emailAddress") or ""
+            # 与 Jira 导出 CSV 的 Assignee 口径对齐：优先登录账号(name/邮箱)而非显示名，
+            # 保证 API 拉取与历史 CSV 的同一经办人能聚合到一起（知识图谱/人均统计）。
+            assignee = a.get("name") or a.get("emailAddress") or a.get("displayName") or ""
             components = _names(fields.get("components"))
             labels = " ".join(fields.get("labels") or [])  # Jira labels 空格分隔
             created = _fmt_datetime(fields.get("created"))
