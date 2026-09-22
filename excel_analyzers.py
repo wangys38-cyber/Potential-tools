@@ -66,7 +66,7 @@ def _log_mem(label):
 
 def _analyze_issue_sheet(file_path, sheet_name):
     """分析问题列表Sheet，返回前端期望的数据格式"""
-    from app import ExcelReader  # 延迟导入避免循环引用
+    from routes.common import ExcelReader  # 延迟导入避免循环引用
     _log_mem("分析开始：读取Excel")
     t0 = time.time()
     reader = ExcelReader(file_path)
@@ -1022,7 +1022,7 @@ def _stream_excel_preview(file_path, sheet_name, max_rows=100, cell_limit=200):
     else:
         # .xls（含 HTML 伪装的 xls）：openpyxl 不支持，回退 ExcelReader
         try:
-            from app import ExcelReader
+            from routes.common import ExcelReader
             reader = ExcelReader(file_path)
             reader.open()
             rows = reader.get_sheet_data(sheet_name)

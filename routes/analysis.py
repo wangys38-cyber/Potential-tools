@@ -1841,6 +1841,160 @@ def create_analysis_blueprint():
             return jsonify({'status': 'error', 'error': '该笔记暂无关联趋势图'}), 404
         return send_file(path, mimetype='image/png', max_age=0)
 
+    # ==================== eDart / Jira REST 数据源 ====================
+    def _edart_data_dir():
+        d = os.path.join(current_app.root_path, 'data')
+        os.makedirs(d, exist_ok=True)
+        return d
+
+    def _edart_merge_config(data, persist=False):
+        """用请求体合并已存配置；token 为空/掩码时保留原值。persist=True 时落盘。"""
+        from services import jira_client as _jc
+        data_dir = _edart_data_dir()
+        if persist:
+            return _jc.save_config(data_dir, data or {})
+        cfg = _jc.load_config(data_dir)
+        data = data or {}
+        for k in ('base_url', 'auth_mode', 'email', 'project_key', 'default_jql', 'verify_ssl'):
+            if k in data and data[k] is not None:
+                cfg[k] = data[k]
+        if data.get('incremental_days') is not None:
+            try:
+                cfg['incremental_days'] = int(data.get('incremental_days'))
+            except Exception:
+                pass
+        tok = (data.get('token') or '').strip()
+        if tok and not set(tok) <= {'*'}:
+            cfg['token'] = tok
+        return cfg
+
+    @bp.route('/api/edart/config', methods=['GET'])
+    @login_required_or_guest
+    def api_edart_get_config():
+        from services import jira_client as _jc
+        cfg = _jc.load_config(_edart_data_dir())
+        return jsonify({'status': 'success', 'data': _jc.public_config(cfg)})
+
+    @bp.route('/api/edart/config', methods=['POST'])
+    @login_required_or_guest
+    def api_edart_save_config():
+        from services import jira_client as _jc
+        data = request.get_json(silent=True) or {}
+        try:
+            cfg = _jc.save_config(_edart_data_dir(), data)
+            return jsonify({'status': 'success', 'message': '配置已保存',
+                            'data': _jc.public_config(cfg)})
+        except Exception as e:
+            logger.error(f'保存 eDart 配置失败: {traceback.format_exc()}')
+            return jsonify({'status': 'error', 'error': f'保存失败: {e}'}), 500
+
+    @bp.route('/api/edart/test', methods=['POST'])
+    @login_required_or_guest
+    def api_edart_test():
+        from services import jira_client as _jc
+        data = request.get_json(silent=True) or {}
+        cfg = _edart_merge_config(data, persist=False)
+        if not cfg.get('base_url'):
+            return jsonify({'status': 'error', 'error': '请先填写 eDart/Jira 站点地址'}), 200
+        if not cfg.get('token'):
+            return jsonify({'status': 'error',
+                            'error': '请填写 Token（Data Center 用 PAT，Cloud 用 API Token）'}), 200
+        try:
+            client = _jc.client_from_config(cfg)
+            info = client.test_connection()
+            fmap = client.discover_fields()
+            info['field_map'] = fmap
+            info['severity_field'] = fmap.get('severity', '')
+            info['closed_date_field'] = fmap.get('closed_date', '')
+            return jsonify({'status': 'success', 'data': info})
+        except _jc.JiraError as e:
+            return jsonify({'status': 'error', 'error': str(e)}), 200
+        except Exception as e:
+            logger.error(f'eDart 测试连接失败: {traceback.format_exc()}')
+            return jsonify({'status': 'error', 'error': f'{type(e).__name__}: {e}'}), 200
+
+    @bp.route('/api/edart/fetch', methods=['POST'])
+    @login_required_or_guest
+    def api_edart_fetch():
+        """用 JQL 从 eDart/Jira 分页拉取 CR，落为标准 Jira-CSV，返回 file_id，
+        前端据此复用 /api/excel-analyze-fields -> /api/excel-analyze-sheet 全流程。"""
+        from services import jira_client as _jc
+        data = request.get_json(silent=True) or {}
+        cfg = _jc.load_config(_edart_data_dir())
+        if not cfg.get('base_url') or not cfg.get('token'):
+            return jsonify({'status': 'error',
+                            'error': '请先在「eDart/Jira 配置」中填写站点地址并保存 Token'}), 400
+
+        mode = data.get('mode', 'full')
+        days = data.get('days', cfg.get('incremental_days', 7))
+        jql_override = (data.get('jql') or cfg.get('default_jql') or '').strip()
+        project_key = (data.get('project_key') or cfg.get('project_key') or '').strip()
+
+        task_id = hashlib.md5(f"edart_{time.time()}".encode()).hexdigest()[:16]
+        task_data = {'status': 'processing', 'result': None, 'error': None,
+                     'created_at': time.time(), 'progress': 3,
+                     'progress_msg': '正在连接 eDart...'}
+        background_tasks[task_id] = task_data
+        save_task_meta(task_id, task_data)
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+
+        def _set(p, msg):
+            t = background_tasks.get(task_id)
+            if t:
+                t['progress'] = p
+                t['progress_msg'] = msg
+                save_task_meta(task_id, t)
+
+        def _fail(msg):
+            logger.error(f'eDart 拉取失败: {msg}')
+            t = background_tasks.get(task_id)
+            if t:
+                t.update({'status': 'error', 'error': msg, 'completed_at': time.time()})
+                save_task_meta(task_id, t)
+
+        def _do():
+            try:
+                client = _jc.client_from_config(cfg)
+                _set(8, '正在连接 eDart 并探测字段...')
+                fmap = client.discover_fields()
+                inc = days if mode == 'incremental' else None
+                jql = client.build_jql(project_key=project_key, jql=jql_override,
+                                       incremental_days=inc)
+                logger.info(f'eDart 拉取 JQL: {jql}')
+                _set(15, '正在用 JQL 分页拉取 CR...')
+
+                def _prog(fetched, total, page):
+                    pct = 15 + min(70, int(70 * fetched / max(1, total)))
+                    _set(pct, f'已拉取 {fetched}/{total} 条（第 {page} 页）')
+
+                issues = client.search(jql, on_progress=_prog)
+                if not issues:
+                    raise _jc.JiraError('JQL 未检索到任何问题单，请检查 Project Key / JQL / 增量时间范围')
+                _set(88, f'正在转换并写入 {len(issues)} 条数据...')
+                rows = client.issues_to_rows(issues, fmap)
+                file_id = hashlib.md5(f"edart_{time.time()}_{len(issues)}".encode()).hexdigest()[:16]
+                proj = project_key or 'eDart'
+                safe_proj = re.sub(r'[^A-Za-z0-9_\-]', '', proj) or 'eDart'
+                file_name = f"eDart_{safe_proj}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+                csv_path = os.path.join(upload_folder, f"excel_{file_id}.csv")
+                n = _jc.write_rows_to_csv(rows, csv_path)
+                result = {'file_id': file_id, 'file_name': file_name,
+                          'sheet_names': ['Sheet1'], 'total': n, 'jql': jql}
+                t = background_tasks.get(task_id)
+                t.update({'status': 'done', 'result': result, 'progress': 100,
+                          'progress_msg': f'拉取完成，共 {n} 条',
+                          'completed_at': time.time()})
+                save_task_meta(task_id, t)
+                logger.info(f'eDart 拉取完成: {n} 条 -> {csv_path}')
+            except _jc.JiraError as e:
+                _fail(str(e))
+            except Exception as e:
+                logger.error(f'eDart 拉取异常: {traceback.format_exc()}')
+                _fail(f'{type(e).__name__}: {e}')
+
+        threading.Thread(target=_do, daemon=True).start()
+        return jsonify({'status': 'success', 'data': {'task_id': task_id}})
+
     return bp
 
 
