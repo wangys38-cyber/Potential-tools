@@ -217,7 +217,7 @@
           '<div class="t">' + esc(it.title) + '</div>' +
           '<div class="m">' + esc(it.status) + ' · @' + esc(it.developer || '未指派') + '</div>' +
           '<button type="button" class="pa-rca-btn" data-issue="' + esc(it.id) +
-            '" title="自动拉取该单日志并做根因分析">🔬 根因</button></div>';
+            '" title="自动拉取该单日志并做根因分析">根因</button></div>';
       }).join('');
       var more = m.open_bc_count > (m.top_list || []).length
         ? '<div class="pa-bc-item m">另有 ' + (m.open_bc_count - m.top_list.length) + ' 条未解决 BC，可在对话中追问完整清单</div>' : '';
@@ -601,12 +601,12 @@
       b.classList.toggle('on', b.getAttribute('data-mode') === m);
     });
     if (m === 'rca') {
-      input.setAttribute('placeholder', '输入 CR 单号，如 EKSANTOS-9047，后回车');
-      loadBtn.textContent = '开始根因分析';
+      input.setAttribute('placeholder', 'CR 单号，如 EKSANTOS-9047');
+      loadBtn.textContent = '分析';
       refreshBtn.style.display = 'none';
     } else {
       input.setAttribute('placeholder', '输入 Project Key，如 EKSANTOS，或项目名称后回车');
-      loadBtn.textContent = '生成状态';
+      loadBtn.textContent = '查询';
       refreshBtn.style.display = state.snap ? '' : 'none';
     }
   }

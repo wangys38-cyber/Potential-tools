@@ -23,20 +23,20 @@
 
     <!-- 顶部：输入（首次居中） -->
     <section class="pa-hero">
-      <div class="pa-logo">🔬</div>
-      <h1 class="pa-title">CR 智能分析</h1>
-      <p class="pa-sub">项目状态总览：输入 Project Key 自动从 eDart 拉取 CR，生成模块 PASS / FAIL、Top BC 与趋势；单 CR 根因：输入单号即自动下载日志、定位 root cause。</p>
+      <div class="pa-logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
+      <h1 class="pa-title">CR 分析</h1>
+      <p class="pa-sub">输入项目 Key 查看模块状态与趋势，或输入 CR 单号查看根因。</p>
 
       <div class="pa-mode" id="paMode">
-        <button type="button" class="on" data-mode="project">📊 项目状态总览</button>
-        <button type="button" data-mode="rca">🔬 单 CR 根因分析</button>
+        <button type="button" class="on" data-mode="project">项目状态</button>
+        <button type="button" data-mode="rca">根因分析</button>
       </div>
 
       <div class="pa-search pa-glass">
         <input id="paProjectInput" list="paProjectList" autocomplete="off"
-               placeholder="输入 Project Key，如 EKSANTOS，或项目名称后回车" />
+               placeholder="项目 Key，如 EKSANTOS" />
         <datalist id="paProjectList"></datalist>
-        <button class="pa-btn" id="paLoadBtn">生成状态</button>
+        <button class="pa-btn" id="paLoadBtn">查询</button>
         <button class="pa-btn ghost" id="paRefreshBtn" title="强制重新拉取最新数据" style="display:none;">刷新</button>
       </div>
       <div class="pa-progress pa-glass" id="paProgress">
@@ -98,7 +98,7 @@
       <!-- 下排：对话 / 根因分析（通栏，表格与报告可完整铺开） -->
       <div class="pa-row-chat">
         <div class="pa-card pa-glass pa-chat">
-          <h3>就这个项目继续追问</h3>
+          <h3>追问</h3>
           <div class="pa-chat-tools">
             <div class="pa-chips" id="paChips">
             <button class="pa-chip" data-q="生成一份可直接发送的项目放行状态报告（Markdown，含模块 PASS/FAIL 表和 Top 问题 CR 单号）">生成放行报告</button>
@@ -107,13 +107,13 @@
             <button class="pa-chip" data-q="把项目状态总结成适合同步到牛马笔记的 Markdown，只保留 FAIL 模块及其 BC 单">生成牛马笔记</button>
             <button class="pa-chip" data-q="近 14 天的新增 / 解决趋势如何？本周质量是在变好还是变差？">近期趋势判断</button>
           </div>
-          <button class="pa-clear-btn" id="paClearChat" title="清空对话记录">🗑️ 清空对话</button>
+          <button class="pa-clear-btn" id="paClearChat" title="清空对话记录">清空</button>
         </div>
           <div class="pa-msgs" id="paMsgs">
-            <div class="pa-empty-tip">已基于该项目实时数据，可直接提问；也可直接发送 CR 单号（如 EKSANTOS-9047）+「根因」，或点击模块 Top BC 的「🔬 根因」。</div>
+            <div class="pa-empty-tip">输入问题开始对话，或点击模块 Top BC 的根因按钮。</div>
           </div>
           <div class="pa-input-row">
-            <textarea id="paInput" rows="1" placeholder="针对项目提问；或直接输入 CR 单号（如 EKSANTOS-9047）+「根因」自动拉日志分析"></textarea>
+            <textarea id="paInput" rows="1" placeholder="输入问题，或 CR 单号 + 根因"></textarea>
             <button class="pa-btn" id="paSend">发送</button>
           </div>
         </div>
