@@ -1235,3 +1235,16 @@ body[data-theme="dark"] .pa-bubble pre { background: #1c1c1e; border-color: #3a3
 body[data-theme="dark"] .pa-mode { background: #3a3a3c; }
 :root[data-theme="dark"] .pa-mode button.on,
 body[data-theme="dark"] .pa-mode button.on { background: #2c2c2e; color: #fff; }
+
+/* 趋势图/模块表比例优化：趋势图更宽，模块表更窄且高度自适应 */
+.pa-row-top {
+  grid-template-columns: 1.5fr 1fr !important;
+  align-items: start !important;
+}
+.pa-row-top .pa-card {
+  height: auto !important;
+}
+/* 模块表内列表紧凑，减少内边距 */
+.pa-mod-list {
+  max-height: none !important;
+}
