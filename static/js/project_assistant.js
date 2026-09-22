@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    项目状态助手  project_assistant.js
    流程：输入项目 -> /api/project/load 后台拉取分析 -> 轮询 task-status
         -> /api/project/snapshot 渲染概览/趋势/模块表 -> /api/project/chat 多轮对话(SSE)
@@ -238,7 +238,7 @@
 
     // 模块折叠：默认只显示前4个，其余折叠
     var allRows = modTable.querySelectorAll('.pa-mod-row');
-    var MOD_LIMIT = 4;
+    var MOD_LIMIT = 9;
     var oldToggle = modTable.querySelector('.pa-mod-toggle');
     if (oldToggle) oldToggle.remove();
     modTable.classList.remove('pa-mod-all');
