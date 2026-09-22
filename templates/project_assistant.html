@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目状态助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a84ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 3v18h18'/><path d='M7 14l4-4 4 4 5-5'/></svg>">
+    <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="/static/css/design-system.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/ux-enhancements.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
+    <link rel="stylesheet" href="/static/css/project_assistant.css?v={{ STATIC_VERSION }}">
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="pa-page" id="paPage">
+  <div class="pa-wrap">
+
+    <!-- 顶部：项目输入（首次居中） -->
+    <section class="pa-hero">
+      <div class="pa-logo">📊</div>
+      <h1 class="pa-title">项目状态助手</h1>
+      <p class="pa-sub">输入 Project Key 或项目名称，自动从 eDart 实时拉取 CR，一键生成项目当前状态总览，并可直接追问、生成放行报告 / 邮件 / 牛马笔记。</p>
+      <div class="pa-search pa-glass">
+        <input id="paProjectInput" list="paProjectList" autocomplete="off"
+               placeholder="输入 Project Key，如 EKSANTOS，或项目名称后回车" />
+        <datalist id="paProjectList"></datalist>
+        <button class="pa-btn" id="paLoadBtn">生成状态</button>
+        <button class="pa-btn ghost" id="paRefreshBtn" title="强制重新拉取最新数据" style="display:none;">刷新</button>
+      </div>
+      <div class="pa-progress pa-glass" id="paProgress">
+        <div class="pa-progress-msg" id="paProgressMsg">正在准备…</div>
+        <div class="pa-bar"><i id="paBar"></i></div>
+      </div>
+      <div class="pa-error" id="paError"></div>
+    </section>
+
+    <!-- 结果区 -->
+    <section class="pa-result" id="paResult">
+      <div class="pa-head">
+        <div>
+          <h2 id="paProjTitle">—</h2>
+          <div class="pa-meta" id="paProjMeta">—</div>
+        </div>
+        <div class="pa-actions">
+          <button class="pa-btn ghost sm" id="paCopyReport">复制状态报告</button>
+          <button class="pa-btn ghost sm" id="paForceReload">重新拉取最新</button>
+        </div>
+      </div>
+
+      <!-- 概览卡片 -->
+      <div class="pa-stat-grid">
+        <div class="pa-stat pa-glass accent"><div class="v" id="paStatTotal">–</div><div class="k">CR 总数</div></div>
+        <div class="pa-stat pa-glass orange"><div class="v" id="paStatUnresolved">–</div><div class="k">未解决</div></div>
+        <div class="pa-stat pa-glass red"><div class="v" id="paStatBC">–</div><div class="k">未解决 BC（Blocker+Critical）</div></div>
+        <div class="pa-stat pa-glass red"><div class="v" id="paStatFail">–</div><div class="k">FAIL 模块</div></div>
+        <div class="pa-stat pa-glass green"><div class="v" id="paStatPass">–</div><div class="k">PASS 模块</div></div>
+      </div>
+
+      <div class="pa-grid">
+        <!-- 左列：趋势 + 对话 -->
+        <div>
+          <div class="pa-card pa-glass">
+            <h3>每日趋势与累计 BUG 曲线
+              <span class="pa-card-act pa-range-toggle" id="paRangeToggle">
+                <button data-days="14">近14天</button>
+                <button data-days="30" class="on">近30天</button>
+                <button data-days="0">全部</button>
+              </span>
+            </h3>
+            <div class="pa-chart-box"><canvas id="paTrendChart"></canvas></div>
+          </div>
+
+          <div class="pa-card pa-glass pa-chat">
+            <h3>就这个项目继续追问</h3>
+            <div class="pa-chips" id="paChips">
+              <button class="pa-chip" data-q="生成一份可直接发送的项目放行状态报告（Markdown，含模块 PASS/FAIL 表和 Top 问题 CR 单号）">生成放行报告</button>
+              <button class="pa-chip" data-q="列出当前所有未解决的 Blocker 问题单，按模块分组">未解决 Blocker</button>
+              <button class="pa-chip" data-q="当前风险最高的 5 个模块是什么？各自的 Top 问题和单号？">风险最高模块</button>
+              <button class="pa-chip" data-q="把项目状态总结成适合同步到牛马笔记的 Markdown，只保留 FAIL 模块及其 BC 单">生成牛马笔记</button>
+              <button class="pa-chip" data-q="近 14 天的新增 / 解决趋势如何？本周质量是在变好还是变差？">近期趋势判断</button>
+            </div>
+            <div class="pa-msgs" id="paMsgs">
+              <div class="pa-empty-tip">已基于该项目实时数据，可直接提问，或点击上方快捷问题。</div>
+            </div>
+            <div class="pa-input-row">
+              <textarea id="paInput" rows="1" placeholder="问点什么，例如：Apps-iOS 模块还有哪些 Critical 没关？"></textarea>
+              <button class="pa-btn" id="paSend">发送</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右列：模块状态表 -->
+        <div>
+          <div class="pa-card pa-glass">
+            <h3>模块状态（FAIL 优先，点击展开 Top BC 单）</h3>
+            <div class="pa-table-tools">
+              <input id="paModFilter" type="text" placeholder="筛选模块名称…" />
+              <select class="pa-filter-select" id="paModStatus">
+                <option value="all">全部模块</option>
+                <option value="fail" selected>仅 FAIL</option>
+                <option value="pass">仅 PASS</option>
+              </select>
+            </div>
+            <div class="pa-mod-table" id="paModTable"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="/static/js/project_assistant.js?v={{ STATIC_VERSION }}" defer></script>
+</body>
+</html>

@@ -424,6 +424,59 @@ class JiraClient:
         return " AND ".join(conds) + " ORDER BY updated DESC"
 
     # ---------- 转 CSV 行 ----------
+    def list_projects(self, limit=500):
+        """列出当前凭据可访问的全部项目，返回 [{'key','name','projectTypeKey'}]，按 key 排序。"""
+        try:
+            data = self._get(f'{_API}/project', params={'maxResults': limit})
+        except Exception:
+            # 部分 Data Center 版本不接受 maxResults 参数，退回无参请求
+            data = self._get(f'{_API}/project')
+        out = []
+        if isinstance(data, list):
+            for p in data:
+                if not isinstance(p, dict):
+                    continue
+                key = (p.get('key') or '').strip()
+                if not key:
+                    continue
+                out.append({'key': key,
+                            'name': (p.get('name') or key).strip(),
+                            'projectTypeKey': p.get('projectTypeKey') or ''})
+        out.sort(key=lambda x: x['key'].upper())
+        return out
+
+    def resolve_project(self, text, projects=None):
+        """把用户输入（Project Key 或项目名称的全部/片段）解析为项目。
+        返回 (project_or_None, candidates)：
+          唯一命中 -> (project, [])；多个候选 -> (None, [cand...])；无命中 -> (None, [])。
+        """
+        q = (text or '').strip()
+        if not q:
+            return None, []
+        if projects is None:
+            projects = self.list_projects()
+        qu = q.upper()
+        exact_key = [p for p in projects if p['key'].upper() == qu]
+        if exact_key:
+            return exact_key[0], []
+        exact_name = [p for p in projects if p['name'].upper() == qu]
+        if len(exact_name) == 1:
+            return exact_name[0], []
+        cand = [p for p in projects
+                if p['key'].upper().startswith(qu)
+                or qu in p['name'].upper()
+                or p['name'].upper() in qu]
+        seen, uniq = set(), []
+        for p in cand:
+            if p['key'] not in seen:
+                seen.add(p['key'])
+                uniq.append(p)
+        if len(uniq) == 1:
+            return uniq[0], []
+        if len(uniq) > 1:
+            return None, uniq
+        return None, []
+
     def issues_to_rows(self, issues, field_map=None) -> list:
         """把 Jira issue 列表转成 [表头, 行...] 二维数组，列对齐 CSV_HEADERS。"""
         fmap = field_map or self.discover_fields()

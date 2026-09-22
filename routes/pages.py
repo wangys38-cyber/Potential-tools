@@ -98,6 +98,10 @@ def create_pages_blueprint(cached_render):
     def knowledge_base():
         return cached_render('knowledge_base.html', nav_title='智能知识库')
 
+    @bp.route('/project-assistant')
+    def project_assistant():
+        return cached_render('project_assistant.html', nav_title='项目状态助手')
+
     @bp.route('/my-activity')
     def my_activity():
         return cached_render('my_activity.html', nav_title='我的活动')

@@ -65,6 +65,19 @@
             <div class="gantt-wrap" id="ganttContainer"></div>
         </div>
 
+        <!-- 项目状态助手卡片 -->
+        <div class="card col-12" onclick="window.location.href='/project-assistant'" style="cursor:pointer;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:260px;">
+                <div class="card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+                    项目状态助手
+                    <span class="badge">eDart 直连 · AI 问答</span>
+                </div>
+                <p style="margin:8px 0 0;color:var(--ds-text-secondary,#666);font-size:13px;line-height:1.6;">输入 Project Key（如 EKSANTOS），自动从 eDart 实时拉取 CR，生成模块 PASS / FAIL 总览、Top BC 单、每日趋势与累计 BUG 曲线，并可直接追问、一键生成放行报告 / 邮件 / 牛马笔记。</p>
+            </div>
+            <button class="btn btn-primary btn-sm" tabindex="-1" style="pointer-events:none;white-space:nowrap;">打开助手 →</button>
+        </div>
+
         <!-- 项目概览卡片 -->
         <div class="card col-12" onclick="window.location.href='/project-info'" style="cursor:default;">
             <div class="card-title">

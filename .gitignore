@@ -36,3 +36,6 @@ data/kb_inbox/
 *.log
 data/note_assets/
 data/edart_config.json
+
+# 项目状态助手快照缓存（含内部 CR 数据，不入库）
+data/project_cache/
