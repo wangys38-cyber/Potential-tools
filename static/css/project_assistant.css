@@ -1248,3 +1248,35 @@ body[data-theme="dark"] .pa-mode button.on { background: #2c2c2e; color: #fff; }
 .pa-mod-list {
   max-height: none !important;
 }
+
+/* 模块表高度紧凑化：恢复宽度1:1，压缩行高/内边距使整体高度变短 */
+.pa-row-top {
+  grid-template-columns: 1fr 1fr !important;
+}
+.pa-modules-card {
+  padding: 14px 16px !important;
+}
+.pa-modules-card h3 {
+  margin-bottom: 8px !important;
+  padding-bottom: 8px !important;
+}
+.pa-mod-line {
+  padding: 6px 10px !important;
+  margin-bottom: 1px !important;
+}
+.pa-mod-name {
+  font-size: 12.5px !important;
+}
+.pa-mod-sub {
+  font-size: 11px !important;
+  margin-top: 1px !important;
+}
+.pa-pill {
+  padding: 1px 7px !important;
+  font-size: 10.5px !important;
+}
+.pa-bc-num .b, .pa-bc-num .c {
+  min-width: 18px !important;
+  height: 16px !important;
+  font-size: 10px !important;
+}
