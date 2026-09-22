@@ -438,3 +438,75 @@ body[data-theme="dark"] .pa-rca-chip.hot { color: #ff6b61; }
 body[data-theme="dark"] .pa-rca-chip.warn { color: #ffb340; }
 :root[data-theme="dark"] .pa-rca-status-tag,
 body[data-theme="dark"] .pa-rca-status-tag { background: rgba(52,199,89,.22); color: #8adfa0; }
+
+/* ===== v2 redesign ===== */
+/* 首页双模式切换 */
+.pa-mode {
+  display: inline-flex; gap: 4px; padding: 4px; margin: 0 0 18px;
+  background: var(--pa-glass-strong); border: 1px solid var(--pa-stroke);
+  border-radius: 999px; box-shadow: var(--pa-shadow-sm);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+.pa-mode button {
+  border: 0; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 8px 20px; border-radius: 999px; color: var(--pa-text-2);
+  background: transparent; transition: all .22s ease;
+}
+.pa-mode button:hover { color: var(--pa-text); }
+.pa-mode button.on {
+  color: #fff; background: linear-gradient(135deg, #0a84ff, #0066d6);
+  box-shadow: 0 4px 14px rgba(10,132,255,.38);
+}
+
+/* 结果区信息架构：上排 趋势+模块，下排 通栏对话 */
+.pa-row-top {
+  display: grid; grid-template-columns: minmax(0,5fr) minmax(0,6.5fr);
+  gap: 18px; align-items: start; margin-bottom: 18px;
+}
+.pa-row-top .pa-card { margin-bottom: 0; }
+.pa-chart-box { height: 320px; }
+.pa-mod-card .pa-mod-table { max-height: 520px; }
+.pa-row-chat .pa-chat { margin-bottom: 0; }
+.pa-card { padding: 20px 22px; border-radius: 22px; }
+
+/* 统计卡质感 */
+.pa-stat {
+  position: relative; overflow: hidden;
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+.pa-stat::after {
+  content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
+}
+.pa-stat:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(31,38,135,.16); }
+.pa-stat .v { font-variant-numeric: tabular-nums; }
+
+/* 模块行 */
+.pa-mod-line { border-radius: 12px; transition: background .15s ease; }
+.pa-mod-name { font-size: 13.5px; letter-spacing: -.01em; }
+
+/* 对话通栏，表格完整铺开不再竖排 */
+.pa-chat .pa-msgs { max-height: 64vh; }
+.pa-msg.bot .pa-bubble { max-width: 97%; }
+.pa-bubble { overflow-x: auto; }
+.pa-bubble table {
+  display: table; width: 100%; min-width: 460px; border-collapse: collapse;
+  font-size: 13px; margin: 12px 0; border-radius: 10px; overflow: hidden;
+}
+.pa-bubble th, .pa-bubble td {
+  white-space: normal; vertical-align: top; line-height: 1.55; padding: 8px 11px;
+}
+.pa-bubble td a { word-break: break-all; }
+
+/* 无快照、仅做单 CR 根因时，只保留通栏对话并居中 */
+.pa-result.rca-only .pa-overview,
+.pa-result.rca-only .pa-row-top { display: none; }
+.pa-result.rca-only .pa-row-chat .pa-card { max-width: 920px; margin: 0 auto; }
+
+/* 响应式 */
+@media (max-width: 920px) {
+  .pa-row-top { grid-template-columns: 1fr; }
+  .pa-stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .pa-chart-box { height: 260px; }
+}

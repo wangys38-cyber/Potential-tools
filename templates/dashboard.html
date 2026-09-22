@@ -21,6 +21,36 @@
     </div>
 
     <div class="grid">
+        <!-- CR 智能分析（项目状态总览 + 单 CR 根因） -->
+        <div class="card col-12 pa-entry-card">
+            <div class="card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                CR 智能分析
+                <span class="badge">eDart 直连 · AI 问答 · 日志根因</span>
+            </div>
+            <div class="pa-entry-grid">
+                <a class="pa-entry-item" href="/project-assistant">
+                    <div class="pa-entry-ic" style="background:linear-gradient(135deg,#0a84ff,#0066d6);">📊</div>
+                    <div class="pa-entry-txt">
+                        <div class="pa-entry-h">项目状态总览</div>
+                        <div class="pa-entry-d">输入 Project Key（如 EKSANTOS），实时拉取 CR，生成模块 PASS / FAIL、Top BC 单、每日趋势与累计 BUG 曲线，可追问并一键生成放行报告 / 邮件 / 牛马笔记。</div>
+                    </div>
+                    <span class="pa-entry-go">打开 →</span>
+                </a>
+                <div class="pa-entry-item">
+                    <div class="pa-entry-ic" style="background:linear-gradient(135deg,#5e5ce6,#bf5af2);">🔬</div>
+                    <div class="pa-entry-txt">
+                        <div class="pa-entry-h">单 CR 根因分析</div>
+                        <div class="pa-entry-d">输入 CR 单号，自动下载 bug2go / bugreport 日志，AI 定位 root cause，给出证据时间线、责任模块与修复建议。</div>
+                        <form class="pa-entry-form" onsubmit="var k=this.rca.value.trim();if(k){location.href='/project-assistant?rca='+encodeURIComponent(k);}return false;">
+                            <input name="rca" type="text" placeholder="输入 CR 单号，如 EKSANTOS-9047" autocomplete="off"/>
+                            <button type="submit" class="btn btn-primary btn-sm">分析根因</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Bug 趋势卡片 -->
         <div class="card col-8" onclick="window.location.href='/bug-trend'">
             <div class="card-title">
@@ -63,19 +93,6 @@
                 <span class="badge">甘特图</span>
             </div>
             <div class="gantt-wrap" id="ganttContainer"></div>
-        </div>
-
-        <!-- 项目状态助手卡片 -->
-        <div class="card col-12" onclick="window.location.href='/project-assistant'" style="cursor:pointer;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:260px;">
-                <div class="card-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-                    项目状态助手
-                    <span class="badge">eDart 直连 · AI 问答</span>
-                </div>
-                <p style="margin:8px 0 0;color:var(--ds-text-secondary,#666);font-size:13px;line-height:1.6;">输入 Project Key（如 EKSANTOS），自动从 eDart 实时拉取 CR，生成模块 PASS / FAIL 总览、Top BC 单、每日趋势与累计 BUG 曲线，并可直接追问、一键生成放行报告 / 邮件 / 牛马笔记。</p>
-            </div>
-            <button class="btn btn-primary btn-sm" tabindex="-1" style="pointer-events:none;white-space:nowrap;">打开助手 →</button>
         </div>
 
         <!-- 项目概览卡片 -->

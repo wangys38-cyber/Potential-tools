@@ -13,7 +13,7 @@
   var state = {
     key: '', name: '', snap: null,
     history: [], rangeDays: 30, chart: null,
-    loading: false,
+    loading: false, mode: 'project',
     rcaKey: '', rcaHistory: [], rcaOnly: false, rcaBusy: false
   };
 
@@ -572,6 +572,37 @@
     });
   }
 
+  /* ---------------- 首页双模式（项目总览 / 单 CR 根因） ---------------- */
+  function setMode(m) {
+    state.mode = m;
+    Array.prototype.forEach.call(document.querySelectorAll('#paMode button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-mode') === m);
+    });
+    if (m === 'rca') {
+      input.setAttribute('placeholder', '输入 CR 单号，如 EKSANTOS-9047，后回车');
+      loadBtn.textContent = '开始根因分析';
+      refreshBtn.style.display = 'none';
+    } else {
+      input.setAttribute('placeholder', '输入 Project Key，如 EKSANTOS，或项目名称后回车');
+      loadBtn.textContent = '生成状态';
+      refreshBtn.style.display = state.snap ? '' : 'none';
+    }
+  }
+  function doPrimary() {
+    if (state.mode === 'rca') startRcaFromHero();
+    else startLoad(false);
+  }
+  function startRcaFromHero(preset) {
+    var raw = (preset != null ? preset : input.value).trim();
+    var keys = extractIssueKeys(raw);
+    if (!keys.length) { showError('请输入有效的 CR 单号，如 EKSANTOS-9047'); return; }
+    var issue = keys[0];
+    clearError();
+    hideProgress();
+    setMode('rca');
+    runRCA(issue, '请分析该 CR 的根因（自动拉取描述、评论与日志附件，给出根因结论、关键证据、责任模块和修复建议）。');
+  }
+
   function sendQuestion(q) {
     var question = (q != null ? q : chatInput.value).trim();
     if (!question) return;
@@ -644,10 +675,13 @@
   }
 
   /* ---------------- 事件绑定 ---------------- */
-  loadBtn.addEventListener('click', function () { startLoad(false); });
+  loadBtn.addEventListener('click', doPrimary);
   refreshBtn.addEventListener('click', function () { startLoad(true); });
   $('paForceReload').addEventListener('click', function () { startLoad(true); });
-  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); startLoad(false); } });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doPrimary(); } });
+  Array.prototype.forEach.call(document.querySelectorAll('#paMode button'), function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+  });
   sendBtn.addEventListener('click', function () { sendQuestion(); });
   chatInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
@@ -679,13 +713,19 @@
     if (state.snap) copyText(buildReportMD(), '状态报告 Markdown 已复制');
   });
 
-  /* ---------------- 启动：项目列表 + 恢复上次快照 ---------------- */
+  /* ---------------- 启动：项目列表 + 恢复上次快照 / URL 直达根因 ---------------- */
   loadProjectList();
-  var lastKey = localStorage.getItem(LS_LAST);
-  if (lastKey) {
-    input.value = lastKey;
-    fetchSnapshot(lastKey).then(applySnapshot).catch(function () {
-      page.classList.remove('ready'); result.classList.remove('show'); input.value = '';
-    });
+  var rcaParam = new URLSearchParams(window.location.search).get('rca');
+  if (rcaParam) {
+    input.value = rcaParam;
+    startRcaFromHero(rcaParam);
+  } else {
+    var lastKey = localStorage.getItem(LS_LAST);
+    if (lastKey) {
+      input.value = lastKey;
+      fetchSnapshot(lastKey).then(applySnapshot).catch(function () {
+        page.classList.remove('ready'); result.classList.remove('show'); input.value = '';
+      });
+    }
   }
 })();

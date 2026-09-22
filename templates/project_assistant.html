@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目状态助手</title>
+    <title>项目状态助手 · CR 根因分析</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a84ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 3v18h18'/><path d='M7 14l4-4 4 4 5-5'/></svg>">
     <link rel="stylesheet" href="/static/css/theme.css?v={{ STATIC_VERSION }}">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -21,11 +21,17 @@
 <div class="pa-page" id="paPage">
   <div class="pa-wrap">
 
-    <!-- 顶部：项目输入（首次居中） -->
+    <!-- 顶部：输入（首次居中） -->
     <section class="pa-hero">
-      <div class="pa-logo">📊</div>
-      <h1 class="pa-title">项目状态助手</h1>
-      <p class="pa-sub">输入 Project Key 或项目名称，自动从 eDart 实时拉取 CR，一键生成项目当前状态总览，并可直接追问、生成放行报告 / 邮件 / 牛马笔记。</p>
+      <div class="pa-logo">🔬</div>
+      <h1 class="pa-title">CR 智能分析</h1>
+      <p class="pa-sub">项目状态总览：输入 Project Key 自动从 eDart 拉取 CR，生成模块 PASS / FAIL、Top BC 与趋势；单 CR 根因：输入单号即自动下载日志、定位 root cause。</p>
+
+      <div class="pa-mode" id="paMode">
+        <button type="button" class="on" data-mode="project">📊 项目状态总览</button>
+        <button type="button" data-mode="rca">🔬 单 CR 根因分析</button>
+      </div>
+
       <div class="pa-search pa-glass">
         <input id="paProjectInput" list="paProjectList" autocomplete="off"
                placeholder="输入 Project Key，如 EKSANTOS，或项目名称后回车" />
@@ -54,7 +60,7 @@
       </div>
 
       <!-- 概览卡片 -->
-      <div class="pa-stat-grid">
+      <div class="pa-stat-grid pa-overview">
         <div class="pa-stat pa-glass accent"><div class="v" id="paStatTotal">–</div><div class="k">CR 总数</div></div>
         <div class="pa-stat pa-glass orange"><div class="v" id="paStatUnresolved">–</div><div class="k">未解决</div></div>
         <div class="pa-stat pa-glass red"><div class="v" id="paStatBC">–</div><div class="k">未解决 BC（Blocker+Critical）</div></div>
@@ -62,52 +68,50 @@
         <div class="pa-stat pa-glass green"><div class="v" id="paStatPass">–</div><div class="k">PASS 模块</div></div>
       </div>
 
-      <div class="pa-grid">
-        <!-- 左列：趋势 + 对话 -->
-        <div>
-          <div class="pa-card pa-glass">
-            <h3>每日趋势与累计 BUG 曲线
-              <span class="pa-card-act pa-range-toggle" id="paRangeToggle">
-                <button data-days="14">近14天</button>
-                <button data-days="30" class="on">近30天</button>
-                <button data-days="0">全部</button>
-              </span>
-            </h3>
-            <div class="pa-chart-box"><canvas id="paTrendChart"></canvas></div>
-          </div>
-
-          <div class="pa-card pa-glass pa-chat">
-            <h3>就这个项目继续追问</h3>
-            <div class="pa-chips" id="paChips">
-              <button class="pa-chip" data-q="生成一份可直接发送的项目放行状态报告（Markdown，含模块 PASS/FAIL 表和 Top 问题 CR 单号）">生成放行报告</button>
-              <button class="pa-chip" data-q="列出当前所有未解决的 Blocker 问题单，按模块分组">未解决 Blocker</button>
-              <button class="pa-chip" data-q="当前风险最高的 5 个模块是什么？各自的 Top 问题和单号？">风险最高模块</button>
-              <button class="pa-chip" data-q="把项目状态总结成适合同步到牛马笔记的 Markdown，只保留 FAIL 模块及其 BC 单">生成牛马笔记</button>
-              <button class="pa-chip" data-q="近 14 天的新增 / 解决趋势如何？本周质量是在变好还是变差？">近期趋势判断</button>
-            </div>
-            <div class="pa-msgs" id="paMsgs">
-              <div class="pa-empty-tip">已基于该项目实时数据，可直接提问，或点击上方快捷问题。</div>
-            </div>
-            <div class="pa-input-row">
-              <textarea id="paInput" rows="1" placeholder="针对项目提问；或直接输入 CR 单号（如 EKSANTOS-9047）+「根因」，自动拉日志分析；也可点击下方模块 Top BC 的「🔬 根因」"></textarea>
-              <button class="pa-btn" id="paSend">发送</button>
-            </div>
-          </div>
+      <!-- 上排：趋势 + 模块表 -->
+      <div class="pa-row-top">
+        <div class="pa-card pa-glass pa-trend-card">
+          <h3>每日趋势与累计 BUG 曲线
+            <span class="pa-card-act pa-range-toggle" id="paRangeToggle">
+              <button data-days="14">近14天</button>
+              <button data-days="30" class="on">近30天</button>
+              <button data-days="0">全部</button>
+            </span>
+          </h3>
+          <div class="pa-chart-box"><canvas id="paTrendChart"></canvas></div>
         </div>
 
-        <!-- 右列：模块状态表 -->
-        <div>
-          <div class="pa-card pa-glass">
-            <h3>模块状态（FAIL 优先，点击展开 Top BC 单）</h3>
-            <div class="pa-table-tools">
-              <input id="paModFilter" type="text" placeholder="筛选模块名称…" />
-              <select class="pa-filter-select" id="paModStatus">
-                <option value="all">全部模块</option>
-                <option value="fail" selected>仅 FAIL</option>
-                <option value="pass">仅 PASS</option>
-              </select>
-            </div>
-            <div class="pa-mod-table" id="paModTable"></div>
+        <div class="pa-card pa-glass pa-mod-card">
+          <h3>模块状态（FAIL 优先，点击展开 Top BC 单）</h3>
+          <div class="pa-table-tools">
+            <input id="paModFilter" type="text" placeholder="筛选模块名称…" />
+            <select class="pa-filter-select" id="paModStatus">
+              <option value="all">全部模块</option>
+              <option value="fail" selected>仅 FAIL</option>
+              <option value="pass">仅 PASS</option>
+            </select>
+          </div>
+          <div class="pa-mod-table" id="paModTable"></div>
+        </div>
+      </div>
+
+      <!-- 下排：对话 / 根因分析（通栏，表格与报告可完整铺开） -->
+      <div class="pa-row-chat">
+        <div class="pa-card pa-glass pa-chat">
+          <h3>就这个项目继续追问</h3>
+          <div class="pa-chips" id="paChips">
+            <button class="pa-chip" data-q="生成一份可直接发送的项目放行状态报告（Markdown，含模块 PASS/FAIL 表和 Top 问题 CR 单号）">生成放行报告</button>
+            <button class="pa-chip" data-q="列出当前所有未解决的 Blocker 问题单，按模块分组">未解决 Blocker</button>
+            <button class="pa-chip" data-q="当前风险最高的 5 个模块是什么？各自的 Top 问题和单号？">风险最高模块</button>
+            <button class="pa-chip" data-q="把项目状态总结成适合同步到牛马笔记的 Markdown，只保留 FAIL 模块及其 BC 单">生成牛马笔记</button>
+            <button class="pa-chip" data-q="近 14 天的新增 / 解决趋势如何？本周质量是在变好还是变差？">近期趋势判断</button>
+          </div>
+          <div class="pa-msgs" id="paMsgs">
+            <div class="pa-empty-tip">已基于该项目实时数据，可直接提问；也可直接发送 CR 单号（如 EKSANTOS-9047）+「根因」，或点击模块 Top BC 的「🔬 根因」。</div>
+          </div>
+          <div class="pa-input-row">
+            <textarea id="paInput" rows="1" placeholder="针对项目提问；或直接输入 CR 单号（如 EKSANTOS-9047）+「根因」自动拉日志分析"></textarea>
+            <button class="pa-btn" id="paSend">发送</button>
           </div>
         </div>
       </div>
