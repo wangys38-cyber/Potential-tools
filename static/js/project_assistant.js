@@ -236,6 +236,32 @@
       '</div>';
     }).join('');
 
+    // 模块折叠：默认只显示前4个，其余折叠
+    var allRows = modTable.querySelectorAll('.pa-mod-row');
+    var MOD_LIMIT = 4;
+    var oldToggle = modTable.querySelector('.pa-mod-toggle');
+    if (oldToggle) oldToggle.remove();
+    modTable.classList.remove('pa-mod-all');
+    if (allRows.length > MOD_LIMIT) {
+      for (var mi = MOD_LIMIT; mi < allRows.length; mi++) {
+        allRows[mi].classList.add('pa-mod-collapsed');
+      }
+      var toggle = document.createElement('div');
+      toggle.className = 'pa-mod-toggle';
+      var tbtn = document.createElement('button');
+      tbtn.type = 'button';
+      var hiddenCount = allRows.length - MOD_LIMIT;
+      tbtn.textContent = '展开更多 ' + hiddenCount + ' 个模块';
+      tbtn.addEventListener('click', function () {
+        var expanded = modTable.classList.toggle('pa-mod-all');
+        this.textContent = expanded ? '收起' : '展开更多 ' + hiddenCount + ' 个模块';
+      });
+      toggle.appendChild(tbtn);
+      modTable.appendChild(toggle);
+    } else {
+      Array.prototype.forEach.call(allRows, function (r) { r.classList.remove('pa-mod-collapsed'); });
+    }
+
     Array.prototype.forEach.call(modTable.querySelectorAll('.pa-mod-line'), function (line) {
       line.addEventListener('click', function () {
         line.parentNode.classList.toggle('open');
