@@ -125,7 +125,9 @@ def build_module_summary(issues, project_name='Santos', date_str=None, top_n=TOP
         d['fail'] = d['bc_unres'] > 0
         # Top N：严重度高者优先，同级单号大（更新）优先
         d['open_issues'].sort(key=lambda x: (_SEV_RANK.get(x['sev'], 5), -x['num']))
-        d['top_list'] = d['open_issues'][:top_n]
+        # 只列未解决 BC（Blocker/Critical）；BC 不足 N 条也只列 BC，不拿 Major 凑数
+        d['top_list'] = [p for p in d['open_issues']
+                         if p['sev'] in ('blocker', 'critical')][:top_n]
     entries.sort(key=lambda kv: (0 if kv[1]['fail'] else 1,
                                  -kv[1]['bc_unres'], -kv[1]['unres'], kv[0]))
 
@@ -164,7 +166,7 @@ def build_module_summary(issues, project_name='Santos', date_str=None, top_n=TOP
     md.append("")
 
     # 三、FAIL 模块 Top N 待解决问题
-    md.append(f"## 三、FAIL 模块 Top{top_n} 待解决问题\n")
+    md.append(f"## 三、FAIL 模块 Top{top_n} 待解决 BC 问题（Blocker/Critical，不足{top_n} 条按实际）\n")
     if not fail_entries:
         md.append("当前无 FAIL 模块，所有模块均无未解决 Blocker/Critical。\n")
     for idx, (name, d) in enumerate(fail_entries, 1):
@@ -185,7 +187,7 @@ def build_module_summary(issues, project_name='Santos', date_str=None, top_n=TOP
     md.append("## 四、结论\n")
     md.append(
         f"- **{fail_n} 个模块未达放行标准（FAIL）**：仍有未解决 Blocker/Critical，"
-        f"需在版本放行前清零，各模块 Top{top_n} 问题见第三节。"
+        f"需在版本放行前清零，各模块 Top{top_n} BC 问题见第三节。"
     )
     md.append(
         f"- **{pass_n} 个模块当前无未解决 BC（PASS）**：无高优先级遗留，可进入下一阶段；"
