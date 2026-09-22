@@ -747,6 +747,13 @@ if __name__ == '__main__':
             pass
     _warmup_kb()
 
+    # 启动项目状态定时自动刷新（每天 12:00 / 18:00 / 00:00）
+    try:
+        from services.pa_scheduler import start_scheduler
+        start_scheduler()
+    except Exception as e:
+        logger.warning(f'项目状态自动刷新启动失败(可忽略): {e}')
+
     # Windows 虚拟环境下 Werkzeug reloader 子进程会丢失 venv 的 site-packages（导致 playwright 等依赖找不到），
     # 因此本地开发保留 debug 错误页但关闭自动重载；生产环境用 WSGI 服务器
     app.run(host='0.0.0.0', port=port, debug=not _is_production, use_reloader=False)

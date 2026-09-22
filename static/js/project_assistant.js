@@ -185,6 +185,7 @@
     renderModules();
     renderChart();
     loadChatHistory();
+    loadAutoRefreshStatus();
   }
 
   /* ---------------- 模块表 ---------------- */
@@ -267,6 +268,28 @@
         line.parentNode.classList.toggle('open');
       });
     });
+  }
+
+  function loadAutoRefreshStatus() {
+    var el = $('paAutoRefresh');
+    if (!el) return;
+    fetch('/api/project/auto-refresh/status').then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.status !== 'success' || !d.data) { el.innerHTML = ''; return; }
+        var s = d.data;
+        if (!s.enabled) { el.innerHTML = ''; return; }
+        var next = '';
+        if (s.jobs && s.jobs.length) {
+          var upcoming = s.jobs.filter(function (j) { return j.next_run; })
+            .sort(function (a, b) { return a.next_run < b.next_run ? -1 : 1; });
+          if (upcoming.length) next = ' · 下次 ' + upcoming[0].next_run.slice(5, 16);
+        }
+        var last = s.last_run ? ' · 上次 ' + s.last_run.slice(5, 16) : '';
+        var projs = s.cached_projects && s.cached_projects.length
+          ? '（' + s.cached_projects.length + ' 个项目）' : '';
+        el.innerHTML = '<span class="pa-ar-dot"></span>自动刷新：每天 '
+          + s.schedule.join(' / ') + projs + next + last;
+      }).catch(function () { el.innerHTML = ''; });
   }
 
   /* ---------------- 趋势图（Chart.js，口径同 CR 分析 daily_stats） ---------------- */

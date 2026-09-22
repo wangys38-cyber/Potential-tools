@@ -1307,3 +1307,20 @@ body[data-theme="dark"] .pa-mode button.on { background: #2c2c2e; color: #fff; }
   background: #ebebef;
   border-color: #d0d0d4;
 }
+
+/* 自动刷新状态 */
+.pa-auto-refresh {
+  font-size: 11.5px;
+  color: #86868b;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pa-ar-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34c759;
+}

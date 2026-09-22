@@ -257,4 +257,14 @@ def create_project_blueprint():
                                  'X-Accel-Buffering': 'no',
                                  'Connection': 'keep-alive'})
 
+    # ---------------- 自动刷新状态 ----------------
+    @bp.route('/api/project/auto-refresh/status', methods=['GET'])
+    @login_required_or_guest
+    def auto_refresh_status():
+        try:
+            from services.pa_scheduler import get_status
+            return jsonify({'status': 'success', 'data': get_status()})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': str(e)}), 500
+
     return bp
