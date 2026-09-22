@@ -13,7 +13,8 @@
   var state = {
     key: '', name: '', snap: null,
     history: [], rangeDays: 30, chart: null,
-    loading: false
+    loading: false,
+    rcaKey: '', rcaHistory: [], rcaOnly: false, rcaBusy: false
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -158,9 +159,13 @@
   function applySnapshot(snap) {
     state.snap = snap; state.key = snap.project_key;
     state.name = snap.project_name || snap.project_key;
+    state.rcaOnly = false; state.rcaKey = ''; state.rcaHistory = [];
     input.value = snap.project_key;
     page.classList.add('ready');
     result.classList.add('show');
+    result.classList.remove('rca-only');
+    var chatTitle = document.querySelector('.pa-chat h3');
+    if (chatTitle) chatTitle.textContent = '就这个项目继续追问';
     refreshBtn.style.display = '';
 
     var st = snap.stats || {};
@@ -210,7 +215,9 @@
           '<span class="sev-tag ' + esc(it.sev) + '">' + sevCN(it.sev) + '</span>' +
           href +
           '<div class="t">' + esc(it.title) + '</div>' +
-          '<div class="m">' + esc(it.status) + ' · @' + esc(it.developer || '未指派') + '</div></div>';
+          '<div class="m">' + esc(it.status) + ' · @' + esc(it.developer || '未指派') + '</div>' +
+          '<button type="button" class="pa-rca-btn" data-issue="' + esc(it.id) +
+            '" title="自动拉取该单日志并做根因分析">🔬 根因</button></div>';
       }).join('');
       var more = m.open_bc_count > (m.top_list || []).length
         ? '<div class="pa-bc-item m">另有 ' + (m.open_bc_count - m.top_list.length) + ' 条未解决 BC，可在对话中追问完整清单</div>' : '';
@@ -390,9 +397,190 @@
     return bubble;
   }
 
+  /* ---------------- CR 单根因分析（RCA） ---------------- */
+  function extractIssueKeys(t) {
+    var re = /\b([A-Z][A-Z0-9]{1,15}-\d{1,7})\b/gi, out = [], seen = {}, m;
+    while ((m = re.exec(t || ''))) {
+      var k = m[1].toUpperCase();
+      if (!seen[k]) { seen[k] = 1; out.push(k); }
+    }
+    return out;
+  }
+  function detectRca(q) {
+    var keys = extractIssueKeys(q);
+    if (!keys.length) return null;
+    if (/根因|日志|为什么|崩溃|重启|卡死|闪退|黑屏|无响应|不响应|死机|复位|重置|分析|rca|crash|reboot|root ?cause|tombstone|trace|异常|起不来|打不开/i.test(q)) return keys[0];
+    var stripped = q.toUpperCase();
+    keys.forEach(function (k) { stripped = stripped.split(k).join(''); });
+    stripped = stripped.replace(/[^A-Z一-龥]/g, '');
+    return stripped.length <= 4 ? keys[0] : null;
+  }
+  function sevClass(s) {
+    s = String(s || '').toLowerCase();
+    if (/block|致命/.test(s)) return 'blocker';
+    if (/crit|严重/.test(s)) return 'critical';
+    if (/major/.test(s)) return 'major';
+    if (/minor/.test(s)) return 'minor';
+    return '';
+  }
+  function ensureRcaOnly(issue) {
+    state.rcaOnly = true;
+    page.classList.add('ready');
+    result.classList.add('show', 'rca-only');
+    var t = document.querySelector('.pa-chat h3');
+    if (t) t.innerHTML = '🔬 CR 根因分析 · ' + esc(issue);
+    msgs.innerHTML = '';
+  }
+  function renderRcaMeta(m) {
+    var h = '<div class="pa-rca-meta-title">🔌 日志证据 · ' +
+      (m.url ? '<a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.issue_key) + '</a>' : esc(m.issue_key));
+    if (m.severity) h += ' <span class="sev-tag ' + sevClass(m.severity) + '">' + esc(m.severity) + '</span>';
+    if (m.status) h += ' <span class="pa-rca-status-tag">' + esc(m.status) + '</span>';
+    h += '</div>';
+    if (m.summary) h += '<div class="pa-rca-line"><b>标题</b>' + esc(m.summary) + '</div>';
+    if (m.components || m.assignee) {
+      h += '<div class="pa-rca-line"><b>模块</b>' + esc(m.components || '–') +
+        '　<b>经办</b>' + esc(m.assignee || '–') + '</div>';
+    }
+    if (m.boot_reasons && m.boot_reasons.length) {
+      h += '<div class="pa-rca-sec"><span class="pa-rca-lbl">启动/重启原因</span>' +
+        m.boot_reasons.map(function (b) {
+          var hot = /system_update|panic|watchdog|crash|reboot|shutdown/i.test(b);
+          return '<span class="pa-rca-chip' + (hot ? ' hot' : '') + '">' + esc(b) + '</span>';
+        }).join('') + '</div>';
+    }
+    var rm = m.report_meta || {}, rmLabel = {
+      'Summary': '现象', 'Description': '描述', 'Time the issue occurred': '发生时间',
+      'How often has this happened?': '频率', 'Priority': '优先级'
+    };
+    var rmHtml = Object.keys(rmLabel).filter(function (k) { return rm[k]; })
+      .map(function (k) { return '<span class="pa-rca-chip">' + esc(rmLabel[k]) + '：' + esc(rm[k]) + '</span>'; }).join('');
+    if (rmHtml) h += '<div class="pa-rca-sec"><span class="pa-rca-lbl">用户报告</span>' + rmHtml + '</div>';
+    var c = m.counts || {}, nf = (m.files || []).length;
+    var stats = ['解析文件 ' + nf, 'Java 崩溃 ' + (c.java_crash || 0), 'Native ' + (c.native_crash || 0),
+      'ANR ' + (c.anr || 0), '启动锚点 ' + (c.startup_points || 0),
+      '数据事件 ' + (c.data_events || 0), '数据库错误 ' + (c.db_errors || 0)];
+    h += '<div class="pa-rca-sec"><span class="pa-rca-lbl">证据统计</span>' +
+      stats.map(function (x) {
+        var bad = /(崩溃|错误|ANR) [1-9]/.test(x);
+        return '<span class="pa-rca-chip' + (bad ? ' warn' : '') + '">' + esc(x) + '</span>';
+      }).join('') + '</div>';
+    if (m.downloaded && m.downloaded.length) {
+      h += '<div class="pa-rca-sec"><span class="pa-rca-lbl">日志附件</span>' +
+        m.downloaded.map(function (f) { return '<span class="pa-rca-chip file">' + esc(f) + '</span>'; }).join('') + '</div>';
+    }
+    if (m.download_errors && m.download_errors.length) {
+      h += '<div class="pa-rca-warn">' + m.download_errors.map(esc).join('<br>') + '</div>';
+    }
+    if (m.cached) h += '<div class="pa-rca-cache">已复用缓存证据（' + esc(m.fetched_at || '') + '），多轮追问无需重新下载</div>';
+    return h;
+  }
+  function runRCA(issue, question) {
+    if (state.rcaBusy) return;
+    issue = issue.toUpperCase();
+    if (state.rcaKey !== issue) { state.rcaKey = issue; state.rcaHistory = []; }
+    if (!state.snap) ensureRcaOnly(issue);
+
+    appendMessage('user', question, false);
+    state.rcaHistory.push({ role: 'user', content: question });
+
+    var empty = msgs.querySelector('.pa-empty-tip');
+    if (empty) empty.remove();
+    var wrap = document.createElement('div');
+    wrap.className = 'pa-msg bot';
+    var bubble = document.createElement('div');
+    bubble.className = 'pa-bubble pa-rca-bubble loading';
+    var status = document.createElement('div');
+    status.className = 'pa-rca-status';
+    status.textContent = '⏳ 正在获取 CR 单信息…';
+    var meta = document.createElement('div');
+    meta.className = 'pa-rca-meta';
+    meta.style.display = 'none';
+    var body = document.createElement('div');
+    body.className = 'pa-rca-body';
+    bubble.appendChild(status); bubble.appendChild(meta); bubble.appendChild(body);
+    wrap.appendChild(bubble);
+    var cp = document.createElement('button');
+    cp.className = 'pa-copy'; cp.textContent = '复制分析';
+    var acc = '';
+    cp.addEventListener('click', function () { copyText(acc || body.innerText, '已复制根因分析'); });
+    wrap.appendChild(cp);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    state.rcaBusy = true; sendBtn.disabled = true;
+    var metaDone = false;
+    fetch('/api/cr/rca/analyze', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issue_key: issue, question: question, history: state.rcaHistory.slice(0, -1) })
+    }).then(function (resp) {
+      if (!resp.ok || !resp.body) return resp.json().then(function (j) { throw new Error(j.error || '请求失败'); });
+      var reader = resp.body.getReader(), dec = new TextDecoder(), buf = '';
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) { finish(); return; }
+          buf += dec.decode(r.value, { stream: true });
+          var idx;
+          while ((idx = buf.indexOf('\n\n')) >= 0) {
+            var frame = buf.slice(0, idx); buf = buf.slice(idx + 2);
+            var line = frame.split('\n').filter(function (l) { return l.indexOf('data:') === 0; })[0];
+            if (!line) continue;
+            var obj;
+            try { obj = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
+            if (obj.type === 'progress') {
+              status.textContent = '⏳ ' + (obj.message || '处理中…');
+            } else if (obj.type === 'meta') {
+              metaDone = true;
+              meta.innerHTML = renderRcaMeta(obj);
+              meta.style.display = '';
+              bubble.classList.remove('loading');
+              status.textContent = '证据提取完成，AI 根因分析中…';
+              msgs.scrollTop = msgs.scrollHeight;
+            } else if (obj.type === 'token') {
+              if (status.parentNode) status.style.display = 'none';
+              acc += obj.content;
+              body.innerHTML = renderMD(acc);
+              msgs.scrollTop = msgs.scrollHeight;
+            } else if (obj.type === 'error') {
+              bubble.classList.remove('loading');
+              meta.style.display = metaDone ? '' : 'none';
+              status.style.display = '';
+              status.className = 'pa-rca-error';
+              status.textContent = '⚠️ ' + (obj.message || '分析失败');
+              finish(true);
+              return;
+            } else if (obj.type === 'done') { finish(); return; }
+          }
+          return pump();
+        });
+      }
+      function finish(noSave) {
+        if (status.parentNode && acc) status.style.display = 'none';
+        bubble.classList.remove('loading');
+        if (!acc && !metaDone) { status.className = 'pa-rca-error'; status.textContent = '（未返回内容）'; }
+        if (acc && !noSave) state.rcaHistory.push({ role: 'assistant', content: acc });
+        state.rcaBusy = false; sendBtn.disabled = false;
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+      return pump();
+    }).catch(function (e) {
+      bubble.classList.remove('loading');
+      status.className = 'pa-rca-error';
+      status.textContent = '⚠️ ' + (e.message || '请求失败');
+      state.rcaBusy = false; sendBtn.disabled = false;
+    });
+  }
+
   function sendQuestion(q) {
     var question = (q != null ? q : chatInput.value).trim();
-    if (!question || !state.key) { if (!state.key) showError('请先生成项目状态'); return; }
+    if (!question) return;
+    var rcaKey = detectRca(question);
+    if (rcaKey) { if (!q) chatInput.value = ''; runRCA(rcaKey, question); return; }
+    if (!state.key) {
+      showError('请先生成项目状态，或直接输入 CR 单号（如 EKSANTOS-9047）做根因分析');
+      return;
+    }
     if (!q) chatInput.value = '';
     appendMessage('user', question, false);
     state.history.push({ role: 'user', content: question });
@@ -472,6 +660,13 @@
   });
   $('paModFilter').addEventListener('input', renderModules);
   $('paModStatus').addEventListener('change', renderModules);
+  modTable.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.pa-rca-btn') : null;
+    if (b) {
+      e.preventDefault(); e.stopPropagation();
+      runRCA(b.getAttribute('data-issue'), '请分析该 CR 的根因（自动拉取描述、评论与日志附件，给出结论、证据、责任模块和修复建议）。');
+    }
+  });
   Array.prototype.forEach.call(document.querySelectorAll('#paRangeToggle button'), function (b) {
     b.addEventListener('click', function () {
       Array.prototype.forEach.call(document.querySelectorAll('#paRangeToggle button'), function (x) { x.classList.remove('on'); });

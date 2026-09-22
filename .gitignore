@@ -39,3 +39,6 @@ data/edart_config.json
 
 # 项目状态助手快照缓存（含内部 CR 数据，不入库）
 data/project_cache/
+
+# CR 根因分析日志证据缓存
+data/rca_cache/

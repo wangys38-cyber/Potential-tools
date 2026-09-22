@@ -11,6 +11,8 @@ import json
 import time
 import hashlib
 import logging
+import re
+import queue
 import threading
 import traceback
 
@@ -20,6 +22,7 @@ from auth import login_required_or_guest
 from routes.common import background_tasks, save_task_meta
 from services import project_assistant as pa
 from services import jira_client as jc
+from services import cr_rca as rca
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +115,104 @@ def create_project_blueprint():
         snap['age_hours'] = pa.snapshot_age_hours(snap)
         return jsonify({'status': 'success', 'data': snap})
 
+    # ---------------- CR 单根因分析（RCA） ----------------
+    RCA_INTENT = re.compile(
+        r'根因|日志|为什么|崩溃|重启|卡死|闪退|黑屏|无响应|不响应|死机|复位|重置|'
+        r'分析|rca|crash|reboot|root ?cause|tombstone|trace|异常|起不来|打不开', re.I)
+
+    def _bundle_meta(b):
+        i = b['issue']
+        ev = b.get('evidence') or {}
+        return {
+            'type': 'meta', 'issue_key': i.get('key'), 'summary': i.get('summary'),
+            'status': i.get('status'), 'severity': i.get('severity'),
+            'components': i.get('components'), 'assignee': i.get('assignee'),
+            'url': i.get('url'), 'counts': ev.get('counts', {}),
+            'boot_reasons': ev.get('boot_reasons', []),
+            'report_meta': ev.get('report_meta', {}),
+            'files': (ev.get('files') or [])[:50],
+            'downloaded': [a.get('filename') for a in b.get('log_attachments', [])],
+            'download_errors': b.get('download_errors', []),
+            'embedded_logs': b.get('embedded_logs', []),
+            'downloaded_kb': round(b.get('downloaded_bytes', 0) / 1024),
+            'fetched_at': b.get('fetched_at'), 'cached': bool(b.get('_cached')),
+        }
+
+    def _rca_sse_response(issue_key, question, history, force=False):
+        def sse(obj):
+            return f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+
+        def generate():
+            q = queue.Queue()
+
+            def work():
+                try:
+                    def onp(stage, msg):
+                        q.put(('progress', stage, msg))
+                    bundle = rca.fetch_issue_bundle(
+                        issue_key, on_progress=onp, force=bool(force))
+                    q.put(('bundle', bundle))
+                except Exception as e:
+                    logger.error('RCA 拉取失败: %s', traceback.format_exc())
+                    q.put(('error', f'{type(e).__name__}: {e}'))
+
+            threading.Thread(target=work, daemon=True).start()
+            bundle = None
+            while True:
+                item = q.get()
+                if item[0] == 'progress':
+                    yield sse({'type': 'progress', 'stage': item[1], 'message': item[2]})
+                elif item[0] == 'error':
+                    yield sse({'type': 'error', 'message': item[1]})
+                    return
+                else:
+                    bundle = item[1]
+                    break
+            yield sse(_bundle_meta(bundle))
+            got = False
+            try:
+                for text in rca.analyze_stream(bundle, history, question):
+                    if text:
+                        got = True
+                        yield sse({'type': 'token', 'content': text})
+                if not got:
+                    yield sse({'type': 'token',
+                               'content': '（模型未返回内容，请检查 AI 配置或稍后重试）'})
+                yield sse({'type': 'done', 'issue_key': bundle['issue'].get('key')})
+            except Exception as e:
+                logger.error('RCA 分析失败: %s', traceback.format_exc())
+                yield sse({'type': 'error', 'message': f'{type(e).__name__}: {e}'})
+
+        return Response(generate(), mimetype='text/event-stream',
+                        headers={'Cache-Control': 'no-cache, no-transform',
+                                 'X-Accel-Buffering': 'no',
+                                 'Connection': 'keep-alive'})
+
+    @bp.route('/api/cr/rca/analyze', methods=['POST'])
+    @login_required_or_guest
+    def cr_rca_analyze():
+        data = request.get_json(silent=True) or {}
+        question = (data.get('question') or '').strip()
+        history = data.get('history') or []
+        force = bool(data.get('force'))
+        raw_key = (data.get('issue_key') or '').strip()
+        keys = rca.extract_issue_keys(raw_key) or rca.extract_issue_keys(question)
+        if not keys:
+            return jsonify({'status': 'error',
+                            'error': '请提供有效的 CR 单号，如 EKSANTOS-9047'}), 400
+        return _rca_sse_response(keys[0], question, history, force)
+
+    @bp.route('/api/cr/rca/bundle/<path:issue_key>', methods=['GET'])
+    @login_required_or_guest
+    def cr_rca_bundle(issue_key):
+        b = rca.load_cached_bundle(issue_key)
+        if not b:
+            return jsonify({'status': 'error',
+                            'error': '该单尚未分析，暂无缓存证据'}), 404
+        meta = _bundle_meta(b)
+        meta['status_code'] = 'success'
+        return jsonify({'status': 'success', 'data': meta})
+
     # ---------------- 多轮对话（SSE） ----------------
     @bp.route('/api/project/chat', methods=['POST'])
     @login_required_or_guest
@@ -120,6 +221,9 @@ def create_project_blueprint():
         key = (data.get('project_key') or '').strip()
         question = (data.get('question') or '').strip()
         history = data.get('history') or []
+        rca_keys = rca.extract_issue_keys(question or '')
+        if rca_keys and RCA_INTENT.search(question or ''):
+            return _rca_sse_response(rca_keys[0], question, history)
         if not key:
             return jsonify({'status': 'error', 'error': '缺少 project_key'}), 400
         if not question:

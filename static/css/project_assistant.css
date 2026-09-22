@@ -364,3 +364,77 @@ body[data-theme="dark"] .pa-page {
   .pa-grid { grid-template-columns: 1fr; }
   .pa-title { font-size: 25px; }
 }
+
+/* ===== CR 根因分析 RCA ===== */
+.pa-rca-btn {
+  display: flex; width: max-content; margin: 7px 0 1px auto;
+  align-items: center; gap: 4px; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; color: var(--pa-accent);
+  background: rgba(10,132,255,.10); border: 1px solid rgba(10,132,255,.24);
+  padding: 3px 11px; border-radius: 999px; transition: all .18s ease;
+}
+.pa-rca-btn:hover { background: rgba(10,132,255,.18); transform: translateY(-1px); }
+.pa-rca-btn:active { transform: translateY(0); }
+
+.pa-rca-bubble { display: flex; flex-direction: column; }
+.pa-rca-status { color: var(--pa-text-2); font-size: 13px; line-height: 1.5; }
+.pa-rca-bubble.loading .pa-rca-status { animation: paPulse 1.3s ease-in-out infinite; }
+@keyframes paPulse { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+.pa-rca-error { color: var(--pa-red); font-weight: 600; }
+
+.pa-rca-meta {
+  margin: 4px 0 6px; padding: 12px 14px; border-radius: 15px;
+  background: var(--pa-glass); border: 1px solid var(--pa-stroke);
+  box-shadow: var(--pa-shadow-sm); font-size: 12.5px; line-height: 1.5;
+}
+.pa-rca-meta-title { font-weight: 700; font-size: 13px; margin-bottom: 5px; }
+.pa-rca-meta-title a { color: var(--pa-accent); text-decoration: none; margin-right: 6px; }
+.pa-rca-meta-title a:hover { text-decoration: underline; }
+.pa-rca-status-tag {
+  font-weight: 600; font-size: 10.5px; padding: 1px 7px; border-radius: 6px;
+  background: rgba(52,199,89,.16); color: #1a7f37; margin-left: 4px;
+}
+.pa-rca-line { color: var(--pa-text-2); margin: 3px 0; }
+.pa-rca-line b { color: var(--pa-text-3); font-weight: 600; margin: 0 6px 0 2px; }
+.pa-rca-sec { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 9px; }
+.pa-rca-lbl { flex: 0 0 auto; width: 66px; font-size: 11px; font-weight: 700; color: var(--pa-text-3); }
+.pa-rca-chip {
+  display: inline-flex; align-items: center; font-size: 11px; line-height: 1.45;
+  padding: 2px 9px; border-radius: 999px; word-break: break-word;
+  background: rgba(120,120,128,.12); color: var(--pa-text-2);
+  border: 1px solid rgba(120,120,128,.16);
+}
+.pa-rca-chip.hot {
+  background: rgba(255,59,48,.12); color: #d70015;
+  border-color: rgba(255,59,48,.32); font-weight: 700;
+}
+.pa-rca-chip.warn {
+  background: rgba(255,149,0,.14); color: #c93400;
+  border-color: rgba(255,149,0,.32); font-weight: 600;
+}
+.pa-rca-chip.file {
+  background: rgba(10,132,255,.08); color: var(--pa-accent);
+  border-color: rgba(10,132,255,.2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px;
+}
+.pa-rca-warn {
+  margin-top: 9px; padding: 8px 10px; border-radius: 11px;
+  background: rgba(255,149,0,.1); color: #c93400; font-size: 11.5px;
+}
+.pa-rca-cache { margin-top: 9px; font-size: 11px; color: var(--pa-text-3); }
+.pa-rca-body { margin-top: 9px; }
+
+/* 无项目快照、仅做单 CR 根因分析时，隐藏概览/趋势/模块表，对话居中 */
+.pa-result.rca-only .pa-head,
+.pa-result.rca-only .pa-stat-grid,
+.pa-result.rca-only .pa-grid > div:first-child > .pa-card:first-child,
+.pa-result.rca-only .pa-grid > div:last-child { display: none; }
+.pa-result.rca-only .pa-grid { display: block; }
+.pa-result.rca-only .pa-grid > div:first-child { max-width: 880px; margin: 0 auto; }
+
+:root[data-theme="dark"] .pa-rca-chip.hot,
+body[data-theme="dark"] .pa-rca-chip.hot { color: #ff6b61; }
+:root[data-theme="dark"] .pa-rca-chip.warn,
+body[data-theme="dark"] .pa-rca-chip.warn { color: #ffb340; }
+:root[data-theme="dark"] .pa-rca-status-tag,
+body[data-theme="dark"] .pa-rca-status-tag { background: rgba(52,199,89,.22); color: #8adfa0; }

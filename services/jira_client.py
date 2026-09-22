@@ -18,6 +18,7 @@ eDart / Jira REST 数据源客户端
 """
 
 import os
+import io
 import json
 import time
 import base64
@@ -422,6 +423,64 @@ class JiraClient:
             # 没有任何过滤条件时给一个安全兜底（按更新时间倒序）
             return "ORDER BY updated DESC"
         return " AND ".join(conds) + " ORDER BY updated DESC"
+
+    # ---------- 单 issue 详情 / 附件下载（CR 根因分析用） ----------
+    DEFAULT_ISSUE_FIELDS = (
+        'summary,status,components,assignee,reporter,priority,issuetype,created,updated,'
+        'resolutiondate,resolution,fixVersions,versions,labels,description,attachment,comment'
+    )
+
+    def get_issue(self, issue_key, fields=None, expand=None):
+        """获取单个 issue 详情（含 description / comment / attachment）。"""
+        params = {}
+        if fields:
+            params['fields'] = fields if isinstance(fields, str) else ','.join(fields)
+        if expand:
+            params['expand'] = expand if isinstance(expand, str) else ','.join(expand)
+        return self._get(f'{_API}/issue/{issue_key}', params=params or None)
+
+    def download_attachment(self, url, max_bytes=30 * 1024 * 1024):
+        """流式下载附件二进制，复用认证 / 限流 / 重试；超过 max_bytes 抛错。"""
+        if not url:
+            raise JiraError('附件地址为空')
+        last = ''
+        for attempt in range(self.max_retries + 1):
+            self._throttle()
+            try:
+                resp = self.session.get(url, timeout=max(self.timeout, 90),
+                                        allow_redirects=True, stream=True)
+            except requests.RequestException as e:
+                raise JiraError(f'附件下载失败：{type(e).__name__}: {e}')
+            code = resp.status_code
+            if code in (401, 403):
+                raise JiraError(f'无权下载附件（HTTP {code}），请确认 Token 对该单有访问权限')
+            if code == 404:
+                raise JiraError('附件不存在（HTTP 404），可能已被删除')
+            if code == 429 or code >= 500:
+                last = (resp.text or '')[:200]
+                resp.close()
+                if attempt < self.max_retries:
+                    time.sleep(self._retry_after(resp, attempt))
+                    continue
+                raise JiraError(f'附件下载失败 HTTP {code}：{last}')
+            if code >= 400:
+                resp.close()
+                raise JiraError(f'附件下载失败 HTTP {code}')
+            buf = io.BytesIO()
+            total = 0
+            for chunk in resp.iter_content(1024 * 256):
+                if not chunk:
+                    continue
+                total += len(chunk)
+                if total > max_bytes:
+                    resp.close()
+                    raise JiraError(
+                        f'附件超过 {max_bytes // 1024 // 1024}MB 上限，已跳过该附件')
+                buf.write(chunk)
+            resp.close()
+            self._last_request_ts = time.monotonic()
+            return buf.getvalue()
+        raise JiraError(f'附件下载重试耗尽：{last}')
 
     # ---------- 转 CSV 行 ----------
     def list_projects(self, limit=500):
