@@ -238,7 +238,7 @@
 
     // 模块折叠：默认只显示前4个，其余折叠
     var allRows = modTable.querySelectorAll('.pa-mod-row');
-    var MOD_LIMIT = 9;
+    var MOD_LIMIT = 8;
     var oldToggle = modTable.querySelector('.pa-mod-toggle');
     if (oldToggle) oldToggle.remove();
     modTable.classList.remove('pa-mod-all');
