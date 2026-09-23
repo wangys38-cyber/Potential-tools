@@ -345,6 +345,31 @@ def _is_ios_module(module):
     return ('ios' in m) or ('ios_app' in m) or ('apps - ios' in m) or ('apps-ios' in m)
 
 
+# 非功能性问题关键词（本地化/文案/UI/文档/测试/流程等）
+_NON_FUNCTIONAL_KEYWORDS = (
+    '本地化', 'localize', 'localization', '翻译', 'translation', 'translate',
+    '文案', 'copy', 'text', 'string', '字串',
+    'ui', '界面', '显示', 'display', '颜色', 'color', 'colour', '字体', 'font',
+    '布局', 'layout', '样式', 'style', '主题', 'theme', '皮肤', 'skin',
+    '文档', 'doc', 'document', '帮助', 'help', 'faq', '指南', 'guide', '教程', 'tutorial',
+    '说明', 'manual', 'release note', '更新日志', 'changelog',
+    '测试', 'test', '用例', 'case', 'mock', '桩', 'stub', '自动化', 'automat',
+    '流程', 'process', '规范', 'standard', '标准', '评审', 'review', '审计', 'audit',
+    '会议', 'meeting', '培训', 'training', '支持', 'support',
+    '版本', 'version', '发布', 'release', '打包', 'build', '编译', 'compile',
+    '权限', 'permission', '证书', 'certificate', '签名', 'sign', '密钥', 'key',
+)
+
+
+def _is_functional_issue(title, module=''):
+    """判断是否为功能性问题（排除本地化/文案/UI/文档/测试等非功能性问题）"""
+    text = ((title or '') + ' ' + (module or '')).lower()
+    for kw in _NON_FUNCTIONAL_KEYWORDS:
+        if kw in text:
+            return False
+    return True
+
+
 def generate_report_markdown(snap):
     """直接在 Python 层面生成放行报告/日报 Markdown，完全绕过 AI，彻底解决输出截断问题。"""
     lines = []
@@ -354,7 +379,7 @@ def generate_report_markdown(snap):
     # ===== 筛选 New 状态 BC =====
     bc = snap.get('unresolved_bc', []) or []
     new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
-    new_blockers = [r for r in new_bc if r.get('sev') == 'blocker']
+    new_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
     new_criticals = [r for r in new_bc if r.get('sev') == 'critical']
 
     # ===== 1. 总结性文字 =====
@@ -362,7 +387,7 @@ def generate_report_markdown(snap):
     fail_count = st.get('fail', 0)
     summary_parts = []
     if new_blockers:
-        summary_parts.append(f"当前存在 {len(new_blockers)} 个用户无法忍受、影响正常使用的 Blocker 级新增问题，必须优先解决")
+        summary_parts.append(f"当前存在 {len(new_blockers)} 个用户无法忍受、影响正常使用的功能性 Blocker 级新增问题，必须优先解决")
     if new_criticals:
         summary_parts.append(f"{len(new_criticals)} 个影响过点的 Critical 级新增问题需重点关注")
     if not new_blockers and not new_criticals:
