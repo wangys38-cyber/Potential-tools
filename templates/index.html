@@ -40,8 +40,7 @@
       @layer utilities {
         .animate-float { animation: floatUp 4s ease-in-out infinite; }
         .glass { background: rgba(26,26,30,0.7); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
-        .hover-left { transform: translateX(-20px) rotate(-8deg) !important; }
-        .hover-right { transform: translateX(20px) rotate(8deg) !important; }
+
       }
       @keyframes floatUp {
         0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
@@ -423,12 +422,12 @@
     });
 
     // 扇形排列 Tailwind 类名
-    var fanClasses = [
-      'translate-y-9 rotate-[-12deg]',
-      'translate-y-3.5 rotate-[-6deg] -ml-4',
-      '-translate-y-6 scale-110 z-50 w-[190px] h-[260px] -ml-4',
-      'translate-y-3.5 rotate-6 -ml-4',
-      'translate-y-9 rotate-12 -ml-4'
+    var fanTransforms = [
+      'translateY(36px) rotate(-12deg)',
+      'translateY(14px) rotate(-6deg)',
+      'translateY(-24px) scale(1.15)',
+      'translateY(14px) rotate(6deg)',
+      'translateY(36px) rotate(12deg)'
     ];
     var isCenter = [false, false, true, false, false];
 
@@ -437,12 +436,13 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative flex flex-col items-center justify-end pb-6 rounded-3xl cursor-pointer transition-all duration-300 no-underline overflow-visible w-[170px] h-[230px] ' +
+      card.className = 'relative flex flex-col items-center justify-end pb-6 rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-visible w-[170px] h-[230px] ' +
         'shadow-[0_4px_8px_rgba(0,0,0,0.1),0_12px_32px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] ' +
-        'hover:!translate-y-[-16px] hover:!scale-108 hover:!z-[100] hover:shadow-[0_8px_16px_rgba(0,0,0,0.15),0_24px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.4)] ' +
-        fanClasses[idx % 5];
+        (center ? 'w-[190px] h-[260px] -ml-4' : (idx > 0 ? '-ml-4' : ''));
       card.href = t.url;
       card.style.background = MAIN_COLORS[idx % MAIN_COLORS.length];
+      card.style.transform = fanTransforms[idx % 5];
+      card.style.willChange = 'transform';
       var animalTop = center ? 'top-11' : 'top-9';
       var animalSize = center ? 'w-[100px] h-[100px]' : 'w-[90px] h-[90px]';
       var nameMargin = center ? 'mt-[88px] text-base' : 'mt-[76px] text-[15px]';
@@ -476,18 +476,37 @@
     var wrap = document.getElementById('heroCards');
     if (!wrap) return;
     var cards = wrap.querySelectorAll('a');
+
+    function resetAll() {
+      cards.forEach(function(c, i) {
+        c.style.transform = fanTransforms[i % 5];
+        c.style.zIndex = '';
+        c.style.boxShadow = '';
+      });
+    }
+
     cards.forEach(function(card, idx) {
       card.addEventListener('mouseenter', function() {
         cards.forEach(function(c, i) {
-          c.classList.remove('hover-left', 'hover-right');
-          if (i < idx) c.classList.add('hover-left');
-          else if (i > idx) c.classList.add('hover-right');
+          if (i === idx) {
+            // 悬停卡片：抬起+放大+最高层级+加深阴影
+            c.style.transform = 'translateY(-18px) scale(1.08)';
+            c.style.zIndex = '100';
+            c.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15), 0 28px 64px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)';
+          } else if (i < idx) {
+            // 左侧邻位：在原始扇形基础上向左让位
+            c.style.transform = fanTransforms[i % 5] + ' translateX(-28px)';
+            c.style.zIndex = '10';
+          } else {
+            // 右侧邻位：在原始扇形基础上向右让位
+            c.style.transform = fanTransforms[i % 5] + ' translateX(28px)';
+            c.style.zIndex = '10';
+          }
         });
       });
     });
-    wrap.addEventListener('mouseleave', function() {
-      cards.forEach(function(c) { c.classList.remove('hover-left', 'hover-right'); });
-    });
+
+    wrap.addEventListener('mouseleave', resetAll);
   }
 
   if (document.readyState === 'loading') {
