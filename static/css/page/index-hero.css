@@ -940,3 +940,101 @@ body:has(#hero-section) .nav-category {
 body:has(#hero-section) .user-info {
   display: none !important;
 }
+
+/* ===== v11 C位放大+扇形+小标签 ===== */
+
+/* 扇形排列：中间C位最高最大 */
+.hero-card:nth-child(1) { transform: translateY(36px) rotate(-12deg) !important; }
+.hero-card:nth-child(2) { transform: translateY(14px) rotate(-6deg) !important; }
+.hero-card:nth-child(3) {
+  transform: translateY(-24px) scale(1.15) !important;
+  z-index: 50 !important;
+  width: 190px !important;
+  height: 260px !important;
+}
+.hero-card:nth-child(4) { transform: translateY(14px) rotate(6deg) !important; }
+.hero-card:nth-child(5) { transform: translateY(36px) rotate(12deg) !important; }
+
+/* 悬停覆盖 */
+.hero-card.hover-active {
+  transform: translateY(-16px) scale(1.08) !important;
+  z-index: 100 !important;
+}
+.hero-card:nth-child(3).hover-active {
+  transform: translateY(-28px) scale(1.2) !important;
+}
+.hero-card.hover-left {
+  transform: translateX(-20px) rotate(-8deg) !important;
+}
+.hero-card.hover-right {
+  transform: translateX(20px) rotate(8deg) !important;
+}
+
+/* 小标签 */
+.hc-tag {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  z-index: 3;
+  white-space: nowrap;
+}
+
+/* 拟物高光 */
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 100%);
+  border-radius: 24px 24px 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-card {
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.1),
+    0 12px 32px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+.hero-card.hover-active {
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.15),
+    0 24px 60px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
+}
+
+/* 动物位置调整（给小标签留空间） */
+.hero-card .hc-animal {
+  top: 36px !important;
+}
+.hero-card:nth-child(3) .hc-animal {
+  top: 44px !important;
+  width: 100px !important;
+  height: 100px !important;
+}
+.hero-card .hc-name {
+  margin-top: 76px !important;
+}
+.hero-card:nth-child(3) .hc-name {
+  margin-top: 88px !important;
+  font-size: 16px !important;
+}
+
+/* 容器底部留更多空间 */
+.hero-cards {
+  padding-bottom: 60px !important;
+  padding-top: 20px !important;
+}
