@@ -529,6 +529,8 @@
   function renderInlineTrendCharts(container) {
     var charts = container.querySelectorAll('.pa-inline-trend');
     if (!charts.length) return;
+    console.log('[TrendChart] rendering', charts.length, 'charts, snap:', !!(state.snap), 'daily:', (state.snap && state.snap.daily_stats) ? state.snap.daily_stats.length : 0);
+    charts.forEach(function(el) { if (!el._rendered) { el._rendered = true; el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载中...</div>'; } });
     // 从 state.snap 获取趋势数据
     var daily = (state.snap && state.snap.daily_stats) ? state.snap.daily_stats : [];
     if (!daily || daily.length < 2) {
@@ -844,7 +846,7 @@
             if (!line) continue;
             var obj;
             try { obj = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
-            if (obj.type === 'token') { acc += obj.content; botBubble.classList.remove('loading'); botBubble.innerHTML = renderMD(acc); msgs.scrollTop = msgs.scrollHeight; }
+            if (obj.type === 'token') { acc += obj.content; botBubble.classList.remove('loading'); botBubble.innerHTML = renderMD(acc); msgs.scrollTop = msgs.scrollHeight; renderInlineTrendCharts(botBubble); }
             else if (obj.type === 'error') { botBubble.classList.remove('loading'); botBubble.textContent = '⚠️ ' + (obj.message || '生成失败'); }
             else if (obj.type === 'done') { finish(); return; }
           }
