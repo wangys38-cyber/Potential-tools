@@ -1043,7 +1043,6 @@ body:has(#hero-section) .user-info {
 /* 现在卡片全部用Tailwind类名+JS内联样式，旧CSS规则全部禁用 */
 #heroCards a {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transform: none !important; /* JS会设置内联transform覆盖这个 */
   width: auto !important;
   height: auto !important;
   margin-left: 0 !important;
