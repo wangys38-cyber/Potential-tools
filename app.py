@@ -15,6 +15,8 @@ from jinja2 import BytecodeCache
 import auth
 import db
 import rate_limiter
+import ttl_cache
+import async_tasks
 import request_logger
 import security
 import performance_middleware
@@ -79,6 +81,7 @@ _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
 APP_VERSION = '9.0.0-dev'
+_app_start_time = __import__('time').time()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -481,8 +484,59 @@ def auth_logout():
 # ==================== 健康检查（供 Railway/K8s 使用） ====================
 @app.route('/health')
 def health_check():
-    """健康检查端点 — 无需认证，返回 200"""
-    return jsonify({'status': 'ok', 'service': 'potential-tools'}), 200
+    """健康检查端点 — 无需认证，返回应用状态详情"""
+    import os, time, psutil
+    try:
+        db_status = 'ok'
+        try:
+            import db
+            conn = db.get_db()
+            conn.execute('SELECT 1').fetchone()
+        except Exception:
+            db_status = 'error'
+        process = psutil.Process(os.getpid())
+        mem_info = process.memory_info()
+        return jsonify({
+            'status': 'ok',
+            'service': 'potential-tools',
+            'version': APP_VERSION,
+            'uptime_seconds': int(time.time() - _app_start_time),
+            'database': db_status,
+            'memory_mb': round(mem_info.rss / 1024 / 1024, 1),
+            'cpu_percent': process.cpu_percent(interval=0.1),
+            'cache_entries': len(ttl_cache._cache) if 'ttl_cache' in dir() else 0,
+            'timestamp': int(time.time())
+        }), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'service': 'potential-tools', 'error': str(e)}), 500
+
+
+# ==================== 异步任务 API ====================
+@app.route('/api/async/status/<task_id>')
+def async_task_status(task_id):
+    """查询异步任务状态"""
+    status = async_tasks.get_task_status(task_id)
+    if not status:
+        return jsonify({'error': '任务不存在'}), 404
+    return jsonify(status)
+
+
+@app.route('/api/async/result/<task_id>')
+def async_task_result(task_id):
+    """获取异步任务结果（支持等待 timeout 秒）"""
+    timeout = float(request.args.get('timeout', 0))
+    try:
+        result = async_tasks.get_task_result(task_id, timeout=timeout)
+        status = async_tasks.get_task_status(task_id)
+        return jsonify({'status': status['status'] if status else 'unknown', 'result': result})
+    except Exception as e:
+        return jsonify({'status': 'failed', 'error': str(e)}), 500
+
+
+@app.route('/api/async/stats')
+def async_task_stats():
+    """获取异步任务队列统计"""
+    return jsonify(async_tasks.get_queue_stats())
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
@@ -723,6 +777,8 @@ except Exception as e:
 # ==================== 应用入口 ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    async_tasks.init_workers(count=4)
+    logger.info(f"异步任务框架已启动，4个工作线程")
     logger.info(f"启动 Potential-tools v{APP_VERSION}，端口: {port}")
 
     # 后台预热知识库模型（embedding + reranker），避免首次问答长时间加载超时
