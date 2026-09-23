@@ -339,8 +339,113 @@ def _chunk_text(chunk):
     return getattr(chunk, 'content', None) or str(chunk)
 
 
+def _is_ios_module(module):
+    """判断是否为 iOS APP 模块"""
+    m = (module or '').lower()
+    return ('ios' in m) or ('ios_app' in m) or ('apps - ios' in m) or ('apps-ios' in m)
+
+
+def generate_report_markdown(snap):
+    """直接在 Python 层面生成放行报告/日报 Markdown，完全绕过 AI，彻底解决输出截断问题。"""
+    lines = []
+    st = snap.get('stats', {}) or {}
+    summ = snap.get('summary', {}) or {}
+
+    # ===== 1. 趋势结论 =====
+    daily = snap.get('daily_stats', []) or []
+    recent = daily[-14:] if len(daily) >= 14 else daily
+    if recent:
+        total_new = sum(d.get('new_count', 0) for d in recent)
+        total_resolved = sum(d.get('resolved_count', 0) for d in recent)
+        bc_unresolved = st.get('bc_unresolved', 0)
+        if total_new > total_resolved:
+            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，BC净增{total_new - total_resolved}个，风险上升。"
+        elif total_new < total_resolved:
+            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，BC净减{total_resolved - total_new}个，风险下降。"
+        else:
+            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，风险持平。"
+    else:
+        trend = "暂无趋势数据。"
+    lines.append("【趋势结论】" + trend)
+    lines.append("")
+
+    # ===== 2. 总体状态 =====
+    total = st.get('total', 0)
+    unresolved = st.get('unresolved', 0)
+    bc_unresolved = st.get('bc_unresolved', 0)
+    modules_count = st.get('modules', 0)
+    fail_count = st.get('fail', 0)
+    pass_count = st.get('pass', 0)
+    lines.append(f"【总体状态】CR总数 {total}，未解决 {unresolved}，未解决BC {bc_unresolved}；模块 {modules_count} 个（FAIL {fail_count} / PASS {pass_count}）。")
+    lines.append("")
+
+    # ===== 3. 筛选 New 状态 BC =====
+    bc = snap.get('unresolved_bc', []) or []
+    new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
+
+    # 非 iOS
+    non_ios = [r for r in new_bc if not _is_ios_module(r.get('module', ''))]
+    # iOS
+    ios = [r for r in new_bc if _is_ios_module(r.get('module', ''))]
+
+    # 按严重度排序
+    sev_rank = {'blocker': 0, 'critical': 1, 'major': 2}
+    non_ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
+    ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
+
+    # ===== 4. 新增 BC（不含 iOS APP）表格 =====
+    lines.append("【新增 BC（不含 iOS APP）】")
+    if non_ios:
+        lines.append("")
+        lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
+        lines.append("|--------|--------|------|------|--------|")
+        for r in non_ios:
+            sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
+            cr_id = r.get('id', '')
+            module = r.get('module', '')
+            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {sev} | {cr_id} | {module} | {title} | @{dev} |")
+    else:
+        lines.append("")
+        lines.append("（无）")
+    lines.append("")
+
+    # ===== 5. iOS APP 新增 BC 表格 =====
+    lines.append("【iOS APP 新增 BC】")
+    if ios:
+        lines.append("")
+        lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
+        lines.append("|--------|--------|------|------|--------|")
+        for r in ios:
+            sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
+            cr_id = r.get('id', '')
+            module = r.get('module', '')
+            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {sev} | {cr_id} | {module} | {title} | @{dev} |")
+    else:
+        lines.append("")
+        lines.append("（无）")
+
+    return '\n'.join(lines)
+
+
+# 放行报告/日报关键词
+_REPORT_KEYWORDS = ('放行报告', '日报', '周报', '生成牛马笔记', '放行', '报告')
+
+
 def answer_stream(snap, history, question):
     """流式回答，yield 文本片段。AI 未配置时给出可读降级提示。"""
+    # 检测是否为放行报告/日报请求，如果是直接用 Python 生成，绕过 AI 避免截断
+    q = (question or '').strip()
+    if any(kw in q for kw in _REPORT_KEYWORDS):
+        try:
+            md = generate_report_markdown(snap)
+            yield md
+            return
+        except Exception as e:
+            logger.exception('generate_report_markdown failed, fallback to AI: %s', e)
     from services.ai.factory import get_ai_service
     svc = get_ai_service()
     if svc is None:
