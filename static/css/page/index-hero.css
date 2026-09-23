@@ -628,3 +628,19 @@ body:has(#hero-section) .footer a:hover {
 .hero-card:nth-child(3) {
   z-index: 1;
 }
+
+/* ===== v6 动物位置修复：防止头顶被截断 ===== */
+.hero-card .hc-animal {
+  top: 34px !important;
+  font-size: 40px !important;
+}
+.hero-card.hover-active .hc-animal {
+  transform: translateX(-50%) scale(1.12) rotate(-3deg) !important;
+}
+/* 确保卡片不裁剪动物 */
+.hero-card {
+  overflow: visible !important;
+}
+.hero-card::before {
+  overflow: hidden;
+}
