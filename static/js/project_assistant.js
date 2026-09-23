@@ -456,12 +456,7 @@
       }
       if (!line.trim()) { closeList(); i++; continue; }
       closeList();
-      if (line.indexOf('<!-- PA_TREND_CHART -->') >= 0) {
-        html.push('<div class="pa-inline-trend" style="width:100%;height:300px;margin:12px 0;position:relative;"></div>');
-      } else {
-        html.push('<p>' + inlineMD(line) + '</p>');
-      }
-      i++;
+      html.push('<p>' + inlineMD(line) + '</p>'); i++;
     }
     closeList();
     return html.join('\n');
@@ -864,9 +859,24 @@
         if (acc) { state.history.push({ role: 'assistant', content: acc }); saveChatHistory(); }
         sendBtn.disabled = false;
         msgs.scrollTop = msgs.scrollHeight;
-        // 流式输出完成后，渲染内嵌的趋势图
-        console.log('[finish] calling renderInlineTrendCharts, acc length:', acc.length);
-        setTimeout(function() { renderInlineTrendCharts(botBubble); }, 100);
+        // 找到"每日趋势与累计 BUG 曲线"标题，在后面插入图表容器并渲染
+        setTimeout(function() {
+          var headings = botBubble.querySelectorAll('h1,h2,h3,h4');
+          for (var i = 0; i < headings.length; i++) {
+            if (headings[i].textContent.indexOf('每日趋势') >= 0 && headings[i].textContent.indexOf('累计') >= 0) {
+              var chartDiv = document.createElement('div');
+              chartDiv.className = 'pa-inline-trend';
+              chartDiv.style.cssText = 'width:100%;height:300px;margin:12px 0;position:relative;';
+              if (headings[i].nextSibling) {
+                headings[i].parentNode.insertBefore(chartDiv, headings[i].nextSibling);
+              } else {
+                headings[i].parentNode.appendChild(chartDiv);
+              }
+              renderInlineTrendCharts(botBubble);
+              break;
+            }
+          }
+        }, 50);
       }
       return pump();
     }).catch(function (e) {

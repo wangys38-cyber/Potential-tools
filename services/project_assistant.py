@@ -469,9 +469,7 @@ def generate_report_markdown(snap):
     # ===== 3. 每日趋势与累计 BUG 曲线 =====
     lines.append("## 每日趋势与累计 BUG 曲线")
     lines.append("")
-    # 趋势图由前端动态渲染，后端只输出标记
-    lines.append("<!-- PA_TREND_CHART -->")
-    lines.append("")
+    # 趋势图由前端动态渲染，后端只输出标题
 
     # ===== 4. Key Issues（关键问题）=====
     lines.append("## Key Issues")
