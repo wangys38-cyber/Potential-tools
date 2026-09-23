@@ -507,7 +507,75 @@ def generate_report_markdown(snap):
         lines.append("- 当前无高风险新增问题。")
         lines.append("")
 
-    # ===== 4. Key Area Updates 表格 =====
+    # ===== 4. Heatmap 热力图 =====
+    def _heatmap_color(status):
+        return {'High': '#f8d7da', 'Mid': '#fff3cd', 'Low': '#d4edda'}.get(status, '#e2e3e5')
+
+    def _heatmap_text_color(status):
+        return {'High': '#721c24', 'Mid': '#856404', 'Low': '#155724'}.get(status, '#383d41')
+
+    def _render_heatmap(title, items_list, module_stats_key_func):
+        """渲染一个 Heatmap，items_list 是 (显示名, 映射key) 的列表"""
+        rows = []
+        rows.append(f"### {title}")
+        rows.append("")
+        rows.append('<table style="border-collapse:separate;border-spacing:8px;text-align:center;margin-bottom:16px;">')
+        # 每行4个
+        for i in range(0, len(items_list), 4):
+            row_items = items_list[i:i+4]
+            rows.append('  <tr>')
+            for display_name, map_key in row_items:
+                ms = module_stats.get(map_key, {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0})
+                status = _calc_status(ms)
+                bg = _heatmap_color(status)
+                fg = _heatmap_text_color(status)
+                rows.append(f'    <td style="background-color:{bg};color:{fg};padding:14px 18px;border-radius:8px;font-weight:600;min-width:130px;font-size:14px;">{display_name}</td>')
+            rows.append('  </tr>')
+        rows.append('</table>')
+        rows.append("")
+        return '\n'.join(rows)
+
+    # Dev SW Heatmap: Device + Algo
+    dev_items = [
+        ('Device: Function', ('Device', 'Function')),
+        ('Device: UI/UX', ('Device', 'UI/UX')),
+        ('Device: Battery Life', ('Device', 'Battery Life')),
+        ('Device: Stability', ('Device', 'Stability')),
+        ('Device: Performance', ('Device', 'Performance')),
+        ('Device: Compatibility', ('Device', 'Compatibility')),
+        ('Device: Connectivity', ('Device', 'Connectivity')),
+        ('Device: GPS', ('Device', 'GPS')),
+        ('Device: Audio', ('Device', 'Audio')),
+        ('Device: OTA', ('Device', 'OTA')),
+        ('Device: Watch face', ('Device', 'Watch face')),
+        ('Device: Instrumentation', ('Device', 'Instrumentation')),
+        ('Device: Localization', ('Device', 'Localization')),
+        ('Algo: Basic Vital', ('Algo', 'Basic Vital')),
+        ('Algo: Daily activities', ('Algo', 'Daily activities')),
+        ('Algo: Exercise', ('Algo', 'Exercise')),
+        ('Algo: Exercise detection', ('Algo', 'Exercise detection')),
+        ('Algo: Wear detection', ('Algo', 'Wear detection')),
+        ('Algo: Sleep', ('Algo', 'Sleep')),
+    ]
+    lines.append(_render_heatmap("Dev SW Heatmap", dev_items, None))
+
+    # Companion App Heatmap
+    ca_items = [
+        ('CA: Function', ('Companion App', 'Function')),
+        ('CA: UI/UX', ('Companion App', 'UI/UX')),
+        ('CA: Stability', ('Companion App', 'Stability')),
+        ('CA: Performance', ('Companion App', 'Performance')),
+    ]
+    lines.append(_render_heatmap("Companion App Heatmap", ca_items, None))
+
+    # Cloud & AI Heatmap
+    ai_items = [
+        ('AI: Function', ('Cloud & AI', 'Function')),
+        ('AI: Performance', ('Cloud & AI', 'Performance')),
+    ]
+    lines.append(_render_heatmap("Cloud & AI Heatmap", ai_items, None))
+
+    # ===== 5. Key Area Updates 表格 =====
     # 预定义的分类和小项
     _PREDEFINED = {
         'Device': ['Function', 'UI/UX', 'Battery Life', 'Stability', 'Performance',
