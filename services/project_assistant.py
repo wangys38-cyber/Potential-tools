@@ -380,7 +380,15 @@ def generate_report_markdown(snap):
     bc = snap.get('unresolved_bc', []) or []
     new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
     new_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
-    new_criticals = [r for r in new_bc if r.get('sev') == 'critical']
+    # 影响过点的问题：标签中带有 blocker 的问题（不管严重度）
+    def _has_blocker_label(rec):
+        labels = rec.get('labels', '')
+        if isinstance(labels, (list, tuple)):
+            label_text = ' '.join(str(l) for l in labels)
+        else:
+            label_text = str(labels or '')
+        return 'blocker' in label_text.lower()
+    new_criticals = [r for r in new_bc if _has_blocker_label(r)]
 
     # ===== 1. 总结性文字 =====
     bc_unresolved = st.get('bc_unresolved', 0)
@@ -389,7 +397,7 @@ def generate_report_markdown(snap):
     if new_blockers:
         summary_parts.append(f"当前存在 {len(new_blockers)} 个用户无法忍受、影响正常使用的功能性 Blocker 级新增问题，必须优先解决")
     if new_criticals:
-        summary_parts.append(f"{len(new_criticals)} 个影响过点的 Critical 级新增问题需重点关注")
+        summary_parts.append(f"{len(new_criticals)} 个标签带 blocker、影响过点的新增问题需重点关注")
     if not new_blockers and not new_criticals:
         summary_parts.append("当前无新增 BC 问题，状态良好")
     if fail_count > 0:
@@ -440,8 +448,8 @@ def generate_report_markdown(snap):
         lines.append("（无）")
     lines.append("")
 
-    # ===== 5. 影响过点的问题（Critical）=====
-    lines.append("【影响过点的问题（Critical）】")
+    # ===== 5. 影响过点的问题（标签带 blocker）=====
+    lines.append("【影响过点的问题（标签带 blocker）】")
     if new_criticals:
         lines.append("")
         lines.append("| CR单号 | 模块 | 标题 | 经办人 |")
