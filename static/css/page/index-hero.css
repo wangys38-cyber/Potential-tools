@@ -693,3 +693,17 @@ body:has(#hero-section) .footer a:hover {
 .hero-cards {
   padding-bottom: 30px !important;
 }
+
+/* ===== v8 弧形加强+去滚动提示 ===== */
+.hero-card:nth-child(1) { transform: translateY(40px) rotate(-8deg) !important; }
+.hero-card:nth-child(2) { transform: translateY(16px) rotate(-4deg) !important; }
+.hero-card:nth-child(3) { transform: translateY(-4px) !important; }
+.hero-card:nth-child(4) { transform: translateY(16px) rotate(4deg) !important; }
+.hero-card:nth-child(5) { transform: translateY(40px) rotate(8deg) !important; }
+.hero-card.hover-active { transform: translateY(-16px) scale(1.06) !important; }
+.hero-card.hover-left { transform: translateX(-24px) rotate(-4deg) !important; }
+.hero-card.hover-right { transform: translateX(24px) rotate(4deg) !important; }
+/* 隐藏滚动提示 */
+.hero-cards-wrap::after { display: none !important; }
+/* 容器底部留更多空间给弧形 */
+.hero-cards { padding-bottom: 50px !important; }
