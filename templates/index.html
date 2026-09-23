@@ -23,12 +23,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
+            fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'], quicksand: ['Quicksand', 'Inter', 'sans-serif'] },
             colors: {
               dark: { 900: '#0e0e12', 800: '#121216', 700: '#1a1a1e', 600: '#222228' }
             }
@@ -545,7 +545,7 @@
       card.style.zIndex = cardZIndex[idx % 5];
       card.innerHTML =
         '<div class="absolute inset-0 flex items-center justify-center">' +
-        '<span class="text-[#1e293b] text-[18px] font-bold tracking-wide text-center px-3" style="text-shadow:0 1px 2px rgba(255,255,255,0.3)">' + t.name + '</span>' +
+        '<span class="text-[#1e293b] text-[19px] font-quicksand font-semibold tracking-[0.5px] text-center px-3" style="text-shadow:0 1px 3px rgba(255,255,255,0.4)">' + t.name + '</span>' +
         '</div>';
       wrap.appendChild(card);
     });
