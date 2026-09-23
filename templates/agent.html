@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - Potential Tools 9.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .header p { color: #86868b; font-size: 14px; }
+        .input-area { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .input-area textarea { width: 100%; min-height: 80px; border: 1px solid #d2d2d7; border-radius: 12px; padding: 12px; font-size: 15px; resize: vertical; font-family: inherit; }
+        .input-area textarea:focus { outline: none; border-color: #0071e3; }
+        .input-area .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+        .btn { padding: 10px 24px; border-radius: 980px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #0071e3; color: #fff; }
+        .btn-primary:hover { background: #0077ed; }
+        .btn-primary:disabled { background: #a8c8f0; cursor: not-allowed; }
+        .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
+        .btn-secondary:hover { background: #dcdce0; }
+        .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .example-tag { padding: 6px 14px; background: #f0f0f5; border-radius: 980px; font-size: 13px; color: #424245; cursor: pointer; transition: all 0.2s; }
+        .example-tag:hover { background: #e0e0e8; }
+        .result-area { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); min-height: 200px; }
+        .result-area h2 { font-size: 18px; margin-bottom: 16px; }
+        .step { border-left: 3px solid #d2d2d7; padding: 12px 16px; margin-bottom: 12px; background: #fafafa; border-radius: 0 8px 8px 0; }
+        .step.completed { border-left-color: #34c759; }
+        .step.failed { border-left-color: #ff3b30; }
+        .step.running { border-left-color: #ff9500; }
+        .step.pending { border-left-color: #8e8e93; opacity: 0.6; }
+        .step .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .step .tool-name { font-weight: 600; font-size: 14px; }
+        .step .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 980px; font-weight: 500; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-running { background: #fff3cd; color: #856404; }
+        .status-pending { background: #e2e3e5; color: #383d41; }
+        .step .reasoning { font-size: 12px; color: #86868b; margin-bottom: 6px; }
+        .step .result { font-size: 13px; color: #424245; background: #fff; padding: 8px 12px; border-radius: 6px; margin-top: 6px; max-height: 150px; overflow-y: auto; }
+        .step .error { font-size: 13px; color: #ff3b30; }
+        .confirm-area { background: #fff8e6; border: 1px solid #ffd60a; border-radius: 12px; padding: 16px; margin: 12px 0; }
+        .confirm-area p { margin-bottom: 12px; font-size: 14px; }
+        .confirm-buttons { display: flex; gap: 10px; }
+        .tools-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
+        .tool-card { background: #fafafa; border-radius: 10px; padding: 12px; border: 1px solid #e8e8ed; }
+        .tool-card .tool-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .tool-card .tool-desc { font-size: 11px; color: #86868b; }
+        .tool-card .tool-cat { font-size: 10px; color: #0071e3; margin-top: 4px; }
+        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #0071e3; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Agent</h1>
+            <p>Potential Tools 9.0 · 自主任务规划与多工具调用</p>
+        </div>
+
+        <div class="input-area">
+            <textarea id="taskInput" placeholder="描述你想完成的任务，例如：查询 Santos 项目状态，生成日报并发送给团队"></textarea>
+            <div class="actions">
+                <div class="examples">
+                    <span class="example-tag" onclick="setExample('查询 EKSANTOS 项目状态并生成日报')">📊 生成项目日报</span>
+                    <span class="example-tag" onclick="setExample('查询项目状态，生成报告并同步到牛马笔记')">📝 同步到笔记</span>
+                    <span class="example-tag" onclick="setExample('在知识库中搜索 CR 分析方法')">🔍 知识库搜索</span>
+                </div>
+                <button class="btn btn-primary" id="runBtn" onclick="runAgent()">🚀 执行任务</button>
+            </div>
+        </div>
+
+        <div class="result-area" id="resultArea" style="display:none;">
+            <h2>执行结果</h2>
+            <div id="stepsContainer"></div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h3 style="font-size: 16px; margin-bottom: 12px;">可用工具</h3>
+            <div class="tools-list" id="toolsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentAgentId = null;
+
+        // 加载工具列表
+        async function loadTools() {
+            try {
+                const resp = await fetch('/api/agent/tools');
+                const tools = await resp.json();
+                const list = document.getElementById('toolsList');
+                list.innerHTML = tools.map(t => `
+                    <div class="tool-card">
+                        <div class="tool-name">${t.name}</div>
+                        <div class="tool-desc">${t.description}</div>
+                        <div class="tool-cat">${t.category}${t.requires_confirmation ? ' · 需确认' : ''}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('加载工具列表失败', e);
+            }
+        }
+
+        function setExample(text) {
+            document.getElementById('taskInput').value = text;
+        }
+
+        async function runAgent() {
+            const task = document.getElementById('taskInput').value.trim();
+            if (!task) { alert('请输入任务描述'); return; }
+
+            const btn = document.getElementById('runBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 执行中...';
+
+            const resultArea = document.getElementById('resultArea');
+            resultArea.style.display = 'block';
+            document.getElementById('stepsContainer').innerHTML = '<p style="color:#86868b;">正在规划任务...</p>';
+
+            try {
+                const resp = await fetch('/api/agent/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task })
+                });
+                const ctx = await resp.json();
+                currentAgentId = ctx.agent_id;
+                renderSteps(ctx);
+            } catch (e) {
+                document.getElementById('stepsContainer').innerHTML = `<p style="color:#ff3b30;">执行失败: ${e.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 执行任务';
+            }
+        }
+
+        function renderSteps(ctx) {
+            const container = document.getElementById('stepsContainer');
+            let html = `<p style="margin-bottom:12px;color:#86868b;">任务: ${ctx.task} | 状态: <strong>${ctx.status}</strong></p>`;
+
+            ctx.steps.forEach((step, idx) => {
+                const statusClass = `status-${step.status}`;
+                const statusText = {
+                    'pending': '等待中', 'running': '执行中', 'completed': '已完成',
+                    'failed': '失败', 'skipped': '已跳过', 'needs_confirmation': '需确认'
+                }[step.status] || step.status;
+
+                html += `
+                    <div class="step ${step.status}">
+                        <div class="step-header">
+                            <span class="tool-name">${idx + 1}. ${step.tool_name}</span>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        ${step.reasoning ? `<div class="reasoning">💡 ${step.reasoning}</div>` : ''}
+                        ${step.result ? `<div class="result">${typeof step.result === 'string' ? step.result.substring(0, 300) : JSON.stringify(step.result).substring(0, 300)}</div>` : ''}
+                        ${step.error ? `<div class="error">❌ ${step.error}</div>` : ''}
+                        ${step.status === 'needs_confirmation' ? `
+                            <div class="confirm-area">
+                                <p>⚠️ 此操作需要您的确认：</p>
+                                <div class="confirm-buttons">
+                                    <button class="btn btn-primary" onclick="confirmStep(${idx}, true)">✅ 确认执行</button>
+                                    <button class="btn btn-secondary" onclick="confirmStep(${idx}, false)">⏭️ 跳过</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            if (ctx.status === 'completed') {
+                html += `<p style="margin-top:16px;color:#34c759;font-weight:600;">✅ 任务执行完成！耗时 ${ctx.duration ? ctx.duration.toFixed(1) : '?'} 秒</p>`;
+            } else if (ctx.status === 'failed') {
+                html += `<p style="margin-top:16px;color:#ff3b30;font-weight:600;">❌ 任务执行失败: ${ctx.error || '未知错误'}</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function confirmStep(stepIndex, confirmed) {
+            if (!currentAgentId) return;
+            try {
+                const resp = await fetch(`/api/agent/confirm/${currentAgentId}/${stepIndex}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmed })
+                });
+                const ctx = await resp.json();
+                renderSteps(ctx);
+            } catch (e) {
+                alert('确认操作失败: ' + e.message);
+            }
+        }
+
+        // 初始化
+        loadTools();
+    </script>
+</body>
+</html>

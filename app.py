@@ -484,6 +484,12 @@ def auth_logout():
 
 
 # ==================== 健康检查（供 Railway/K8s 使用） ====================
+@app.route('/agent')
+def agent_page():
+    """AI Agent 2.0 页面"""
+    return render_template('agent.html')
+
+
 @app.route('/health')
 def health_check():
     """健康检查端点 — 无需认证，返回应用状态详情"""
