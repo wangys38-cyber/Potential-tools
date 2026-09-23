@@ -523,7 +523,11 @@
 
   function renderInlineTrendCharts(container) {
     var charts = container.querySelectorAll('.pa-trend-echart');
-    if (!charts.length) return;
+    console.log('[renderInlineTrendCharts] found', charts.length, 'chart containers');
+    if (!charts.length) {
+        console.log('[renderInlineTrendCharts] container innerHTML preview:', container.innerHTML.substring(0, 500));
+        return;
+    }
     charts.forEach(function(el) {
       try {
         var data = JSON.parse(el.getAttribute('data-chart') || '{}');
@@ -827,7 +831,8 @@
         sendBtn.disabled = false;
         msgs.scrollTop = msgs.scrollHeight;
         // 流式输出完成后，渲染内嵌的趋势图
-        renderInlineTrendCharts(botBubble);
+        console.log('[finish] calling renderInlineTrendCharts, acc length:', acc.length);
+        setTimeout(function() { renderInlineTrendCharts(botBubble); }, 100);
       }
       return pump();
     }).catch(function (e) {
