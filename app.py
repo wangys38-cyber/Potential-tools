@@ -489,9 +489,11 @@ def health_check():
     try:
         db_status = 'ok'
         try:
-            import db
-            conn = db.get_db()
-            conn.execute('SELECT 1').fetchone()
+            if hasattr(db, 'check_db'):
+                db.check_db()
+            else:
+                with db.contextmanager() as conn:
+                    conn.execute('SELECT 1').fetchone()
         except Exception:
             db_status = 'error'
         process = psutil.Process(os.getpid())
