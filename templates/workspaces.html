@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团队协作 - Potential Tools 9.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h1 { font-size: 24px; font-weight: 700; }
+        .header p { color: #86868b; font-size: 13px; margin-top: 4px; }
+        .btn { padding: 10px 20px; border-radius: 980px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #0071e3; color: #fff; }
+        .btn-primary:hover { background: #0077ed; }
+        .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
+        .btn-secondary:hover { background: #dcdce0; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .workspace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .workspace-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .workspace-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .workspace-card.active { border-color: #0071e3; }
+        .ws-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+        .ws-desc { font-size: 13px; color: #86868b; margin-bottom: 12px; min-height: 36px; }
+        .ws-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #86868b; }
+        .ws-members { display: flex; }
+        .member-avatar { width: 24px; height: 24px; border-radius: 50%; background: #0071e3; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; margin-left: -6px; border: 2px solid #fff; }
+        .member-avatar:first-child { margin-left: 0; }
+        .detail-panel { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-top: 24px; display: none; }
+        .detail-panel.active { display: block; }
+        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e8e8ed; }
+        .detail-header h2 { font-size: 20px; }
+        .section-title { font-size: 15px; font-weight: 600; margin: 20px 0 12px; color: #424245; }
+        .member-list { display: flex; flex-direction: column; gap: 8px; }
+        .member-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #fafafa; border-radius: 10px; }
+        .member-info { display: flex; align-items: center; gap: 10px; }
+        .member-name { font-weight: 500; font-size: 14px; }
+        .role-badge { font-size: 11px; padding: 2px 8px; border-radius: 980px; font-weight: 500; }
+        .role-owner { background: #fff3cd; color: #856404; }
+        .role-admin { background: #d1ecf1; color: #0c5460; }
+        .role-editor { background: #d4edda; color: #155724; }
+        .role-viewer { background: #e2e3e5; color: #383d41; }
+        .comment-list { display: flex; flex-direction: column; gap: 12px; }
+        .comment-item { padding: 12px 16px; background: #fafafa; border-radius: 10px; border-left: 3px solid #0071e3; }
+        .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .comment-user { font-weight: 600; font-size: 13px; }
+        .comment-time { font-size: 11px; color: #86868b; }
+        .comment-content { font-size: 14px; color: #424245; }
+        .comment-input { display: flex; gap: 10px; margin-top: 16px; }
+        .comment-input input { flex: 1; padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 980px; font-size: 14px; }
+        .comment-input input:focus { outline: none; border-color: #0071e3; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; }
+        .modal h2 { font-size: 20px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #424245; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #86868b; grid-column: 1 / -1; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px; z-index: 2000; }
+        .toast-success { background: #34c759; }
+        .toast-error { background: #ff3b30; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👥 团队协作</h1>
+                <p>Potential Tools 9.0 · 工作空间、成员权限、评论@提及</p>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ 创建工作空间</button>
+        </div>
+
+        <div class="workspace-grid" id="workspaceGrid"></div>
+
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-header">
+                <h2 id="detailTitle">工作空间详情</h2>
+                <button class="btn btn-secondary btn-sm" onclick="closeDetail()">← 返回列表</button>
+            </div>
+
+            <div class="section-title">👥 成员列表</div>
+            <div class="member-list" id="memberList"></div>
+
+            <div class="section-title">💬 评论区（支持@提及）</div>
+            <div class="comment-list" id="commentList"></div>
+            <div class="comment-input">
+                <input type="text" id="commentInput" placeholder="输入评论，使用@提及成员..." onkeypress="if(event.key==='Enter')addComment()">
+                <button class="btn btn-primary btn-sm" onclick="addComment()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建工作空间弹窗 -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <h2>创建工作空间</h2>
+            <div class="form-group">
+                <label>工作空间名称</label>
+                <input type="text" id="wsName" placeholder="例如：研发效率团队">
+            </div>
+            <div class="form-group">
+                <label>描述（可选）</label>
+                <textarea id="wsDesc" rows="3" placeholder="简要描述这个工作空间的用途"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
+                <button class="btn btn-primary" onclick="createWorkspace()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentWorkspaceId = null;
+
+        async function loadWorkspaces() {
+            try {
+                const resp = await fetch('/api/workspaces');
+                const workspaces = await resp.json();
+                const grid = document.getElementById('workspaceGrid');
+
+                if (workspaces.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🏢</div>
+                            <p>还没有工作空间</p>
+                            <p style="font-size:12px;margin-top:8px;">点击右上角"创建工作空间"开始团队协作</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = workspaces.map(ws => `
+                    <div class="workspace-card ${ws.id === currentWorkspaceId ? 'active' : ''}" onclick="openDetail('${ws.id}')">
+                        <div class="ws-name">${ws.name}</div>
+                        <div class="ws-desc">${ws.description || '暂无描述'}</div>
+                        <div class="ws-meta">
+                            <div class="ws-members">
+                                ${ws.members.slice(0, 4).map((m, i) => `
+                                    <div class="member-avatar" style="background: hsl(${i * 60}, 70%, 50%);" title="${m.username}">${m.username.charAt(0).toUpperCase()}</div>
+                                `).join('')}
+                                ${ws.members.length > 4 ? `<div class="member-avatar" style="background:#86868b;">+${ws.members.length - 4}</div>` : ''}
+                            </div>
+                            <span>${ws.member_count} 人</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                showToast('加载失败: ' + e.message, 'error');
+            }
+        }
+
+        async function openDetail(workspaceId) {
+            currentWorkspaceId = workspaceId;
+            document.getElementById('detailPanel').classList.add('active');
+            document.getElementById('workspaceGrid').style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/workspaces');
+                const workspaces = await resp.json();
+                const ws = workspaces.find(w => w.id === workspaceId);
+                if (ws) {
+                    document.getElementById('detailTitle').textContent = ws.name;
+                    renderMembers(ws.members);
+                }
+                loadComments();
+            } catch (e) {
+                showToast('加载详情失败: ' + e.message, 'error');
+            }
+        }
+
+        function closeDetail() {
+            currentWorkspaceId = null;
+            document.getElementById('detailPanel').classList.remove('active');
+            document.getElementById('workspaceGrid').style.display = 'grid';
+            loadWorkspaces();
+        }
+
+        function renderMembers(members) {
+            const roleNames = { owner: '所有者', admin: '管理员', editor: '编辑者', viewer: '查看者' };
+            document.getElementById('memberList').innerHTML = members.map(m => `
+                <div class="member-item">
+                    <div class="member-info">
+                        <div class="member-avatar" style="background: #0071e3; width:32px; height:32px; font-size:12px;">${m.username.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="member-name">${m.username}</div>
+                            <div style="font-size:11px;color:#86868b;">加入于 ${new Date(m.joined_at * 1000).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <span class="role-badge role-${m.role}">${roleNames[m.role] || m.role}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadComments() {
+            if (!currentWorkspaceId) return;
+            try {
+                const resp = await fetch(`/api/workspaces/${currentWorkspaceId}/comments?target_type=workspace&target_id=${currentWorkspaceId}`);
+                const comments = await resp.json();
+                const list = document.getElementById('commentList');
+                if (comments.length === 0) {
+                    list.innerHTML = '<p style="color:#86868b;font-size:13px;text-align:center;padding:20px;">暂无评论，来发起第一条讨论吧</p>';
+                    return;
+                }
+                list.innerHTML = comments.map(c => `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="comment-user">${c.username}</span>
+                            <span class="comment-time">${new Date(c.created_at * 1000).toLocaleString()}</span>
+                        </div>
+                        <div class="comment-content">${c.content}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('加载评论失败', e);
+            }
+        }
+
+        async function addComment() {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            if (!content || !currentWorkspaceId) return;
+
+            try {
+                const resp = await fetch(`/api/workspaces/${currentWorkspaceId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_type: 'workspace', target_id: currentWorkspaceId, content })
+                });
+                if (resp.ok) {
+                    input.value = '';
+                    loadComments();
+                    showToast('评论已发送', 'success');
+                }
+            } catch (e) {
+                showToast('发送失败: ' + e.message, 'error');
+            }
+        }
+
+        function openCreateModal() {
+            document.getElementById('wsName').value = '';
+            document.getElementById('wsDesc').value = '';
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+        }
+
+        async function createWorkspace() {
+            const name = document.getElementById('wsName').value.trim();
+            if (!name) { alert('请输入工作空间名称'); return; }
+
+            try {
+                const resp = await fetch('/api/workspaces', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description: document.getElementById('wsDesc').value })
+                });
+                if (resp.ok) {
+                    showToast('工作空间已创建', 'success');
+                    closeCreateModal();
+                    loadWorkspaces();
+                } else {
+                    const err = await resp.json();
+                    showToast('创建失败: ' + (err.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('创建失败: ' + e.message, 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        document.getElementById('createModal').addEventListener('click', (e) => {
+            if (e.target.id === 'createModal') closeCreateModal();
+        });
+
+        loadWorkspaces();
+    </script>
+</body>
+</html>

@@ -20,6 +20,7 @@ import async_tasks
 from services.agent_engine import agent_engine, AgentStatus, StepStatus
 import services.agent_tools  # 触发工具注册
 from services.data_sources import data_source_manager, DataSourceType
+from services.workspaces import workspace_manager, WorkspaceRole
 import request_logger
 import security
 import performance_middleware
@@ -497,6 +498,12 @@ def data_sources_page():
     return render_template('data_sources.html')
 
 
+@app.route('/workspaces')
+def workspaces_page():
+    """团队协作空间页面"""
+    return render_template('workspaces.html')
+
+
 @app.route('/health')
 def health_check():
     """健康检查端点 — 无需认证，返回应用状态详情"""
@@ -722,6 +729,99 @@ def data_source_types():
         {'type': 'cicd', 'name': 'CI/CD', 'icon': '🔄', 'description': '持续集成，构建状态监控'},
         {'type': 'generic', 'name': '通用', 'icon': '🔧', 'description': '通用数据源配置'}
     ])
+
+
+# ==================== 团队协作空间 API ====================
+@app.route('/api/workspaces')
+def list_workspaces():
+    """列出工作空间"""
+    user_id = request.args.get('user_id')
+    workspaces = workspace_manager.list_workspaces(user_id)
+    return jsonify([w.to_dict() for w in workspaces])
+
+
+@app.route('/api/workspaces', methods=['POST'])
+def create_workspace():
+    """创建工作空间"""
+    data = request.get_json(force=True, silent=True) or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': '请输入工作空间名称'}), 400
+    # 从session获取当前用户
+    user_id = session.get('user_id', 'anonymous')
+    username = session.get('username', '匿名用户')
+    ws = workspace_manager.create_workspace(name, user_id, username, data.get('description', ''))
+    return jsonify(ws.to_dict()), 201
+
+
+@app.route('/api/workspaces/<workspace_id>/members', methods=['POST'])
+def add_workspace_member(workspace_id):
+    """添加工作空间成员"""
+    data = request.get_json(force=True, silent=True) or {}
+    success = workspace_manager.add_member(
+        workspace_id,
+        data.get('user_id', ''),
+        data.get('username', ''),
+        data.get('role', WorkspaceRole.VIEWER.value)
+    )
+    if not success:
+        return jsonify({'error': '添加失败，成员可能已存在'}), 400
+    return jsonify({'success': True})
+
+
+@app.route('/api/workspaces/<workspace_id>/members/<user_id>', methods=['PUT'])
+def update_workspace_member(workspace_id, user_id):
+    """更新成员角色"""
+    data = request.get_json(force=True, silent=True) or {}
+    success = workspace_manager.update_member_role(workspace_id, user_id, data.get('role', 'viewer'))
+    if not success:
+        return jsonify({'error': '成员不存在'}), 404
+    return jsonify({'success': True})
+
+
+@app.route('/api/workspaces/<workspace_id>/members/<user_id>', methods=['DELETE'])
+def remove_workspace_member(workspace_id, user_id):
+    """移除成员"""
+    success = workspace_manager.remove_member(workspace_id, user_id)
+    if not success:
+        return jsonify({'error': '成员不存在'}), 404
+    return jsonify({'success': True})
+
+
+@app.route('/api/workspaces/<workspace_id>/comments')
+def list_workspace_comments(workspace_id):
+    """列出评论"""
+    target_type = request.args.get('target_type')
+    target_id = request.args.get('target_id')
+    comments = workspace_manager.list_comments(workspace_id, target_type, target_id)
+    return jsonify([c.to_dict() for c in comments])
+
+
+@app.route('/api/workspaces/<workspace_id>/comments', methods=['POST'])
+def add_workspace_comment(workspace_id):
+    """添加评论"""
+    data = request.get_json(force=True, silent=True) or {}
+    user_id = session.get('user_id', 'anonymous')
+    username = session.get('username', '匿名用户')
+    comment = workspace_manager.add_comment(
+        workspace_id,
+        data.get('target_type', ''),
+        data.get('target_id', ''),
+        user_id,
+        username,
+        data.get('content', '')
+    )
+    return jsonify(comment.to_dict()), 201
+
+
+@app.route('/api/workspaces/<workspace_id>/comments/<comment_id>/resolve', methods=['POST'])
+def resolve_workspace_comment(workspace_id, comment_id):
+    """标记评论已解决"""
+    data = request.get_json(force=True, silent=True) or {}
+    success = workspace_manager.resolve_comment(comment_id, data.get('resolved', True))
+    if not success:
+        return jsonify({'error': '评论不存在'}), 404
+    return jsonify({'success': True})
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
