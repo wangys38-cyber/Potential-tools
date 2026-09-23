@@ -28,20 +28,28 @@ def register_builtin_tools():
             ctx.data['project_key'] = project_key
             # 快照统计数据在 snap['stats'] 中
             st = snap.get('stats', {}) or {}
-            summ = snap.get('summary', {}) or {}
-            # 计算模块 PASS/FAIL 数量
-            module_md = snap.get('module_md', '')
-            fail_count = module_md.count('| FAIL |') + module_md.count('| ❌ |')
-            pass_count = module_md.count('| PASS |') + module_md.count('| ✅ |')
+            # 模块统计直接从 stats 读取
+            fail_count = st.get('fail', 0)
+            pass_count = st.get('pass', 0)
+            bc_unresolved = st.get('bc_unresolved', 0)
+            # 未解决 BC 列表
             unresolved_bc_list = snap.get('unresolved_bc', [])
+            bc_count = len(unresolved_bc_list) if isinstance(unresolved_bc_list, list) else bc_unresolved
+            # 估算风险等级（基于未解决BC数量，与报告生成逻辑一致）
+            if bc_count >= 15:
+                risk_level = 'High-risk'
+            elif bc_count >= 5:
+                risk_level = 'Mid-risk'
+            else:
+                risk_level = 'Low-risk'
             return {
                 'project': snap.get('project_name') or snap.get('name') or project_key,
                 'total_cr': st.get('total', 0),
                 'unresolved': st.get('unresolved', 0),
-                'unresolved_bc': len(unresolved_bc_list) if isinstance(unresolved_bc_list, list) else st.get('unresolved_bc', 0),
+                'unresolved_bc': bc_count,
                 'fail_modules': fail_count,
                 'pass_modules': pass_count,
-                'risk_level': summ.get('risk_level', 'unknown')
+                'risk_level': risk_level
             }
         return {'error': f'项目 {project_key} 的状态快照不存在，请先在「项目助手」页面同步该项目的CR数据'}
 
