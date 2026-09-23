@@ -186,9 +186,10 @@ class DataSourceManager:
             if src.type == DataSourceType.JIRA.value:
                 from services.jira_client import client_from_config
                 client = client_from_config(src.config)
-                # 测试连接：获取当前用户
-                user = client.get_current_user()
-                return {'success': True, 'message': f'连接成功，当前用户: {user}'}
+                # 测试连接：JiraClient 使用 test_connection() 方法
+                result = client.test_connection()
+                display_name = result.get('display_name', '未知用户')
+                return {'success': True, 'message': f'连接成功，当前用户: {display_name}'}
             elif src.type == DataSourceType.GIT.value:
                 # Git 连接测试
                 repo_path = src.config.get('repo_path', '')

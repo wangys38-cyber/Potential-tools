@@ -42,3 +42,5 @@ data/project_cache/
 
 # CR 根因分析日志证据缓存
 data/rca_cache/
+
+data/data_sources.json
