@@ -22,6 +22,7 @@ import services.agent_tools  # 触发工具注册
 from services.data_sources import data_source_manager, DataSourceType
 from services.workspaces import workspace_manager, WorkspaceRole
 from services.alerts import alert_manager, trend_predictor, anomaly_detector, milestone_risk_assessor
+from services.global_search import global_search
 import request_logger
 import security
 import performance_middleware
@@ -921,6 +922,74 @@ def create_alert_rule():
         return jsonify({'error': '请输入规则名称'}), 400
     rule = alert_manager.add_rule(name, data.get('type', 'custom'), data.get('condition', {}), data.get('severity', 'warning'))
     return jsonify(rule.to_dict()), 201
+
+
+# ==================== 全局搜索 API ====================
+@app.route('/api/search')
+def global_search_api():
+    """全局搜索（跨工具）"""
+    query = request.args.get('q', '').strip()
+    sources = request.args.get('sources')
+    source_list = sources.split(',') if sources else None
+    limit = int(request.args.get('limit', 20))
+
+    if not query:
+        return jsonify({'query': '', 'total': 0, 'results': [], 'by_source': {}})
+
+    result = global_search.search(query, source_list, limit)
+    return jsonify(result)
+
+
+@app.route('/api/search/suggestions')
+def search_suggestions():
+    """获取搜索建议"""
+    query = request.args.get('q', '').strip()
+    suggestions = global_search.get_search_suggestions(query)
+    return jsonify({'query': query, 'suggestions': suggestions})
+
+
+# ==================== 开放 API（v1） ====================
+@app.route('/api/v1/health')
+def open_api_health():
+    """开放API健康检查"""
+    return jsonify({
+        'service': 'Potential Tools API',
+        'version': APP_VERSION,
+        'status': 'ok',
+        'endpoints': {
+            'projects': '/api/v1/projects',
+            'alerts': '/api/v1/alerts',
+            'search': '/api/v1/search',
+            'agent': '/api/v1/agent/run'
+        }
+    })
+
+
+@app.route('/api/v1/projects')
+def open_api_projects():
+    """开放API：项目列表"""
+    # 返回已缓存的项目列表
+    projects = []
+    try:
+        from services.project_assistant import _snap_path
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'project_cache')
+        if os.path.exists(data_dir):
+            for filename in os.listdir(data_dir):
+                if filename.endswith('.json'):
+                    projects.append({'project_key': filename.replace('.json', ''), 'has_cache': True})
+    except Exception:
+        pass
+    return jsonify({'projects': projects, 'total': len(projects)})
+
+
+@app.route('/api/v1/search')
+def open_api_search():
+    """开放API：全局搜索"""
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'error': '请提供搜索关键词 q'}), 400
+    result = global_search.search(query, limit=10)
+    return jsonify(result)
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
