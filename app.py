@@ -17,6 +17,8 @@ import db
 import rate_limiter
 import ttl_cache
 import async_tasks
+from services.agent_engine import agent_engine, AgentStatus, StepStatus
+import services.agent_tools  # 触发工具注册
 import request_logger
 import security
 import performance_middleware
@@ -539,6 +541,99 @@ def async_task_result(task_id):
 def async_task_stats():
     """获取异步任务队列统计"""
     return jsonify(async_tasks.get_queue_stats())
+
+
+# ==================== Agent 2.0 API ====================
+@app.route('/api/agent/tools')
+def agent_list_tools():
+    """列出所有可用的Agent工具"""
+    from services.agent_engine import tool_registry
+    tools = tool_registry.list_tools()
+    return jsonify([
+        {'name': t.name, 'description': t.description, 'category': t.category,
+         'requires_confirmation': t.requires_confirmation, 'parameters': t.parameters}
+        for t in tools
+    ])
+
+
+@app.route('/api/agent/run', methods=['POST'])
+def agent_run():
+    """运行Agent任务（同步执行，返回完整执行结果）"""
+    data = request.get_json(force=True, silent=True) or {}
+    task = data.get('task', '').strip()
+    if not task:
+        return jsonify({'error': '请输入任务描述'}), 400
+
+    # 创建执行上下文
+    ctx = agent_engine.create_context(task)
+
+    # 任务规划
+    steps = agent_engine.plan(ctx)
+    if not steps:
+        return jsonify({'error': '无法规划任务，请检查任务描述', 'context': ctx.to_dict()}), 400
+
+    # 执行所有步骤
+    def on_step(ctx, step):
+        pass  # 可以在这里添加进度回调
+
+    ctx = agent_engine.execute_all(ctx, on_step_complete=on_step)
+
+    return jsonify(ctx.to_dict())
+
+
+@app.route('/api/agent/run_async', methods=['POST'])
+def agent_run_async():
+    """异步运行Agent任务，返回task_id，用轮询获取结果"""
+    data = request.get_json(force=True, silent=True) or {}
+    task = data.get('task', '').strip()
+    if not task:
+        return jsonify({'error': '请输入任务描述'}), 400
+
+    def _run_agent(task_desc):
+        ctx = agent_engine.create_context(task_desc)
+        agent_engine.plan(ctx)
+        agent_engine.execute_all(ctx)
+        return ctx.to_dict()
+
+    task_id = async_tasks.submit_task(_run_agent, task)
+    return jsonify({'task_id': task_id, 'status': 'pending'})
+
+
+@app.route('/api/agent/status/<agent_id>')
+def agent_status(agent_id):
+    """查询Agent执行状态"""
+    ctx = agent_engine.contexts.get(agent_id)
+    if not ctx:
+        return jsonify({'error': 'Agent不存在'}), 404
+    return jsonify(ctx.to_dict())
+
+
+@app.route('/api/agent/confirm/<agent_id>/<int:step_index>', methods=['POST'])
+def agent_confirm_step(agent_id, step_index):
+    """用户确认/拒绝某个步骤"""
+    data = request.get_json(force=True, silent=True) or {}
+    confirmed = data.get('confirmed', True)
+    ctx = agent_engine.contexts.get(agent_id)
+    if not ctx:
+        return jsonify({'error': 'Agent不存在'}), 404
+
+    step = agent_engine.confirm_step(ctx, step_index, confirmed)
+    if not step:
+        return jsonify({'error': '步骤不存在'}), 404
+
+    # 如果还有后续步骤，继续执行
+    if step.status in (StepStatus.COMPLETED.value, StepStatus.SKIPPED.value):
+        remaining = ctx.steps[step_index + 1:]
+        if remaining and ctx.status == AgentStatus.EXECUTING.value:
+            for i in range(step_index + 1, len(ctx.steps)):
+                s = agent_engine.execute_step(ctx, i)
+                if s.status in (StepStatus.NEEDS_CONFIRMATION.value, StepStatus.FAILED.value):
+                    break
+            if all(s.status == StepStatus.COMPLETED.value for s in ctx.steps):
+                ctx.status = AgentStatus.COMPLETED.value
+                ctx.completed_at = __import__('time').time()
+
+    return jsonify(ctx.to_dict())
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
