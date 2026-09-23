@@ -456,7 +456,12 @@
       }
       if (!line.trim()) { closeList(); i++; continue; }
       closeList();
-      html.push('<p>' + inlineMD(line) + '</p>'); i++;
+      if (line.indexOf('<!-- PA_TREND_CHART -->') >= 0) {
+        html.push('<div class="pa-inline-trend" style="width:100%;height:300px;margin:12px 0;position:relative;"></div>');
+      } else {
+        html.push('<p>' + inlineMD(line) + '</p>');
+      }
+      i++;
     }
     closeList();
     return html.join('\n');
