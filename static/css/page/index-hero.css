@@ -577,3 +577,44 @@ body:has(#hero-section) .footer a:hover {
 .hero-card::after {
   display: none; /* 隐藏小圆装饰，避免和动物重叠 */
 }
+
+/* ===== v4 更多工具列表 ===== */
+.hero-more-tools {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  padding: 0 20px;
+  text-align: center;
+}
+.hero-more-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.hero-more-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.hero-more-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 6px 14px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.hero-more-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.15);
+  transform: translateY(-1px);
+}

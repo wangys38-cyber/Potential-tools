@@ -88,6 +88,10 @@
           <!-- 由内联 JS 渲染 -->
         </div>
       </div>
+      <div class="hero-more-tools" id="heroMoreTools">
+        <div class="hero-more-title">更多工具</div>
+        <div class="hero-more-list" id="heroMoreList"></div>
+      </div>
     </div>
 
     <!-- Dashboard Stats -->
@@ -171,54 +175,86 @@
 
 <script>
 (function() {
-  // 从隐藏的 tools-grid 读取所有工具，渲染成层叠卡片
+  // 五个主要工具（按 URL 关键词匹配）
+  var MAIN_TOOLS = ['project-assistant', 'excel-analysis', 'email-assistant', 'knowledge-base', 'notes'];
+  var MAIN_COLORS = [
+    'linear-gradient(160deg, #6366f1, #4338ca)',
+    'linear-gradient(160deg, #ec4899, #be185d)',
+    'linear-gradient(160deg, #06b6d4, #0e7490)',
+    'linear-gradient(160deg, #22c55e, #15803d)',
+    'linear-gradient(160deg, #f59e0b, #b45309)'
+  ];
+  var MAIN_ANIMALS = ['🐱','🐶','🐰','🦊','🐻'];
+
+  function parseTool(tc) {
+    var nameEl = tc.querySelector('.tc-name') || tc.querySelector('[class*=name]');
+    var descEl = tc.querySelector('.tc-desc') || tc.querySelector('[class*=desc]');
+    var linkEl = tc.querySelector('a') || tc.closest('a');
+    var name = nameEl ? nameEl.textContent.trim() : tc.textContent.trim().slice(0, 10);
+    var desc = descEl ? descEl.textContent.trim() : '';
+    var url = linkEl ? linkEl.getAttribute('href') : (tc.getAttribute('data-url') || '#');
+    if (!url || url === '#') {
+      var onclick = tc.getAttribute('onclick') || '';
+      var m = onclick.match(/location\.href=['"]([^'"]+)['"]/);
+      if (m) url = m[1];
+    }
+    return { name: name, desc: desc, url: url };
+  }
+
   function renderHeroCards() {
     var grid = document.getElementById('tools-grid');
     var wrap = document.getElementById('heroCards');
+    var moreList = document.getElementById('heroMoreList');
+    var moreWrap = document.getElementById('heroMoreTools');
     if (!grid || !wrap) return;
     var cards = grid.querySelectorAll('.tool-card');
     if (!cards.length) { setTimeout(renderHeroCards, 300); return; }
+
+    var allTools = [];
+    cards.forEach(function(tc) { allTools.push(parseTool(tc)); });
+
+    // 筛选主要工具（按 MAIN_TOOLS 顺序）
+    var mainTools = [];
+    var otherTools = [];
+    MAIN_TOOLS.forEach(function(key) {
+      var found = allTools.find(function(t) { return t.url && t.url.indexOf(key) >= 0; });
+      if (found) mainTools.push(found);
+    });
+    allTools.forEach(function(t) {
+      var isMain = mainTools.some(function(m) { return m.url === t.url; });
+      if (!isMain) otherTools.push(t);
+    });
+
+    // 渲染主要工具卡片
     wrap.innerHTML = '';
-    var colors = [
-      'linear-gradient(160deg, #6366f1, #4338ca)',
-      'linear-gradient(160deg, #ec4899, #be185d)',
-      'linear-gradient(160deg, #06b6d4, #0e7490)',
-      'linear-gradient(160deg, #22c55e, #15803d)',
-      'linear-gradient(160deg, #f59e0b, #b45309)',
-      'linear-gradient(160deg, #a855f7, #6b21a8)',
-      'linear-gradient(160deg, #ef4444, #991b1b)',
-      'linear-gradient(160deg, #14b8a6, #0f766e)',
-      'linear-gradient(160deg, #f472b6, #be185d)',
-      'linear-gradient(160deg, #38bdf8, #0369a1)',
-      'linear-gradient(160deg, #4ade80, #166534)',
-      'linear-gradient(160deg, #fbbf24, #92400e)',
-      'linear-gradient(160deg, #c084fc, #6b21a8)',
-      'linear-gradient(160deg, #f87171, #991b1b)',
-      'linear-gradient(160deg, #2dd4bf, #115e59)'
-    ];
-    cards.forEach(function(tc, idx) {
-      var nameEl = tc.querySelector('.tc-name') || tc.querySelector('[class*=name]');
-      var descEl = tc.querySelector('.tc-desc') || tc.querySelector('[class*=desc]');
-      var linkEl = tc.querySelector('a') || tc.closest('a');
-      var name = nameEl ? nameEl.textContent.trim() : tc.textContent.trim().slice(0, 10);
-      var desc = descEl ? descEl.textContent.trim() : '';
-      var url = linkEl ? linkEl.getAttribute('href') : (tc.getAttribute('data-url') || '#');
-      if (!url || url === '#') {
-        var onclick = tc.getAttribute('onclick') || '';
-        var m = onclick.match(/location\.href=['"]([^'"]+)['"]/);
-        if (m) url = m[1];
-      }
+    mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       card.className = 'hero-card';
-      card.href = url;
-      card.style.background = colors[idx % colors.length];
-      var animals = ['🐱','🐶','🐰','🦊','🐻','🐼','🐨','🦁','🐯','🐸','🐵','🐷','🐮','🐔','🐧','🐙','🦋','🐢','🐝','🦄','🐳','🦀','🐞','🦉','🐿️','🦔','🐬','🦩','🐙','🦜','🐢'];
+      card.href = t.url;
+      card.style.background = MAIN_COLORS[idx % MAIN_COLORS.length];
       card.innerHTML =
-        '<div class="hc-animal">' + (animals[idx % animals.length]) + '</div>' +
-        '<div class="hc-name">' + name + '</div>' +
-        (desc ? '<div class="hc-desc">' + desc + '</div>' : '');
+        '<div class="hc-animal">' + MAIN_ANIMALS[idx % MAIN_ANIMALS.length] + '</div>' +
+        '<div class="hc-name">' + t.name + '</div>' +
+        (t.desc ? '<div class="hc-desc">' + t.desc + '</div>' : '');
       wrap.appendChild(card);
     });
+
+    // 渲染其余工具列表
+    if (moreList) {
+      moreList.innerHTML = '';
+      otherTools.forEach(function(t) {
+        var item = document.createElement('a');
+        item.className = 'hero-more-item';
+        item.href = t.url;
+        item.textContent = t.name;
+        item.title = t.desc || t.name;
+        moreList.appendChild(item);
+      });
+      if (moreWrap) {
+        moreWrap.style.display = otherTools.length ? 'block' : 'none';
+      }
+    }
+
     bindHover();
   }
 
