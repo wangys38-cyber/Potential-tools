@@ -17,6 +17,7 @@ import time
 import hashlib
 import logging
 import datetime
+import ttl_cache
 from collections import defaultdict
 
 from excel_analyzers import _analyze_issue_sheet, _match_severity_level
