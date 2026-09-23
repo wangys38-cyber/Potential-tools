@@ -532,7 +532,69 @@ def generate_report_markdown(snap):
         lines.append("当前无高风险新增问题。")
         lines.append("")
 
-    # ===== 5. 模块风险总览（合并 Heatmap + Key Area Updates，一个表格搞定）=====
+    # ===== 5. 模块风险热力图（Heatmap）=====
+    def _heatmap_color(status):
+        return {'High': '#f8d7da', 'Mid': '#fff3cd', 'Low': '#d4edda'}.get(status, '#e2e3e5')
+    def _heatmap_text_color(status):
+        return {'High': '#721c24', 'Mid': '#856404', 'Low': '#155724'}.get(status, '#383d41')
+
+    def _render_heatmap(title, items_list):
+        rows = []
+        rows.append(f"### {title}")
+        rows.append("")
+        rows.append('<table style="border-collapse:separate;border-spacing:8px;text-align:center;margin-bottom:16px;">')
+        for i in range(0, len(items_list), 4):
+            row_items = items_list[i:i+4]
+            rows.append('  <tr>')
+            for display_name, map_key in row_items:
+                ms = module_stats.get(map_key, {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0})
+                status = _calc_status(ms)
+                bg = _heatmap_color(status)
+                fg = _heatmap_text_color(status)
+                rows.append(f'    <td style="background-color:{bg};color:{fg};padding:14px 18px;border-radius:8px;font-weight:600;min-width:130px;font-size:14px;">{display_name}</td>')
+            rows.append('  </tr>')
+        rows.append('</table>')
+        rows.append("")
+        return '\n'.join(rows)
+
+    dev_items = [
+        ('Device: Function', ('Device', 'Function')),
+        ('Device: UI/UX', ('Device', 'UI/UX')),
+        ('Device: Battery Life', ('Device', 'Battery Life')),
+        ('Device: Stability', ('Device', 'Stability')),
+        ('Device: Performance', ('Device', 'Performance')),
+        ('Device: Compatibility', ('Device', 'Compatibility')),
+        ('Device: Connectivity', ('Device', 'Connectivity')),
+        ('Device: GPS', ('Device', 'GPS')),
+        ('Device: Audio', ('Device', 'Audio')),
+        ('Device: OTA', ('Device', 'OTA')),
+        ('Device: Watch face', ('Device', 'Watch face')),
+        ('Device: Instrumentation', ('Device', 'Instrumentation')),
+        ('Device: Localization', ('Device', 'Localization')),
+        ('Algo: Basic Vital', ('Algo', 'Basic Vital')),
+        ('Algo: Daily activities', ('Algo', 'Daily activities')),
+        ('Algo: Exercise', ('Algo', 'Exercise')),
+        ('Algo: Exercise detection', ('Algo', 'Exercise detection')),
+        ('Algo: Wear detection', ('Algo', 'Wear detection')),
+        ('Algo: Sleep', ('Algo', 'Sleep')),
+    ]
+    lines.append(_render_heatmap("Dev SW Heatmap", dev_items))
+
+    ca_items = [
+        ('CA: Function', ('Companion App', 'Function')),
+        ('CA: UI/UX', ('Companion App', 'UI/UX')),
+        ('CA: Stability', ('Companion App', 'Stability')),
+        ('CA: Performance', ('Companion App', 'Performance')),
+    ]
+    lines.append(_render_heatmap("Companion App Heatmap", ca_items))
+
+    ai_items = [
+        ('AI: Function', ('Cloud & AI', 'Function')),
+        ('AI: Performance', ('Cloud & AI', 'Performance')),
+    ]
+    lines.append(_render_heatmap("Cloud & AI Heatmap", ai_items))
+
+    # ===== 6. 模块风险总览表格（详细信息）=====
     lines.append("## 模块风险总览")
     lines.append("")
     lines.append("| 分类 | 模块 | 状态 | 新增BC | 主要问题 |")
@@ -568,7 +630,7 @@ def generate_report_markdown(snap):
             lines.append(f"| {cate_display} | {item} | {_status_badge(status)} | {ms['total']} | {remarks} |")
     lines.append("")
 
-    # ===== 6. 新增 BC 明细（一个表格，iOS 单独标注）=====
+    # ===== 7. 新增 BC 明细（一个表格，iOS 单独标注）=====
     if new_bc:
         lines.append("## 新增 BC 明细")
         lines.append("")
