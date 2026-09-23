@@ -507,6 +507,20 @@
     return bubble;
   }
 
+  function _loadChartJS() {
+    if (window.Chart) return Promise.resolve();
+    if (window._chartLoading) return window._chartLoading;
+    window._chartLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error('chart.js load failed')); };
+      document.head.appendChild(s);
+      setTimeout(function () { if (!window.Chart) reject(new Error('chart.js load timeout')); }, 10000);
+    });
+    return window._chartLoading;
+  }
+
   function renderInlineTrendCharts(container) {
     var charts = container.querySelectorAll('.pa-trend-echart');
     if (!charts.length) return;
@@ -514,12 +528,10 @@
       try {
         var data = JSON.parse(el.getAttribute('data-chart') || '{}');
         if (!data.dates || !data.dates.length) return;
-        var whenChart = (window.PTLoader && window.PTLoader.load)
-          ? window.PTLoader.load('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js')
-          : (window.Chart ? Promise.resolve() : Promise.reject(new Error('no chart')));
-        whenChart.then(function () {
+        _loadChartJS().then(function () {
           var dense = data.dates.length > 31;
-          new Chart(el, {
+          if (el._chartInstance) { el._chartInstance.destroy(); }
+          el._chartInstance = new Chart(el, {
             data: {
               labels: data.dates,
               datasets: [
@@ -549,8 +561,9 @@
               }
             }
           });
-        }).catch(function () {
-          el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载失败</div>';
+        }).catch(function (e) {
+          console.error('chart render failed:', e);
+          el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载失败，请检查网络连接</div>';
         });
       } catch (e) {
         console.error('renderInlineTrendCharts error:', e);
