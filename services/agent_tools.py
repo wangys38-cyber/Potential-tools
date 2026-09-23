@@ -102,9 +102,27 @@ def register_builtin_tools():
         """发送邮件（使用SMTP配置）"""
         to = params.get('to', '')
         subject = params.get('subject', '')
-        body = params.get('body', '') or ctx.data.get('last_report', '')
+        body = params.get('body', '')
+        # 处理 AUTO_DETECT 占位符
         if not to or to == 'AUTO_DETECT':
             return {'error': '未指定收件人，请在任务中明确收件人邮箱'}
+        # body 为 AUTO_DETECT 或空时，使用上下文中的报告
+        if not body or body == 'AUTO_DETECT':
+            body = ctx.data.get('last_report', '')
+        if not body:
+            body = '（无正文内容）'
+        # subject 为 AUTO_DETECT 或空时，自动生成主题
+        if not subject or subject == 'AUTO_DETECT':
+            from datetime import datetime
+            project_name = ''
+            snap = ctx.data.get('project_snapshot')
+            if snap:
+                project_name = snap.get('project_name') or snap.get('name') or ''
+            today = datetime.now().strftime('%Y-%m-%d')
+            if project_name:
+                subject = f'{project_name} 项目状态日报 - {today}'
+            else:
+                subject = f'项目状态日报 - {today}'
         try:
             import smtplib
             import ssl
