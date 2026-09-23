@@ -96,6 +96,7 @@ def resolve_project(text, projects=None):
 
 
 # ============================ 快照读写 ============================
+@ttl_cache.ttl_cache(ttl_seconds=10, key_prefix='pa_snapshot')
 def load_snapshot(project_key):
     p = _snap_path(project_key)
     if not os.path.exists(p):
@@ -112,6 +113,8 @@ def _save_snapshot(snap):
     _ensure_dirs()
     with open(_snap_path(snap['project_key']), 'w', encoding='utf-8') as f:
         json.dump(snap, f, ensure_ascii=False)
+    # 保存后失效缓存
+    ttl_cache.invalidate(f"pa_snapshot:load_snapshot:('{snap['project_key']}',)")
 
 
 def snapshot_age_hours(snap):
