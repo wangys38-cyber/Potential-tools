@@ -724,3 +724,219 @@ body:has(#hero-section) .footer a:hover {
 .hero-card.hover-active {
   box-shadow: 0 24px 60px rgba(0,0,0,0.25) !important;
 }
+
+/* ===== v10 完整设计规范 ===== */
+
+/* 深灰渐变背景（不是纯黑） */
+body:has(#hero-section) {
+  background: linear-gradient(160deg, #1a1a1e 0%, #121216 50%, #0e0e12 100%) !important;
+  min-height: 100vh;
+}
+
+/* 玻璃拟态导航栏 */
+body:has(#hero-section) .nav {
+  background: rgba(26, 26, 30, 0.7) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  height: 56px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Logo */
+body:has(#hero-section) .logo {
+  font-size: 20px;
+  font-weight: 200;
+  letter-spacing: 4px;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 胶囊 Tab */
+body:has(#hero-section) .nav-tabs {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+body:has(#hero-section) .nav-tab {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: none;
+  padding: 6px 18px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+body:has(#hero-section) .nav-tab:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+body:has(#hero-section) .nav-tab.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
+}
+
+/* 右侧按钮 */
+body:has(#hero-section) .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+body:has(#hero-section) .nav-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+body:has(#hero-section) .nav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+body:has(#hero-section) .sign-in-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1e;
+  background: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+body:has(#hero-section) .sign-in-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+}
+
+/* Hero 区域 */
+body:has(#hero-section) .hero-section {
+  padding-top: 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景大字母装饰 */
+.hero-bg-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 220px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.025);
+  letter-spacing: -8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 漂浮元素 */
+.floating-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.float-star {
+  position: absolute;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.3);
+  animation: floatUp 4s ease-in-out infinite;
+}
+.float-bubble {
+  position: absolute;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 12px;
+  animation: floatUp 5s ease-in-out infinite;
+}
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+  50% { transform: translateY(-12px) rotate(5deg); opacity: 1; }
+}
+
+/* 标题区域调整 */
+body:has(#hero-section) .hero-title {
+  position: relative;
+  z-index: 2;
+}
+body:has(#hero-section) .hero-sub {
+  position: relative;
+  z-index: 2;
+}
+body:has(#hero-section) .hero-cards-wrap {
+  position: relative;
+  z-index: 2;
+}
+body:has(#hero-section) .hero-more-tools {
+  position: relative;
+  z-index: 2;
+}
+
+/* 搜索框适配 */
+body:has(#hero-section) .nav-search-box {
+  position: absolute;
+  top: 56px;
+  right: 100px;
+  background: rgba(26, 26, 30, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  z-index: 1001;
+}
+body:has(#hero-section) .nav-search-box input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 13px;
+  width: 200px;
+  outline: none;
+  font-family: inherit;
+}
+body:has(#hero-section) .nav-search-box input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* 隐藏旧的分类标签和用户信息（新导航栏替代） */
+body:has(#hero-section) .nav-category {
+  display: none !important;
+}
+body:has(#hero-section) .user-info {
+  display: none !important;
+}
