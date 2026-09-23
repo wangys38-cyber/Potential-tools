@@ -1045,7 +1045,6 @@ body:has(#hero-section) .user-info {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   margin-left: 0 !important;
   padding: 0 !important;
-  background: none !important;
   border: none !important;
   overflow: visible !important;
   display: block !important;
