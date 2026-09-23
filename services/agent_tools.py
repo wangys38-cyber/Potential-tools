@@ -148,12 +148,50 @@ def register_builtin_tools():
                 return {'sent': False, 'error': 'SMTP未配置，请先在设置中配置邮箱'}
             if not password:
                 return {'sent': False, 'error': 'SMTP密码未配置，请在设置中填写邮箱密码/授权码'}
-            # 构建邮件
-            msg = MIMEMultipart()
+            # 构建邮件（Markdown转HTML，同时包含纯文本和HTML版本）
+            import markdown as md_lib
+            # Markdown转HTML，启用表格、代码块等扩展
+            html_body = md_lib.markdown(
+                body,
+                extensions=['tables', 'fenced_code', 'nl2br', 'sane_lists'],
+                output_format='html5'
+            )
+            # 添加基础样式，让邮件在邮箱中显示更好看
+            html_content = f'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.7; color: #1d1d1f; max-width: 800px; margin: 0 auto; padding: 20px; }}
+h1 {{ font-size: 22px; font-weight: 700; color: #1d1d1f; border-bottom: 2px solid #0071e3; padding-bottom: 8px; margin-top: 24px; }}
+h2 {{ font-size: 18px; font-weight: 600; color: #1d1d1f; margin-top: 20px; }}
+h3 {{ font-size: 16px; font-weight: 600; color: #1d1d1f; margin-top: 16px; }}
+p {{ margin: 8px 0; }}
+strong {{ font-weight: 600; }}
+table {{ border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; }}
+th, td {{ border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; }}
+th {{ background-color: #f5f5f7; font-weight: 600; }}
+tr:nth-child(even) {{ background-color: #fafafa; }}
+ul, ol {{ margin: 8px 0; padding-left: 24px; }}
+li {{ margin: 4px 0; }}
+code {{ background-color: #f5f5f7; padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 13px; }}
+pre {{ background-color: #f5f5f7; padding: 12px; border-radius: 8px; overflow-x: auto; }}
+pre code {{ background: none; padding: 0; }}
+blockquote {{ border-left: 4px solid #0071e3; margin: 12px 0; padding: 8px 16px; background-color: #f5f5f7; color: #666; }}
+hr {{ border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }}
+</style>
+</head>
+<body>
+{html_body}
+</body>
+</html>'''
+            # 使用 alternative 同时包含纯文本和HTML版本
+            msg = MIMEMultipart('alternative')
             msg['From'] = username
             msg['To'] = to
             msg['Subject'] = subject or 'Potential Tools 通知'
             msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            msg.attach(MIMEText(html_content, 'html', 'utf-8'))
             # 智能选择连接方式：根据端口自动判断
             # 465端口 → SSL直接连接；587端口 → STARTTLS；其他按配置
             context = ssl.create_default_context()
