@@ -54,6 +54,40 @@
     try { document.execCommand('copy'); toast(okMsg || '已复制'); } catch (e) { toast('复制失败'); }
     document.body.removeChild(ta);
   }
+
+  // 富文本复制：同时写入 text/html 和 text/plain，粘贴到 Outlook/Word 可保留表格
+  function copyRichText(html, text, okMsg) {
+    // 给表格加内联边框样式，确保粘贴到 Outlook/Word 时有边框
+    var styled = html
+      .replace(/<table(?![^>]*style=)/gi, '<table style="border-collapse:collapse;width:100%;"')
+      .replace(/<th(?![^>]*style=)/gi, '<th style="border:1px solid #bbb;padding:6px 10px;background:#f5f5f5;font-weight:600;text-align:left;"')
+      .replace(/<td(?![^>]*style=)/gi, '<td style="border:1px solid #ddd;padding:6px 10px;"');
+    if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
+      try {
+        navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([styled], { type: 'text/html' }),
+          'text/plain': new Blob([text || ''], { type: 'text/plain' })
+        })]).then(function () { toast(okMsg || '已复制'); },
+          function () { fallbackRichCopy(styled, text, okMsg); });
+        return;
+      } catch (e) { /* fall through */ }
+    }
+    fallbackRichCopy(styled, text, okMsg);
+  }
+  function fallbackRichCopy(html, text, okMsg) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    div.style.position = 'fixed'; div.style.left = '-9999px'; div.style.top = '0';
+    document.body.appendChild(div);
+    var range = document.createRange();
+    range.selectNodeContents(div);
+    var sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    try { document.execCommand('copy'); toast(okMsg || '已复制'); }
+    catch (e) { copyText(text || div.innerText, okMsg); }
+    sel.removeAllRanges();
+    document.body.removeChild(div);
+  }
   var toastTimer = null;
   function toast(msg) {
     var t = document.createElement('div');
@@ -460,7 +494,7 @@
     if (role === 'assistant') {
       var cp = document.createElement('button');
       cp.className = 'pa-copy'; cp.textContent = '复制';
-      cp.addEventListener('click', function () { copyText(content, '已复制回复'); });
+      cp.addEventListener('click', function () { copyRichText(bubble.innerHTML, content, '已复制回复'); });
       wrap.appendChild(cp);
     }
     msgs.appendChild(wrap);
@@ -574,7 +608,7 @@
     var cp = document.createElement('button');
     cp.className = 'pa-copy'; cp.textContent = '复制分析';
     var acc = '';
-    cp.addEventListener('click', function () { copyText(acc || body.innerText, '已复制根因分析'); });
+    cp.addEventListener('click', function () { copyRichText(body.innerHTML, acc || body.innerText, '已复制根因分析'); });
     wrap.appendChild(cp);
     msgs.appendChild(wrap);
     msgs.scrollTop = msgs.scrollHeight;
