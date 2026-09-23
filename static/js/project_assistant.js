@@ -529,9 +529,13 @@
   function renderInlineTrendCharts(container) {
     var charts = container.querySelectorAll('.pa-inline-trend');
     if (!charts.length) return;
-    console.log('[TrendChart] rendering', charts.length, 'charts, snap:', !!(state.snap), 'daily:', (state.snap && state.snap.daily_stats) ? state.snap.daily_stats.length : 0);
-    charts.forEach(function(el) { if (!el._rendered) { el._rendered = true; el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载中...</div>'; } });
-    // 从 state.snap 获取趋势数据
+    // 直接检查 window.Chart，HTML中已直接引入，不依赖动态加载
+    if (!window.Chart) {
+      charts.forEach(function(el) {
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">Chart.js 未加载，请按 Ctrl+Shift+R 强制刷新页面</div>';
+      });
+      return;
+    }
     var daily = (state.snap && state.snap.daily_stats) ? state.snap.daily_stats : [];
     if (!daily || daily.length < 2) {
       charts.forEach(function(el) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">暂无趋势数据</div>'; });
@@ -549,9 +553,10 @@
       cumulative.push(Math.max(cum, 0));
     });
     charts.forEach(function(el) {
-      _loadChartJS().then(function () {
+      try {
         var dense = dates.length > 31;
         if (el._chartInstance) { el._chartInstance.destroy(); }
+        el.innerHTML = '';
         el._chartInstance = new Chart(el, {
           data: {
             labels: dates,
@@ -576,9 +581,9 @@
             }
           }
         });
-      }).catch(function (e) {
-        el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">图表加载失败: ' + (e.message || e) + '</div>';
-      });
+      } catch (e) {
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">图表渲染失败: ' + (e.message || e) + '</div>';
+      }
     });
   }
 
