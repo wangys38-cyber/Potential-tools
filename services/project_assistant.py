@@ -438,7 +438,13 @@ def generate_report_markdown(snap):
             return 'Low'
 
     def _status_emoji(status):
-        return {'High': '🔴 High', 'Mid': '🟡 Mid', 'Low': '🟢 Low'}.get(status, '⚪ Low')
+        colors = {
+            'High': ('#f8d7da', '#721c24', '🔴'),
+            'Mid': ('#fff3cd', '#856404', '🟡'),
+            'Low': ('#d4edda', '#155724', '🟢'),
+        }
+        bg, fg, emoji = colors.get(status, ('#e2e3e5', '#383d41', '⚪'))
+        return f'<span style="background-color:{bg};color:{fg};padding:3px 10px;border-radius:4px;font-weight:600;display:inline-block;min-width:60px;text-align:center;">{emoji} {status}</span>'
 
     # ===== 1. 项目标题 + 总体风险等级 =====
     total_blocker = sum(ms['blocker'] for ms in module_stats.values())
