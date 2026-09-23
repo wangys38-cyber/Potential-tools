@@ -507,56 +507,43 @@ def generate_report_markdown(snap):
         lines.append("- 当前无高风险新增问题。")
         lines.append("")
 
-    # ===== 4. CR 每周新增/解决趋势图 =====
-    lines.append("## CR 每周新增 vs 解决趋势")
+    # ===== 4. 每日趋势与累计 BUG 曲线（ECharts）=====
+    lines.append("## 每日趋势与累计 BUG 曲线")
     lines.append("")
     daily = snap.get('daily_stats', []) or []
-    if daily:
-        # 按周聚合
-        from collections import defaultdict
-        weekly = defaultdict(lambda: {'new': 0, 'resolved': 0, 'dates': []})
+    if daily and len(daily) >= 2:
+        # 准备图表数据
+        dates = []
+        daily_new = []
+        daily_resolved = []
+        cumulative = []
+        cum = 0
         for d in daily:
-            date_str = d.get('date', '')
+            date_str = str(d.get('date', ''))[:10]
             if not date_str:
                 continue
-            try:
-                dt = datetime.datetime.strptime(str(date_str)[:10], '%Y-%m-%d')
-                # 计算周一日期作为周标识
-                monday = dt - datetime.timedelta(days=dt.weekday())
-                week_key = monday.strftime('%m/%d')
-                weekly[week_key]['new'] += d.get('new_count', 0)
-                weekly[week_key]['resolved'] += d.get('resolved_count', 0)
-                weekly[week_key]['dates'].append(date_str)
-            except Exception:
-                continue
-        # 取最近8周
-        weeks = sorted(weekly.keys())[-8:]
-        if weeks:
-            max_val = max(max(weekly[w]['new'], weekly[w]['resolved']) for w in weeks) or 1
-            # 生成HTML柱状图
-            lines.append('<div style="display:flex;align-items:flex-end;gap:16px;height:200px;padding:16px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;">')
-            for w in weeks:
-                new_h = int(weekly[w]['new'] / max_val * 160)
-                res_h = int(weekly[w]['resolved'] / max_val * 160)
-                lines.append(f'  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">')
-                lines.append(f'    <div style="display:flex;align-items:flex-end;gap:3px;height:170px;">')
-                lines.append(f'      <div title="新增:{weekly[w]["new"]}" style="width:24px;height:{new_h}px;background:#5b8ff9;border-radius:3px 3px 0 0;min-height:2px;"></div>')
-                lines.append(f'      <div title="解决:{weekly[w]["resolved"]}" style="width:24px;height:{res_h}px;background:#5ad8a6;border-radius:3px 3px 0 0;min-height:2px;"></div>')
-                lines.append(f'    </div>')
-                lines.append(f'    <div style="font-size:11px;color:#666;">{w}</div>')
-                lines.append(f'  </div>')
-            lines.append('</div>')
-            # 图例
-            lines.append('<div style="display:flex;gap:20px;margin-bottom:16px;font-size:12px;color:#666;">')
-            lines.append('  <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;background:#5b8ff9;border-radius:2px;"></span>新增</span>')
-            lines.append('  <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;background:#5ad8a6;border-radius:2px;"></span>解决</span>')
-            lines.append('</div>')
-            lines.append("")
+            nc = d.get('new_count', 0)
+            rc = d.get('resolved_count', 0)
+            cum += nc - rc
+            dates.append(date_str[5:])  # MM-DD
+            daily_new.append(nc)
+            daily_resolved.append(rc)
+            cumulative.append(max(cum, 0))
+        chart_data = {
+            'dates': dates,
+            'daily_new': daily_new,
+            'daily_resolved': daily_resolved,
+            'cumulative': cumulative,
+        }
+        data_json = json.dumps(chart_data, ensure_ascii=False)
+        # 输出ECharts容器，前端检测到后自动渲染
+        lines.append('<div class="pa-trend-echart" data-chart=\'' + data_json + '\' style="width:100%;height:320px;margin-bottom:16px;"></div>')
+        lines.append("")
     else:
         lines.append("（暂无趋势数据）")
         lines.append("")
 
-    # ===== 5. Heatmap 热力图 =====
+    # ===== 5. Heatmap 热力图 =====    # ===== 5. Heatmap 热力图 =====
     def _heatmap_color(status):
         return {'High': '#f8d7da', 'Mid': '#fff3cd', 'Low': '#d4edda'}.get(status, '#e2e3e5')
 

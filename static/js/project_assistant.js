@@ -500,7 +500,62 @@
     }
     msgs.appendChild(wrap);
     msgs.scrollTop = msgs.scrollHeight;
+    // 渲染内嵌的趋势图（ECharts/Chart.js容器）
+    if (role !== 'user') {
+      renderInlineTrendCharts(bubble);
+    }
     return bubble;
+  }
+
+  function renderInlineTrendCharts(container) {
+    var charts = container.querySelectorAll('.pa-trend-echart');
+    if (!charts.length) return;
+    charts.forEach(function(el) {
+      try {
+        var data = JSON.parse(el.getAttribute('data-chart') || '{}');
+        if (!data.dates || !data.dates.length) return;
+        var whenChart = (window.PTLoader && window.PTLoader.load)
+          ? window.PTLoader.load('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js')
+          : (window.Chart ? Promise.resolve() : Promise.reject(new Error('no chart')));
+        whenChart.then(function () {
+          var dense = data.dates.length > 31;
+          new Chart(el, {
+            data: {
+              labels: data.dates,
+              datasets: [
+                { type: 'bar', label: '每日新增', data: data.daily_new, backgroundColor: 'rgba(10,132,255,.55)',
+                  borderRadius: 3, order: 2, maxBarThickness: 14 },
+                { type: 'bar', label: '每日解决', data: data.daily_resolved, backgroundColor: 'rgba(52,199,89,.5)',
+                  borderRadius: 3, order: 2, maxBarThickness: 14 },
+                { type: 'line', label: '累计 BUG', data: data.cumulative, yAxisID: 'y1',
+                  borderColor: '#ff9500', backgroundColor: '#ff9500', tension: .3,
+                  pointRadius: dense ? 0 : 3, pointHoverRadius: 5, borderWidth: 2, order: 1 }
+              ]
+            },
+            options: {
+              maintainAspectRatio: false, responsive: true,
+              interaction: { mode: 'index', intersect: false },
+              plugins: {
+                legend: { labels: { boxWidth: 12, font: { size: 12 } } },
+                tooltip: { enabled: true }
+              },
+              scales: {
+                y: { beginAtZero: true, title: { display: true, text: '每日', font: { size: 11 } },
+                  grid: { color: 'rgba(120,120,128,.15)' } },
+                y1: { position: 'right', beginAtZero: true, title: { display: true, text: '累计', font: { size: 11 } },
+                  grid: { drawOnChartArea: false } },
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+                  grid: { display: false } }
+              }
+            }
+          });
+        }).catch(function () {
+          el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载失败</div>';
+        });
+      } catch (e) {
+        console.error('renderInlineTrendCharts error:', e);
+      }
+    });
   }
 
   /* ---------------- CR 单根因分析（RCA） ---------------- */
