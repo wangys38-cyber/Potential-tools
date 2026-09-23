@@ -458,12 +458,13 @@
 
   // 全局扇形排列transform，bindHover和renderHeroCards共享
   var fanTransforms = [
-    'translateY(32px) rotate(-12deg)',
-    'translateY(12px) rotate(-6deg)',
-    'translateY(-20px)',
-    'translateY(12px) rotate(6deg)',
-    'translateY(32px) rotate(12deg)'
+    'translateY(28px) rotate(-14deg)',
+    'translateY(10px) rotate(-7deg)',
+    'translateY(-24px)',
+    'translateY(10px) rotate(7deg)',
+    'translateY(28px) rotate(14deg)'
   ];
+  var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
   function renderHeroCards() {
     var grid = document.getElementById('tools-grid');
@@ -496,12 +497,13 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative block rounded-3xl cursor-pointer no-underline w-[180px] h-[240px] ' +
+      card.className = 'relative block rounded-3xl cursor-pointer transition-transform duration-300 ease-out no-underline w-[180px] h-[240px] ' +
         'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.2)] ' +
-        (idx > 0 ? '-ml-3' : '');
+        (idx > 0 ? '-ml-6' : '');
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
       card.style.background = CARD_GRADIENTS[idx % 5];
+      card.style.zIndex = cardZIndex[idx % 5];
       card.innerHTML =
         '<div class="absolute inset-0 flex items-center justify-center">' +
         '<span class="text-white text-[18px] font-bold tracking-wide text-center px-3" style="text-shadow:0 2px 8px rgba(0,0,0,0.4)">' + t.name + '</span>' +

@@ -1069,3 +1069,11 @@ body:has(#hero-section) .user-info {
   padding: 20px 0 60px 0 !important;
   overflow: visible !important;
 }
+
+/* v17 更多工具下移 */
+#heroMoreTools {
+  margin-top: 60px !important;
+}
+#heroCards {
+  padding: 40px 0 20px 0 !important;
+}
