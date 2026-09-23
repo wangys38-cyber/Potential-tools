@@ -426,6 +426,7 @@
   <path d="M52 68 Q60 75 68 68" stroke="#2d2d2d" stroke-width="1.8" fill="none" stroke-linecap="round"/>
 </svg>`;
   var MAIN_TAGS = ['AI Powered', 'Fast Send', 'Smart Q&A', 'Quick Note', 'Deep Link'];
+  var BUDDY_IMAGES = ['cloudy.png', 'dumrics.png', 'orbit.png', 'lumy.png', 'sweetie.png'];
   var MAIN_ANIMALS = [CLOUD_SVG, ROBOT_SVG, PLANET_HALO_SVG, FLOWER_SVG, HEART_MONSTER_SVG];
 
   function parseTool(tc) {
@@ -487,20 +488,16 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative flex flex-col items-center justify-end pb-6 rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-visible w-[180px] h-[240px] ' +
-        'shadow-[0_4px_8px_rgba(0,0,0,0.1),0_12px_32px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] ' +
+      card.className = 'relative rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-hidden w-[180px] h-[240px] ' +
+        'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.2)] ' +
         (idx > 0 ? '-ml-3' : '');
       card.href = t.url;
-      card.style.background = MAIN_COLORS[idx % MAIN_COLORS.length];
       card.style.transform = fanTransforms[idx % 5];
       card.style.willChange = 'transform';
-      var animalTop = center ? 'top-14' : 'top-12';
-      var animalSize = center ? 'w-[105px] h-[105px]' : 'w-[95px] h-[95px]';
-      var nameMargin = center ? 'mt-[88px] text-base' : 'mt-[76px] text-[15px]';
       card.innerHTML =
-        '<div class="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent rounded-t-3xl pointer-events-none z-[1]"></div>' +
-        '<div class="absolute top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-[0.5px] text-white/90 z-[3] whitespace-nowrap" style="text-shadow:0 1px 3px rgba(0,0,0,0.3)">' + t.name + '</div>' +
-        '<div class="absolute ' + animalTop + ' left-1/2 -translate-x-1/2 ' + animalSize + ' z-[2] flex items-center justify-center">' + MAIN_ANIMALS[idx % MAIN_ANIMALS.length] + '</div>';
+        '<img src="/static/images/buddies/' + BUDDY_IMAGES[idx % 5] + '?v={{ STATIC_VERSION }}" class="absolute inset-0 w-full h-full object-cover" />' +
+        '<div class="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-[1]"></div>' +
+        '<div class="absolute top-3 left-1/2 -translate-x-1/2 text-[12px] font-bold tracking-[0.5px] text-white z-[3] whitespace-nowrap" style="text-shadow:0 1px 4px rgba(0,0,0,0.5)">' + t.name + '</div>';
       wrap.appendChild(card);
     });
 
@@ -543,7 +540,7 @@
             // 悬停卡片：抬起+最高层级+加深阴影
             c.style.transform = 'translateY(-18px) scale(1.06)';
             c.style.zIndex = '100';
-            c.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15), 0 28px 64px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)';
+            c.style.boxShadow = '0 12px 24px rgba(0,0,0,0.25), 0 32px 72px rgba(0,0,0,0.35)';
           } else if (i < idx) {
             // 左侧邻位：在原始扇形基础上向左让位
             c.style.transform = fanTransforms[i % 5] + ' translateX(-26px)';
