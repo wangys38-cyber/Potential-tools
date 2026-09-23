@@ -618,3 +618,13 @@ body:has(#hero-section) .footer a:hover {
   border-color: rgba(255,255,255,0.15);
   transform: translateY(-1px);
 }
+
+/* ===== v5 去除卡片白边 ===== */
+.hero-card {
+  border: none !important;
+  outline: none;
+}
+/* 确保第3张卡片z-index不残留 */
+.hero-card:nth-child(3) {
+  z-index: 1;
+}
