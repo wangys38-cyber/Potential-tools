@@ -469,31 +469,9 @@ def generate_report_markdown(snap):
     # ===== 3. 每日趋势与累计 BUG 曲线 =====
     lines.append("## 每日趋势与累计 BUG 曲线")
     lines.append("")
-    daily = snap.get('daily_stats', []) or []
-    if daily and len(daily) >= 2:
-        dates = []
-        daily_new = []
-        daily_resolved = []
-        cumulative = []
-        cum = 0
-        for d in daily:
-            date_str = str(d.get('date', ''))[:10]
-            if not date_str:
-                continue
-            nc = d.get('new_count', 0)
-            rc = d.get('resolved_count', 0)
-            cum += nc - rc
-            dates.append(date_str[5:])
-            daily_new.append(nc)
-            daily_resolved.append(rc)
-            cumulative.append(max(cum, 0))
-        chart_data = {'dates': dates, 'daily_new': daily_new, 'daily_resolved': daily_resolved, 'cumulative': cumulative}
-        data_json = json.dumps(chart_data, ensure_ascii=False)
-        lines.append('<div class="pa-trend-echart" data-chart=\'' + data_json + '\' style="width:100%;height:300px;margin-bottom:16px;"></div>')
-        lines.append("")
-    else:
-        lines.append("（暂无趋势数据）")
-        lines.append("")
+    # 趋势图由前端动态渲染，后端只输出标记
+    lines.append("<!-- PA_TREND_CHART -->")
+    lines.append("")
 
     # ===== 4. Key Issues（关键问题）=====
     lines.append("## Key Issues")

@@ -522,62 +522,56 @@
   }
 
   function renderInlineTrendCharts(container) {
-    var charts = container.querySelectorAll('.pa-trend-echart');
-    console.log('[renderInlineTrendCharts] found', charts.length, 'chart containers');
-    if (!charts.length) {
-        console.log('[renderInlineTrendCharts] no chart containers found');
-        return;
+    var charts = container.querySelectorAll('.pa-inline-trend');
+    if (!charts.length) return;
+    // 从 state.snap 获取趋势数据
+    var daily = (state.snap && state.snap.daily_stats) ? state.snap.daily_stats : [];
+    if (!daily || daily.length < 2) {
+      charts.forEach(function(el) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">暂无趋势数据</div>'; });
+      return;
     }
+    var dates = [], daily_new = [], daily_resolved = [], cumulative = [], cum = 0;
+    daily.forEach(function(d) {
+      var ds = (d.date || '').toString().slice(0, 10);
+      if (!ds) return;
+      var nc = d.new_count || 0, rc = d.resolved_count || 0;
+      cum += nc - rc;
+      dates.push(ds.slice(5));
+      daily_new.push(nc);
+      daily_resolved.push(rc);
+      cumulative.push(Math.max(cum, 0));
+    });
     charts.forEach(function(el) {
-      try {
-        var rawData = el.getAttribute('data-chart') || '';
-        console.log('[renderInlineTrendCharts] raw data length:', rawData.length, 'preview:', rawData.substring(0, 100));
-        var data = JSON.parse(rawData);
-        console.log('[renderInlineTrendCharts] parsed data:', data.dates ? data.dates.length : 0, 'dates');
-        if (!data.dates || !data.dates.length) {
-            el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">无趋势数据</div>';
-            return;
-        }
-        _loadChartJS().then(function () {
-          var dense = data.dates.length > 31;
-          if (el._chartInstance) { el._chartInstance.destroy(); }
-          el._chartInstance = new Chart(el, {
-            data: {
-              labels: data.dates,
-              datasets: [
-                { type: 'bar', label: '每日新增', data: data.daily_new, backgroundColor: 'rgba(10,132,255,.55)',
-                  borderRadius: 3, order: 2, maxBarThickness: 14 },
-                { type: 'bar', label: '每日解决', data: data.daily_resolved, backgroundColor: 'rgba(52,199,89,.5)',
-                  borderRadius: 3, order: 2, maxBarThickness: 14 },
-                { type: 'line', label: '累计 BUG', data: data.cumulative, yAxisID: 'y1',
-                  borderColor: '#ff9500', backgroundColor: '#ff9500', tension: .3,
-                  pointRadius: dense ? 0 : 3, pointHoverRadius: 5, borderWidth: 2, order: 1 }
-              ]
-            },
-            options: {
-              maintainAspectRatio: false, responsive: true,
-              interaction: { mode: 'index', intersect: false },
-              plugins: {
-                legend: { labels: { boxWidth: 12, font: { size: 12 } } },
-                tooltip: { enabled: true }
-              },
-              scales: {
-                y: { beginAtZero: true, title: { display: true, text: '每日', font: { size: 11 } },
-                  grid: { color: 'rgba(120,120,128,.15)' } },
-                y1: { position: 'right', beginAtZero: true, title: { display: true, text: '累计', font: { size: 11 } },
-                  grid: { drawOnChartArea: false } },
-                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
-                  grid: { display: false } }
-              }
+      _loadChartJS().then(function () {
+        var dense = dates.length > 31;
+        if (el._chartInstance) { el._chartInstance.destroy(); }
+        el._chartInstance = new Chart(el, {
+          data: {
+            labels: dates,
+            datasets: [
+              { type: 'bar', label: '每日新增', data: daily_new, backgroundColor: 'rgba(10,132,255,.55)',
+                borderRadius: 3, order: 2, maxBarThickness: 14 },
+              { type: 'bar', label: '每日解决', data: daily_resolved, backgroundColor: 'rgba(52,199,89,.5)',
+                borderRadius: 3, order: 2, maxBarThickness: 14 },
+              { type: 'line', label: '累计 BUG', data: cumulative, yAxisID: 'y1',
+                borderColor: '#ff9500', backgroundColor: '#ff9500', tension: .3,
+                pointRadius: dense ? 0 : 3, pointHoverRadius: 5, borderWidth: 2, order: 1 }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false, responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { boxWidth: 12, font: { size: 12 } } }, tooltip: { enabled: true } },
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: '每日', font: { size: 11 } }, grid: { color: 'rgba(120,120,128,.15)' } },
+              y1: { position: 'right', beginAtZero: true, title: { display: true, text: '累计', font: { size: 11 } }, grid: { drawOnChartArea: false } },
+              x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } }
             }
-          });
-        }).catch(function (e) {
-          console.error('chart render failed:', e);
-          el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">图表加载失败: ' + (e.message || e) + '<br><small style="color:#999;">请检查网络连接或刷新页面重试</small></div>';
+          }
         });
-      } catch (e) {
-        console.error('renderInlineTrendCharts error:', e);
-      }
+      }).catch(function (e) {
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">图表加载失败: ' + (e.message || e) + '</div>';
+      });
     });
   }
 
