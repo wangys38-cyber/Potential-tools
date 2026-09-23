@@ -44,3 +44,25 @@ body:has(#hero-section) .nav-btn:hover { color: #fff; background: rgba(255,255,2
   #heroCards { flex-wrap: wrap; gap: 12px; padding: 20px 0; }
   #heroCards a { transform: none !important; margin-left: 0 !important; }
 }
+/* 首页 Footer 深色适配 */
+body:has(#hero-section) .footer {
+  background: #000 !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.4) !important;
+  padding: 24px 24px !important;
+  margin-top: auto !important;
+}
+body:has(#hero-section) .footer a {
+  color: rgba(255,255,255,0.6) !important;
+}
+body:has(#hero-section) .footer a:hover {
+  color: #fff !important;
+}
+body:has(#hero-section) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body:has(#hero-section) > div:not(.footer):not(#hero-section) {
+  flex: 1;
+}
