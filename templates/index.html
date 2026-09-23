@@ -176,7 +176,7 @@
 <script>
 (function() {
   // 五个主要工具（按 URL 关键词匹配）
-  var MAIN_TOOLS = ['project-assistant', 'excel-analysis', 'email-assistant', 'knowledge-base', 'notes'];
+  var MAIN_TOOLS = ['project-assistant', 'email-assistant', 'knowledge-base', 'noteNB', 'knowledge-graph'];
   var MAIN_COLORS = [
     'linear-gradient(160deg, #6366f1, #4338ca)',
     'linear-gradient(160deg, #ec4899, #be185d)',
@@ -192,12 +192,17 @@
     var linkEl = tc.querySelector('a') || tc.closest('a');
     var name = nameEl ? nameEl.textContent.trim() : tc.textContent.trim().slice(0, 10);
     var desc = descEl ? descEl.textContent.trim() : '';
-    var url = linkEl ? linkEl.getAttribute('href') : (tc.getAttribute('data-url') || '#');
-    if (!url || url === '#') {
+    var url = linkEl ? linkEl.getAttribute('href') : (tc.getAttribute('data-url') || '');
+    if (!url) {
       var onclick = tc.getAttribute('onclick') || '';
-      var m = onclick.match(/location\.href=['"]([^'"]+)['"]/);
+      var m = onclick.match(/openTool\(['"]([^'"]+)['"]\)/);
       if (m) url = m[1];
+      else {
+        var m2 = onclick.match(/location\.href=['"]([^'"]+)['"]/);
+        if (m2) url = m2[1];
+      }
     }
+    if (!url) url = '#';
     return { name: name, desc: desc, url: url };
   }
 
