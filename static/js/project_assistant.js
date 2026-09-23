@@ -445,7 +445,16 @@
         continue;
       }
       var hm = line.match(/^(#{1,6})\s+(.*)$/);
-      if (hm) { closeList(); html.push('<h' + hm[1].length + '>' + inlineMD(hm[2]) + '</h' + hm[1].length + '>'); i++; continue; }
+      if (hm) {
+        closeList();
+        var headingText = hm[2];
+        html.push('<h' + hm[1].length + '>' + inlineMD(headingText) + '</h' + hm[1].length + '>');
+        // 趋势图标题后面直接输出图表容器（不依赖任何回调时机）
+        if (headingText.indexOf('每日趋势') >= 0 && headingText.indexOf('累计') >= 0) {
+          html.push('<div class="pa-inline-trend" style="width:100%;height:300px;margin:12px 0;position:relative;"></div>');
+        }
+        i++; continue;
+      }
       if (/^\s*>\s?/.test(line)) { closeList(); html.push('<blockquote>' + inlineMD(line.replace(/^\s*>\s?/, '')) + '</blockquote>'); i++; continue; }
       var ul = line.match(/^\s*[-*]\s+(.*)$/);
       var ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
@@ -859,24 +868,8 @@
         if (acc) { state.history.push({ role: 'assistant', content: acc }); saveChatHistory(); }
         sendBtn.disabled = false;
         msgs.scrollTop = msgs.scrollHeight;
-        // 找到"每日趋势与累计 BUG 曲线"标题，在后面插入图表容器并渲染
-        setTimeout(function() {
-          var headings = botBubble.querySelectorAll('h1,h2,h3,h4');
-          for (var i = 0; i < headings.length; i++) {
-            if (headings[i].textContent.indexOf('每日趋势') >= 0 && headings[i].textContent.indexOf('累计') >= 0) {
-              var chartDiv = document.createElement('div');
-              chartDiv.className = 'pa-inline-trend';
-              chartDiv.style.cssText = 'width:100%;height:300px;margin:12px 0;position:relative;';
-              if (headings[i].nextSibling) {
-                headings[i].parentNode.insertBefore(chartDiv, headings[i].nextSibling);
-              } else {
-                headings[i].parentNode.appendChild(chartDiv);
-              }
-              renderInlineTrendCharts(botBubble);
-              break;
-            }
-          }
-        }, 50);
+        // 容器已由renderMD在标题后直接创建，这里只需要渲染图表
+        renderInlineTrendCharts(botBubble);
       }
       return pump();
     }).catch(function (e) {
