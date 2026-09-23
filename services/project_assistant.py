@@ -371,13 +371,13 @@ def _is_functional_issue(title, module=''):
 
 
 def generate_report_markdown(snap):
-    """专业项目状态报告格式：项目标题+风险等级、Key Issues、Key Area Updates表格。"""
+    """专业项目状态报告 - 优化版：结构清晰，无冗余信息。"""
+    import json
     lines = []
     st = snap.get('stats', {}) or {}
     project_name = snap.get('project_name') or snap.get('name') or 'Project'
 
     # ===== 模块到预定义分类的映射 =====
-    # (关键词列表, 大类, 小项)
     _MODULE_MAP = [
         (['性能', 'performance', '启动', '响应', '卡顿', '帧率'], 'Device', 'Performance'),
         (['稳定', 'stability', '崩溃', 'crash', '闪退', '死机', '重启', 'reboot', 'anr', 'freeze'], 'Device', 'Stability'),
@@ -400,7 +400,6 @@ def generate_report_markdown(snap):
     ]
 
     def _map_module(module_name):
-        """将模块名映射到(大类, 小项)"""
         m = (module_name or '').lower()
         for keywords, cate, item in _MODULE_MAP:
             for kw in keywords:
@@ -413,7 +412,7 @@ def generate_report_markdown(snap):
     new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
 
     # ===== 按模块聚合 =====
-    module_stats = {}  # key: (cate, item) -> {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0}
+    module_stats = {}
     for r in new_bc:
         cate, item = _map_module(r.get('module', ''))
         key = (cate, item)
@@ -426,7 +425,6 @@ def generate_report_markdown(snap):
         elif r.get('sev') == 'critical':
             module_stats[key]['critical'] += 1
 
-    # ===== 计算风险等级 =====
     def _calc_status(ms):
         if ms['blocker'] >= 2 or ms['total'] >= 5:
             return 'High'
@@ -434,10 +432,9 @@ def generate_report_markdown(snap):
             return 'Mid'
         elif ms['total'] >= 1:
             return 'Low'
-        else:
-            return 'Low'
+        return 'Low'
 
-    def _status_emoji(status):
+    def _status_badge(status):
         colors = {
             'High': ('#f8d7da', '#721c24', '🔴'),
             'Mid': ('#fff3cd', '#856404', '🟡'),
@@ -446,7 +443,7 @@ def generate_report_markdown(snap):
         bg, fg, emoji = colors.get(status, ('#e2e3e5', '#383d41', '⚪'))
         return f'<span style="background-color:{bg};color:{fg};padding:3px 10px;border-radius:4px;font-weight:600;display:inline-block;min-width:60px;text-align:center;">{emoji} {status}</span>'
 
-    # ===== 1. 项目标题 + 总体风险等级 =====
+    # ===== 1. 项目标题 + 风险等级 =====
     total_blocker = sum(ms['blocker'] for ms in module_stats.values())
     total_bc = len(new_bc)
     if total_blocker >= 3 or total_bc >= 15:
@@ -460,59 +457,20 @@ def generate_report_markdown(snap):
     lines.append(f"**{overall_risk}**")
     lines.append("")
 
-    # ===== 2. 总体状态 =====
+    # ===== 2. 核心指标（一行展示）=====
     total_cr = st.get('total', 0)
     unresolved = st.get('unresolved', 0)
     bc_unresolved = st.get('bc_unresolved', 0)
     fail_count = st.get('fail', 0)
     pass_count = st.get('pass', 0)
-    lines.append(f"**总体状态**：CR总数 {total_cr}，未解决 {unresolved}，未解决BC {bc_unresolved}；模块 FAIL {fail_count} / PASS {pass_count}；新增BC {total_bc}（Blocker {total_blocker}）。")
+    lines.append(f"**核心指标**：CR总数 {total_cr} ｜ 未解决 {unresolved} ｜ 未解决BC {bc_unresolved} ｜ 模块 FAIL {fail_count}/PASS {pass_count} ｜ 本周新增BC {total_bc}（Blocker {total_blocker}）")
     lines.append("")
 
-    # ===== 3. Key Issues（高风险问题）=====
-    lines.append("## Key Issues:")
-    lines.append("")
-
-    # 功能性 Blocker
-    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
-    # 标签带 blocker
-    def _has_blocker_label(rec):
-        labels = rec.get('labels', '')
-        if isinstance(labels, (list, tuple)):
-            label_text = ' '.join(str(l) for l in labels)
-        else:
-            label_text = str(labels or '')
-        return 'blocker' in label_text.lower()
-    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
-
-    if functional_blockers:
-        lines.append(f"- **[High-Risk] 用户无法忍受的功能性 Blocker 问题（{len(functional_blockers)}个）：**")
-        for r in functional_blockers[:5]:
-            title = str(r.get('title', '')).replace('\n', ' ')
-            lines.append(f"  - [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
-        if len(functional_blockers) > 5:
-            lines.append(f"  - ...等共{len(functional_blockers)}个")
-        lines.append("")
-
-    if label_blockers:
-        lines.append(f"- **[Mid-Risk] 标签带 blocker、影响过点的问题（{len(label_blockers)}个）：**")
-        for r in label_blockers[:5]:
-            title = str(r.get('title', '')).replace('\n', ' ')
-            lines.append(f"  - [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
-        if len(label_blockers) > 5:
-            lines.append(f"  - ...等共{len(label_blockers)}个")
-        lines.append("")
-
-    if not functional_blockers and not label_blockers:
-        lines.append("- 当前无高风险新增问题。")
-        lines.append("")
-
-    # ===== 4. 每日趋势与累计 BUG 曲线（ECharts）=====
+    # ===== 3. 每日趋势与累计 BUG 曲线 =====
     lines.append("## 每日趋势与累计 BUG 曲线")
     lines.append("")
     daily = snap.get('daily_stats', []) or []
     if daily and len(daily) >= 2:
-        # 准备图表数据
         dates = []
         daily_new = []
         daily_resolved = []
@@ -525,94 +483,61 @@ def generate_report_markdown(snap):
             nc = d.get('new_count', 0)
             rc = d.get('resolved_count', 0)
             cum += nc - rc
-            dates.append(date_str[5:])  # MM-DD
+            dates.append(date_str[5:])
             daily_new.append(nc)
             daily_resolved.append(rc)
             cumulative.append(max(cum, 0))
-        chart_data = {
-            'dates': dates,
-            'daily_new': daily_new,
-            'daily_resolved': daily_resolved,
-            'cumulative': cumulative,
-        }
+        chart_data = {'dates': dates, 'daily_new': daily_new, 'daily_resolved': daily_resolved, 'cumulative': cumulative}
         data_json = json.dumps(chart_data, ensure_ascii=False)
-        # 输出ECharts容器，前端检测到后自动渲染
-        lines.append('<div class="pa-trend-echart" data-chart=\'' + data_json + '\' style="width:100%;height:320px;margin-bottom:16px;"></div>')
+        lines.append('<div class="pa-trend-echart" data-chart=\'' + data_json + '\' style="width:100%;height:300px;margin-bottom:16px;"></div>')
         lines.append("")
     else:
         lines.append("（暂无趋势数据）")
         lines.append("")
 
-    # ===== 5. Heatmap 热力图 =====    # ===== 5. Heatmap 热力图 =====
-    def _heatmap_color(status):
-        return {'High': '#f8d7da', 'Mid': '#fff3cd', 'Low': '#d4edda'}.get(status, '#e2e3e5')
+    # ===== 4. Key Issues（关键问题）=====
+    lines.append("## Key Issues")
+    lines.append("")
 
-    def _heatmap_text_color(status):
-        return {'High': '#721c24', 'Mid': '#856404', 'Low': '#155724'}.get(status, '#383d41')
+    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
 
-    def _render_heatmap(title, items_list, module_stats_key_func):
-        """渲染一个 Heatmap，items_list 是 (显示名, 映射key) 的列表"""
-        rows = []
-        rows.append(f"### {title}")
-        rows.append("")
-        rows.append('<table style="border-collapse:separate;border-spacing:8px;text-align:center;margin-bottom:16px;">')
-        # 每行4个
-        for i in range(0, len(items_list), 4):
-            row_items = items_list[i:i+4]
-            rows.append('  <tr>')
-            for display_name, map_key in row_items:
-                ms = module_stats.get(map_key, {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0})
-                status = _calc_status(ms)
-                bg = _heatmap_color(status)
-                fg = _heatmap_text_color(status)
-                rows.append(f'    <td style="background-color:{bg};color:{fg};padding:14px 18px;border-radius:8px;font-weight:600;min-width:130px;font-size:14px;">{display_name}</td>')
-            rows.append('  </tr>')
-        rows.append('</table>')
-        rows.append("")
-        return '\n'.join(rows)
+    def _has_blocker_label(rec):
+        labels = rec.get('labels', '')
+        if isinstance(labels, (list, tuple)):
+            label_text = ' '.join(str(l) for l in labels)
+        else:
+            label_text = str(labels or '')
+        return 'blocker' in label_text.lower()
+    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
 
-    # Dev SW Heatmap: Device + Algo
-    dev_items = [
-        ('Device: Function', ('Device', 'Function')),
-        ('Device: UI/UX', ('Device', 'UI/UX')),
-        ('Device: Battery Life', ('Device', 'Battery Life')),
-        ('Device: Stability', ('Device', 'Stability')),
-        ('Device: Performance', ('Device', 'Performance')),
-        ('Device: Compatibility', ('Device', 'Compatibility')),
-        ('Device: Connectivity', ('Device', 'Connectivity')),
-        ('Device: GPS', ('Device', 'GPS')),
-        ('Device: Audio', ('Device', 'Audio')),
-        ('Device: OTA', ('Device', 'OTA')),
-        ('Device: Watch face', ('Device', 'Watch face')),
-        ('Device: Instrumentation', ('Device', 'Instrumentation')),
-        ('Device: Localization', ('Device', 'Localization')),
-        ('Algo: Basic Vital', ('Algo', 'Basic Vital')),
-        ('Algo: Daily activities', ('Algo', 'Daily activities')),
-        ('Algo: Exercise', ('Algo', 'Exercise')),
-        ('Algo: Exercise detection', ('Algo', 'Exercise detection')),
-        ('Algo: Wear detection', ('Algo', 'Wear detection')),
-        ('Algo: Sleep', ('Algo', 'Sleep')),
-    ]
-    lines.append(_render_heatmap("Dev SW Heatmap", dev_items, None))
+    if functional_blockers:
+        lines.append(f"**🔴 [High-Risk] 用户无法忍受的功能性 Blocker（{len(functional_blockers)}个）**")
+        for r in functional_blockers[:5]:
+            title = str(r.get('title', '')).replace('\n', ' ')
+            lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+        if len(functional_blockers) > 5:
+            lines.append(f"- ...等共{len(functional_blockers)}个")
+        lines.append("")
 
-    # Companion App Heatmap
-    ca_items = [
-        ('CA: Function', ('Companion App', 'Function')),
-        ('CA: UI/UX', ('Companion App', 'UI/UX')),
-        ('CA: Stability', ('Companion App', 'Stability')),
-        ('CA: Performance', ('Companion App', 'Performance')),
-    ]
-    lines.append(_render_heatmap("Companion App Heatmap", ca_items, None))
+    if label_blockers:
+        lines.append(f"**🟡 [Mid-Risk] 标签带 blocker、影响过点（{len(label_blockers)}个）**")
+        for r in label_blockers[:5]:
+            title = str(r.get('title', '')).replace('\n', ' ')
+            lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+        if len(label_blockers) > 5:
+            lines.append(f"- ...等共{len(label_blockers)}个")
+        lines.append("")
 
-    # Cloud & AI Heatmap
-    ai_items = [
-        ('AI: Function', ('Cloud & AI', 'Function')),
-        ('AI: Performance', ('Cloud & AI', 'Performance')),
-    ]
-    lines.append(_render_heatmap("Cloud & AI Heatmap", ai_items, None))
+    if not functional_blockers and not label_blockers:
+        lines.append("当前无高风险新增问题。")
+        lines.append("")
 
-    # ===== 6. Key Area Updates 表格 =====
-    # 预定义的分类和小项
+    # ===== 5. 模块风险总览（合并 Heatmap + Key Area Updates，一个表格搞定）=====
+    lines.append("## 模块风险总览")
+    lines.append("")
+    lines.append("| 分类 | 模块 | 状态 | 新增BC | 主要问题 |")
+    lines.append("|------|------|------|--------|----------|")
+
     _PREDEFINED = {
         'Device': ['Function', 'UI/UX', 'Battery Life', 'Stability', 'Performance',
                     'Compatibility', 'Connectivity', 'GPS', 'Audio', 'OTA',
@@ -623,64 +548,40 @@ def generate_report_markdown(snap):
         'Cloud & AI': ['Function', 'Performance'],
     }
 
-    lines.append("## Key Area Updates")
-    lines.append("")
-    lines.append("| Cate. | Items | Status | Remarks |")
-    lines.append("|-------|-------|--------|---------|")
-
     for cate in ['Device', 'Algo', 'Companion App', 'Cloud & AI']:
         items = _PREDEFINED.get(cate, [])
         for i, item in enumerate(items):
             key = (cate, item)
             ms = module_stats.get(key, {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0})
             status = _calc_status(ms)
-            # Remarks：Top 问题摘要
+            # 主要问题：Top1 摘要
             remarks = ''
             if ms['bc']:
-                top_titles = []
-                for r in ms['bc'][:2]:
-                    t = str(r.get('title', '')).replace('|', '/').replace('\n', ' ')
-                    if len(t) > 40:
-                        t = t[:37] + '...'
-                    top_titles.append(f"[{r.get('id', '')}] {t}")
-                remarks = '; '.join(top_titles)
-                if len(ms['bc']) > 2:
+                top = ms['bc'][0]
+                t = str(top.get('title', '')).replace('|', '/').replace('\n', ' ')
+                if len(t) > 35:
+                    t = t[:32] + '...'
+                remarks = f"[{top.get('id', '')}] {t}"
+                if len(ms['bc']) > 1:
                     remarks += f" 等{len(ms['bc'])}个"
-            # Cate. 只在第一行显示
-            cate_display = cate if i == 0 else ''
-            lines.append(f"| {cate_display} | {item} | {_status_emoji(status)} | {remarks} |")
-
+            cate_display = f"**{cate}**" if i == 0 else ''
+            lines.append(f"| {cate_display} | {item} | {_status_badge(status)} | {ms['total']} | {remarks} |")
     lines.append("")
 
-    # ===== 5. 新增 BC 明细（按 iOS/非iOS 分）=====
-    sev_rank = {'blocker': 0, 'critical': 1, 'major': 2}
-    non_ios = [r for r in new_bc if not _is_ios_module(r.get('module', ''))]
-    ios = [r for r in new_bc if _is_ios_module(r.get('module', ''))]
-    non_ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
-    ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
-
-    if non_ios:
-        lines.append("## 新增 BC 明细（不含 iOS APP）")
+    # ===== 6. 新增 BC 明细（一个表格，iOS 单独标注）=====
+    if new_bc:
+        lines.append("## 新增 BC 明细")
         lines.append("")
-        lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
-        lines.append("|--------|--------|------|------|--------|")
-        for r in non_ios:
+        lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 | 平台 |")
+        lines.append("|--------|--------|------|------|--------|------|")
+        sev_rank = {'blocker': 0, 'critical': 1, 'major': 2}
+        sorted_bc = sorted(new_bc, key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
+        for r in sorted_bc:
             sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
             title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
             dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {sev} | {r.get('id', '')} | {r.get('module', '')} | {title} | @{dev} |")
-        lines.append("")
-
-    if ios:
-        lines.append("## iOS APP 新增 BC 明细")
-        lines.append("")
-        lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
-        lines.append("|--------|--------|------|------|--------|")
-        for r in ios:
-            sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
-            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
-            dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {sev} | {r.get('id', '')} | {r.get('module', '')} | {title} | @{dev} |")
+            platform = 'iOS' if _is_ios_module(r.get('module', '')) else 'Device'
+            lines.append(f"| {sev} | {r.get('id', '')} | {r.get('module', '')} | {title} | @{dev} | {platform} |")
         lines.append("")
 
     return '\n'.join(lines)
