@@ -551,7 +551,7 @@ def generate_report_markdown(snap):
                 status = _calc_status(ms)
                 bg = _heatmap_color(status)
                 fg = _heatmap_text_color(status)
-                rows.append(f'    <td style="background-color:{bg};color:{fg};padding:14px 18px;border-radius:8px;font-weight:600;min-width:130px;font-size:14px;">{display_name}</td>')
+                rows.append(f'    <td style="background-color:{bg};color:{fg};padding:8px 12px;border-radius:6px;font-weight:600;min-width:90px;font-size:12px;">{display_name}</td>')
             rows.append('  </tr>')
         rows.append('</table>')
         rows.append("")
