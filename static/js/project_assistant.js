@@ -525,13 +525,19 @@
     var charts = container.querySelectorAll('.pa-trend-echart');
     console.log('[renderInlineTrendCharts] found', charts.length, 'chart containers');
     if (!charts.length) {
-        console.log('[renderInlineTrendCharts] container innerHTML preview:', container.innerHTML.substring(0, 500));
+        console.log('[renderInlineTrendCharts] no chart containers found');
         return;
     }
     charts.forEach(function(el) {
       try {
-        var data = JSON.parse(el.getAttribute('data-chart') || '{}');
-        if (!data.dates || !data.dates.length) return;
+        var rawData = el.getAttribute('data-chart') || '';
+        console.log('[renderInlineTrendCharts] raw data length:', rawData.length, 'preview:', rawData.substring(0, 100));
+        var data = JSON.parse(rawData);
+        console.log('[renderInlineTrendCharts] parsed data:', data.dates ? data.dates.length : 0, 'dates');
+        if (!data.dates || !data.dates.length) {
+            el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">无趋势数据</div>';
+            return;
+        }
         _loadChartJS().then(function () {
           var dense = data.dates.length > 31;
           if (el._chartInstance) { el._chartInstance.destroy(); }
@@ -567,7 +573,7 @@
           });
         }).catch(function (e) {
           console.error('chart render failed:', e);
-          el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">图表加载失败，请检查网络连接</div>';
+          el.innerHTML = '<div style="padding:20px;text-align:center;color:#d32f2f;font-size:13px;">图表加载失败: ' + (e.message || e) + '<br><small style="color:#999;">请检查网络连接或刷新页面重试</small></div>';
         });
       } catch (e) {
         console.error('renderInlineTrendCharts error:', e);
