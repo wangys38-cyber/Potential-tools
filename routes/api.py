@@ -300,6 +300,8 @@ def create_api_blueprint(base_dir, static_version):
     def _connect_smtp(cfg):
         """建立SMTP连接并完成握手，返回server对象或抛出带诊断信息的异常"""
         import smtplib
+        import ssl
+        import socket
         port = int(cfg.get('smtp_port', 587))
         host = cfg['smtp_host']
         use_tls = cfg.get('use_tls', True)
@@ -307,36 +309,83 @@ def create_api_blueprint(base_dir, static_version):
         if port == 587:
             use_tls = True
 
-        if port == 465:
-            server = smtplib.SMTP_SSL(host, port, timeout=20)
-            server.ehlo()
-        else:
-            server = smtplib.SMTP(host, port, timeout=20)
-            server.ehlo()
-            if use_tls:
-                if server.has_extn('starttls'):
-                    server.starttls()
-                    server.ehlo()  # STARTTLS后必须重新EHLO获取更新后的能力
-                else:
-                    # 服务器不声明STARTTLS但用户要求加密，尝试强制STARTTLS
-                    try:
-                        server.starttls()
-                        server.ehlo()
-                    except Exception as e:
-                        raise Exception(f'服务器不支持STARTTLS加密。请尝试关闭TLS或改用465端口(SSL)。详情: {str(e)}')
+        # 创建SSL上下文（确保兼容性）
+        context = ssl.create_default_context()
+        # 某些旧服务器可能需要降低安全级别
+        try:
+            context.set_ciphers('DEFAULT@SECLEVEL=1')
+        except Exception:
+            pass
 
-        # 检查AUTH支持
-        if not server.has_extn('auth'):
-            server.quit()
+        server = None
+        try:
+            if port == 465:
+                # 465端口使用SSL直接连接
+                server = smtplib.SMTP_SSL(host, port, timeout=20, context=context)
+                server.ehlo()
+            else:
+                # 其他端口使用普通连接，必要时STARTTLS
+                server = smtplib.SMTP(host, port, timeout=20)
+                server.ehlo()
+                if use_tls:
+                    if server.has_extn('starttls'):
+                        server.starttls(context=context)
+                        server.ehlo()
+                    else:
+                        # 服务器不声明STARTTLS但用户要求加密，尝试强制STARTTLS
+                        try:
+                            server.starttls(context=context)
+                            server.ehlo()
+                        except Exception as e:
+                            raise Exception(f'服务器不支持STARTTLS加密。请尝试关闭TLS或改用465端口(SSL)。详情: {str(e)}')
+
+            # 检查AUTH支持
+            if not server.has_extn('auth'):
+                server.quit()
+                raise Exception(
+                    f'服务器不支持SMTP认证(AUTH扩展)。\n'
+                    f'可能原因:\n'
+                    f'1. 端口错误：请确认SMTP服务器端口(常见: 465/587)\n'
+                    f'2. 加密方式不匹配：465端口用SSL，587端口用STARTTLS\n'
+                    f'3. 该邮箱未开启SMTP服务或需要授权码\n'
+                    f'服务器地址: {host}:{port}'
+                )
+            return server
+        except (socket.error, OSError) as e:
+            if server:
+                try:
+                    server.close()
+                except Exception:
+                    pass
+            err_msg = str(e)
+            if 'Connection unexpectedly closed' in err_msg or 'Connection reset' in err_msg:
+                raise Exception(
+                    f'连接被服务器意外关闭。\n'
+                    f'可能原因:\n'
+                    f'1. 密码错误（QQ/163邮箱需要授权码，不是登录密码）\n'
+                    f'2. 该邮箱未开启SMTP服务\n'
+                    f'3. 邮箱账号被锁定或需要验证\n'
+                    f'4. 网络或防火墙问题\n'
+                    f'服务器: {host}:{port}\n'
+                    f'详情: {err_msg}'
+                )
+            if 'timed out' in err_msg.lower() or 'timeout' in err_msg.lower():
+                raise Exception(f'连接SMTP服务器超时。请检查服务器地址和端口是否正确，以及网络是否通畅。服务器: {host}:{port}')
+            raise Exception(f'SMTP连接失败: {err_msg}')
+        except ssl.SSLError as e:
+            if server:
+                try:
+                    server.close()
+                except Exception:
+                    pass
             raise Exception(
-                f'服务器不支持SMTP认证(AUTH扩展)。\n'
+                f'SSL/TLS握手失败。\n'
                 f'可能原因:\n'
-                f'1. 端口错误：请确认SMTP服务器端口(常见: 465/587)\n'
-                f'2. 加密方式不匹配：465端口用SSL，587端口用STARTTLS\n'
-                f'3. 该邮箱未开启SMTP服务或需要授权码\n'
-                f'服务器地址: {host}:{port}'
+                f'1. 端口与加密方式不匹配（465用SSL，587用STARTTLS）\n'
+                f'2. 服务器证书问题\n'
+                f'3. 网络中间人拦截\n'
+                f'详情: {str(e)}'
             )
-        return server
 
     @bp.route('/api/email/test', methods=['POST'])
     def api_email_test():
