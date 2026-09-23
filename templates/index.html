@@ -428,11 +428,11 @@
   var MAIN_TAGS = ['AI Powered', 'Fast Send', 'Smart Q&A', 'Quick Note', 'Deep Link'];
   var BUDDY_IMAGES = ['cloudy.png', 'dumrics.png', 'orbit.png', 'lumy.png', 'sweetie.png'];
   var CARD_GRADIENTS = [
-    'linear-gradient(160deg, #8b5cf6, #6d28d9)',
-    'linear-gradient(160deg, #ec4899, #be185d)',
-    'linear-gradient(160deg, #3b82f6, #1d4ed8)',
-    'linear-gradient(160deg, #22c55e, #15803d)',
-    'linear-gradient(160deg, #6366f1, #4338ca)'
+    'linear-gradient(160deg, #ddd6fe, #c4b5fd)',
+    'linear-gradient(160deg, #fbcfe8, #f9a8d4)',
+    'linear-gradient(160deg, #bfdbfe, #93c5fd)',
+    'linear-gradient(160deg, #bbf7d0, #86efac)',
+    'linear-gradient(160deg, #c7d2fe, #a5b4fc)'
   ];
   var MAIN_ANIMALS = [CLOUD_SVG, ROBOT_SVG, PLANET_HALO_SVG, FLOWER_SVG, HEART_MONSTER_SVG];
 
@@ -506,7 +506,7 @@
       card.style.zIndex = cardZIndex[idx % 5];
       card.innerHTML =
         '<div class="absolute inset-0 flex items-center justify-center">' +
-        '<span class="text-white text-[18px] font-bold tracking-wide text-center px-3" style="text-shadow:0 2px 8px rgba(0,0,0,0.4)">' + t.name + '</span>' +
+        '<span class="text-[#1e293b] text-[18px] font-bold tracking-wide text-center px-3" style="text-shadow:0 1px 2px rgba(255,255,255,0.3)">' + t.name + '</span>' +
         '</div>';
       wrap.appendChild(card);
     });
