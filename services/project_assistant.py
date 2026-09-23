@@ -371,16 +371,105 @@ def _is_functional_issue(title, module=''):
 
 
 def generate_report_markdown(snap):
-    """直接在 Python 层面生成放行报告/日报 Markdown，完全绕过 AI，彻底解决输出截断问题。"""
+    """专业项目状态报告格式：项目标题+风险等级、Key Issues、Key Area Updates表格。"""
     lines = []
     st = snap.get('stats', {}) or {}
-    summ = snap.get('summary', {}) or {}
+    project_name = snap.get('project_name') or snap.get('name') or 'Project'
+
+    # ===== 模块到预定义分类的映射 =====
+    # (关键词列表, 大类, 小项)
+    _MODULE_MAP = [
+        (['性能', 'performance', '启动', '响应', '卡顿', '帧率'], 'Device', 'Performance'),
+        (['稳定', 'stability', '崩溃', 'crash', '闪退', '死机', '重启', 'reboot', 'anr', 'freeze'], 'Device', 'Stability'),
+        (['电池', 'battery', '续航', '耗电', '充电', 'charge', '功耗', 'ebl'], 'Device', 'Battery Life'),
+        (['ui', '界面', '显示', 'display', '颜色', 'color', '字体', '布局', 'layout', '样式', '动画', 'transition'], 'Device', 'UI/UX'),
+        (['连接', 'connectivity', '蓝牙', 'bluetooth', '配对', 'pair', '绑定', 'bind', '同步', 'sync', '数据同步'], 'Device', 'Connectivity'),
+        (['gps', '定位', 'location', '导航', '轨迹', 'route'], 'Device', 'GPS'),
+        (['音频', 'audio', '声音', 'sound', '喇叭', 'speaker', '麦克风', 'mic', '音量', 'volume'], 'Device', 'Audio'),
+        (['ota', '升级', 'update', '固件', 'firmware', '刷机'], 'Device', 'OTA'),
+        (['表盘', 'watch face', 'watchface', '壁纸', 'wallpaper'], 'Device', 'Watch face'),
+        (['本地', 'localization', '语言', 'language', '翻译', 'translation', '多语言'], 'Device', 'Localization'),
+        (['传感器', 'sensor', '心率', 'heart', '血氧', 'spo2', '血压', '温度', '体温', '基本生命'], 'Algo', 'Basic Vital'),
+        (['运动', 'exercise', 'workout', '跑步', 'run', '骑行', 'cycle', '游泳', 'swim', '健身', 'pace', '配速'], 'Algo', 'Exercise'),
+        (['运动检测', 'exercise detection', '自动识别', 'auto detect'], 'Algo', 'Exercise detection'),
+        (['佩戴', 'wear detection', '佩戴检测', '摘戴'], 'Algo', 'Wear detection'),
+        (['睡眠', 'sleep', 'nap', '午休'], 'Algo', 'Sleep'),
+        (['日常', 'daily activity', '步数', 'step', '卡路里', 'calorie', '距离', 'distance', '久坐', '目标'], 'Algo', 'Daily activities'),
+        (['ios', 'ios_app', 'apps - ios', 'companion', 'app', 'ca', '手机端'], 'Companion App', 'Function'),
+        (['云', 'cloud', 'ai', '服务器', 'server', '后端', 'backend', '接口', 'api'], 'Cloud & AI', 'Function'),
+    ]
+
+    def _map_module(module_name):
+        """将模块名映射到(大类, 小项)"""
+        m = (module_name or '').lower()
+        for keywords, cate, item in _MODULE_MAP:
+            for kw in keywords:
+                if kw in m:
+                    return cate, item
+        return 'Device', 'Function'
 
     # ===== 筛选 New 状态 BC =====
     bc = snap.get('unresolved_bc', []) or []
     new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
-    new_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
-    # 影响过点的问题：标签中带有 blocker 的问题（不管严重度）
+
+    # ===== 按模块聚合 =====
+    module_stats = {}  # key: (cate, item) -> {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0}
+    for r in new_bc:
+        cate, item = _map_module(r.get('module', ''))
+        key = (cate, item)
+        if key not in module_stats:
+            module_stats[key] = {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0}
+        module_stats[key]['bc'].append(r)
+        module_stats[key]['total'] += 1
+        if r.get('sev') == 'blocker':
+            module_stats[key]['blocker'] += 1
+        elif r.get('sev') == 'critical':
+            module_stats[key]['critical'] += 1
+
+    # ===== 计算风险等级 =====
+    def _calc_status(ms):
+        if ms['blocker'] >= 2 or ms['total'] >= 5:
+            return 'High'
+        elif ms['blocker'] >= 1 or ms['critical'] >= 2 or ms['total'] >= 3:
+            return 'Mid'
+        elif ms['total'] >= 1:
+            return 'Low'
+        else:
+            return 'Low'
+
+    def _status_emoji(status):
+        return {'High': '🔴 High', 'Mid': '🟡 Mid', 'Low': '🟢 Low'}.get(status, '⚪ Low')
+
+    # ===== 1. 项目标题 + 总体风险等级 =====
+    total_blocker = sum(ms['blocker'] for ms in module_stats.values())
+    total_bc = len(new_bc)
+    if total_blocker >= 3 or total_bc >= 15:
+        overall_risk = 'High-risk'
+    elif total_blocker >= 1 or total_bc >= 5:
+        overall_risk = 'Mid-risk'
+    else:
+        overall_risk = 'Low-risk'
+
+    lines.append(f"# {project_name}")
+    lines.append(f"**{overall_risk}**")
+    lines.append("")
+
+    # ===== 2. 总体状态 =====
+    total_cr = st.get('total', 0)
+    unresolved = st.get('unresolved', 0)
+    bc_unresolved = st.get('bc_unresolved', 0)
+    fail_count = st.get('fail', 0)
+    pass_count = st.get('pass', 0)
+    lines.append(f"**总体状态**：CR总数 {total_cr}，未解决 {unresolved}，未解决BC {bc_unresolved}；模块 FAIL {fail_count} / PASS {pass_count}；新增BC {total_bc}（Blocker {total_blocker}）。")
+    lines.append("")
+
+    # ===== 3. Key Issues（高风险问题）=====
+    lines.append("## Key Issues:")
+    lines.append("")
+
+    # 功能性 Blocker
+    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
+    # 标签带 blocker
     def _has_blocker_label(rec):
         labels = rec.get('labels', '')
         if isinstance(labels, (list, tuple)):
@@ -388,122 +477,101 @@ def generate_report_markdown(snap):
         else:
             label_text = str(labels or '')
         return 'blocker' in label_text.lower()
-    new_criticals = [r for r in new_bc if _has_blocker_label(r)]
+    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
 
-    # ===== 1. 总结性文字 =====
-    bc_unresolved = st.get('bc_unresolved', 0)
-    fail_count = st.get('fail', 0)
-    summary_parts = []
-    if new_blockers:
-        summary_parts.append(f"当前存在 {len(new_blockers)} 个用户无法忍受、影响正常使用的功能性 Blocker 级新增问题，必须优先解决")
-    if new_criticals:
-        summary_parts.append(f"{len(new_criticals)} 个标签带 blocker、影响过点的新增问题需重点关注")
-    if not new_blockers and not new_criticals:
-        summary_parts.append("当前无新增 BC 问题，状态良好")
-    if fail_count > 0:
-        summary_parts.append(f"{fail_count} 个模块处于 FAIL 状态")
-    summary_text = "【总结】" + "，".join(summary_parts) + "。"
-    lines.append(summary_text)
-    lines.append("")
-
-    # ===== 2. 趋势结论 =====
-    daily = snap.get('daily_stats', []) or []
-    recent = daily[-14:] if len(daily) >= 14 else daily
-    if recent:
-        total_new = sum(d.get('new_count', 0) for d in recent)
-        total_resolved = sum(d.get('resolved_count', 0) for d in recent)
-        if total_new > total_resolved:
-            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，BC净增{total_new - total_resolved}个，风险上升。"
-        elif total_new < total_resolved:
-            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，BC净减{total_resolved - total_new}个，风险下降。"
-        else:
-            trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，风险持平。"
-    else:
-        trend = "暂无趋势数据。"
-    lines.append("【趋势结论】" + trend)
-    lines.append("")
-
-    # ===== 3. 总体状态 =====
-    total = st.get('total', 0)
-    unresolved = st.get('unresolved', 0)
-    modules_count = st.get('modules', 0)
-    pass_count = st.get('pass', 0)
-    lines.append(f"【总体状态】CR总数 {total}，未解决 {unresolved}，未解决BC {bc_unresolved}；模块 {modules_count} 个（FAIL {fail_count} / PASS {pass_count}）。")
-    lines.append("")
-
-    # ===== 4. 用户无法忍受影响使用的问题（Blocker）=====
-    lines.append("【用户无法忍受影响使用的问题（Blocker）】")
-    if new_blockers:
+    if functional_blockers:
+        lines.append(f"- **[High-Risk] 用户无法忍受的功能性 Blocker 问题（{len(functional_blockers)}个）：**")
+        for r in functional_blockers[:5]:
+            title = str(r.get('title', '')).replace('\n', ' ')
+            lines.append(f"  - [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+        if len(functional_blockers) > 5:
+            lines.append(f"  - ...等共{len(functional_blockers)}个")
         lines.append("")
-        lines.append("| CR单号 | 模块 | 标题 | 经办人 |")
-        lines.append("|--------|------|------|--------|")
-        for r in new_blockers:
-            cr_id = r.get('id', '')
-            module = r.get('module', '')
-            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
-            dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {cr_id} | {module} | {title} | @{dev} |")
-    else:
+
+    if label_blockers:
+        lines.append(f"- **[Mid-Risk] 标签带 blocker、影响过点的问题（{len(label_blockers)}个）：**")
+        for r in label_blockers[:5]:
+            title = str(r.get('title', '')).replace('\n', ' ')
+            lines.append(f"  - [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+        if len(label_blockers) > 5:
+            lines.append(f"  - ...等共{len(label_blockers)}个")
         lines.append("")
-        lines.append("（无）")
+
+    if not functional_blockers and not label_blockers:
+        lines.append("- 当前无高风险新增问题。")
+        lines.append("")
+
+    # ===== 4. Key Area Updates 表格 =====
+    # 预定义的分类和小项
+    _PREDEFINED = {
+        'Device': ['Function', 'UI/UX', 'Battery Life', 'Stability', 'Performance',
+                    'Compatibility', 'Connectivity', 'GPS', 'Audio', 'OTA',
+                    'Watch face', 'Instrumentation', 'Localization'],
+        'Algo': ['Basic Vital', 'Daily activities', 'Exercise', 'Exercise detection',
+                 'Wear detection', 'Sleep'],
+        'Companion App': ['Function', 'UI/UX', 'Stability', 'Performance'],
+        'Cloud & AI': ['Function', 'Performance'],
+    }
+
+    lines.append("## Key Area Updates")
+    lines.append("")
+    lines.append("| Cate. | Items | Status | Remarks |")
+    lines.append("|-------|-------|--------|---------|")
+
+    for cate in ['Device', 'Algo', 'Companion App', 'Cloud & AI']:
+        items = _PREDEFINED.get(cate, [])
+        for i, item in enumerate(items):
+            key = (cate, item)
+            ms = module_stats.get(key, {'bc': [], 'blocker': 0, 'critical': 0, 'total': 0})
+            status = _calc_status(ms)
+            # Remarks：Top 问题摘要
+            remarks = ''
+            if ms['bc']:
+                top_titles = []
+                for r in ms['bc'][:2]:
+                    t = str(r.get('title', '')).replace('|', '/').replace('\n', ' ')
+                    if len(t) > 40:
+                        t = t[:37] + '...'
+                    top_titles.append(f"[{r.get('id', '')}] {t}")
+                remarks = '; '.join(top_titles)
+                if len(ms['bc']) > 2:
+                    remarks += f" 等{len(ms['bc'])}个"
+            # Cate. 只在第一行显示
+            cate_display = cate if i == 0 else ''
+            lines.append(f"| {cate_display} | {item} | {_status_emoji(status)} | {remarks} |")
+
     lines.append("")
 
-    # ===== 5. 影响过点的问题（标签带 blocker）=====
-    lines.append("【影响过点的问题（标签带 blocker）】")
-    if new_criticals:
-        lines.append("")
-        lines.append("| CR单号 | 模块 | 标题 | 经办人 |")
-        lines.append("|--------|------|------|--------|")
-        for r in new_criticals:
-            cr_id = r.get('id', '')
-            module = r.get('module', '')
-            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
-            dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {cr_id} | {module} | {title} | @{dev} |")
-    else:
-        lines.append("")
-        lines.append("（无）")
-    lines.append("")
-
-    # ===== 6. 按模块分类明细 =====
+    # ===== 5. 新增 BC 明细（按 iOS/非iOS 分）=====
     sev_rank = {'blocker': 0, 'critical': 1, 'major': 2}
     non_ios = [r for r in new_bc if not _is_ios_module(r.get('module', ''))]
     ios = [r for r in new_bc if _is_ios_module(r.get('module', ''))]
     non_ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
     ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
 
-    lines.append("【新增 BC 明细（不含 iOS APP）】")
     if non_ios:
+        lines.append("## 新增 BC 明细（不含 iOS APP）")
         lines.append("")
         lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
         lines.append("|--------|--------|------|------|--------|")
         for r in non_ios:
             sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
-            cr_id = r.get('id', '')
-            module = r.get('module', '')
             title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
             dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {sev} | {cr_id} | {module} | {title} | @{dev} |")
-    else:
+            lines.append(f"| {sev} | {r.get('id', '')} | {r.get('module', '')} | {title} | @{dev} |")
         lines.append("")
-        lines.append("（无）")
-    lines.append("")
 
-    lines.append("【iOS APP 新增 BC 明细】")
     if ios:
+        lines.append("## iOS APP 新增 BC 明细")
         lines.append("")
         lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
         lines.append("|--------|--------|------|------|--------|")
         for r in ios:
             sev = _SEV_CN.get(r.get('sev', ''), r.get('sev', ''))
-            cr_id = r.get('id', '')
-            module = r.get('module', '')
             title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
             dev = r.get('developer', '') or '未指派'
-            lines.append(f"| {sev} | {cr_id} | {module} | {title} | @{dev} |")
-    else:
+            lines.append(f"| {sev} | {r.get('id', '')} | {r.get('module', '')} | {title} | @{dev} |")
         lines.append("")
-        lines.append("（无）")
 
     return '\n'.join(lines)
 
