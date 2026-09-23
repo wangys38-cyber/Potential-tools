@@ -23,6 +23,12 @@ def register_builtin_tools():
         if not project_key:
             return {'error': '未指定项目名称，请在任务中包含项目Key（如 EKSANTOS），或先在项目助手页面同步项目状态', 'available': True}
         snap = load_snapshot(project_key)
+        # 如果快照不存在，尝试自动加 EK 前缀（用户常输入 SANTOS 而不是 EKSANTOS）
+        if not snap and not project_key.startswith('EK'):
+            try_key = 'EK' + project_key
+            snap = load_snapshot(try_key)
+            if snap:
+                project_key = try_key
         if snap:
             ctx.data['project_snapshot'] = snap
             ctx.data['project_key'] = project_key

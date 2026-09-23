@@ -265,6 +265,26 @@ class AgentEngine:
             return m.group(1).upper()
         return None
 
+    @staticmethod
+    def _extract_email(task: str) -> Optional[str]:
+        """从用户输入中提取邮箱地址"""
+        import re
+        # 匹配常见邮箱格式
+        m = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', task)
+        if m:
+            return m.group(0)
+        return None
+
+    @staticmethod
+    def _extract_email_subject(task: str) -> Optional[str]:
+        """从用户输入中提取邮件主题（简单启发式）"""
+        import re
+        # 匹配"主题是XXX"、"标题XXX"等模式
+        m = re.search(r'[主题|标题|subject][是为：:]+\s*(.+?)(?:[，。\n]|$)', task, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+        return None
+
     def _plan_with_rules(self, ctx: ExecutionContext) -> List[ExecutionStep]:
         """基于规则的简单任务规划（无 AI 时的降级方案）"""
         task = ctx.task
@@ -290,10 +310,22 @@ class AgentEngine:
 
         # 规则2：发送邮件类任务
         if any(kw in task_lower for kw in ['邮件', '发送', 'email']):
+            email_to = self._extract_email(task)
+            email_subject = self._extract_email_subject(task)
+            email_input = {}
+            if email_to:
+                email_input['to'] = email_to
+            else:
+                email_input['to'] = 'AUTO_DETECT'
+            if email_subject:
+                email_input['subject'] = email_subject
+            else:
+                email_input['subject'] = 'AUTO_DETECT'
+            email_input['body'] = 'AUTO_DETECT'  # 默认使用上次生成的报告
             steps.append(ExecutionStep(
                 tool_name='send_email',
-                tool_input={'to': 'AUTO_DETECT', 'subject': 'AUTO_DETECT', 'body': 'AUTO_DETECT'},
-                reasoning='发送邮件',
+                tool_input=email_input,
+                reasoning='发送邮件' + (f'给 {email_to}' if email_to else ''),
             ))
 
         # 规则3：笔记类任务
