@@ -262,3 +262,200 @@ body:has(#hero-section) .footer a {
   .hero-cards { padding: 0 20px; }
   .hero-card { width: 130px; height: 180px; margin-left: -24px; flex-shrink: 0; }
 }
+
+/* ===== v2 横向滚动与导航栏适配 ===== */
+
+/* 层叠卡片横向滚动 */
+.hero-cards-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 20px 40px 40px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.hero-cards-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.hero-cards-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hero-cards-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+.hero-cards-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+.hero-cards-scroll .hero-card {
+  flex-shrink: 0;
+}
+
+/* 滚动提示 */
+.hero-cards-wrap::after {
+  content: '左右滑动查看更多 →';
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+/* ===== 导航栏完整深色适配 ===== */
+body:has(#hero-section) .nav {
+  background: rgba(10, 10, 15, 0.9) !important;
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: 52px;
+  padding: 0 20px;
+}
+body:has(#hero-section) .nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body:has(#hero-section) .nav-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+body:has(#hero-section) .nav-center > span {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+  color: rgba(255,255,255,0.7);
+}
+body:has(#hero-section) .nav-category {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+body:has(#hero-section) .nav-category:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+}
+body:has(#hero-section) .nav-category.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 600;
+}
+
+/* 搜索按钮和搜索框 */
+body:has(#hero-section) .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+body:has(#hero-section) .nav-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+body:has(#hero-section) .nav-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+body:has(#hero-section) .nav-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: rgba(255,255,255,0.5);
+}
+body:has(#hero-section) .nav-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  width: 160px;
+}
+body:has(#hero-section) .nav-search-box input::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+/* 用户信息 */
+body:has(#hero-section) .user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+body:has(#hero-section) .user-info:hover {
+  background: rgba(255,255,255,0.1);
+}
+body:has(#hero-section) .avatar,
+body:has(#hero-section) .avatar-placeholder {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  object-fit: cover;
+}
+body:has(#hero-section) .login-btn,
+body:has(#hero-section) .logout-btn {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-weight: 500;
+}
+body:has(#hero-section) .login-btn:hover,
+body:has(#hero-section) .logout-btn:hover {
+  color: #fff;
+}
+
+/* 隐藏原工具网格（已在HTML inline display:none，这里兜底） */
+body:has(#hero-section) #toolsSourceContainer {
+  display: none !important;
+}
+
+/* 响应式：移动端导航栏简化 */
+@media (max-width: 768px) {
+  body:has(#hero-section) .nav-center .nav-category {
+    display: none;
+  }
+  body:has(#hero-section) .nav-center .nav-category.active {
+    display: inline-flex;
+  }
+  body:has(#hero-section) .nav-search-box input {
+    width: 100px;
+  }
+}
