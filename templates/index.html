@@ -109,7 +109,7 @@
       <div class="relative z-[2] text-center mb-8">
         <div class="inline-flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] text-white/60 text-[11px] font-medium px-3 py-1 rounded-full mb-5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
-          Potential Tools v8.0
+          Potential Tools v9.0
         </div>
         <h1 class="text-[52px] font-extrabold leading-[1.1] tracking-tight mb-3" style="color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.5)">Pick Your Buddy<br><span style="color:rgba(255,255,255,0.92)">New Ma Your Day</span></h1>
         <p class="text-white/40 text-sm">悬停抬起 · 一键直达</p>
@@ -157,7 +157,7 @@
     </div>
 
     <div class="footer">
-        <p>Potential Tools v8.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+        <p>Potential Tools v9.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </div>
 
     <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
@@ -534,6 +534,21 @@
         item.href = t.url;
         item.textContent = t.name;
         item.title = t.desc || t.name;
+        moreList.appendChild(item);
+      });
+      // 9.0 新功能入口
+      var newTools9 = [
+        {name: '🤖 AI Agent', url: '/agent', desc: '自主任务执行'},
+        {name: '🔗 数据源', url: '/data-sources', desc: '第三方数据集成'},
+        {name: '👥 团队协作', url: '/workspaces', desc: '工作空间与权限'},
+        {name: '🚨 智能预警', url: '/alerts', desc: '趋势预测与异常检测'}
+      ];
+      newTools9.forEach(function(t) {
+        var item = document.createElement('a');
+        item.className = 'inline-flex items-center text-[12.5px] font-medium text-white bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-lg px-3.5 py-1.5 no-underline transition-all hover:text-white hover:from-blue-500/30 hover:to-purple-500/30 hover:border-blue-400/50 hover:-translate-y-px';
+        item.href = t.url;
+        item.textContent = t.name;
+        item.title = t.desc;
         moreList.appendChild(item);
       });
       if (moreWrap) {
