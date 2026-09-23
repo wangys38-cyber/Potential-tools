@@ -351,13 +351,34 @@ def generate_report_markdown(snap):
     st = snap.get('stats', {}) or {}
     summ = snap.get('summary', {}) or {}
 
-    # ===== 1. 趋势结论 =====
+    # ===== 筛选 New 状态 BC =====
+    bc = snap.get('unresolved_bc', []) or []
+    new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
+    new_blockers = [r for r in new_bc if r.get('sev') == 'blocker']
+    new_criticals = [r for r in new_bc if r.get('sev') == 'critical']
+
+    # ===== 1. 总结性文字 =====
+    bc_unresolved = st.get('bc_unresolved', 0)
+    fail_count = st.get('fail', 0)
+    summary_parts = []
+    if new_blockers:
+        summary_parts.append(f"当前存在 {len(new_blockers)} 个用户无法忍受、影响正常使用的 Blocker 级新增问题，必须优先解决")
+    if new_criticals:
+        summary_parts.append(f"{len(new_criticals)} 个影响过点的 Critical 级新增问题需重点关注")
+    if not new_blockers and not new_criticals:
+        summary_parts.append("当前无新增 BC 问题，状态良好")
+    if fail_count > 0:
+        summary_parts.append(f"{fail_count} 个模块处于 FAIL 状态")
+    summary_text = "【总结】" + "，".join(summary_parts) + "。"
+    lines.append(summary_text)
+    lines.append("")
+
+    # ===== 2. 趋势结论 =====
     daily = snap.get('daily_stats', []) or []
     recent = daily[-14:] if len(daily) >= 14 else daily
     if recent:
         total_new = sum(d.get('new_count', 0) for d in recent)
         total_resolved = sum(d.get('resolved_count', 0) for d in recent)
-        bc_unresolved = st.get('bc_unresolved', 0)
         if total_new > total_resolved:
             trend = f"近{len(recent)}天新增{total_new}个BC，解决{total_resolved}个，BC净增{total_new - total_resolved}个，风险上升。"
         elif total_new < total_resolved:
@@ -369,32 +390,56 @@ def generate_report_markdown(snap):
     lines.append("【趋势结论】" + trend)
     lines.append("")
 
-    # ===== 2. 总体状态 =====
+    # ===== 3. 总体状态 =====
     total = st.get('total', 0)
     unresolved = st.get('unresolved', 0)
-    bc_unresolved = st.get('bc_unresolved', 0)
     modules_count = st.get('modules', 0)
-    fail_count = st.get('fail', 0)
     pass_count = st.get('pass', 0)
     lines.append(f"【总体状态】CR总数 {total}，未解决 {unresolved}，未解决BC {bc_unresolved}；模块 {modules_count} 个（FAIL {fail_count} / PASS {pass_count}）。")
     lines.append("")
 
-    # ===== 3. 筛选 New 状态 BC =====
-    bc = snap.get('unresolved_bc', []) or []
-    new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
+    # ===== 4. 用户无法忍受影响使用的问题（Blocker）=====
+    lines.append("【用户无法忍受影响使用的问题（Blocker）】")
+    if new_blockers:
+        lines.append("")
+        lines.append("| CR单号 | 模块 | 标题 | 经办人 |")
+        lines.append("|--------|------|------|--------|")
+        for r in new_blockers:
+            cr_id = r.get('id', '')
+            module = r.get('module', '')
+            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {cr_id} | {module} | {title} | @{dev} |")
+    else:
+        lines.append("")
+        lines.append("（无）")
+    lines.append("")
 
-    # 非 iOS
-    non_ios = [r for r in new_bc if not _is_ios_module(r.get('module', ''))]
-    # iOS
-    ios = [r for r in new_bc if _is_ios_module(r.get('module', ''))]
+    # ===== 5. 影响过点的问题（Critical）=====
+    lines.append("【影响过点的问题（Critical）】")
+    if new_criticals:
+        lines.append("")
+        lines.append("| CR单号 | 模块 | 标题 | 经办人 |")
+        lines.append("|--------|------|------|--------|")
+        for r in new_criticals:
+            cr_id = r.get('id', '')
+            module = r.get('module', '')
+            title = str(r.get('title', '')).replace('|', '\\|').replace('\n', ' ')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {cr_id} | {module} | {title} | @{dev} |")
+    else:
+        lines.append("")
+        lines.append("（无）")
+    lines.append("")
 
-    # 按严重度排序
+    # ===== 6. 按模块分类明细 =====
     sev_rank = {'blocker': 0, 'critical': 1, 'major': 2}
+    non_ios = [r for r in new_bc if not _is_ios_module(r.get('module', ''))]
+    ios = [r for r in new_bc if _is_ios_module(r.get('module', ''))]
     non_ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
     ios.sort(key=lambda x: (sev_rank.get(x.get('sev', ''), 9), -x.get('num', 0)))
 
-    # ===== 4. 新增 BC（不含 iOS APP）表格 =====
-    lines.append("【新增 BC（不含 iOS APP）】")
+    lines.append("【新增 BC 明细（不含 iOS APP）】")
     if non_ios:
         lines.append("")
         lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
@@ -411,8 +456,7 @@ def generate_report_markdown(snap):
         lines.append("（无）")
     lines.append("")
 
-    # ===== 5. iOS APP 新增 BC 表格 =====
-    lines.append("【iOS APP 新增 BC】")
+    lines.append("【iOS APP 新增 BC 明细】")
     if ios:
         lines.append("")
         lines.append("| 严重度 | CR单号 | 模块 | 标题 | 经办人 |")
@@ -427,6 +471,8 @@ def generate_report_markdown(snap):
     else:
         lines.append("")
         lines.append("（无）")
+
+    return '\n'.join(lines)
 
     return '\n'.join(lines)
 
