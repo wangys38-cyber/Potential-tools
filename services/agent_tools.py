@@ -107,6 +107,7 @@ def register_builtin_tools():
             return {'error': '未指定收件人，请在任务中明确收件人邮箱'}
         try:
             import smtplib
+            import ssl
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
             from db import get_config
@@ -125,18 +126,48 @@ def register_builtin_tools():
             msg['To'] = to
             msg['Subject'] = subject or 'Potential Tools 通知'
             msg.attach(MIMEText(body, 'plain', 'utf-8'))
-            # 发送
-            if use_tls:
-                server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
-                server.starttls()
-            else:
-                server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30)
-            server.login(username, password)
-            server.sendmail(username, [to], msg.as_string())
-            server.quit()
-            return {'sent': True, 'to': to, 'subject': subject}
+            # 智能选择连接方式：根据端口自动判断
+            # 465端口 → SSL直接连接；587端口 → STARTTLS；其他按配置
+            context = ssl.create_default_context()
+            server = None
+            try:
+                if smtp_port == 465:
+                    # 465端口使用SSL直接连接
+                    server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=context)
+                elif smtp_port == 587:
+                    # 587端口使用STARTTLS
+                    server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+                    server.ehlo()
+                    server.starttls(context=context)
+                    server.ehlo()
+                else:
+                    # 其他端口按配置
+                    if use_tls:
+                        server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+                        server.ehlo()
+                        server.starttls(context=context)
+                        server.ehlo()
+                    else:
+                        server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30, context=context)
+                server.login(username, password)
+                server.sendmail(username, [to], msg.as_string())
+                return {'sent': True, 'to': to, 'subject': subject}
+            finally:
+                if server:
+                    try:
+                        server.quit()
+                    except Exception:
+                        pass
         except Exception as e:
-            return {'sent': False, 'error': f'邮件发送失败: {str(e)}'}
+            err_msg = str(e)
+            # 友好的错误提示
+            if 'WRONG_VERSION_NUMBER' in err_msg or 'wrong version' in err_msg.lower():
+                err_msg = 'SSL/TLS版本不匹配，请检查SMTP端口（465用SSL，587用STARTTLS）和加密设置'
+            elif 'authentication' in err_msg.lower() or '535' in err_msg:
+                err_msg = '邮箱认证失败，请检查用户名和密码/授权码'
+            elif 'timed out' in err_msg.lower() or 'timeout' in err_msg.lower():
+                err_msg = '连接SMTP服务器超时，请检查服务器地址和端口'
+            return {'sent': False, 'error': f'邮件发送失败: {err_msg}'}
 
     tool_registry.register(Tool(
         name='send_email',
