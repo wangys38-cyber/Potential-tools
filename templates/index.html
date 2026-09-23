@@ -427,6 +427,13 @@
 </svg>`;
   var MAIN_TAGS = ['AI Powered', 'Fast Send', 'Smart Q&A', 'Quick Note', 'Deep Link'];
   var BUDDY_IMAGES = ['cloudy.png', 'dumrics.png', 'orbit.png', 'lumy.png', 'sweetie.png'];
+  var CARD_GRADIENTS = [
+    'linear-gradient(160deg, #8b5cf6, #6d28d9)',
+    'linear-gradient(160deg, #ec4899, #be185d)',
+    'linear-gradient(160deg, #3b82f6, #1d4ed8)',
+    'linear-gradient(160deg, #22c55e, #15803d)',
+    'linear-gradient(160deg, #6366f1, #4338ca)'
+  ];
   var MAIN_ANIMALS = [CLOUD_SVG, ROBOT_SVG, PLANET_HALO_SVG, FLOWER_SVG, HEART_MONSTER_SVG];
 
   function parseTool(tc) {
@@ -489,18 +496,16 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative block rounded-3xl cursor-pointer transition-transform duration-300 ease-out no-underline w-[180px] h-[240px] ' +
+      card.className = 'relative block rounded-3xl cursor-pointer no-underline w-[180px] h-[240px] ' +
         'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.2)] ' +
         (idx > 0 ? '-ml-3' : '');
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
-      card.style.willChange = 'transform';
+      card.style.background = CARD_GRADIENTS[idx % 5];
       card.innerHTML =
-        '<div class="absolute inset-0 rounded-3xl overflow-hidden">' +
-        '<img src="/static/images/buddies/' + BUDDY_IMAGES[idx % 5] + '?v={{ STATIC_VERSION }}" class="absolute inset-0 w-full h-full object-cover" />' +
-        '</div>' +
-        '<div class="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-[1] rounded-t-3xl"></div>' +
-        '<div class="absolute top-3 left-1/2 -translate-x-1/2 text-[12px] font-bold tracking-[0.5px] text-white z-[3] whitespace-nowrap" style="text-shadow:0 1px 4px rgba(0,0,0,0.5)">' + t.name + '</div>';
+        '<div class="absolute inset-0 flex items-center justify-center">' +
+        '<span class="text-white text-[18px] font-bold tracking-wide text-center px-3" style="text-shadow:0 2px 8px rgba(0,0,0,0.4)">' + t.name + '</span>' +
+        '</div>';
       wrap.appendChild(card);
     });
 
@@ -520,7 +525,6 @@
       }
     }
 
-    bindHover();
   }
 
   function bindHover() {
