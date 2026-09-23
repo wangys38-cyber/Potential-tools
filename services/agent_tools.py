@@ -21,7 +21,7 @@ def register_builtin_tools():
             # 从上下文中获取项目 key
             project_key = ctx.data.get('project_key', '')
         if not project_key:
-            return {'error': '未指定项目Key', 'available': True}
+            return {'error': '未指定项目名称，请在任务中包含项目Key（如 EKSANTOS），或先在项目助手页面同步项目状态', 'available': True}
         snap = load_snapshot(project_key)
         if snap:
             ctx.data['project_snapshot'] = snap
@@ -35,7 +35,7 @@ def register_builtin_tools():
                 'pass_modules': snap.get('pass_modules', 0),
                 'risk_level': snap.get('risk_level', 'unknown')
             }
-        return {'error': '项目快照不存在，请先同步项目状态'}
+        return {'error': f'项目 {project_key} 的状态快照不存在，请先在「项目助手」页面同步该项目的CR数据'}
 
     tool_registry.register(Tool(
         name='query_project_status',

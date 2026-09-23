@@ -242,18 +242,40 @@ class AgentEngine:
             logger.warning(f"解析规划响应失败: {e}")
         return []
 
+    @staticmethod
+    def _extract_project_key(task: str) -> Optional[str]:
+        """从用户输入中提取项目名称（如 EKSANTOS、SANTOS 等）"""
+        import re
+        # 模式1：以 EK 开头的全大写项目名（如 EKSANTOS、EKHORIZON）
+        m = re.search(r'\b(EK[A-Z]{2,})\b', task)
+        if m:
+            return m.group(1)
+        # 模式2：连续 5-15 个大写字母（如 SANTOS、HORIZON）
+        m = re.search(r'\b([A-Z]{5,15})\b', task)
+        if m:
+            return m.group(1)
+        # 模式3：中文"项目"前面的英文/数字组合
+        m = re.search(r'([A-Za-z0-9]+)\s*项目', task)
+        if m:
+            return m.group(1).upper()
+        return None
+
     def _plan_with_rules(self, ctx: ExecutionContext) -> List[ExecutionStep]:
         """基于规则的简单任务规划（无 AI 时的降级方案）"""
-        task = ctx.task.lower()
+        task = ctx.task
+        task_lower = task.lower()
         steps = []
 
+        # 提取项目名称
+        project_key = self._extract_project_key(task)
+
         # 规则1：生成报告类任务
-        if any(kw in task for kw in ['报告', '日报', '周报', '状态']):
-            if '项目' in task or 'cr' in task:
+        if any(kw in task_lower for kw in ['报告', '日报', '周报', '状态']):
+            if '项目' in task_lower or 'cr' in task_lower or project_key:
                 steps.append(ExecutionStep(
                     tool_name='query_project_status',
-                    tool_input={'project_key': 'AUTO_DETECT'},
-                    reasoning='查询项目状态数据'
+                    tool_input={'project_key': project_key or 'AUTO_DETECT'},
+                    reasoning=f'查询项目状态数据' + (f'（{project_key}）' if project_key else '')
                 ))
             steps.append(ExecutionStep(
                 tool_name='generate_report',
@@ -262,7 +284,7 @@ class AgentEngine:
             ))
 
         # 规则2：发送邮件类任务
-        if any(kw in task for kw in ['邮件', '发送', 'email']):
+        if any(kw in task_lower for kw in ['邮件', '发送', 'email']):
             steps.append(ExecutionStep(
                 tool_name='send_email',
                 tool_input={'to': 'AUTO_DETECT', 'subject': 'AUTO_DETECT', 'body': 'AUTO_DETECT'},
@@ -270,7 +292,7 @@ class AgentEngine:
             ))
 
         # 规则3：笔记类任务
-        if any(kw in task for kw in ['笔记', '记录', 'note']):
+        if any(kw in task_lower for kw in ['笔记', '记录', 'note']):
             steps.append(ExecutionStep(
                 tool_name='create_note',
                 tool_input={'title': 'AUTO_DETECT', 'content': 'AUTO_DETECT'},
