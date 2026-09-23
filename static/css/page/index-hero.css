@@ -644,3 +644,52 @@ body:has(#hero-section) .footer a:hover {
 .hero-card::before {
   overflow: hidden;
 }
+
+/* ===== v7 弧形排列+SVG动物 ===== */
+/* 卡片弧形排列：中间高，两边低 */
+.hero-card:nth-child(1) { transform: translateY(28px) rotate(-7deg); }
+.hero-card:nth-child(2) { transform: translateY(12px) rotate(-3deg); }
+.hero-card:nth-child(3) { transform: translateY(0); }
+.hero-card:nth-child(4) { transform: translateY(12px) rotate(3deg); }
+.hero-card:nth-child(5) { transform: translateY(28px) rotate(7deg); }
+
+/* 悬停时覆盖弧形transform */
+.hero-card.hover-active {
+  transform: translateY(-20px) scale(1.06) !important;
+  z-index: 100 !important;
+}
+.hero-card.hover-left {
+  transform: translateX(-20px) rotate(-3deg) !important;
+}
+.hero-card.hover-right {
+  transform: translateX(20px) rotate(3deg) !important;
+}
+
+/* SVG动物尺寸 */
+.hero-card .hc-animal {
+  top: 18px !important;
+  width: 90px !important;
+  height: 90px !important;
+  font-size: unset !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-card .hc-animal svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+.hero-card.hover-active .hc-animal {
+  transform: translateX(-50%) scale(1.08) !important;
+}
+
+/* 卡片内容下移给动物留空间 */
+.hero-card .hc-name {
+  margin-top: 70px;
+}
+
+/* 容器增加底部padding给弧形卡片留空间 */
+.hero-cards {
+  padding-bottom: 30px !important;
+}

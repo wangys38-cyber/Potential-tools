@@ -184,7 +184,118 @@
     'linear-gradient(160deg, #22c55e, #15803d)',
     'linear-gradient(160deg, #f59e0b, #b45309)'
   ];
-  var MAIN_ANIMALS = ['🐱','🐶','🐰','🦊','🐻'];
+  var CAT_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="catBody" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#ffd89b"/><stop offset="50%" stop-color="#f5a623"/><stop offset="100%" stop-color="#d4881c"/></radialGradient>
+  <radialGradient id="catEye" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f0f0f0"/></radialGradient></defs>
+  <ellipse cx="60" cy="108" rx="32" ry="6" fill="rgba(0,0,0,0.15)"/>
+  <path d="M30 45 L22 18 L45 32 Z" fill="url(#catBody)" stroke="#c47a15" stroke-width="1.5"/>
+  <path d="M90 45 L98 18 L75 32 Z" fill="url(#catBody)" stroke="#c47a15" stroke-width="1.5"/>
+  <path d="M32 42 L27 25 L40 34 Z" fill="#ffb6c1"/>
+  <path d="M88 42 L93 25 L80 34 Z" fill="#ffb6c1"/>
+  <circle cx="60" cy="62" r="38" fill="url(#catBody)" stroke="#c47a15" stroke-width="1.5"/>
+  <ellipse cx="44" cy="72" rx="8" ry="5" fill="#ffb6c1" opacity="0.5"/>
+  <ellipse cx="76" cy="72" rx="8" ry="5" fill="#ffb6c1" opacity="0.5"/>
+  <ellipse cx="46" cy="56" rx="9" ry="10" fill="url(#catEye)"/>
+  <ellipse cx="74" cy="56" rx="9" ry="10" fill="url(#catEye)"/>
+  <circle cx="47" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="75" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="49" cy="55" r="2" fill="#fff"/>
+  <circle cx="77" cy="55" r="2" fill="#fff"/>
+  <path d="M57 68 L63 68 L60 72 Z" fill="#ff8fa3"/>
+  <path d="M60 72 Q56 77 52 74" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M60 72 Q64 77 68 74" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <line x1="28" y1="65" x2="42" y2="67" stroke="#c47a15" stroke-width="1" opacity="0.6"/>
+  <line x1="28" y1="72" x2="42" y2="72" stroke="#c47a15" stroke-width="1" opacity="0.6"/>
+  <line x1="92" y1="65" x2="78" y2="67" stroke="#c47a15" stroke-width="1" opacity="0.6"/>
+  <line x1="92" y1="72" x2="78" y2="72" stroke="#c47a15" stroke-width="1" opacity="0.6"/>
+</svg>`;
+  var DOG_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="dogBody" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#d4a574"/><stop offset="50%" stop-color="#b8864e"/><stop offset="100%" stop-color="#8b6332"/></radialGradient>
+  <radialGradient id="dogEar" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#a0703e"/><stop offset="100%" stop-color="#6b4a22"/></radialGradient></defs>
+  <ellipse cx="60" cy="108" rx="32" ry="6" fill="rgba(0,0,0,0.15)"/>
+  <ellipse cx="32" cy="48" rx="14" ry="24" fill="url(#dogEar)" transform="rotate(-15 32 48)"/>
+  <ellipse cx="88" cy="48" rx="14" ry="24" fill="url(#dogEar)" transform="rotate(15 88 48)"/>
+  <circle cx="60" cy="62" r="38" fill="url(#dogBody)" stroke="#6b4a22" stroke-width="1.5"/>
+  <ellipse cx="60" cy="74" rx="22" ry="18" fill="#f5deb3" opacity="0.6"/>
+  <ellipse cx="44" cy="72" rx="7" ry="4" fill="#ffb6c1" opacity="0.4"/>
+  <ellipse cx="76" cy="72" rx="7" ry="4" fill="#ffb6c1" opacity="0.4"/>
+  <ellipse cx="46" cy="56" rx="9" ry="10" fill="#fff"/>
+  <ellipse cx="74" cy="56" rx="9" ry="10" fill="#fff"/>
+  <circle cx="47" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="75" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="49" cy="55" r="2" fill="#fff"/>
+  <circle cx="77" cy="55" r="2" fill="#fff"/>
+  <ellipse cx="60" cy="68" rx="7" ry="5" fill="#2d2d2d"/>
+  <ellipse cx="60" cy="66" rx="3" ry="1.5" fill="#555"/>
+  <path d="M60 73 L60 78" stroke="#2d2d2d" stroke-width="1.5"/>
+  <path d="M54 80 Q60 86 66 80" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="60" cy="83" rx="5" ry="3" fill="#ff6b6b"/>
+</svg>`;
+  var RABBIT_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="rabBody" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#ffffff"/><stop offset="60%" stop-color="#f5f0f0"/><stop offset="100%" stop-color="#e0d5d5"/></radialGradient>
+  <radialGradient id="rabEar" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ffb6c1"/></radialGradient></defs>
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="rgba(0,0,0,0.1)"/>
+  <ellipse cx="44" cy="28" rx="10" ry="28" fill="url(#rabBody)" stroke="#d0c0c0" stroke-width="1" transform="rotate(-8 44 28)"/>
+  <ellipse cx="76" cy="28" rx="10" ry="28" fill="url(#rabBody)" stroke="#d0c0c0" stroke-width="1" transform="rotate(8 76 28)"/>
+  <ellipse cx="44" cy="30" rx="5" ry="20" fill="url(#rabEar)" opacity="0.6" transform="rotate(-8 44 30)"/>
+  <ellipse cx="76" cy="30" rx="5" ry="20" fill="url(#rabEar)" opacity="0.6" transform="rotate(8 76 30)"/>
+  <circle cx="60" cy="68" r="34" fill="url(#rabBody)" stroke="#d0c0c0" stroke-width="1.5"/>
+  <ellipse cx="42" cy="76" rx="8" ry="5" fill="#ffb6c1" opacity="0.5"/>
+  <ellipse cx="78" cy="76" rx="8" ry="5" fill="#ffb6c1" opacity="0.5"/>
+  <ellipse cx="47" cy="62" rx="8" ry="9" fill="#fff"/>
+  <ellipse cx="73" cy="62" rx="8" ry="9" fill="#fff"/>
+  <circle cx="48" cy="63" r="4.5" fill="#2d2d2d"/>
+  <circle cx="72" cy="63" r="4.5" fill="#2d2d2d"/>
+  <circle cx="49.5" cy="61.5" r="1.8" fill="#fff"/>
+  <circle cx="73.5" cy="61.5" r="1.8" fill="#fff"/>
+  <path d="M56 72 L64 72 L60 77 Z" fill="#ff8fa3"/>
+  <path d="M60 77 Q57 81 53 79" stroke="#2d2d2d" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M60 77 Q63 81 67 79" stroke="#2d2d2d" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>`;
+  var FOX_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="foxBody" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#ff9f43"/><stop offset="50%" stop-color="#ee7b1e"/><stop offset="100%" stop-color="#c45a0c"/></radialGradient>
+  <radialGradient id="foxWhite" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f0ebe0"/></radialGradient></defs>
+  <ellipse cx="60" cy="108" rx="32" ry="6" fill="rgba(0,0,0,0.15)"/>
+  <path d="M28 50 L18 15 L50 38 Z" fill="url(#foxBody)" stroke="#a04a08" stroke-width="1.5"/>
+  <path d="M92 50 L102 15 L70 38 Z" fill="url(#foxBody)" stroke="#a04a08" stroke-width="1.5"/>
+  <path d="M30 46 L24 24 L42 36 Z" fill="#2d2d2d"/>
+  <path d="M90 46 L96 24 L78 36 Z" fill="#2d2d2d"/>
+  <circle cx="60" cy="64" r="38" fill="url(#foxBody)" stroke="#a04a08" stroke-width="1.5"/>
+  <path d="M38 62 Q60 90 82 62 Q78 82 60 86 Q42 82 38 62 Z" fill="url(#foxWhite)"/>
+  <ellipse cx="46" cy="58" rx="9" ry="10" fill="#fff"/>
+  <ellipse cx="74" cy="58" rx="9" ry="10" fill="#fff"/>
+  <circle cx="47" cy="59" r="5" fill="#2d2d2d"/>
+  <circle cx="75" cy="59" r="5" fill="#2d2d2d"/>
+  <circle cx="49" cy="57" r="2" fill="#fff"/>
+  <circle cx="77" cy="57" r="2" fill="#fff"/>
+  <ellipse cx="60" cy="72" rx="6" ry="4" fill="#2d2d2d"/>
+  <path d="M60 76 L60 80" stroke="#2d2d2d" stroke-width="1.2"/>
+  <path d="M54 82 Q60 87 66 82" stroke="#2d2d2d" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>`;
+  var BEAR_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="bearBody" cx="40%" cy="35%" r="70%"><stop offset="0%" stop-color="#c49a6c"/><stop offset="50%" stop-color="#a07840"/><stop offset="100%" stop-color="#7a5a2e"/></radialGradient>
+  <radialGradient id="bearMuzzle" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#f5deb3"/><stop offset="100%" stop-color="#deb887"/></radialGradient></defs>
+  <ellipse cx="60" cy="108" rx="32" ry="6" fill="rgba(0,0,0,0.15)"/>
+  <circle cx="34" cy="34" r="14" fill="url(#bearBody)" stroke="#6b4a22" stroke-width="1.5"/>
+  <circle cx="86" cy="34" r="14" fill="url(#bearBody)" stroke="#6b4a22" stroke-width="1.5"/>
+  <circle cx="34" cy="34" r="7" fill="#deb887"/>
+  <circle cx="86" cy="34" r="7" fill="#deb887"/>
+  <circle cx="60" cy="62" r="38" fill="url(#bearBody)" stroke="#6b4a22" stroke-width="1.5"/>
+  <ellipse cx="60" cy="74" rx="20" ry="16" fill="url(#bearMuzzle)"/>
+  <ellipse cx="42" cy="70" rx="7" ry="4" fill="#ffb6c1" opacity="0.35"/>
+  <ellipse cx="78" cy="70" rx="7" ry="4" fill="#ffb6c1" opacity="0.35"/>
+  <ellipse cx="46" cy="56" rx="9" ry="10" fill="#fff"/>
+  <ellipse cx="74" cy="56" rx="9" ry="10" fill="#fff"/>
+  <circle cx="47" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="75" cy="57" r="5" fill="#2d2d2d"/>
+  <circle cx="49" cy="55" r="2" fill="#fff"/>
+  <circle cx="77" cy="55" r="2" fill="#fff"/>
+  <ellipse cx="60" cy="68" rx="7" ry="5" fill="#2d2d2d"/>
+  <ellipse cx="60" cy="66" rx="3" ry="1.5" fill="#555"/>
+  <path d="M60 73 L60 77" stroke="#2d2d2d" stroke-width="1.5"/>
+  <path d="M53 79 Q60 84 67 79" stroke="#2d2d2d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>`;
+  var MAIN_ANIMALS = [CAT_SVG, DOG_SVG, RABBIT_SVG, FOX_SVG, BEAR_SVG];
 
   function parseTool(tc) {
     var nameEl = tc.querySelector('.tc-name') || tc.querySelector('[class*=name]');
