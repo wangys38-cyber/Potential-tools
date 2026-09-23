@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能预警 - Potential Tools 9.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .header { margin-bottom: 24px; }
+        .header h1 { font-size: 24px; font-weight: 700; }
+        .header p { color: #86868b; font-size: 13px; margin-top: 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-card .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-card .stat-label { font-size: 12px; color: #86868b; margin-top: 4px; }
+        .stat-critical .stat-value { color: #ff3b30; }
+        .stat-warning .stat-value { color: #ff9500; }
+        .stat-active .stat-value { color: #0071e3; }
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 16px; }
+        .panel { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .panel-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .alert-list { display: flex; flex-direction: column; gap: 10px; }
+        .alert-item { padding: 14px 16px; border-radius: 10px; border-left: 4px solid; background: #fafafa; }
+        .alert-critical { border-left-color: #ff3b30; background: #fff5f5; }
+        .alert-warning { border-left-color: #ff9500; background: #fffbf5; }
+        .alert-info { border-left-color: #0071e3; background: #f5f9ff; }
+        .alert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .alert-title { font-weight: 600; font-size: 14px; }
+        .alert-severity { font-size: 10px; padding: 2px 8px; border-radius: 980px; font-weight: 600; text-transform: uppercase; }
+        .severity-critical { background: #ff3b30; color: #fff; }
+        .severity-warning { background: #ff9500; color: #fff; }
+        .severity-info { background: #0071e3; color: #fff; }
+        .alert-message { font-size: 13px; color: #424245; margin-bottom: 8px; }
+        .alert-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #86868b; }
+        .alert-actions { display: flex; gap: 6px; }
+        .btn { padding: 6px 14px; border-radius: 980px; border: none; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #0071e3; color: #fff; }
+        .btn-primary:hover { background: #0077ed; }
+        .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
+        .btn-secondary:hover { background: #dcdce0; }
+        .btn-success { background: #34c759; color: #fff; }
+        .tool-section { margin-bottom: 20px; }
+        .tool-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #424245; }
+        .tool-input { width: 100%; padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 13px; margin-bottom: 8px; font-family: monospace; }
+        .tool-input:focus { outline: none; border-color: #0071e3; }
+        .tool-result { background: #f5f5f7; border-radius: 8px; padding: 12px; font-size: 12px; font-family: monospace; max-height: 200px; overflow-y: auto; margin-top: 8px; white-space: pre-wrap; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #86868b; }
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 980px; font-weight: 500; }
+        .status-active { background: #ffe5e5; color: #ff3b30; }
+        .status-acknowledged { background: #fff3cd; color: #856404; }
+        .status-resolved { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 智能预警中心</h1>
+            <p>Potential Tools 9.0 · 趋势预测、异常检测、过点风险评估</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="main-grid">
+            <div class="panel">
+                <div class="panel-title">
+                    <span>预警列表</span>
+                    <select id="statusFilter" onchange="loadAlerts()" style="padding:6px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:12px;">
+                        <option value="">全部状态</option>
+                        <option value="active">活跃</option>
+                        <option value="acknowledged">已确认</option>
+                        <option value="resolved">已解决</option>
+                    </select>
+                </div>
+                <div class="alert-list" id="alertList"></div>
+            </div>
+
+            <div>
+                <div class="panel" style="margin-bottom:16px;">
+                    <div class="panel-title">🔮 趋势预测</div>
+                    <div class="tool-section">
+                        <input type="text" class="tool-input" id="trendValues" placeholder="输入数据，逗号分隔：5,8,12,10,15">
+                        <button class="btn btn-primary" style="width:100%;" onclick="predictTrend()">预测趋势</button>
+                        <div class="tool-result" id="trendResult" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-bottom:16px;">
+                    <div class="panel-title">📊 异常检测</div>
+                    <div class="tool-section">
+                        <input type="text" class="tool-input" id="anomalyValues" placeholder="输入数据，逗号分隔：3,5,4,6,25,4,5">
+                        <button class="btn btn-primary" style="width:100%;" onclick="detectAnomaly()">检测异常</button>
+                        <div class="tool-result" id="anomalyResult" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">⚠️ 过点风险评估</div>
+                    <div class="tool-section">
+                        <input type="number" class="tool-input" id="milestoneBC" placeholder="未解决BC数量" value="15">
+                        <input type="number" class="tool-input" id="milestoneBlocker" placeholder="Blocker数量" value="2">
+                        <input type="number" class="tool-input" id="milestoneDays" placeholder="距离过点天数" value="7">
+                        <button class="btn btn-primary" style="width:100%;" onclick="assessMilestone()">评估风险</button>
+                        <div class="tool-result" id="milestoneResult" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const resp = await fetch('/api/alerts/stats');
+                const stats = await resp.json();
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card stat-active"><div class="stat-value">${stats.active}</div><div class="stat-label">活跃预警</div></div>
+                    <div class="stat-card stat-critical"><div class="stat-value">${stats.critical_active}</div><div class="stat-label">严重预警</div></div>
+                    <div class="stat-card stat-warning"><div class="stat-value">${stats.warning_active}</div><div class="stat-label">警告预警</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.total}</div><div class="stat-label">历史总计</div></div>
+                `;
+            } catch (e) {
+                console.error('加载统计失败', e);
+            }
+        }
+
+        async function loadAlerts() {
+            const status = document.getElementById('statusFilter').value;
+            try {
+                const url = '/api/alerts' + (status ? `?status=${status}` : '');
+                const resp = await fetch(url);
+                const alerts = await resp.json();
+                const list = document.getElementById('alertList');
+
+                if (alerts.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">✅</div>
+                            <p>暂无预警</p>
+                            <p style="font-size:12px;margin-top:8px;">系统运行正常，没有检测到异常</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const severityNames = { critical: '严重', warning: '警告', info: '信息' };
+                const statusNames = { active: '活跃', acknowledged: '已确认', resolved: '已解决' };
+                list.innerHTML = alerts.map(a => `
+                    <div class="alert-item alert-${a.severity}">
+                        <div class="alert-header">
+                            <span class="alert-title">${a.rule_name}</span>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="alert-severity severity-${a.severity}">${severityNames[a.severity] || a.severity}</span>
+                                <span class="status-badge status-${a.status}">${statusNames[a.status] || a.status}</span>
+                            </div>
+                        </div>
+                        <div class="alert-message">${a.message}</div>
+                        <div class="alert-meta">
+                            <span>${a.project_key} · ${new Date(a.created_at * 1000).toLocaleString()}</span>
+                            <div class="alert-actions">
+                                ${a.status === 'active' ? `<button class="btn btn-secondary" onclick="acknowledgeAlert('${a.id}')">确认</button>` : ''}
+                                ${a.status !== 'resolved' ? `<button class="btn btn-success" onclick="resolveAlert('${a.id}')">解决</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('加载预警失败', e);
+            }
+        }
+
+        async function acknowledgeAlert(id) {
+            await fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' });
+            loadAlerts(); loadStats();
+        }
+
+        async function resolveAlert(id) {
+            await fetch(`/api/alerts/${id}/resolve`, { method: 'POST' });
+            loadAlerts(); loadStats();
+        }
+
+        async function predictTrend() {
+            const values = document.getElementById('trendValues').value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            if (values.length < 2) { alert('请至少输入2个数据点'); return; }
+            try {
+                const resp = await fetch('/api/alerts/predict-trend', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values, steps: 3 })
+                });
+                const result = await resp.json();
+                const el = document.getElementById('trendResult');
+                el.style.display = 'block';
+                el.textContent = `趋势方向: ${result.regression.direction}\n回归方程: ${result.regression.equation}\nR²: ${result.regression.r_squared.toFixed(3)}\n\n未来3个预测值:\n${result.predictions.map((v, i) => `  第${i + 1}个: ${v.toFixed(2)}`).join('\n')}`;
+            } catch (e) {
+                alert('预测失败: ' + e.message);
+            }
+        }
+
+        async function detectAnomaly() {
+            const values = document.getElementById('anomalyValues').value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            if (values.length < 3) { alert('请至少输入3个数据点'); return; }
+            try {
+                const resp = await fetch('/api/alerts/detect-anomaly', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values, threshold: 2.0 })
+                });
+                const result = await resp.json();
+                const el = document.getElementById('anomalyResult');
+                el.style.display = 'block';
+                if (result.anomaly_count === 0) {
+                    el.textContent = '✅ 未检测到异常值';
+                } else {
+                    el.textContent = `⚠️ 检测到 ${result.anomaly_count} 个异常值:\n` +
+                        result.anomalies.map(a => `  第${a.index + 1}个: ${a.value} (Z-Score: ${a.z_score}, ${a.type})`).join('\n');
+                }
+            } catch (e) {
+                alert('检测失败: ' + e.message);
+            }
+        }
+
+        async function assessMilestone() {
+            try {
+                const resp = await fetch('/api/alerts/assess-milestone', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        unresolved_bc: parseInt(document.getElementById('milestoneBC').value) || 0,
+                        blocker_count: parseInt(document.getElementById('milestoneBlocker').value) || 0,
+                        critical_count: 0,
+                        days_to_milestone: parseInt(document.getElementById('milestoneDays').value) || 7,
+                        daily_fix_rate: 5.0
+                    })
+                });
+                const result = await resp.json();
+                const el = document.getElementById('milestoneResult');
+                el.style.display = 'block';
+                el.textContent = `风险等级: ${result.risk_level} (${result.risk_score}/100)\n` +
+                    `能否按时过点: ${result.can_make_milestone ? '✅ 可以' : '❌ 困难'}\n` +
+                    `预计修复时间: ${result.estimated_days} 天\n` +
+                    `距离过点: ${result.days_to_milestone} 天\n\n` +
+                    `建议: ${result.recommendation}`;
+            } catch (e) {
+                alert('评估失败: ' + e.message);
+            }
+        }
+
+        loadStats();
+        loadAlerts();
+    </script>
+</body>
+</html>

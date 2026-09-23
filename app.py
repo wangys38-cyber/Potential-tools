@@ -21,6 +21,7 @@ from services.agent_engine import agent_engine, AgentStatus, StepStatus
 import services.agent_tools  # 触发工具注册
 from services.data_sources import data_source_manager, DataSourceType
 from services.workspaces import workspace_manager, WorkspaceRole
+from services.alerts import alert_manager, trend_predictor, anomaly_detector, milestone_risk_assessor
 import request_logger
 import security
 import performance_middleware
@@ -504,6 +505,12 @@ def workspaces_page():
     return render_template('workspaces.html')
 
 
+@app.route('/alerts')
+def alerts_page():
+    """智能预警仪表盘页面"""
+    return render_template('alerts.html')
+
+
 @app.route('/health')
 def health_check():
     """健康检查端点 — 无需认证，返回应用状态详情"""
@@ -822,6 +829,98 @@ def resolve_workspace_comment(workspace_id, comment_id):
     if not success:
         return jsonify({'error': '评论不存在'}), 404
     return jsonify({'success': True})
+
+
+# ==================== 智能预警 API ====================
+@app.route('/api/alerts')
+def list_alerts():
+    """列出预警"""
+    project_key = request.args.get('project_key')
+    status = request.args.get('status')
+    severity = request.args.get('severity')
+    alerts = alert_manager.list_alerts(project_key, status, severity)
+    return jsonify([a.to_dict() for a in alerts[:50]])  # 最多返回50条
+
+
+@app.route('/api/alerts/stats')
+def alerts_stats():
+    """获取预警统计"""
+    return jsonify(alert_manager.get_alert_stats())
+
+
+@app.route('/api/alerts/<alert_id>/acknowledge', methods=['POST'])
+def acknowledge_alert(alert_id):
+    """确认预警"""
+    success = alert_manager.acknowledge_alert(alert_id)
+    if not success:
+        return jsonify({'error': '预警不存在'}), 404
+    return jsonify({'success': True})
+
+
+@app.route('/api/alerts/<alert_id>/resolve', methods=['POST'])
+def resolve_alert(alert_id):
+    """解决预警"""
+    success = alert_manager.resolve_alert(alert_id)
+    if not success:
+        return jsonify({'error': '预警不存在'}), 404
+    return jsonify({'success': True})
+
+
+@app.route('/api/alerts/predict-trend', methods=['POST'])
+def predict_trend():
+    """趋势预测"""
+    data = request.get_json(force=True, silent=True) or {}
+    values = data.get('values', [])
+    steps = int(data.get('steps', 3))
+    if not values:
+        return jsonify({'error': '请提供数据序列'}), 400
+    points = [(i, v) for i, v in enumerate(values)]
+    regression = trend_predictor.linear_regression(points)
+    predictions = trend_predictor.predict_next(values, steps)
+    return jsonify({'regression': regression, 'predictions': predictions, 'input_values': values})
+
+
+@app.route('/api/alerts/detect-anomaly', methods=['POST'])
+def detect_anomaly():
+    """异常检测"""
+    data = request.get_json(force=True, silent=True) or {}
+    values = data.get('values', [])
+    threshold = float(data.get('threshold', 2.0))
+    if not values:
+        return jsonify({'error': '请提供数据序列'}), 400
+    anomalies = anomaly_detector.detect(values, threshold)
+    return jsonify({'anomalies': anomalies, 'total': len(values), 'anomaly_count': len(anomalies)})
+
+
+@app.route('/api/alerts/assess-milestone', methods=['POST'])
+def assess_milestone():
+    """过点风险评估"""
+    data = request.get_json(force=True, silent=True) or {}
+    result = milestone_risk_assessor.assess(
+        unresolved_bc=int(data.get('unresolved_bc', 0)),
+        blocker_count=int(data.get('blocker_count', 0)),
+        critical_count=int(data.get('critical_count', 0)),
+        days_to_milestone=int(data.get('days_to_milestone', 7)),
+        daily_fix_rate=float(data.get('daily_fix_rate', 5.0))
+    )
+    return jsonify(result)
+
+
+@app.route('/api/alerts/rules')
+def list_alert_rules():
+    """列出预警规则"""
+    return jsonify([r.to_dict() for r in alert_manager.list_rules()])
+
+
+@app.route('/api/alerts/rules', methods=['POST'])
+def create_alert_rule():
+    """创建预警规则"""
+    data = request.get_json(force=True, silent=True) or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': '请输入规则名称'}), 400
+    rule = alert_manager.add_rule(name, data.get('type', 'custom'), data.get('condition', {}), data.get('severity', 'warning'))
+    return jsonify(rule.to_dict()), 201
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
