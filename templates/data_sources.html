@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据源管理 - Potential Tools 9.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header h1 { font-size: 24px; font-weight: 700; }
+        .header p { color: #86868b; font-size: 13px; margin-top: 4px; }
+        .btn { padding: 10px 20px; border-radius: 980px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #0071e3; color: #fff; }
+        .btn-primary:hover { background: #0077ed; }
+        .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
+        .btn-secondary:hover { background: #dcdce0; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .btn-danger { background: #ffe5e5; color: #ff3b30; }
+        .btn-danger:hover { background: #ffd6d6; }
+        .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-card .stat-value { font-size: 28px; font-weight: 700; }
+        .stat-card .stat-label { font-size: 12px; color: #86868b; margin-top: 4px; }
+        .source-list { display: flex; flex-direction: column; gap: 12px; }
+        .source-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+        .source-info { flex: 1; }
+        .source-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .source-type { font-size: 11px; padding: 2px 8px; border-radius: 980px; background: #e8f4ff; color: #0071e3; font-weight: 500; }
+        .source-meta { font-size: 12px; color: #86868b; }
+        .source-actions { display: flex; gap: 8px; align-items: center; }
+        .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 980px; font-weight: 500; }
+        .status-success { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-idle { background: #e2e3e5; color: #383d41; }
+        .status-syncing { background: #fff3cd; color: #856404; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { font-size: 20px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #424245; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #0071e3; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #86868b; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 14px; z-index: 2000; animation: slideIn 0.3s; }
+        .toast-success { background: #34c759; }
+        .toast-error { background: #ff3b30; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔗 数据源管理</h1>
+                <p>Potential Tools 9.0 · 统一管理 Jira / Git / CI/CD 数据源</p>
+            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">+ 添加数据源</button>
+        </div>
+
+        <div class="stats-bar" id="statsBar"></div>
+
+        <div class="source-list" id="sourceList"></div>
+    </div>
+
+    <!-- 添加/编辑数据源弹窗 -->
+    <div class="modal-overlay" id="sourceModal">
+        <div class="modal">
+            <h2 id="modalTitle">添加数据源</h2>
+            <div class="form-group">
+                <label>数据源名称</label>
+                <input type="text" id="dsName" placeholder="例如：公司Jira">
+            </div>
+            <div class="form-group">
+                <label>数据源类型</label>
+                <select id="dsType" onchange="onTypeChange()">
+                    <option value="jira">🐛 Jira / eDart</option>
+                    <option value="git">📦 Git</option>
+                    <option value="cicd">🔄 CI/CD</option>
+                    <option value="generic">🔧 通用</option>
+                </select>
+            </div>
+            <div id="jiraConfig" class="ds-config">
+                <div class="form-group">
+                    <label>Jira 地址</label>
+                    <input type="text" id="jiraUrl" placeholder="https://your-domain.atlassian.net">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>用户名 / 邮箱</label>
+                        <input type="text" id="jiraUser" placeholder="user@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>API Token</label>
+                        <input type="password" id="jiraToken" placeholder="API Token">
+                    </div>
+                </div>
+            </div>
+            <div id="gitConfig" class="ds-config" style="display:none;">
+                <div class="form-group">
+                    <label>仓库路径</label>
+                    <input type="text" id="gitPath" placeholder="/path/to/repo">
+                </div>
+                <div class="form-group">
+                    <label>分支</label>
+                    <input type="text" id="gitBranch" placeholder="main" value="main">
+                </div>
+            </div>
+            <div id="cicdConfig" class="ds-config" style="display:none;">
+                <div class="form-group">
+                    <label>CI/CD 地址</label>
+                    <input type="text" id="cicdUrl" placeholder="https://jenkins.example.com">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="cicdUser">
+                    </div>
+                    <div class="form-group">
+                        <label>Token</label>
+                        <input type="password" id="cicdToken">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>自动同步间隔（分钟，0表示手动同步）</label>
+                <input type="number" id="dsInterval" value="60" min="0">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveSource()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editingId = null;
+
+        async function loadSources() {
+            try {
+                const [sourcesResp, statsResp] = await Promise.all([
+                    fetch('/api/data-sources'),
+                    fetch('/api/data-sources/stats')
+                ]);
+                const sources = await sourcesResp.json();
+                const stats = await statsResp.json();
+
+                // 统计卡片
+                document.getElementById('statsBar').innerHTML = `
+                    <div class="stat-card"><div class="stat-value">${stats.total}</div><div class="stat-label">数据源总数</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.enabled}</div><div class="stat-label">已启用</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color:#34c759;">${stats.success}</div><div class="stat-label">同步成功</div></div>
+                    <div class="stat-card"><div class="stat-value" style="color:#ff3b30;">${stats.failed}</div><div class="stat-label">同步失败</div></div>
+                `;
+
+                // 数据源列表
+                const list = document.getElementById('sourceList');
+                if (sources.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📡</div>
+                            <p>还没有配置数据源</p>
+                            <p style="font-size:12px;margin-top:8px;">点击右上角"添加数据源"开始配置</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const typeIcons = { jira: '🐛', git: '📦', cicd: '🔄', generic: '🔧' };
+                list.innerHTML = sources.map(s => `
+                    <div class="source-card">
+                        <div class="source-info">
+                            <div class="source-name">
+                                ${typeIcons[s.type] || '🔧'} ${s.name}
+                                <span class="source-type">${s.type}</span>
+                                <span class="status-badge status-${s.last_sync_status}">${statusText(s.last_sync_status)}</span>
+                            </div>
+                            <div class="source-meta">
+                                ${s.last_sync_at ? `上次同步: ${new Date(s.last_sync_at * 1000).toLocaleString()}` : '尚未同步'}
+                                ${s.last_sync_error ? ` · <span style="color:#ff3b30;">${s.last_sync_error}</span>` : ''}
+                                · 同步间隔: ${s.sync_interval_minutes}分钟
+                            </div>
+                        </div>
+                        <div class="source-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="testSource('${s.id}')">🔌 测试</button>
+                            <button class="btn btn-secondary btn-sm" onclick="syncSource('${s.id}')">🔄 同步</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editSource('${s.id}')">✏️ 编辑</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteSource('${s.id}')">🗑️ 删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('加载数据源失败', e);
+                showToast('加载失败: ' + e.message, 'error');
+            }
+        }
+
+        function statusText(status) {
+            return { idle: '未同步', syncing: '同步中', success: '成功', failed: '失败' }[status] || status;
+        }
+
+        function onTypeChange() {
+            const type = document.getElementById('dsType').value;
+            document.querySelectorAll('.ds-config').forEach(el => el.style.display = 'none');
+            document.getElementById(type + 'Config').style.display = 'block';
+        }
+
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '添加数据源';
+            document.getElementById('dsName').value = '';
+            document.getElementById('dsType').value = 'jira';
+            document.getElementById('dsInterval').value = '60';
+            ['jiraUrl', 'jiraUser', 'jiraToken', 'gitPath', 'gitBranch', 'cicdUrl', 'cicdUser', 'cicdToken'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            onTypeChange();
+            document.getElementById('sourceModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('sourceModal').classList.remove('active');
+        }
+
+        async function saveSource() {
+            const name = document.getElementById('dsName').value.trim();
+            if (!name) { alert('请输入数据源名称'); return; }
+
+            const type = document.getElementById('dsType').value;
+            let config = {};
+            if (type === 'jira') {
+                config = {
+                    base_url: document.getElementById('jiraUrl').value,
+                    username: document.getElementById('jiraUser').value,
+                    api_token: document.getElementById('jiraToken').value
+                };
+            } else if (type === 'git') {
+                config = {
+                    repo_path: document.getElementById('gitPath').value,
+                    branch: document.getElementById('gitBranch').value
+                };
+            } else if (type === 'cicd') {
+                config = {
+                    url: document.getElementById('cicdUrl').value,
+                    username: document.getElementById('cicdUser').value,
+                    token: document.getElementById('cicdToken').value
+                };
+            }
+
+            const body = {
+                name, type, config,
+                sync_interval_minutes: parseInt(document.getElementById('dsInterval').value) || 60
+            };
+
+            try {
+                const url = editingId ? `/api/data-sources/${editingId}` : '/api/data-sources';
+                const method = editingId ? 'PUT' : 'POST';
+                const resp = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    showToast(editingId ? '数据源已更新' : '数据源已添加', 'success');
+                    closeModal();
+                    loadSources();
+                } else {
+                    const err = await resp.json();
+                    showToast('保存失败: ' + (err.error || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            }
+        }
+
+        async function testSource(id) {
+            try {
+                const resp = await fetch(`/api/data-sources/${id}/test`, { method: 'POST' });
+                const result = await resp.json();
+                showToast(result.success ? '✅ ' + result.message : '❌ ' + result.error, result.success ? 'success' : 'error');
+            } catch (e) {
+                showToast('测试失败: ' + e.message, 'error');
+            }
+        }
+
+        async function syncSource(id) {
+            showToast('正在同步...', 'success');
+            try {
+                const resp = await fetch(`/api/data-sources/${id}/sync`, { method: 'POST' });
+                const result = await resp.json();
+                showToast(result.success ? '✅ 同步完成' : '❌ 同步失败: ' + result.error, result.success ? 'success' : 'error');
+                loadSources();
+            } catch (e) {
+                showToast('同步失败: ' + e.message, 'error');
+            }
+        }
+
+        function editSource(id) {
+            // 简化：直接打开添加弹窗，实际项目中应加载现有配置
+            openAddModal();
+            editingId = id;
+            document.getElementById('modalTitle').textContent = '编辑数据源';
+            showToast('编辑功能开发中，请删除后重新添加', 'error');
+        }
+
+        async function deleteSource(id) {
+            if (!confirm('确定要删除这个数据源吗？')) return;
+            try {
+                const resp = await fetch(`/api/data-sources/${id}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    showToast('数据源已删除', 'success');
+                    loadSources();
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 点击遮罩关闭弹窗
+        document.getElementById('sourceModal').addEventListener('click', (e) => {
+            if (e.target.id === 'sourceModal') closeModal();
+        });
+
+        // 初始化
+        loadSources();
+    </script>
+</body>
+</html>

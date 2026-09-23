@@ -19,6 +19,7 @@ import ttl_cache
 import async_tasks
 from services.agent_engine import agent_engine, AgentStatus, StepStatus
 import services.agent_tools  # 触发工具注册
+from services.data_sources import data_source_manager, DataSourceType
 import request_logger
 import security
 import performance_middleware
@@ -490,6 +491,12 @@ def agent_page():
     return render_template('agent.html')
 
 
+@app.route('/data-sources')
+def data_sources_page():
+    """数据源管理页面"""
+    return render_template('data_sources.html')
+
+
 @app.route('/health')
 def health_check():
     """健康检查端点 — 无需认证，返回应用状态详情"""
@@ -640,6 +647,81 @@ def agent_confirm_step(agent_id, step_index):
                 ctx.completed_at = __import__('time').time()
 
     return jsonify(ctx.to_dict())
+
+
+# ==================== 数据源管理 API ====================
+@app.route('/api/data-sources')
+def list_data_sources():
+    """列出所有数据源"""
+    type_filter = request.args.get('type')
+    sources = data_source_manager.list_sources(type_filter)
+    return jsonify([s.to_dict() for s in sources])
+
+
+@app.route('/api/data-sources', methods=['POST'])
+def add_data_source():
+    """添加数据源"""
+    data = request.get_json(force=True, silent=True) or {}
+    name = data.get('name', '').strip()
+    ds_type = data.get('type', 'generic')
+    config = data.get('config', {})
+    sync_interval = int(data.get('sync_interval_minutes', 60))
+
+    if not name:
+        return jsonify({'error': '请输入数据源名称'}), 400
+
+    src = data_source_manager.add_source(name, ds_type, config, sync_interval)
+    return jsonify(src.to_dict()), 201
+
+
+@app.route('/api/data-sources/<source_id>', methods=['PUT'])
+def update_data_source(source_id):
+    """更新数据源"""
+    data = request.get_json(force=True, silent=True) or {}
+    src = data_source_manager.update_source(source_id, **data)
+    if not src:
+        return jsonify({'error': '数据源不存在'}), 404
+    return jsonify(src.to_dict())
+
+
+@app.route('/api/data-sources/<source_id>', methods=['DELETE'])
+def delete_data_source(source_id):
+    """删除数据源"""
+    success = data_source_manager.delete_source(source_id)
+    if not success:
+        return jsonify({'error': '数据源不存在'}), 404
+    return jsonify({'success': True})
+
+
+@app.route('/api/data-sources/<source_id>/test', methods=['POST'])
+def test_data_source(source_id):
+    """测试数据源连接"""
+    result = data_source_manager.test_connection(source_id)
+    return jsonify(result)
+
+
+@app.route('/api/data-sources/<source_id>/sync', methods=['POST'])
+def sync_data_source(source_id):
+    """同步数据源"""
+    result = data_source_manager.sync_source(source_id)
+    return jsonify(result)
+
+
+@app.route('/api/data-sources/stats')
+def data_sources_stats():
+    """获取数据源统计"""
+    return jsonify(data_source_manager.get_sync_stats())
+
+
+@app.route('/api/data-sources/types')
+def data_source_types():
+    """获取支持的数据源类型"""
+    return jsonify([
+        {'type': 'jira', 'name': 'Jira / eDart', 'icon': '🐛', 'description': '缺陷跟踪系统，自动拉取CR'},
+        {'type': 'git', 'name': 'Git', 'icon': '📦', 'description': '代码仓库，关联提交与CR'},
+        {'type': 'cicd', 'name': 'CI/CD', 'icon': '🔄', 'description': '持续集成，构建状态监控'},
+        {'type': 'generic', 'name': '通用', 'icon': '🔧', 'description': '通用数据源配置'}
+    ])
 
 
 # ==================== Pipeline 临时数据存储（替代 localStorage，突破 5MB 限制）====================
