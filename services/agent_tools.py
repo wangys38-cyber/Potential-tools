@@ -116,10 +116,20 @@ def register_builtin_tools():
             smtp_host = cfg.get('smtp_host', '')
             smtp_port = int(cfg.get('smtp_port', 587))
             username = cfg.get('username', '')
-            password = cfg.get('password', '')
+            # 密码是base64编码保存的，需要解码
+            import base64
+            password_encoded = cfg.get('password', '')
+            password = ''
+            if password_encoded:
+                try:
+                    password = base64.b64decode(password_encoded).decode('utf-8')
+                except Exception:
+                    password = password_encoded  # 如果解码失败，可能是明文密码
             use_tls = cfg.get('use_tls', True)
             if not smtp_host or not username:
                 return {'sent': False, 'error': 'SMTP未配置，请先在设置中配置邮箱'}
+            if not password:
+                return {'sent': False, 'error': 'SMTP密码未配置，请在设置中填写邮箱密码/授权码'}
             # 构建邮件
             msg = MIMEMultipart()
             msg['From'] = username
