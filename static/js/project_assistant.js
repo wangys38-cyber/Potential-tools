@@ -387,7 +387,8 @@
 
   /* ---------------- 轻量 Markdown 渲染 ---------------- */
   function inlineMD(s) {
-    s = esc(s);
+    // 本地工具，内容为用户自有CR数据，允许HTML直接渲染以支持带样式的表格/热力图/趋势图
+    s = String(s == null ? '' : s);
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
