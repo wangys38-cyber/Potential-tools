@@ -488,15 +488,17 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-hidden w-[180px] h-[240px] ' +
+      card.className = 'relative block rounded-3xl cursor-pointer transition-transform duration-300 ease-out no-underline w-[180px] h-[240px] ' +
         'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.2)] ' +
         (idx > 0 ? '-ml-3' : '');
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
       card.style.willChange = 'transform';
       card.innerHTML =
+        '<div class="absolute inset-0 rounded-3xl overflow-hidden">' +
         '<img src="/static/images/buddies/' + BUDDY_IMAGES[idx % 5] + '?v={{ STATIC_VERSION }}" class="absolute inset-0 w-full h-full object-cover" />' +
-        '<div class="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-[1]"></div>' +
+        '</div>' +
+        '<div class="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/30 to-transparent pointer-events-none z-[1] rounded-t-3xl"></div>' +
         '<div class="absolute top-3 left-1/2 -translate-x-1/2 text-[12px] font-bold tracking-[0.5px] text-white z-[3] whitespace-nowrap" style="text-shadow:0 1px 4px rgba(0,0,0,0.5)">' + t.name + '</div>';
       wrap.appendChild(card);
     });
@@ -524,6 +526,15 @@
     var wrap = document.getElementById('heroCards');
     if (!wrap) return;
     var cards = wrap.querySelectorAll('a');
+    if (!cards.length) return;
+
+    // 邻位让位的transform：translateX必须在rotate前面，否则会沿旋转轴移动
+    function getNeighborTransform(i, direction) {
+      var base = fanTransforms[i % 5];
+      var offset = direction === 'left' ? 'translateX(-28px) ' : 'translateX(28px) ';
+      // 把translateX插入到最前面
+      return offset + base;
+    }
 
     function resetAll() {
       cards.forEach(function(c, i) {
@@ -534,27 +545,27 @@
     }
 
     cards.forEach(function(card, idx) {
-      card.addEventListener('mouseenter', function() {
+      card.addEventListener('mouseenter', function(e) {
+        e.stopPropagation();
         cards.forEach(function(c, i) {
           if (i === idx) {
-            // 悬停卡片：抬起+最高层级+加深阴影
             c.style.transform = 'translateY(-18px) scale(1.06)';
             c.style.zIndex = '100';
-            c.style.boxShadow = '0 12px 24px rgba(0,0,0,0.25), 0 32px 72px rgba(0,0,0,0.35)';
+            c.style.boxShadow = '0 16px 32px rgba(0,0,0,0.3), 0 36px 80px rgba(0,0,0,0.4)';
           } else if (i < idx) {
-            // 左侧邻位：在原始扇形基础上向左让位
-            c.style.transform = fanTransforms[i % 5] + ' translateX(-26px)';
+            c.style.transform = getNeighborTransform(i, 'left');
             c.style.zIndex = '10';
           } else {
-            // 右侧邻位：在原始扇形基础上向右让位
-            c.style.transform = fanTransforms[i % 5] + ' translateX(26px)';
+            c.style.transform = getNeighborTransform(i, 'right');
             c.style.zIndex = '10';
           }
         });
       });
     });
 
-    wrap.addEventListener('mouseleave', resetAll);
+    wrap.addEventListener('mouseleave', function() {
+      requestAnimationFrame(resetAll);
+    });
   }
 
   if (document.readyState === 'loading') {
