@@ -23,7 +23,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0a0a0f">
     <script>
       tailwind.config = {
         theme: {
@@ -47,6 +49,8 @@
         50% { transform: translateY(-12px) rotate(5deg); opacity: 1; }
       }
       body { background: linear-gradient(160deg, #1a1a1e 0%, #121216 50%, #0e0e12 100%) !important; min-height: 100vh; }
+      #heroCards a { will-change: transform; contain: layout paint; }
+      #heroCards { contain: layout; }
     </style>
 
 </head>
@@ -617,9 +621,9 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(renderHeroCards, 500); });
+    document.addEventListener('DOMContentLoaded', renderHeroCards);
   } else {
-    setTimeout(renderHeroCards, 500);
+    requestAnimationFrame(renderHeroCards);
   }
 })();
 </script>
