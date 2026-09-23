@@ -813,6 +813,8 @@
         if (acc) { state.history.push({ role: 'assistant', content: acc }); saveChatHistory(); }
         sendBtn.disabled = false;
         msgs.scrollTop = msgs.scrollHeight;
+        // 流式输出完成后，渲染内嵌的趋势图
+        renderInlineTrendCharts(botBubble);
       }
       return pump();
     }).catch(function (e) {
