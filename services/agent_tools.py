@@ -26,14 +26,22 @@ def register_builtin_tools():
         if snap:
             ctx.data['project_snapshot'] = snap
             ctx.data['project_key'] = project_key
+            # 快照统计数据在 snap['stats'] 中
+            st = snap.get('stats', {}) or {}
+            summ = snap.get('summary', {}) or {}
+            # 计算模块 PASS/FAIL 数量
+            module_md = snap.get('module_md', '')
+            fail_count = module_md.count('| FAIL |') + module_md.count('| ❌ |')
+            pass_count = module_md.count('| PASS |') + module_md.count('| ✅ |')
+            unresolved_bc_list = snap.get('unresolved_bc', [])
             return {
-                'project': snap.get('project_name', project_key),
-                'total_cr': snap.get('total_issues', 0),
-                'unresolved': snap.get('unresolved_count', 0),
-                'unresolved_bc': snap.get('unresolved_bc_count', 0),
-                'fail_modules': snap.get('fail_modules', 0),
-                'pass_modules': snap.get('pass_modules', 0),
-                'risk_level': snap.get('risk_level', 'unknown')
+                'project': snap.get('project_name') or snap.get('name') or project_key,
+                'total_cr': st.get('total', 0),
+                'unresolved': st.get('unresolved', 0),
+                'unresolved_bc': len(unresolved_bc_list) if isinstance(unresolved_bc_list, list) else st.get('unresolved_bc', 0),
+                'fail_modules': fail_count,
+                'pass_modules': pass_count,
+                'risk_level': summ.get('risk_level', 'unknown')
             }
         return {'error': f'项目 {project_key} 的状态快照不存在，请先在「项目助手」页面同步该项目的CR数据'}
 

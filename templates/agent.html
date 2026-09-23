@@ -39,7 +39,7 @@
         .status-running { background: #fff3cd; color: #856404; }
         .status-pending { background: #e2e3e5; color: #383d41; }
         .step .reasoning { font-size: 12px; color: #86868b; margin-bottom: 6px; }
-        .step .result { font-size: 13px; color: #424245; background: #fff; padding: 8px 12px; border-radius: 6px; margin-top: 6px; max-height: 150px; overflow-y: auto; }
+        .step .result { font-size: 13px; color: #424245; background: #fff; padding: 10px 14px; border-radius: 6px; margin-top: 6px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
         .step .error { font-size: 13px; color: #ff3b30; }
         .confirm-area { background: #fff8e6; border: 1px solid #ffd60a; border-radius: 12px; padding: 16px; margin: 12px 0; }
         .confirm-area p { margin-bottom: 12px; font-size: 14px; }
@@ -165,7 +165,7 @@
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
                         ${step.reasoning ? `<div class="reasoning">💡 ${step.reasoning}</div>` : ''}
-                        ${step.result ? `<div class="result">${typeof step.result === 'string' ? step.result.substring(0, 300) : JSON.stringify(step.result).substring(0, 300)}</div>` : ''}
+                        ${step.result ? `<div class="result">${formatStepResult(step.result)}</div>` : ''}
                         ${step.error ? `<div class="error">❌ ${step.error}</div>` : ''}
                         ${step.status === 'needs_confirmation' ? `
                             <div class="confirm-area">
@@ -202,6 +202,30 @@
             } catch (e) {
                 alert('确认操作失败: ' + e.message);
             }
+        }
+
+        // 格式化步骤结果
+        function formatStepResult(result) {
+            if (typeof result === 'string') {
+                // 如果是字符串，直接显示（保留换行）
+                return result.length > 2000 ? result.substring(0, 2000) + '\n...（内容过长，已截断）' : result;
+            }
+            if (typeof result === 'object' && result !== null) {
+                // 如果是对象，检查是否有 preview 字段（如报告生成）
+                if (result.preview && typeof result.preview === 'string') {
+                    return '📄 报告已生成\n\n' + result.preview;
+                }
+                if (result.error) {
+                    return '❌ ' + result.error;
+                }
+                // 其他对象，格式化显示
+                try {
+                    return JSON.stringify(result, null, 2);
+                } catch (e) {
+                    return String(result);
+                }
+            }
+            return String(result);
         }
 
         // 初始化
