@@ -244,17 +244,22 @@ class AgentEngine:
 
     @staticmethod
     def _extract_project_key(task: str) -> Optional[str]:
-        """从用户输入中提取项目名称（如 EKSANTOS、SANTOS 等）"""
+        """从用户输入中提取项目名称（如 EKSANTOS、SANTOS、Santos 等）"""
         import re
+        # 使用 lookaround 代替 \b（\b 在中英文边界处不可靠）
         # 模式1：以 EK 开头的全大写项目名（如 EKSANTOS、EKHORIZON）
-        m = re.search(r'\b(EK[A-Z]{2,})\b', task)
+        m = re.search(r'(?<![A-Za-z])(EK[A-Z]{2,})(?![A-Za-z])', task)
         if m:
             return m.group(1)
         # 模式2：连续 5-15 个大写字母（如 SANTOS、HORIZON）
-        m = re.search(r'\b([A-Z]{5,15})\b', task)
+        m = re.search(r'(?<![A-Za-z])([A-Z]{5,15})(?![A-Za-z])', task)
         if m:
             return m.group(1)
-        # 模式3：中文"项目"前面的英文/数字组合
+        # 模式3：首字母大写 + 4-14个小写字母（如 Santos、Horizon、Andes）
+        m = re.search(r'(?<![A-Za-z])([A-Z][a-z]{4,14})(?![A-Za-z])', task)
+        if m:
+            return m.group(1).upper()
+        # 模式4：中文"项目"前面的英文/数字组合
         m = re.search(r'([A-Za-z0-9]+)\s*项目', task)
         if m:
             return m.group(1).upper()

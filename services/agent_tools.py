@@ -93,19 +93,44 @@ def register_builtin_tools():
 
     # ===== 发送邮件工具（需要确认） =====
     def _send_email(params, ctx):
-        """发送邮件"""
+        """发送邮件（使用SMTP配置）"""
         to = params.get('to', '')
         subject = params.get('subject', '')
         body = params.get('body', '') or ctx.data.get('last_report', '')
-        if not to:
-            return {'error': '未指定收件人'}
-        # 调用邮件服务
+        if not to or to == 'AUTO_DETECT':
+            return {'error': '未指定收件人，请在任务中明确收件人邮箱'}
         try:
-            from services.email_service import send_email as _send
-            result = _send(to=to, subject=subject, body=body)
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            from db import get_config
+            # 从系统配置获取SMTP
+            cfg = get_config('smtp_mail_config') or {}
+            smtp_host = cfg.get('smtp_host', '')
+            smtp_port = int(cfg.get('smtp_port', 587))
+            username = cfg.get('username', '')
+            password = cfg.get('password', '')
+            use_tls = cfg.get('use_tls', True)
+            if not smtp_host or not username:
+                return {'sent': False, 'error': 'SMTP未配置，请先在设置中配置邮箱'}
+            # 构建邮件
+            msg = MIMEMultipart()
+            msg['From'] = username
+            msg['To'] = to
+            msg['Subject'] = subject or 'Potential Tools 通知'
+            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            # 发送
+            if use_tls:
+                server = smtplib.SMTP(smtp_host, smtp_port, timeout=30)
+                server.starttls()
+            else:
+                server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=30)
+            server.login(username, password)
+            server.sendmail(username, [to], msg.as_string())
+            server.quit()
             return {'sent': True, 'to': to, 'subject': subject}
         except Exception as e:
-            return {'sent': False, 'error': str(e)}
+            return {'sent': False, 'error': f'邮件发送失败: {str(e)}'}
 
     tool_registry.register(Tool(
         name='send_email',
