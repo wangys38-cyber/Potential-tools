@@ -517,11 +517,11 @@
     if (window._chartLoading) return window._chartLoading;
     window._chartLoading = new Promise(function (resolve, reject) {
       var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-      s.onload = function () { resolve(); };
+      s.src = '/static/vendor/chart.umd.min.js';
+      s.onload = function () { if (window.Chart) resolve(); else reject(new Error('Chart not defined after load')); };
       s.onerror = function () { reject(new Error('chart.js load failed')); };
       document.head.appendChild(s);
-      setTimeout(function () { if (!window.Chart) reject(new Error('chart.js load timeout')); }, 10000);
+      setTimeout(function () { if (!window.Chart) reject(new Error('chart.js load timeout')); }, 8000);
     });
     return window._chartLoading;
   }
