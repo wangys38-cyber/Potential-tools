@@ -86,7 +86,7 @@ def _get_static_version():
 _STATIC_VERSION = _get_static_version()
 
 # 应用版本号
-APP_VERSION = '9.0.0-dev'
+APP_VERSION = '9.0.0'
 _app_start_time = __import__('time').time()
 
 logging.basicConfig(

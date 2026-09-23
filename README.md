@@ -4,10 +4,56 @@
 
 集成 CR 分析、智能知识库、邮件助手、知识图谱、HLD 生成、项目计划、测试报告等 **20+ 工具**，本地运行，数据不出内网。
 
-[![Version](https://img.shields.io/badge/version-v8.1.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
+[![Version](https://img.shields.io/badge/version-v9.0.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+
+---
+
+## 🎉 v9.0 重磅更新 — 研发智能体平台
+
+从"工具集合"进化为"研发智能体平台"，6大核心升级：
+
+### 🤖 Agent 2.0 自主任务执行
+- 自然语言指令 → 自动任务规划 → 多工具调用 → 结果输出
+- 内置5个工具：查询项目状态、生成报告、发送邮件、创建笔记、知识库搜索
+- 敏感操作（发送邮件）需用户确认，安全可控
+- 访问：`/agent`
+
+### 🔗 统一数据源管理
+- 支持 Jira/eDart、Git、CI/CD、通用数据源
+- 连接测试、手动同步、同步状态跟踪
+- 配置持久化，敏感字段不返回前端
+- 访问：`/data-sources`
+
+### 👥 团队协作空间
+- 工作空间管理，多成员协作
+- 4种角色：所有者/管理员/编辑者/查看者，细粒度权限
+- 评论区支持 @提及，已解决/未解决状态
+- 访问：`/workspaces`
+
+### 🚨 智能预警与预测
+- **趋势预测**：线性回归 + 移动平均，预测未来CR趋势
+- **异常检测**：Z-Score 算法，自动识别CR数量异常波动
+- **过点风险评估**：基于未解决BC/Blocker/时间的风险评分和建议
+- 预警记录管理：创建/确认/解决/统计
+- 访问：`/alerts`
+
+### 🔍 全局搜索
+- 跨工具统一搜索：项目、笔记、知识库、CR、文档
+- 多源加权排序，搜索建议
+- API：`/api/search?q=关键词`
+
+### 🔌 开放 API v1
+- 第三方系统可通过 REST API 集成
+- 端点：`/api/v1/health`、`/api/v1/projects`、`/api/v1/search`
+- 健康检查增强：版本、运行时间、DB状态、内存、CPU
+
+### ⚡ 架构升级
+- 异步任务框架（4工作线程），耗时操作不阻塞
+- ttl_cache 缓存集成，项目状态秒级响应
+- 健康检查端点 `/health`
 
 ---
 
