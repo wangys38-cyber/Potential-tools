@@ -449,6 +449,15 @@
     return { name: name, desc: desc, url: url };
   }
 
+  // 全局扇形排列transform，bindHover和renderHeroCards共享
+  var fanTransforms = [
+    'translateY(32px) rotate(-12deg)',
+    'translateY(12px) rotate(-6deg)',
+    'translateY(-20px)',
+    'translateY(12px) rotate(6deg)',
+    'translateY(32px) rotate(12deg)'
+  ];
+
   function renderHeroCards() {
     var grid = document.getElementById('tools-grid');
     var wrap = document.getElementById('heroCards');
@@ -473,14 +482,6 @@
       if (!isMain) otherTools.push(t);
     });
 
-    // 扇形排列 Tailwind 类名
-    var fanTransforms = [
-      'translateY(32px) rotate(-12deg)',
-      'translateY(12px) rotate(-6deg)',
-      'translateY(-20px)',
-      'translateY(12px) rotate(6deg)',
-      'translateY(32px) rotate(12deg)'
-    ];
     var isCenter = [false, false, true, false, false];
 
     // 渲染主要工具卡片

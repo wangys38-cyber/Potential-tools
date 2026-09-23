@@ -1038,3 +1038,38 @@ body:has(#hero-section) .user-info {
   padding-bottom: 60px !important;
   padding-top: 20px !important;
 }
+
+/* ===== v15 清理旧hero-card规则冲突 ===== */
+/* 现在卡片全部用Tailwind类名+JS内联样式，旧CSS规则全部禁用 */
+#heroCards a {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: none !important; /* JS会设置内联transform覆盖这个 */
+  width: auto !important;
+  height: auto !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  overflow: visible !important;
+  display: block !important;
+}
+#heroCards a::before,
+#heroCards a::after {
+  display: none !important;
+}
+#heroCards a .hc-animal,
+#heroCards a .hc-icon,
+#heroCards a .hc-name,
+#heroCards a .hc-desc,
+#heroCards a .hc-badge,
+#heroCards a .hc-tag {
+  display: none !important;
+}
+/* 确保卡片容器正常 */
+#heroCards {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 20px 0 60px 0 !important;
+  overflow: visible !important;
+}
