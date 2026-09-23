@@ -474,11 +474,11 @@
 
     // 扇形排列 Tailwind 类名
     var fanTransforms = [
-      'translateY(36px) rotate(-12deg)',
-      'translateY(14px) rotate(-6deg)',
-      'translateY(-24px) scale(1.15)',
-      'translateY(14px) rotate(6deg)',
-      'translateY(36px) rotate(12deg)'
+      'translateY(32px) rotate(-12deg)',
+      'translateY(12px) rotate(-6deg)',
+      'translateY(-20px)',
+      'translateY(12px) rotate(6deg)',
+      'translateY(32px) rotate(12deg)'
     ];
     var isCenter = [false, false, true, false, false];
 
@@ -487,15 +487,15 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative flex flex-col items-center justify-end pb-6 rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-visible w-[170px] h-[230px] ' +
+      card.className = 'relative flex flex-col items-center justify-end pb-6 rounded-3xl cursor-pointer transition-all duration-300 ease-out no-underline overflow-visible w-[180px] h-[240px] ' +
         'shadow-[0_4px_8px_rgba(0,0,0,0.1),0_12px_32px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] ' +
-        (center ? 'w-[200px] h-[270px] -ml-4' : (idx > 0 ? '-ml-4' : ''));
+        (idx > 0 ? '-ml-3' : '');
       card.href = t.url;
       card.style.background = MAIN_COLORS[idx % MAIN_COLORS.length];
       card.style.transform = fanTransforms[idx % 5];
       card.style.willChange = 'transform';
       var animalTop = center ? 'top-14' : 'top-12';
-      var animalSize = center ? 'w-[115px] h-[115px]' : 'w-[100px] h-[100px]';
+      var animalSize = center ? 'w-[105px] h-[105px]' : 'w-[95px] h-[95px]';
       var nameMargin = center ? 'mt-[88px] text-base' : 'mt-[76px] text-[15px]';
       card.innerHTML =
         '<div class="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent rounded-t-3xl pointer-events-none z-[1]"></div>' +
@@ -538,17 +538,17 @@
       card.addEventListener('mouseenter', function() {
         cards.forEach(function(c, i) {
           if (i === idx) {
-            // 悬停卡片：抬起+放大+最高层级+加深阴影
-            c.style.transform = 'translateY(-18px) scale(1.08)';
+            // 悬停卡片：抬起+最高层级+加深阴影
+            c.style.transform = 'translateY(-18px) scale(1.06)';
             c.style.zIndex = '100';
             c.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15), 0 28px 64px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)';
           } else if (i < idx) {
             // 左侧邻位：在原始扇形基础上向左让位
-            c.style.transform = fanTransforms[i % 5] + ' translateX(-28px)';
+            c.style.transform = fanTransforms[i % 5] + ' translateX(-26px)';
             c.style.zIndex = '10';
           } else {
             // 右侧邻位：在原始扇形基础上向右让位
-            c.style.transform = fanTransforms[i % 5] + ' translateX(28px)';
+            c.style.transform = fanTransforms[i % 5] + ' translateX(26px)';
             c.style.zIndex = '10';
           }
         });
