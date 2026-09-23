@@ -580,6 +580,28 @@
     });
   }
 
+  // 监听消息区域 DOM 变化，自动渲染趋势图（不依赖finish调用时机）
+  var _trendObserver = null;
+  function initTrendObserver() {
+    if (_trendObserver) return;
+    _trendObserver = new MutationObserver(function(mutations) {
+      var needRender = false;
+      mutations.forEach(function(m) {
+        if (m.addedNodes && m.addedNodes.length) needRender = true;
+      });
+      if (needRender) {
+        var containers = msgs.querySelectorAll('.pa-inline-trend');
+        containers.forEach(function(el) {
+          if (!el._chartInstance && !el._rendering) {
+            el._rendering = true;
+            renderInlineTrendCharts(el.parentNode);
+          }
+        });
+      }
+    });
+    _trendObserver.observe(msgs, { childList: true, subtree: true });
+  }
+
   /* ---------------- CR 单根因分析（RCA） ---------------- */
   function extractIssueKeys(t) {
     var re = /\b([A-Z][A-Z0-9]{1,15}-\d{1,7})\b/gi, out = [], seen = {}, m;
@@ -868,6 +890,7 @@
   Array.prototype.forEach.call(document.querySelectorAll('#paMode button'), function (b) {
     b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
   });
+  initTrendObserver();
   sendBtn.addEventListener('click', function () { sendQuestion(); });
   $('paClearChat').addEventListener('click', function () { clearChat(); });
   chatInput.addEventListener('keydown', function (e) {
