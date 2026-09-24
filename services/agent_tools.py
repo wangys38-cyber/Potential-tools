@@ -76,13 +76,23 @@ def register_builtin_tools():
     # ===== 生成报告工具 =====
     def _generate_report(params, ctx):
         """生成项目状态报告"""
+        import traceback
         from services.project_assistant import generate_report_markdown
         snap = ctx.data.get('project_snapshot')
         if not snap:
             return {'error': '请先查询项目状态'}
-        report = generate_report_markdown(snap)
-        ctx.data['last_report'] = report
-        return {'format': 'markdown', 'length': len(report), 'report': report, 'preview': report[:500]}
+        try:
+            report = generate_report_markdown(snap)
+            ctx.data['last_report'] = report
+            return {'format': 'markdown', 'length': len(report), 'report': report, 'preview': report[:500]}
+        except Exception as e:
+            err_detail = f'{type(e).__name__}: {e}\n{traceback.format_exc()}'
+            try:
+                with open(r'D:\Potential-tools\data\agent_error.log', 'a', encoding='utf-8') as f:
+                    f.write(f'=== generate_report 错误 ===\n{err_detail}\n\n')
+            except Exception:
+                pass
+            return {'error': f'生成报告失败: {e}', 'detail': err_detail}
 
     tool_registry.register(Tool(
         name='generate_report',

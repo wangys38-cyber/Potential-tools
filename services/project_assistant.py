@@ -379,8 +379,8 @@ def generate_report_markdown(snap):
     import json
     lines = []
     # 防御性初始化：确保变量在任何分支下都有定义
-    functional_blockers = []
-    label_blockers = []
+    _fb_list = []
+    _lb_list = []
     st = snap.get('stats', {}) or {}
     project_name = snap.get('project_name') or snap.get('name') or 'Project'
 
@@ -427,8 +427,8 @@ def generate_report_markdown(snap):
             label_text = str(labels or '')
         return 'blocker' in label_text.lower()
 
-    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
-    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
+    _fb_list = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
+    _lb_list = [r for r in new_bc if _has_blocker_label(r)]
 
     # ===== 按模块聚合 =====
     module_stats = {}
@@ -489,7 +489,7 @@ def generate_report_markdown(snap):
         health_desc = f'项目状态良好，当前仅 {total_bc} 项新增BC问题，无严重阻碍性问题。'
 
     # 三大核心变化（取最严重的3个问题）
-    all_critical = functional_blockers + label_blockers
+    all_critical = _fb_list + _lb_list
     # 去重
     seen_ids = set()
     unique_critical = []
@@ -513,13 +513,13 @@ def generate_report_markdown(snap):
         core_changes_html = '当前无高风险新增问题，项目整体稳定。'
 
     # 最大当前风险
-    if functional_blockers:
-        top_risk = functional_blockers[0]
+    if _fb_list:
+        top_risk = _fb_list[0]
         risk_title = str(top_risk.get('title', '')).replace('\n', ' ')[:100]
         risk_id = top_risk.get('id', '')
         max_risk = f'**{risk_title}**({risk_id})：用户无法忍受的功能性Blocker，直接影响核心体验。'
-    elif label_blockers:
-        top_risk = label_blockers[0]
+    elif _lb_list:
+        top_risk = _lb_list[0]
         risk_title = str(top_risk.get('title', '')).replace('\n', ' ')[:100]
         risk_id = top_risk.get('id', '')
         max_risk = f'**{risk_title}**({risk_id})：标签带blocker，可能影响过点进度。'
@@ -585,27 +585,27 @@ def generate_report_markdown(snap):
     lines.append("## Key Issues")
     lines.append("")
 
-    # functional_blockers 和 label_blockers 已在前面定义
+    # _fb_list 和 _lb_list 已在前面定义
 
-    if functional_blockers:
-        lines.append(f"**🔴 [High-Risk] 用户无法忍受的功能性 Blocker（{len(functional_blockers)}个）**")
-        for r in functional_blockers[:5]:
+    if _fb_list:
+        lines.append(f"**🔴 [High-Risk] 用户无法忍受的功能性 Blocker（{len(_fb_list)}个）**")
+        for r in _fb_list[:5]:
             title = str(r.get('title', '')).replace('\n', ' ')
             lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
-        if len(functional_blockers) > 5:
-            lines.append(f"- ...等共{len(functional_blockers)}个")
+        if len(_fb_list) > 5:
+            lines.append(f"- ...等共{len(_fb_list)}个")
         lines.append("")
 
-    if label_blockers:
-        lines.append(f"**🟡 [Mid-Risk] 标签带 blocker、影响过点（{len(label_blockers)}个）**")
-        for r in label_blockers[:5]:
+    if _lb_list:
+        lines.append(f"**🟡 [Mid-Risk] 标签带 blocker、影响过点（{len(_lb_list)}个）**")
+        for r in _lb_list[:5]:
             title = str(r.get('title', '')).replace('\n', ' ')
             lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
-        if len(label_blockers) > 5:
-            lines.append(f"- ...等共{len(label_blockers)}个")
+        if len(_lb_list) > 5:
+            lines.append(f"- ...等共{len(_lb_list)}个")
         lines.append("")
 
-    if not functional_blockers and not label_blockers:
+    if not _fb_list and not _lb_list:
         lines.append("当前无高风险新增问题。")
         lines.append("")
 
