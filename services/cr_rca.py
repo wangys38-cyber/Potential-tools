@@ -29,8 +29,8 @@ DATA_DIR = os.path.join(ROOT, 'data')
 RCA_DIR = os.path.join(DATA_DIR, 'rca_cache')
 
 RCA_TTL = 7 * 24 * 3600          # 同一单证据缓存 7 天
-MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
-MAX_TOTAL_DOWNLOAD = 60 * 1024 * 1024
+MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024  # 单文件上限100MB（用户要求不允许跳过大文件）
+MAX_TOTAL_DOWNLOAD = 200 * 1024 * 1024     # 累计下载上限200MB
 MAX_DESC_CHARS = 4000
 MAX_COMMENT_CHARS = 1500
 MAX_COMMENTS = 15
