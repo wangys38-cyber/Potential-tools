@@ -61,10 +61,10 @@
     <nav class="glass fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-14 px-8 border-b border-white/[0.08]">
       <div class="flex items-center gap-8">
         <span class="text-white text-lg font-semibold tracking-wide cursor-pointer hover:opacity-80 transition-opacity" onclick="window.scrollTo({top:0,behavior:'smooth'})">Potential Tools</span>
-        <div class="flex items-center gap-2">
-          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-[13px] font-semibold px-4 py-2 rounded-lg bg-white/[0.1] border-b-2 border-white/[0.6] transition-all">首页</button>
-          <button onclick="switchNavTab(this,'explore')" class="text-white/55 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white/90 hover:bg-white/[0.08] transition-all">全部工具</button>
-          <button onclick="switchNavTab(this,'about')" class="text-white/55 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white/90 hover:bg-white/[0.08] transition-all">关于</button>
+        <div class="flex items-center gap-1">
+          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-[13px] font-semibold px-4 py-2 rounded-lg bg-white/[0.1] border-b-2 border-indigo-400 transition-all">首页</button>
+          <button onclick="switchNavTab(this,'explore')" class="text-white/65 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white hover:bg-white/[0.08] transition-all">全部工具</button>
+          <button onclick="switchNavTab(this,'about')" class="text-white/65 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white hover:bg-white/[0.08] transition-all">关于</button>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -93,7 +93,9 @@
 
     <div id="hero-section" class="relative overflow-hidden pt-20 pb-10">
       <!-- 背景大字母 -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[260px] font-black text-white/[0.012] tracking-[-12px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[280px] font-black text-white/[0.008] tracking-[-14px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
+      <!-- 暗色遮罩，确保前景卡片视觉纯净 -->
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-transparent pointer-events-none"></div>
       <!-- 漂浮元素 -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">
         <span class="absolute text-base text-white/30 animate-float" style="top:15%;left:12%;">✦</span>
@@ -448,11 +450,11 @@
   function switchNavTab(btn, tab) {
     var tabs = btn.parentElement.querySelectorAll('button');
     tabs.forEach(function(t) {
-      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-white/[0.6]');
-      t.classList.add('text-white/55', 'font-medium');
+      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-indigo-400');
+      t.classList.add('text-white/65', 'font-medium');
     });
-    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-white/[0.6]');
-    btn.classList.remove('text-white/55', 'font-medium');
+    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-indigo-400');
+    btn.classList.remove('text-white/65', 'font-medium');
     if (tab === 'home') {
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (tab === 'explore') {
@@ -537,7 +539,7 @@
       moreList.innerHTML = '';
       moreList.style.display = 'flex';
       moreList.style.flexDirection = 'column';
-      moreList.style.gap = '24px';
+      moreList.style.gap = '36px';
       moreList.style.alignItems = 'center';
 
       // 分类规则（基于URL关键词）
@@ -560,9 +562,9 @@
       function createTagItem(t, isNew) {
         var item = document.createElement('a');
         if (isNew) {
-          item.className = 'inline-flex items-center text-[13px] font-medium text-white bg-gradient-to-r from-blue-500/25 to-purple-500/25 border border-blue-400/40 rounded-full px-5 py-2.5 no-underline transition-all duration-200 hover:from-blue-500/35 hover:to-purple-500/35 hover:border-blue-400/60 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(99,102,241,0.25)]';
+          item.className = 'inline-flex items-center text-[13px] font-semibold text-white bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 border border-indigo-400/50 rounded-full px-6 py-[10px] no-underline transition-all duration-200 hover:from-indigo-500/40 hover:via-purple-500/40 hover:to-pink-500/40 hover:border-indigo-400/70 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(139,92,246,0.35)]';
         } else {
-          item.className = 'inline-flex items-center text-[13px] font-medium text-white/65 bg-white/[0.07] border border-white/[0.12] rounded-full px-5 py-2.5 no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.14] hover:border-white/[0.25] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.25)]';
+          item.className = 'inline-flex items-center text-[13px] font-medium text-white/70 bg-white/[0.08] border border-white/[0.14] rounded-full px-6 py-[10px] no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.15] hover:border-white/[0.28] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)]';
         }
         item.href = t.url;
         item.textContent = t.name;
@@ -580,15 +582,29 @@
         group.style.width = '100%';
 
         var title = document.createElement('div');
-        title.className = 'text-[12px] font-semibold tracking-[0.15em] uppercase ' + (cat.color || 'text-white/50');
-        title.textContent = cat.name;
+        title.className = 'text-[15px] font-bold tracking-[0.1em] ' + (cat.color || 'text-white/70');
+        title.style.display = 'flex';
+        title.style.alignItems = 'center';
+        title.style.gap = '8px';
+        // 品牌色小圆点
+        var dot = document.createElement('span');
+        dot.style.display = 'inline-block';
+        dot.style.width = '6px';
+        dot.style.height = '6px';
+        dot.style.borderRadius = '50%';
+        dot.style.background = 'linear-gradient(135deg,#818cf8,#c084fc)';
+        dot.style.boxShadow = '0 0 8px rgba(139,92,246,0.6)';
+        title.appendChild(dot);
+        var titleText = document.createElement('span');
+        titleText.textContent = cat.name;
+        title.appendChild(titleText);
         group.appendChild(title);
 
         var tagsWrap = document.createElement('div');
         tagsWrap.style.display = 'flex';
         tagsWrap.style.flexWrap = 'wrap';
         tagsWrap.style.justifyContent = 'center';
-        tagsWrap.style.gap = '10px';
+        tagsWrap.style.gap = '14px';
         tagsWrap.style.maxWidth = '800px';
         tools.forEach(function(t) {
           tagsWrap.appendChild(createTagItem(t, isNew));
