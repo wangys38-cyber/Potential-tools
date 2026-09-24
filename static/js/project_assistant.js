@@ -397,15 +397,41 @@
   }
   function renderMD(src) {
     if (!src) return '';
-    // 预处理：AI 可能把 Markdown 表格所有行输出在同一行（用空格分隔），
-    // 检测到 |---| 分隔符时把 | | 拆成多行；并把 "## 标题 |表格|" 拆开
+    // 预处理：AI 经常把所有内容输出在同一行（没有换行符），
+    // 需要智能拆分：标题、列表、表格等都要正确换行
     var raw = String(src).replace(/\r\n/g, '\n');
+
+    // 第一步：在 ### 标题前插入换行（如果前面不是行首）
+    raw = raw.replace(/(.)\s+(#{1,6}\s+)/g, '$1\n$2');
+
+    // 第二步：在列表项前插入换行（- xxx 或 1. xxx），但要排除表格中的 |---|
+    // 先保护表格分隔符，避免被误判为列表
+    raw = raw.replace(/\|[-:\s]+\|/g, function (m) { return m.replace(/-/g, '\u0001'); });
+    // 在列表项前插入换行（前面不是行首或不是 |）
+    raw = raw.replace(/(.)\s+([-*]\s+\S)/g, function (m, p1, p2) {
+      if (p1 === '|') return m; // 表格中的不拆
+      return p1 + '\n' + p2;
+    });
+    raw = raw.replace(/(.)\s+(\d+[.)]\s+\S)/g, function (m, p1, p2) {
+      if (p1 === '|') return m;
+      return p1 + '\n' + p2;
+    });
+    // 恢复表格分隔符
+    raw = raw.replace(/\u0001/g, '-');
+
+    // 第三步：处理表格 - 检测到 |---| 分隔符时，把表格区域拆成多行
     raw = raw.split('\n').map(function (line) {
-      if (/\|[\s:|-]{3,}\|/.test(line)) {
+      if (/\|[-:\s]{3,}\|/.test(line)) {
+        // 这一行包含表格分隔符，需要把前后的表格行都拆开
+        // 先把 | | 拆成多行（中间有空格的情况）
         line = line.replace(/\|\s+\|/g, '|\n|');
+        // 再把 || 拆成多行（中间没有空格的情况）
+        line = line.replace(/\|\|/g, '|\n|');
       }
       return line;
     }).join('\n');
+
+    // 第四步：把 "## 标题 |表格|" 拆开（标题和表格在同一行）
     raw = raw.split('\n').map(function (line) {
       var hm = line.match(/^(#{1,6}\s+.+?)\s+(\|[^\n]+\|)\s*$/);
       if (hm && (hm[2].match(/\|/g) || []).length >= 4) {
@@ -413,6 +439,10 @@
       }
       return line;
     }).join('\n');
+
+    // 第五步：表格行之间如果用空格分隔且没有换行，再拆一次
+    // 匹配 | 内容 | 内容 | 后面跟空格和 | 的情况
+    raw = raw.replace(/(\|[^|\n]+\|[^|\n]*\|)\s+(?=\|)/g, '$1\n');
     var lines = raw.split('\n');
     var html = [], i = 0, inList = null;
     function closeList() { if (inList) { html.push(inList === 'ul' ? '</ul>' : '</ol>'); inList = null; } }
@@ -480,7 +510,7 @@
       msgs.innerHTML = '<div class="pa-empty-tip">已基于 ' + esc(state.name) + ' 实时数据，可直接提问，或点击上方快捷问题。</div>';
       return;
     }
-    state.history.forEach(function (m) { appendMessage(m.role, m.content, false); });
+    state.history.forEach(function (m) { appendMessage(m.role, m.content, true); });
     msgs.scrollTop = msgs.scrollHeight;
   }
   function saveChatHistory() {
