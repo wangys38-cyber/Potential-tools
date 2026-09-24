@@ -488,8 +488,7 @@ def generate_report_markdown(snap):
     if top3:
         core_changes = []
         for i, r in enumerate(top3, 1):
-            title = str(r.get('title', '')).replace('
-', ' ')[:80]
+            title = str(r.get('title', '')).replace('\n', ' ')[:80]
             rid = r.get('id', '')
             sev = r.get('sev', '')
             sev_tag = f'【{sev.upper()}】' if sev else ''
@@ -501,20 +500,17 @@ def generate_report_markdown(snap):
     # 最大当前风险
     if functional_blockers:
         top_risk = functional_blockers[0]
-        risk_title = str(top_risk.get('title', '')).replace('
-', ' ')[:100]
+        risk_title = str(top_risk.get('title', '')).replace('\n', ' ')[:100]
         risk_id = top_risk.get('id', '')
         max_risk = f'**{risk_title}**({risk_id})：用户无法忍受的功能性Blocker，直接影响核心体验。'
     elif label_blockers:
         top_risk = label_blockers[0]
-        risk_title = str(top_risk.get('title', '')).replace('
-', ' ')[:100]
+        risk_title = str(top_risk.get('title', '')).replace('\n', ' ')[:100]
         risk_id = top_risk.get('id', '')
         max_risk = f'**{risk_title}**({risk_id})：标签带blocker，可能影响过点进度。'
     elif new_bc:
         top_risk = new_bc[0]
-        risk_title = str(top_risk.get('title', '')).replace('
-', ' ')[:100]
+        risk_title = str(top_risk.get('title', '')).replace('\n', ' ')[:100]
         risk_id = top_risk.get('id', '')
         max_risk = f'**{risk_title}**({risk_id})：当前最需关注的新增BC问题。'
     else:
