@@ -224,7 +224,7 @@
         </div>
       </div>
       <!-- 更多工具 -->
-      <div class="relative z-[2] max-w-[900px] mx-auto px-5 text-center pb-24" id="heroMoreTools">
+      <div class="relative z-[2] max-w-[900px] mx-auto px-5 text-center pb-32" id="heroMoreTools">
         <div class="text-[13px] font-semibold text-white/50 tracking-[0.15em] uppercase mb-5">全部工具</div>
         <div class="flex flex-wrap justify-center gap-2" id="heroMoreList"></div>
       </div>
@@ -841,7 +841,7 @@
         tagsWrap.style.gap = '14px';
         tagsWrap.style.maxWidth = '800px';
         tagsWrap.style.overflow = 'hidden';
-        tagsWrap.style.transition = 'max-height 0.4s ease';
+        tagsWrap.style.transition = 'max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
         tools.forEach(function(t) {
           tagsWrap.appendChild(createTagItem(t, isNew));
         });
@@ -852,14 +852,20 @@
           tagsWrap.style.maxHeight = '44px'; // 一行高度
           var toggleBtn = document.createElement('button');
           toggleBtn.textContent = '展开全部 ▾';
-          toggleBtn.style.cssText = 'margin-top:4px;padding:6px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:980px;color:#c4b5fd;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s ease;font-family:inherit;';
+          toggleBtn.style.cssText = 'margin-top:10px;padding:8px 20px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:980px;color:#c4b5fd;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.25s ease;font-family:inherit;letter-spacing:0.02em;backdrop-filter:blur(8px);';
           toggleBtn.onmouseenter = function() {
-            this.style.background = 'rgba(139,92,246,0.2)';
-            this.style.borderColor = 'rgba(139,92,246,0.5)';
+            this.style.background = 'rgba(139,92,246,0.22)';
+            this.style.borderColor = 'rgba(139,92,246,0.55)';
+            this.style.color = '#ddd6fe';
+            this.style.boxShadow = '0 0 16px rgba(139,92,246,0.25)';
+            this.style.transform = 'translateY(-1px)';
           };
           toggleBtn.onmouseleave = function() {
-            this.style.background = 'rgba(139,92,246,0.1)';
-            this.style.borderColor = 'rgba(139,92,246,0.3)';
+            this.style.background = 'rgba(139,92,246,0.12)';
+            this.style.borderColor = 'rgba(139,92,246,0.35)';
+            this.style.color = '#c4b5fd';
+            this.style.boxShadow = 'none';
+            this.style.transform = 'translateY(0)';
           };
           var expanded = false;
           toggleBtn.onclick = function() {
