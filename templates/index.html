@@ -58,15 +58,13 @@
 
     {% include '_navbar.html' %}
 
-    <nav class="glass fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-14 px-8 border-b border-white/[0.06]">
-      <div class="flex items-center">
-        <span class="text-white text-lg font-semibold tracking-wide cursor-pointer" onclick="window.scrollTo({top:0,behavior:'smooth'})">Potential Tools</span>
-      </div>
-      <div class="flex items-center">
-        <div class="flex items-center bg-white/[0.06] border border-white/[0.08] rounded-full p-[3px] gap-[2px]">
-          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-xs font-semibold px-[18px] py-1.5 rounded-[16px] bg-white/[0.12] tracking-[0.3px]">Home</button>
-          <button onclick="switchNavTab(this,'explore')" class="text-white/50 text-xs font-medium px-[18px] py-1.5 rounded-[16px] hover:text-white/80 hover:bg-white/[0.06] tracking-[0.3px] transition-all">Explore</button>
-          <button onclick="switchNavTab(this,'about')" class="text-white/50 text-xs font-medium px-[18px] py-1.5 rounded-[16px] hover:text-white/80 hover:bg-white/[0.06] tracking-[0.3px] transition-all">About</button>
+    <nav class="glass fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-14 px-8 border-b border-white/[0.08]">
+      <div class="flex items-center gap-8">
+        <span class="text-white text-lg font-semibold tracking-wide cursor-pointer hover:opacity-80 transition-opacity" onclick="window.scrollTo({top:0,behavior:'smooth'})">Potential Tools</span>
+        <div class="flex items-center gap-1">
+          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white/90 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:bg-white/[0.08] transition-all">首页</button>
+          <button onclick="switchNavTab(this,'explore')" class="text-white/50 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:text-white/80 hover:bg-white/[0.06] transition-all">全部工具</button>
+          <button onclick="switchNavTab(this,'about')" class="text-white/50 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:text-white/80 hover:bg-white/[0.06] transition-all">关于</button>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -95,7 +93,7 @@
 
     <div id="hero-section" class="relative overflow-hidden pt-20 pb-10">
       <!-- 背景大字母 -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[220px] font-black text-white/[0.025] tracking-[-8px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[240px] font-black text-white/[0.015] tracking-[-10px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
       <!-- 漂浮元素 -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">
         <span class="absolute text-base text-white/30 animate-float" style="top:15%;left:12%;">✦</span>
@@ -111,8 +109,9 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
           Potential Tools v9.0
         </div>
-        <h1 class="text-[52px] font-extrabold leading-[1.1] tracking-tight mb-3" style="color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.5)">Pick Your Buddy<br><span style="color:rgba(255,255,255,0.92)">New Ma Your Day</span></h1>
-        <p class="text-white/40 text-sm">悬停抬起 · 一键直达</p>
+        <h1 class="text-[64px] font-extrabold leading-[1.05] tracking-tight mb-4" style="color:#fff;text-shadow:0 4px 24px rgba(0,0,0,0.6),0 0 60px rgba(139,92,246,0.15)">选择你的智能助手</h1>
+        <p class="text-white/50 text-[17px] font-light tracking-wide mb-2">Pick Your Buddy · New Ma Your Day</p>
+        <p class="text-white/30 text-[13px]">悬停抬起 · 邻位让位 · 一键直达</p>
       </div>
       <!-- 卡片容器 -->
       <div class="relative z-[2] flex justify-center items-end pb-16 pt-5">
@@ -122,7 +121,7 @@
       </div>
       <!-- 更多工具 -->
       <div class="relative z-[2] max-w-[900px] mx-auto px-5 text-center" id="heroMoreTools">
-        <div class="text-[12px] font-semibold text-white/30 tracking-[0.1em] uppercase mb-4">更多工具</div>
+        <div class="text-[13px] font-semibold text-white/50 tracking-[0.15em] uppercase mb-5">全部工具</div>
         <div class="flex flex-wrap justify-center gap-2" id="heroMoreList"></div>
       </div>
     </div>
@@ -156,8 +155,8 @@
         </div>
     </div>
 
-    <div class="footer">
-        <p>Potential Tools v9.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+    <div class="footer" style="background:#0a0a0f;border-top:1px solid rgba(255,255,255,0.06);padding:24px 20px;text-align:center;">
+        <p style="color:rgba(255,255,255,0.45);font-size:13px;margin:0;">Potential Tools v9.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,0.6);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.2);">GitHub</a> · Powered by Yongshuo</p>
     </div>
 
     <script>window._USER_PREFIX={{ ('u' ~ current_user.id ~ '_') if current_user else '' | tojson }};</script>
@@ -470,11 +469,11 @@
 
   // 全局扇形排列transform，bindHover和renderHeroCards共享
   var fanTransforms = [
-    'translateY(28px) rotate(-14deg)',
-    'translateY(10px) rotate(-7deg)',
-    'translateY(-24px)',
-    'translateY(10px) rotate(7deg)',
-    'translateY(28px) rotate(14deg)'
+    'translateY(32px) rotate(-12deg)',
+    'translateY(12px) rotate(-6deg)',
+    'translateY(-20px)',
+    'translateY(12px) rotate(6deg)',
+    'translateY(32px) rotate(12deg)'
   ];
   var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
@@ -509,16 +508,21 @@
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
-      card.className = 'relative block rounded-3xl cursor-pointer transition-transform duration-300 ease-out no-underline w-[180px] h-[240px] ' +
-        'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.2)] ' +
-        (idx > 0 ? '-ml-6' : '');
+      card.className = 'relative block rounded-[28px] cursor-pointer transition-all duration-300 ease-out no-underline w-[175px] h-[235px] ' +
+        'shadow-[0_8px_24px_rgba(0,0,0,0.18),0_20px_60px_rgba(0,0,0,0.25)] ' +
+        'hover:shadow-[0_16px_40px_rgba(0,0,0,0.25),0_40px_100px_rgba(0,0,0,0.35)] ' +
+        (idx > 0 ? '-ml-5' : '');
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
       card.style.background = CARD_GRADIENTS[idx % 5];
       card.style.zIndex = cardZIndex[idx % 5];
       card.innerHTML =
+        '<div class="absolute inset-0 rounded-[28px] overflow-hidden">' +
+        '<div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.1) 40%,transparent 60%)"></div>' +
+        '<div class="absolute top-0 left-0 right-0 h-[2px]" style="background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)"></div>' +
+        '</div>' +
         '<div class="absolute inset-0 flex items-center justify-center">' +
-        '<span class="text-[#1e293b] text-[19px] font-quicksand font-semibold tracking-[0.5px] text-center px-3" style="text-shadow:0 1px 3px rgba(255,255,255,0.4)">' + t.name + '</span>' +
+        '<span class="text-[#1e293b] text-[18px] font-quicksand font-semibold tracking-[0.5px] text-center px-3 relative z-[1]" style="text-shadow:0 1px 3px rgba(255,255,255,0.5)">' + t.name + '</span>' +
         '</div>';
       wrap.appendChild(card);
     });
@@ -530,7 +534,7 @@
       moreList.innerHTML = '';
       otherTools.forEach(function(t) {
         var item = document.createElement('a');
-        item.className = 'inline-flex items-center text-[12.5px] font-medium text-white/50 bg-white/[0.05] border border-white/[0.08] rounded-lg px-3.5 py-1.5 no-underline transition-all hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15] hover:-translate-y-px';
+        item.className = 'inline-flex items-center text-[13px] font-medium text-white/60 bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2 no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.12] hover:border-white/[0.2] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]';
         item.href = t.url;
         item.textContent = t.name;
         item.title = t.desc || t.name;
@@ -585,9 +589,9 @@
         e.stopPropagation();
         cards.forEach(function(c, i) {
           if (i === idx) {
-            c.style.transform = 'translateY(-18px) scale(1.06)';
+            c.style.transform = 'translateY(-22px) scale(1.07)';
             c.style.zIndex = '100';
-            c.style.boxShadow = '0 16px 32px rgba(0,0,0,0.3), 0 36px 80px rgba(0,0,0,0.4)';
+            c.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3), 0 50px 120px rgba(0,0,0,0.45), 0 0 40px rgba(139,92,246,0.15)';
           } else if (i < idx) {
             c.style.transform = getNeighborTransform(i, 'left');
             c.style.zIndex = '10';
