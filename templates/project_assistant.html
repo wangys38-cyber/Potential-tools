@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -14,6 +14,351 @@
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/project_assistant.css?v={{ STATIC_VERSION }}">
+    <!-- 暗黑科技风 UI 优化 v2 -->
+    <style>
+    /* ========== 1. 强制暗黑模式 ========== */
+    .pa-page {
+      --pa-bg: #0D0E12 !important;
+      --pa-text: #F5F5F7 !important;
+      --pa-text-2: rgba(255,255,255,0.6) !important;
+      --pa-text-3: rgba(255,255,255,0.4) !important;
+      --pa-glass: rgba(26, 29, 36, 0.85) !important;
+      --pa-glass-strong: rgba(30, 33, 42, 0.92) !important;
+      --pa-stroke: rgba(255, 255, 255, 0.08) !important;
+      --pa-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+      --pa-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+      --pa-accent: #8b5cf6 !important;
+      --pa-red: #ef4444 !important;
+      --pa-orange: #f59e0b !important;
+      --pa-green: #22c55e !important;
+      --pa-yellow: #eab308 !important;
+      background:
+        radial-gradient(900px 500px at 12% -8%, rgba(139, 92, 246, 0.12), transparent 60%),
+        radial-gradient(800px 520px at 100% 0%, rgba(99, 102, 241, 0.1), transparent 55%),
+        radial-gradient(700px 600px at 50% 120%, rgba(34, 197, 94, 0.06), transparent 60%),
+        #0D0E12 !important;
+    }
+    body { background: #0D0E12 !important; }
+
+    /* ========== 2. KPI 卡片语义化色彩增强 ========== */
+    .pa-stat {
+      background: linear-gradient(180deg, rgba(30,33,42,0.9) 0%, rgba(24,27,34,0.9) 100%) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 16px !important;
+      padding: 18px 20px !important;
+      position: relative !important;
+      overflow: hidden !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .pa-stat::before {
+      content: '' !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 2px !important;
+      background: var(--pa-accent) !important;
+      opacity: 0.6 !important;
+    }
+    .pa-stat.red::before { background: linear-gradient(90deg, #ef4444, #f87171) !important; opacity: 1 !important; }
+    .pa-stat.orange::before { background: linear-gradient(90deg, #f59e0b, #fbbf24) !important; opacity: 1 !important; }
+    .pa-stat.green::before { background: linear-gradient(90deg, #22c55e, #4ade80) !important; opacity: 1 !important; }
+    .pa-stat.accent::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa) !important; opacity: 1 !important; }
+
+    .pa-stat .v {
+      font-size: 32px !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.02em !important;
+      line-height: 1.1 !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    .pa-stat.red .v {
+      color: #f87171 !important;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
+    }
+    .pa-stat.orange .v {
+      color: #fbbf24 !important;
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
+    }
+    .pa-stat.green .v {
+      color: #4ade80 !important;
+      text-shadow: 0 0 20px rgba(34, 197, 94, 0.4) !important;
+    }
+    .pa-stat.accent .v {
+      color: #c4b5fd !important;
+      text-shadow: 0 0 20px rgba(139, 92, 246, 0.4) !important;
+    }
+    .pa-stat .k {
+      font-size: 12px !important;
+      color: rgba(255,255,255,0.55) !important;
+      margin-top: 6px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.01em !important;
+    }
+    .pa-stat:hover {
+      transform: translateY(-3px) !important;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(139,92,246,0.2) !important;
+    }
+
+    /* ========== 3. 搜索与操作区优化 ========== */
+    .pa-search {
+      padding: 6px !important;
+      border-radius: 14px !important;
+      background: rgba(26, 29, 36, 0.7) !important;
+      border: 1px solid rgba(139, 92, 246, 0.2) !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+    }
+    .pa-search input {
+      font-size: 15px !important;
+      padding: 10px 12px !important;
+      color: #F5F5F7 !important;
+    }
+    .pa-search input::placeholder { color: rgba(255,255,255,0.4) !important; }
+    .pa-btn {
+      padding: 10px 20px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 10px !important;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-btn:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4) !important;
+    }
+    .pa-btn.ghost {
+      background: rgba(255,255,255,0.06) !important;
+      color: rgba(255,255,255,0.8) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      box-shadow: none !important;
+    }
+    .pa-btn.ghost:hover {
+      background: rgba(139,92,246,0.15) !important;
+      border-color: rgba(139,92,246,0.3) !important;
+      color: #c4b5fd !important;
+    }
+
+    /* ========== 4. 卡片通用优化 ========== */
+    .pa-card {
+      background: linear-gradient(180deg, rgba(26,29,36,0.85) 0%, rgba(22,25,32,0.85) 100%) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 18px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      overflow: hidden !important;
+    }
+    .pa-card h3 {
+      font-size: 15px !important;
+      font-weight: 700 !important;
+      color: #fff !important;
+      padding: 16px 20px !important;
+      margin: 0 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+
+    /* ========== 5. 模块状态列表优化 ========== */
+    .pa-mod-table {
+      max-height: 480px !important;
+      padding: 8px !important;
+    }
+
+    /* ========== 6. 底部追问区域优化 ========== */
+    .pa-chat { padding: 0 !important; }
+    .pa-chat-tools {
+      padding: 14px 20px !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 12px !important;
+      flex-wrap: wrap !important;
+    }
+    .pa-chips {
+      display: flex !important;
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+      flex: 1 !important;
+    }
+    .pa-chip {
+      padding: 7px 14px !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      border-radius: 980px !important;
+      background: rgba(255,255,255,0.06) !important;
+      color: rgba(255,255,255,0.75) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-chip:hover {
+      background: rgba(139,92,246,0.15) !important;
+      border-color: rgba(139,92,246,0.3) !important;
+      color: #c4b5fd !important;
+    }
+    .pa-clear-btn {
+      padding: 7px 14px !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      border-radius: 980px !important;
+      background: rgba(239, 68, 68, 0.1) !important;
+      color: #f87171 !important;
+      border: 1px solid rgba(239, 68, 68, 0.2) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-clear-btn:hover { background: rgba(239, 68, 68, 0.2) !important; }
+    .pa-msgs {
+      max-height: 400px !important;
+      padding: 16px 20px !important;
+      overflow-y: auto !important;
+    }
+    .pa-input-row {
+      padding: 14px 20px !important;
+      border-top: 1px solid rgba(255,255,255,0.06) !important;
+      background: rgba(0,0,0,0.2) !important;
+    }
+    .pa-input-row textarea {
+      background: rgba(0,0,0,0.3) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      border-radius: 12px !important;
+      padding: 12px 14px !important;
+      font-size: 14px !important;
+      color: #F5F5F7 !important;
+      resize: none !important;
+      font-family: inherit !important;
+      line-height: 1.5 !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-input-row textarea:focus {
+      outline: none !important;
+      border-color: rgba(139, 92, 246, 0.5) !important;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+      background: rgba(0,0,0,0.4) !important;
+    }
+    .pa-input-row textarea::placeholder { color: rgba(255,255,255,0.35) !important; }
+
+    /* ========== 7. 图表区域优化 ========== */
+    .pa-chart-box { padding: 16px 20px !important; }
+    .pa-range-toggle button {
+      padding: 5px 12px !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      border-radius: 980px !important;
+      background: rgba(255,255,255,0.06) !important;
+      color: rgba(255,255,255,0.6) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-range-toggle button.on {
+      background: rgba(139,92,246,0.2) !important;
+      color: #c4b5fd !important;
+      border-color: rgba(139,92,246,0.4) !important;
+    }
+    .pa-range-toggle button:hover {
+      background: rgba(139,92,246,0.15) !important;
+      color: #c4b5fd !important;
+    }
+
+    /* ========== 8. 筛选工具优化 ========== */
+    .pa-table-tools {
+      padding: 12px 20px !important;
+      display: flex !important;
+      gap: 10px !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
+    .pa-table-tools input,
+    .pa-filter-select {
+      background: rgba(0,0,0,0.3) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      border-radius: 10px !important;
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      color: #F5F5F7 !important;
+      font-family: inherit !important;
+      outline: none !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-table-tools input:focus,
+    .pa-filter-select:focus {
+      border-color: rgba(139, 92, 246, 0.5) !important;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    }
+
+    /* ========== 9. 进度条优化 ========== */
+    .pa-progress {
+      background: rgba(26, 29, 36, 0.7) !important;
+      border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    }
+    .pa-progress-msg { color: rgba(255,255,255,0.7) !important; font-size: 13px !important; }
+    .pa-bar {
+      background: rgba(255,255,255,0.1) !important;
+      border-radius: 980px !important;
+      overflow: hidden !important;
+    }
+    .pa-bar i {
+      background: linear-gradient(90deg, #8b5cf6, #6366f1) !important;
+      box-shadow: 0 0 10px rgba(139,92,246,0.5) !important;
+    }
+
+    /* ========== 10. Hero 区域优化 ========== */
+    .pa-logo {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4) !important;
+    }
+    .pa-title {
+      color: #fff !important;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+    }
+    .pa-sub { color: rgba(255,255,255,0.5) !important; }
+    .pa-mode button {
+      padding: 8px 20px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 980px !important;
+      background: rgba(255,255,255,0.06) !important;
+      color: rgba(255,255,255,0.6) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-mode button.on {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+      color: #fff !important;
+      border-color: transparent !important;
+      box-shadow: 0 4px 12px rgba(139,92,246,0.3) !important;
+    }
+
+    /* ========== 11. 结果区头部优化 ========== */
+    .pa-head h2 {
+      font-size: 22px !important;
+      font-weight: 800 !important;
+      color: #fff !important;
+      letter-spacing: -0.02em !important;
+    }
+    .pa-meta { color: rgba(255,255,255,0.5) !important; font-size: 13px !important; margin-top: 4px !important; }
+    .pa-auto-refresh { color: rgba(139,92,246,0.8) !important; font-size: 12px !important; margin-top: 6px !important; }
+
+    /* ========== 12. 滚动条优化 ========== */
+    .pa-mod-table::-webkit-scrollbar,
+    .pa-msgs::-webkit-scrollbar { width: 6px !important; }
+    .pa-mod-table::-webkit-scrollbar-track,
+    .pa-msgs::-webkit-scrollbar-track { background: transparent !important; }
+    .pa-mod-table::-webkit-scrollbar-thumb,
+    .pa-msgs::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15) !important;
+      border-radius: 3px !important;
+    }
+    .pa-mod-table::-webkit-scrollbar-thumb:hover,
+    .pa-msgs::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25) !important; }
+    </style>
 </head>
 <body>
 {% include '_navbar.html' %}
