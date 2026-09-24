@@ -461,6 +461,103 @@ def generate_report_markdown(snap):
     lines.append(f"**{overall_risk}**")
     lines.append("")
 
+    # ===== 1.5 执行摘要 (Executive Summary) =====
+    # 项目健康度
+    if overall_risk == 'High-risk':
+        health_status = '<span style="color:#dc3545;font-weight:700;">红色 (Red)</span>'
+        health_desc = f'过去48小时内发现 {total_bc} 项新增BC问题，包含 {total_blocker} 个Blocker级严重阻碍性问题。'
+    elif overall_risk == 'Mid-risk':
+        health_status = '<span style="color:#ffc107;font-weight:700;">黄色 (Yellow)</span>'
+        health_desc = f'当前存在 {total_bc} 项新增BC问题，包含 {total_blocker} 个Blocker级问题，需持续关注。'
+    else:
+        health_status = '<span style="color:#28a745;font-weight:700;">绿色 (Green)</span>'
+        health_desc = f'项目状态良好，当前仅 {total_bc} 项新增BC问题，无严重阻碍性问题。'
+
+    # 三大核心变化（取最严重的3个问题）
+    all_critical = functional_blockers + label_blockers
+    # 去重
+    seen_ids = set()
+    unique_critical = []
+    for r in all_critical:
+        rid = r.get('id', '')
+        if rid not in seen_ids:
+            seen_ids.add(rid)
+            unique_critical.append(r)
+    top3 = unique_critical[:3]
+
+    if top3:
+        core_changes = []
+        for i, r in enumerate(top3, 1):
+            title = str(r.get('title', '')).replace('
+', ' ')[:80]
+            rid = r.get('id', '')
+            sev = r.get('sev', '')
+            sev_tag = f'【{sev.upper()}】' if sev else ''
+            core_changes.append(f'{i}. {sev_tag}**{title}**({rid})')
+        core_changes_html = '<br>'.join(core_changes)
+    else:
+        core_changes_html = '当前无高风险新增问题，项目整体稳定。'
+
+    # 最大当前风险
+    if functional_blockers:
+        top_risk = functional_blockers[0]
+        risk_title = str(top_risk.get('title', '')).replace('
+', ' ')[:100]
+        risk_id = top_risk.get('id', '')
+        max_risk = f'**{risk_title}**({risk_id})：用户无法忍受的功能性Blocker，直接影响核心体验。'
+    elif label_blockers:
+        top_risk = label_blockers[0]
+        risk_title = str(top_risk.get('title', '')).replace('
+', ' ')[:100]
+        risk_id = top_risk.get('id', '')
+        max_risk = f'**{risk_title}**({risk_id})：标签带blocker，可能影响过点进度。'
+    elif new_bc:
+        top_risk = new_bc[0]
+        risk_title = str(top_risk.get('title', '')).replace('
+', ' ')[:100]
+        risk_id = top_risk.get('id', '')
+        max_risk = f'**{risk_title}**({risk_id})：当前最需关注的新增BC问题。'
+    else:
+        max_risk = '当前无重大风险。'
+
+    # 风险趋势评估（基于本周新增数量，简化判断）
+    if total_bc >= 10 or total_blocker >= 3:
+        trend_status = '<span style="color:#dc3545;font-weight:700;">↑ 升高 (Increasing)</span>'
+        trend_desc = '新增问题数量较多，Blocker级问题集中，风险呈上升趋势，阻碍回归验证进度。'
+    elif total_bc >= 5 or total_blocker >= 1:
+        trend_status = '<span style="color:#ffc107;font-weight:700;">→ 稳定 (Stable)</span>'
+        trend_desc = '新增问题数量适中，风险保持稳定，需持续监控关键问题解决进度。'
+    else:
+        trend_status = '<span style="color:#28a745;font-weight:700;">↓ 降低 (Decreasing)</span>'
+        trend_desc = '新增问题数量较少，风险呈下降趋势，项目整体向好。'
+
+    # Milestone影响
+    if total_blocker >= 3:
+        milestone_impact = '<span style="color:#dc3545;font-weight:700;">**FC 与 SR 达成信心降至 低 (Low)**</span>：多个Blocker级问题可能导致核心功能无法按时完成，严重影响发布节点。'
+    elif total_blocker >= 1:
+        milestone_impact = '<span style="color:#ffc107;font-weight:700;">**FC 与 SR 达成信心 中 (Medium)**</span>：存在Blocker级问题，若不能及时解决可能影响部分功能交付，需重点跟进。'
+    else:
+        milestone_impact = '<span style="color:#28a745;font-weight:700;">**FC 与 SR 达成信心 高 (High)**</span>：无严重阻碍性问题，项目按计划推进，发布节点风险可控。'
+
+    lines.append('## 1. 执行摘要 (Executive Summary)')
+    lines.append('')
+    lines.append('<table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;">')
+    lines.append('  <thead>')
+    lines.append('    <tr style="background-color:#f0f4f8;border-bottom:2px solid #4a6fa5;">')
+    lines.append('      <th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;width:140px;">维度</th>')
+    lines.append('      <th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">状态与关键评估</th>')
+    lines.append('    </tr>')
+    lines.append('  </thead>')
+    lines.append('  <tbody>')
+    lines.append(f'    <tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;font-weight:600;color:#34495e;vertical-align:top;">项目健康度</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;">{health_status} - {health_desc}</td></tr>')
+    lines.append(f'    <tr style="border-bottom:1px solid #e8ecf0;background-color:#fafbfc;"><td style="padding:10px 14px;font-weight:600;color:#34495e;vertical-align:top;">三大核心变化</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.8;">{core_changes_html}</td></tr>')
+    lines.append(f'    <tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;font-weight:600;color:#34495e;vertical-align:top;">最大当前风险</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;">{max_risk}</td></tr>')
+    lines.append(f'    <tr style="border-bottom:1px solid #e8ecf0;background-color:#fafbfc;"><td style="padding:10px 14px;font-weight:600;color:#34495e;vertical-align:top;">风险趋势评估</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;">{trend_status} - {trend_desc}</td></tr>')
+    lines.append(f'    <tr><td style="padding:10px 14px;font-weight:600;color:#34495e;vertical-align:top;">Milestone 影响</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;">{milestone_impact}</td></tr>')
+    lines.append('  </tbody>')
+    lines.append('</table>')
+    lines.append('')
+
     # ===== 2. 核心指标（一行展示）=====
     total_cr = st.get('total', 0)
     unresolved = st.get('unresolved', 0)
