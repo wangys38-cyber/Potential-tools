@@ -61,10 +61,10 @@
     <nav class="glass fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-14 px-8 border-b border-white/[0.08]">
       <div class="flex items-center gap-8">
         <span class="text-white text-lg font-semibold tracking-wide cursor-pointer hover:opacity-80 transition-opacity" onclick="window.scrollTo({top:0,behavior:'smooth'})">Potential Tools</span>
-        <div class="flex items-center gap-1">
-          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white/90 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:bg-white/[0.08] transition-all">首页</button>
-          <button onclick="switchNavTab(this,'explore')" class="text-white/50 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:text-white/80 hover:bg-white/[0.06] transition-all">全部工具</button>
-          <button onclick="switchNavTab(this,'about')" class="text-white/50 text-[13px] font-medium px-3.5 py-1.5 rounded-lg hover:text-white/80 hover:bg-white/[0.06] transition-all">关于</button>
+        <div class="flex items-center gap-2">
+          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-[13px] font-semibold px-4 py-2 rounded-lg bg-white/[0.1] border-b-2 border-white/[0.6] transition-all">首页</button>
+          <button onclick="switchNavTab(this,'explore')" class="text-white/55 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white/90 hover:bg-white/[0.08] transition-all">全部工具</button>
+          <button onclick="switchNavTab(this,'about')" class="text-white/55 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white/90 hover:bg-white/[0.08] transition-all">关于</button>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -93,7 +93,7 @@
 
     <div id="hero-section" class="relative overflow-hidden pt-20 pb-10">
       <!-- 背景大字母 -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[240px] font-black text-white/[0.015] tracking-[-10px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[260px] font-black text-white/[0.012] tracking-[-12px] whitespace-nowrap pointer-events-none select-none">POTENTIAL</div>
       <!-- 漂浮元素 -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">
         <span class="absolute text-base text-white/30 animate-float" style="top:15%;left:12%;">✦</span>
@@ -109,9 +109,9 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
           Potential Tools v9.0
         </div>
-        <h1 class="text-[64px] font-extrabold leading-[1.05] tracking-tight mb-4" style="color:#fff;text-shadow:0 4px 24px rgba(0,0,0,0.6),0 0 60px rgba(139,92,246,0.15)">选择你的智能助手</h1>
-        <p class="text-white/50 text-[17px] font-light tracking-wide mb-2">Pick Your Buddy · New Ma Your Day</p>
-        <p class="text-white/30 text-[13px]">悬停抬起 · 邻位让位 · 一键直达</p>
+        <h1 class="text-[68px] font-extrabold leading-[1.05] tracking-tight mb-5" style="color:#FFFFFF;text-shadow:0 4px 30px rgba(0,0,0,0.7),0 0 80px rgba(139,92,246,0.2)">选择你的智能助手</h1>
+        <p class="text-white/60 text-[18px] font-light tracking-[0.15em] mb-2">Pick Your Buddy</p>
+        <p class="text-white/35 text-[14px] tracking-wide">一键直达 · 高效随行</p>
       </div>
       <!-- 卡片容器 -->
       <div class="relative z-[2] flex justify-center items-end pb-16 pt-5">
@@ -168,9 +168,9 @@
 
 <!-- 访问次数 -->
 
-<div class="visit-counter" id="visitCounter">
-    <span class="label">访问</span>
-    <span class="num" id="visitNum">0</span>
+<div class="visit-counter" id="visitCounter" style="background:rgba(255,255,255,0.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:8px 14px;">
+    <span class="label" style="color:rgba(255,255,255,0.5);font-size:11px;">访问</span>
+    <span class="num" id="visitNum" style="color:#fff;font-weight:600;font-size:14px;margin-left:6px;">0</span>
 </div>
 
 
@@ -448,11 +448,11 @@
   function switchNavTab(btn, tab) {
     var tabs = btn.parentElement.querySelectorAll('button');
     tabs.forEach(function(t) {
-      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.12]');
-      t.classList.add('text-white/50', 'font-medium');
+      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-white/[0.6]');
+      t.classList.add('text-white/55', 'font-medium');
     });
-    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.12]');
-    btn.classList.remove('text-white/50', 'font-medium');
+    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-white/[0.1]', 'border-b-2', 'border-white/[0.6]');
+    btn.classList.remove('text-white/55', 'font-medium');
     if (tab === 'home') {
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (tab === 'explore') {
@@ -469,11 +469,11 @@
 
   // 全局扇形排列transform，bindHover和renderHeroCards共享
   var fanTransforms = [
-    'translateY(32px) rotate(-12deg)',
-    'translateY(12px) rotate(-6deg)',
-    'translateY(-20px)',
-    'translateY(12px) rotate(6deg)',
-    'translateY(32px) rotate(12deg)'
+    'translateY(36px) rotate(-16deg)',
+    'translateY(14px) rotate(-8deg)',
+    'translateY(-18px)',
+    'translateY(14px) rotate(8deg)',
+    'translateY(36px) rotate(16deg)'
   ];
   var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
@@ -509,8 +509,8 @@
       var card = document.createElement('a');
       var center = isCenter[idx % 5];
       card.className = 'relative block rounded-[28px] cursor-pointer transition-all duration-300 ease-out no-underline w-[175px] h-[235px] ' +
-        'shadow-[0_8px_24px_rgba(0,0,0,0.18),0_20px_60px_rgba(0,0,0,0.25)] ' +
-        'hover:shadow-[0_16px_40px_rgba(0,0,0,0.25),0_40px_100px_rgba(0,0,0,0.35)] ' +
+        'shadow-[0_12px_40px_rgba(0,0,0,0.2),0_30px_80px_rgba(0,0,0,0.15)] ' +
+        'hover:shadow-[0_20px_50px_rgba(0,0,0,0.3),0_50px_120px_rgba(0,0,0,0.2)] ' +
         (idx > 0 ? '-ml-5' : '');
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
@@ -529,34 +529,106 @@
 
     bindHover();
 
-    // 渲染其余工具列表
+    // 渲染其余工具列表（按功能分组）
     if (moreList) {
       moreList.innerHTML = '';
-      otherTools.forEach(function(t) {
-        var item = document.createElement('a');
-        item.className = 'inline-flex items-center text-[13px] font-medium text-white/60 bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2 no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.12] hover:border-white/[0.2] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]';
-        item.href = t.url;
-        item.textContent = t.name;
-        item.title = t.desc || t.name;
-        moreList.appendChild(item);
-      });
-      // 9.0 新功能入口
+      moreList.style.display = 'flex';
+      moreList.style.flexDirection = 'column';
+      moreList.style.gap = '24px';
+      moreList.style.alignItems = 'center';
+
+      // 分类规则（基于URL关键词）
+      var categories = [
+        {name: '🚀 研发效能', keys: ['project-assistant', 'excel', 'cr', 'bug', 'trend', 'milestone', 'sprint', 'release', 'test'], color: 'text-blue-300/70'},
+        {name: '🤖 AI 助手', keys: ['knowledge-base', 'ai', 'agent', 'chat', 'ocr', 'pdf', 'meeting', 'summary', 'knowledge-graph'], color: 'text-purple-300/70'},
+        {name: '📊 数据分析', keys: ['data', 'analysis', 'chart', 'dashboard', 'report', 'stats', 'visual'], color: 'text-emerald-300/70'},
+        {name: '👥 团队协作', keys: ['workspace', 'team', 'note', 'task', 'calendar', 'email', 'im', 'doc'], color: 'text-amber-300/70'}
+      ];
+      var defaultCategory = {name: '🔧 其他工具', keys: [], color: 'text-white/50'};
+
+      // 9.0 新功能单独作为一组
       var newTools9 = [
         {name: '🤖 AI Agent', url: '/agent', desc: '自主任务执行'},
         {name: '🔗 数据源', url: '/data-sources', desc: '第三方数据集成'},
         {name: '👥 团队协作', url: '/workspaces', desc: '工作空间与权限'},
         {name: '🚨 智能预警', url: '/alerts', desc: '趋势预测与异常检测'}
       ];
-      newTools9.forEach(function(t) {
+
+      function createTagItem(t, isNew) {
         var item = document.createElement('a');
-        item.className = 'inline-flex items-center text-[12.5px] font-medium text-white bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-lg px-3.5 py-1.5 no-underline transition-all hover:text-white hover:from-blue-500/30 hover:to-purple-500/30 hover:border-blue-400/50 hover:-translate-y-px';
+        if (isNew) {
+          item.className = 'inline-flex items-center text-[13px] font-medium text-white bg-gradient-to-r from-blue-500/25 to-purple-500/25 border border-blue-400/40 rounded-full px-5 py-2.5 no-underline transition-all duration-200 hover:from-blue-500/35 hover:to-purple-500/35 hover:border-blue-400/60 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(99,102,241,0.25)]';
+        } else {
+          item.className = 'inline-flex items-center text-[13px] font-medium text-white/65 bg-white/[0.07] border border-white/[0.12] rounded-full px-5 py-2.5 no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.14] hover:border-white/[0.25] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.25)]';
+        }
         item.href = t.url;
         item.textContent = t.name;
-        item.title = t.desc;
-        moreList.appendChild(item);
+        item.title = t.desc || t.name;
+        return item;
+      }
+
+      function createCategoryGroup(cat, tools, isNew) {
+        if (!tools.length) return null;
+        var group = document.createElement('div');
+        group.style.display = 'flex';
+        group.style.flexDirection = 'column';
+        group.style.alignItems = 'center';
+        group.style.gap = '12px';
+        group.style.width = '100%';
+
+        var title = document.createElement('div');
+        title.className = 'text-[12px] font-semibold tracking-[0.15em] uppercase ' + (cat.color || 'text-white/50');
+        title.textContent = cat.name;
+        group.appendChild(title);
+
+        var tagsWrap = document.createElement('div');
+        tagsWrap.style.display = 'flex';
+        tagsWrap.style.flexWrap = 'wrap';
+        tagsWrap.style.justifyContent = 'center';
+        tagsWrap.style.gap = '10px';
+        tagsWrap.style.maxWidth = '800px';
+        tools.forEach(function(t) {
+          tagsWrap.appendChild(createTagItem(t, isNew));
+        });
+        group.appendChild(tagsWrap);
+
+        return group;
+      }
+
+      // 先渲染9.0新功能组
+      var newGroup = createCategoryGroup({name: '✨ v9.0 新功能', color: 'text-white/80'}, newTools9, true);
+      if (newGroup) moreList.appendChild(newGroup);
+
+      // 按分类渲染其他工具
+      var categorized = {};
+      categories.forEach(function(c) { categorized[c.name] = []; });
+      var others = [];
+
+      otherTools.forEach(function(t) {
+        var url = (t.url || '').toLowerCase();
+        var found = false;
+        categories.forEach(function(c) {
+          if (c.keys.some(function(k) { return url.indexOf(k) >= 0; })) {
+            categorized[c.name].push(t);
+            found = true;
+          }
+        });
+        if (!found) others.push(t);
       });
+
+      categories.forEach(function(c) {
+        var group = createCategoryGroup(c, categorized[c.name], false);
+        if (group) moreList.appendChild(group);
+      });
+
+      // 其他工具
+      if (others.length) {
+        var otherGroup = createCategoryGroup(defaultCategory, others, false);
+        if (otherGroup) moreList.appendChild(otherGroup);
+      }
+
       if (moreWrap) {
-        moreWrap.style.display = otherTools.length ? 'block' : 'none';
+        moreWrap.style.display = (otherTools.length || newTools9.length) ? 'block' : 'none';
       }
     }
 
