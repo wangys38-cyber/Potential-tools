@@ -415,6 +415,18 @@ def generate_report_markdown(snap):
     bc = snap.get('unresolved_bc', []) or []
     new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
 
+    # ===== Blocker 问题分类（提前定义，供执行摘要使用）=====
+    def _has_blocker_label(rec):
+        labels = rec.get('labels', '')
+        if isinstance(labels, (list, tuple)):
+            label_text = ' '.join(str(l) for l in labels)
+        else:
+            label_text = str(labels or '')
+        return 'blocker' in label_text.lower()
+
+    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
+    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
+
     # ===== 按模块聚合 =====
     module_stats = {}
     for r in new_bc:
@@ -570,16 +582,7 @@ def generate_report_markdown(snap):
     lines.append("## Key Issues")
     lines.append("")
 
-    functional_blockers = [r for r in new_bc if r.get('sev') == 'blocker' and _is_functional_issue(r.get('title', ''), r.get('module', ''))]
-
-    def _has_blocker_label(rec):
-        labels = rec.get('labels', '')
-        if isinstance(labels, (list, tuple)):
-            label_text = ' '.join(str(l) for l in labels)
-        else:
-            label_text = str(labels or '')
-        return 'blocker' in label_text.lower()
-    label_blockers = [r for r in new_bc if _has_blocker_label(r)]
+    # functional_blockers 和 label_blockers 已在前面定义
 
     if functional_blockers:
         lines.append(f"**🔴 [High-Risk] 用户无法忍受的功能性 Blocker（{len(functional_blockers)}个）**")

@@ -82,7 +82,7 @@ def register_builtin_tools():
             return {'error': '请先查询项目状态'}
         report = generate_report_markdown(snap)
         ctx.data['last_report'] = report
-        return {'format': 'markdown', 'length': len(report), 'preview': report[:500]}
+        return {'format': 'markdown', 'length': len(report), 'report': report, 'preview': report[:500]}
 
     tool_registry.register(Tool(
         name='generate_report',
