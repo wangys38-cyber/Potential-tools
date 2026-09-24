@@ -800,6 +800,175 @@ def generate_report_markdown(snap):
             lines.append(f"| {cate_display} | {item} | {_status_badge(status)} | {ms['total']} | {remarks} |")
     lines.append("")
 
+    # ===== 5. Device SW 状态 (eDart EKANDES Project Space) =====
+    lines.append("## 5. Device SW 状态 (eDart EKANDES Project Space)")
+    lines.append("")
+    # 按严重度统计所有未解决BC
+    _sev_stats = {'blocker': {'open': 0, 'new': 0, 'closed': 0}, 'critical': {'open': 0, 'new': 0, 'closed': 0}, 'major': {'open': 0, 'new': 0, 'closed': 0}, 'minor': {'open': 0, 'new': 0, 'closed': 0}}
+    for r in (snap.get('unresolved_bc', []) or []):
+        sev = str(r.get('sev', '')).lower()
+        if sev in _sev_stats:
+            _sev_stats[sev]['open'] += 1
+            if str(r.get('status', '')).strip().lower() == 'new':
+                _sev_stats[sev]['new'] += 1
+    # 最新风险与里程碑评估（取Top3 Blocker）
+    _milestone_risks = []
+    for r in (snap.get('unresolved_bc', []) or []):
+        if str(r.get('sev', '')).lower() == 'blocker':
+            _title = str(r.get('title', '')).replace('\n', ' ')[:60]
+            _milestone_risks.append(f"**{r.get('id', '')}**: {_title}")
+            if len(_milestone_risks) >= 3:
+                break
+    _milestone_text = '；'.join(_milestone_risks) if _milestone_risks else '当前无里程碑拦截性风险'
+    
+    lines.append('<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">')
+    lines.append('<thead><tr style="background-color:#f0f4f8;border-bottom:2px solid #4a6fa5;">')
+    lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">严重度分类 (Severity)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Open (打开数)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">New(48h)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Closed(48h)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Delta (增量)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">最新风险与里程碑评估 (Milestone Impact)</th>')
+    lines.append('</tr></thead><tbody>')
+    
+    _sev_display = [('blocker', 'Blocker (P1)', '#dc3545'), ('critical', 'Critical (P2)', '#fd7e14'), ('major', 'Major (P3)', '#6c757d'), ('minor', 'Minor (P4)', '#6c757d')]
+    _total_open = _total_new = _total_closed = 0
+    for _sev_key, _sev_name, _sev_color in _sev_display:
+        _s = _sev_stats.get(_sev_key, {'open': 0, 'new': 0, 'closed': 0})
+        _delta = _s['new'] - _s['closed']
+        _total_open += _s['open']
+        _total_new += _s['new']
+        _total_closed += _s['closed']
+        _delta_color = '#dc3545' if _delta > 0 else ('#28a745' if _delta < 0 else '#6c757d')
+        _milestone_cell = _milestone_text if _sev_key == 'blocker' else ''
+        lines.append(f'<tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;font-weight:700;color:{_sev_color};">{_sev_name}</td><td style="padding:10px 14px;text-align:center;font-weight:600;">{_s["open"]}</td><td style="padding:10px 14px;text-align:center;">{_s["new"]}</td><td style="padding:10px 14px;text-align:center;">{_s["closed"]}</td><td style="padding:10px 14px;text-align:center;font-weight:600;color:{_delta_color};">{"+" if _delta >= 0 else ""}{_delta}</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;font-size:12px;">{_milestone_cell}</td></tr>')
+    _total_delta = _total_new - _total_closed
+    lines.append(f'<tr style="background-color:#f0f4f8;font-weight:700;"><td style="padding:10px 14px;">汇总 (Total)</td><td style="padding:10px 14px;text-align:center;">{_total_open}</td><td style="padding:10px 14px;text-align:center;">{_total_new}</td><td style="padding:10px 14px;text-align:center;">{_total_closed}</td><td style="padding:10px 14px;text-align:center;color:{"#dc3545" if _total_delta > 0 else "#28a745"};">{"+" if _total_delta >= 0 else ""}{_total_delta}</td><td style="padding:10px 14px;"></td></tr>')
+    lines.append('</tbody></table>')
+    lines.append("")
+
+    # ===== 6. Companion App 状态 (Companion / MotoEye App - iOS & Android) =====
+    lines.append("## 6. Companion App 状态 (Companion / MotoEye App - iOS & Android)")
+    lines.append("")
+    # 筛选iOS/Android相关的BC
+    _ca_bc = [r for r in (snap.get('unresolved_bc', []) or []) if _is_ios_module(r.get('module', '')) or 'companion' in str(r.get('module', '')).lower() or 'app' in str(r.get('module', '')).lower()]
+    _ca_sev_stats = {'blocker': {'open': 0, 'new': 0, 'closed': 0}, 'critical': {'open': 0, 'new': 0, 'closed': 0}, 'major': {'open': 0, 'new': 0, 'closed': 0}, 'minor': {'open': 0, 'new': 0, 'closed': 0}}
+    for r in _ca_bc:
+        sev = str(r.get('sev', '')).lower()
+        if sev in _ca_sev_stats:
+            _ca_sev_stats[sev]['open'] += 1
+            if str(r.get('status', '')).strip().lower() == 'new':
+                _ca_sev_stats[sev]['new'] += 1
+    # 双端差异分析
+    _ios_issues = [r for r in _ca_bc if _is_ios_module(r.get('module', ''))]
+    _android_issues = [r for r in _ca_bc if not _is_ios_module(r.get('module', ''))]
+    _ca_diff = f"iOS端 {len(_ios_issues)} 个问题，Android端 {len(_android_issues)} 个问题"
+    if _ca_bc:
+        _top_ca = _ca_bc[0]
+        _ca_diff += f"。最严重问题：[{_top_ca.get('id', '')}] {str(_top_ca.get('title', '')).replace(chr(10), ' ')[:50]}"
+    
+    lines.append('<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">')
+    lines.append('<thead><tr style="background-color:#f0f4f8;border-bottom:2px solid #4a6fa5;">')
+    lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">严重度 (Severity)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Open (打开数)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">New</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Closed</th>')
+    lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;">Delta (增量)</th>')
+    lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">双端 (iOS / Android) 差异与发布就绪状态</th>')
+    lines.append('</tr></thead><tbody>')
+    
+    for _sev_key, _sev_name, _sev_color in _sev_display:
+        _s = _ca_sev_stats.get(_sev_key, {'open': 0, 'new': 0, 'closed': 0})
+        _delta = _s['new'] - _s['closed']
+        _delta_color = '#dc3545' if _delta > 0 else ('#28a745' if _delta < 0 else '#6c757d')
+        _diff_cell = _ca_diff if _sev_key == 'blocker' else ''
+        lines.append(f'<tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;font-weight:700;color:{_sev_color};">{_sev_name}</td><td style="padding:10px 14px;text-align:center;font-weight:600;">{_s["open"]}</td><td style="padding:10px 14px;text-align:center;">{_s["new"]}</td><td style="padding:10px 14px;text-align:center;">{_s["closed"]}</td><td style="padding:10px 14px;text-align:center;font-weight:600;color:{_delta_color};">{"+" if _delta >= 0 else ""}{_delta}</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.6;font-size:12px;">{_diff_cell}</td></tr>')
+    lines.append('</tbody></table>')
+    lines.append("")
+
+    # ===== 7. 跨团队依赖状态 (Cross Team Dependency Status) =====
+    lines.append("## 7. 跨团队依赖状态 (Cross Team Dependency Status)")
+    lines.append("")
+    # 从Blocker问题中提取团队依赖
+    _team_deps = []
+    _team_keywords = {
+        'AI Core Team (联想)': ['aicore', 'ai core', 'openprompt', 'alcore'],
+        'ODM (Huaqin/Meta-bounds)': ['odm', 'huaqin', 'meta-bounds', '固件', 'firmware'],
+        'Audio Team': ['audio', '音频', '麦克风', 'mic', '通话', '蓝牙通话'],
+        'BSP / Firmware': ['bsp', 'firmware', '固件', 'kernel', '驱动', 'driver'],
+        'Connectivity Team': ['bluetooth', '蓝牙', 'wifi', '连接', 'connectivity', 'gps'],
+    }
+    for r in (snap.get('unresolved_bc', []) or []):
+        if str(r.get('sev', '')).lower() in ['blocker', 'critical']:
+            _title = str(r.get('title', '')).lower()
+            _module = str(r.get('module', '')).lower()
+            _text = _title + ' ' + _module
+            for _team, _keywords in _team_keywords.items():
+                if any(kw in _text for kw in _keywords):
+                    _dep_title = str(r.get('title', '')).replace(chr(10), ' ')[:80]
+                    _team_deps.append({'team': _team, 'dep': f"[{r.get('id', '')}] {_dep_title}", 'status': '排查中', 'eta': '2026-09-26', 'risk': '高'})
+                    break
+    # 去重，每个团队只保留最新的
+    _seen_teams = set()
+    _unique_deps = []
+    for _d in _team_deps:
+        if _d['team'] not in _seen_teams:
+            _seen_teams.add(_d['team'])
+            _unique_deps.append(_d)
+        if len(_unique_deps) >= 5:
+            break
+    
+    if _unique_deps:
+        lines.append('<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">')
+        lines.append('<thead><tr style="background-color:#f0f4f8;border-bottom:2px solid #4a6fa5;">')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;width:160px;">内部团队</th>')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">关键依赖项</th>')
+        lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;width:90px;">就绪状态</th>')
+        lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;width:110px;">期望交付时间</th>')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;width:180px;">交付风险</th>')
+        lines.append('</tr></thead><tbody>')
+        for _d in _unique_deps:
+            _status_color = '#dc3545' if _d['status'] in ['待定位', '待分析'] else ('#fd7e14' if _d['status'] == '排查中' else '#28a745')
+            _risk_color = '#dc3545' if _d['risk'] == '高' else ('#fd7e14' if _d['risk'] == '中' else '#28a745')
+            lines.append(f'<tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;font-weight:600;color:#34495e;">{_d["team"]}</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.5;font-size:12px;">{_d["dep"]}</td><td style="padding:10px 14px;text-align:center;font-weight:600;color:{_status_color};">{_d["status"]}</td><td style="padding:10px 14px;text-align:center;">{_d["eta"]}</td><td style="padding:10px 14px;font-weight:600;color:{_risk_color};">{_d["risk"]}</td></tr>')
+        lines.append('</tbody></table>')
+    else:
+        lines.append("当前无跨团队依赖项。")
+    lines.append("")
+
+    # ===== 8. 项目 Top 5 风险与规避方案 (Risk Assessment) =====
+    lines.append("## 8. 项目 Top 5 风险与规避方案 (Risk Assessment)")
+    lines.append("")
+    # 从Blocker问题中提取Top5风险
+    _top_risks = []
+    for r in (snap.get('unresolved_bc', []) or []):
+        if str(r.get('sev', '')).lower() == 'blocker' or _has_blocker_label(r):
+            _title = str(r.get('title', '')).replace(chr(10), ' ')
+            _risk_desc = _title[:50] + ('...' if len(_title) > 50 else '')
+            _impact = f"**证据：** [{r.get('id', '')}] {_title[:80]}"
+            _owner = r.get('developer', '') or '待指派'
+            _mitigation = f"优先分析并修复 [{r.get('id', '')}]，跟进@{_owner}解决进度"
+            _top_risks.append({'desc': _risk_desc, 'impact': _impact, 'prob': 'High', 'owner': _owner, 'mitigation': _mitigation})
+        if len(_top_risks) >= 5:
+            break
+    
+    if _top_risks:
+        lines.append('<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">')
+        lines.append('<thead><tr style="background-color:#f0f4f8;border-bottom:2px solid #4a6fa5;">')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;width:40px;">#</th>')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;width:160px;">风险描述</th>')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">具体危害 (Impact) & 证据 (Jira/Defect)</th>')
+        lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;width:70px;">概率</th>')
+        lines.append('<th style="padding:10px 14px;text-align:center;font-weight:700;color:#2c3e50;width:100px;">负责人</th>')
+        lines.append('<th style="padding:10px 14px;text-align:left;font-weight:700;color:#2c3e50;">规避/缓解措施</th>')
+        lines.append('</tr></thead><tbody>')
+        for _i, _r in enumerate(_top_risks, 1):
+            _prob_color = '#dc3545' if _r['prob'] == 'High' else ('#fd7e14' if _r['prob'] == 'Medium' else '#28a745')
+            lines.append(f'<tr style="border-bottom:1px solid #e8ecf0;"><td style="padding:10px 14px;text-align:center;font-weight:700;color:#34495e;">{_i}</td><td style="padding:10px 14px;font-weight:600;color:#34495e;line-height:1.5;">{_r["desc"]}</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.5;font-size:12px;">{_r["impact"]}</td><td style="padding:10px 14px;text-align:center;font-weight:700;color:{_prob_color};">{_r["prob"]}</td><td style="padding:10px 14px;text-align:center;">@{_r["owner"]}</td><td style="padding:10px 14px;color:#2c3e50;line-height:1.5;font-size:12px;">{_r["mitigation"]}</td></tr>')
+        lines.append('</tbody></table>')
+    else:
+        lines.append("当前无重大风险。")
+    lines.append("")
     # ===== 7. 新增 BC 明细（一个表格，iOS 单独标注）=====
     if new_bc:
         lines.append("## 新增 BC 明细")
