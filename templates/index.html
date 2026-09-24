@@ -596,27 +596,68 @@
 
   // 导航栏Tab切换
   function switchNavTab(btn, tab) {
-    var tabs = btn.parentElement.querySelectorAll('button');
+    console.log('[Nav] switchNavTab called:', tab);
+    // 切换按钮激活状态
+    var navContainer = btn.closest('nav') || btn.parentElement;
+    var tabs = navContainer.querySelectorAll('button');
     tabs.forEach(function(t) {
       t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/25', 'border-b-2', 'border-purple-400', 'shadow-[0_0_16px_rgba(139,92,246,0.35)]');
       t.classList.add('text-white/65', 'font-medium');
     });
     btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/25', 'border-b-2', 'border-purple-400', 'shadow-[0_0_16px_rgba(139,92,246,0.35)]');
     btn.classList.remove('text-white/65', 'font-medium');
+
+    // 滚动逻辑 - 使用更可靠的方式
+    function smoothScrollTo(element, offset) {
+      if (!element) {
+        console.warn('[Nav] element not found');
+        return;
+      }
+      var rect = element.getBoundingClientRect();
+      var targetY = rect.top + window.pageYOffset - (offset || 70);
+      console.log('[Nav] scrolling to:', targetY, 'element:', element.id);
+      // 优先使用原生smooth滚动
+      if ('scrollBehavior' in document.documentElement.style) {
+        window.scrollTo({top: targetY, behavior: 'smooth'});
+      } else {
+        // 降级：手动平滑滚动
+        var startY = window.pageYOffset;
+        var diff = targetY - startY;
+        var duration = 500;
+        var startTime = null;
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+        }
+        function animate(currentTime) {
+          if (!startTime) startTime = currentTime;
+          var elapsed = currentTime - startTime;
+          var progress = Math.min(elapsed / duration, 1);
+          window.scrollTo(0, startY + diff * easeInOutCubic(progress));
+          if (progress < 1) requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+      }
+    }
+
     if (tab === 'home') {
-      window.scrollTo({top: 0, behavior: 'smooth'});
+      console.log('[Nav] scroll to top');
+      smoothScrollTo(document.body, 0);
     } else if (tab === 'explore') {
       var more = document.getElementById('heroMoreTools');
+      console.log('[Nav] explore element:', more);
       if (more) {
-        var y = more.getBoundingClientRect().top + window.pageYOffset - 80;
-        window.scrollTo({top: y, behavior: 'smooth'});
+        smoothScrollTo(more, 70);
+      } else {
+        console.error('[Nav] heroMoreTools element not found!');
       }
     } else if (tab === 'about') {
       var about = document.getElementById('aboutSection');
+      console.log('[Nav] about element:', about);
       if (about) {
-        about.scrollIntoView({behavior: 'smooth', block: 'start'});
+        smoothScrollTo(about, 70);
       } else {
-        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+        console.error('[Nav] aboutSection element not found!');
+        smoothScrollTo(document.body, 0);
       }
     }
   }
