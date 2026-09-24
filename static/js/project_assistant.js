@@ -370,11 +370,13 @@
             tooltip: { enabled: true }
           },
           scales: {
-            y: { beginAtZero: true, title: { display: true, text: '每日', font: { size: 11 } },
-              grid: { color: 'rgba(120,120,128,.15)' } },
-            y1: { position: 'right', beginAtZero: true, title: { display: true, text: '累计', font: { size: 11 } },
-              grid: { drawOnChartArea: false } },
-            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+            y: { beginAtZero: true, title: { display: true, text: '每日', font: { size: 11, color: 'rgba(96,165,250,0.9)' } },
+              grid: { color: 'rgba(120,120,128,.15)' },
+              ticks: { color: 'rgba(96,165,250,0.85)', font: { size: 11 } } },
+            y1: { position: 'right', beginAtZero: true, title: { display: true, text: '累计', font: { size: 11, color: 'rgba(251,146,60,0.9)' } },
+              grid: { drawOnChartArea: false },
+              ticks: { color: 'rgba(251,146,60,0.85)', font: { size: 11 } } },
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, color: 'rgba(255,255,255,0.5)' },
               grid: { display: false } }
           }
         }

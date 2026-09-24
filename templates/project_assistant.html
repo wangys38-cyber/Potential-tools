@@ -679,6 +679,46 @@
     /* 网格布局铺满 */
     .pa-grid {
       gap: 16px !important;
+    }
+    /* ========== v2.3 列表Hover增强 + 图表样式 ========== */
+
+    /* 1. 右侧列表项Hover状态增强 */
+    .pa-mod-line {
+      background: transparent !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .pa-mod-line:hover {
+      background: #252830 !important;
+    }
+    .pa-mod-row.fail .pa-mod-line:hover {
+      background: rgba(239, 68, 68, 0.15) !important;
+    }
+    /* 箭头图标Hover时向右移动 + 颜色变亮 */
+    .pa-mod-line::after {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .pa-mod-line:hover::after {
+      color: rgba(139, 92, 246, 1) !important;
+      transform: translateY(-50%) translateX(4px) !important;
+      text-shadow: 0 0 8px rgba(139, 92, 246, 0.6) !important;
+    }
+    .pa-mod-row.fail .pa-mod-line:hover::after {
+      color: rgba(248, 113, 113, 1) !important;
+      text-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+    }
+
+    /* 2. 图表容器优化 */
+    .pa-chart-box {
+      position: relative !important;
+    }
+    /* 图表canvas背景透明 */
+    #paTrendChart {
+      background: transparent !important;
+    }
+
+    /* 3. 图例样式优化 */
+    .pa-chart-box .chartjs-render-monitor {
+      max-height: 280px !important;
     }</style>
 </head>
 <body>
