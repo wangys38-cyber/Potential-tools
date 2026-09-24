@@ -583,107 +583,118 @@
   ];
   var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
-  // 生成每张卡片的3D破框元素 - 统一画风精致版
+  // 生成每张卡片的3D破框元素 - 按用户要求定制版
   function getCard3DElement(idx, isCenter) {
     var sizeClass = isCenter ? 'card-3d-wrap center-card' : 'card-3d-wrap';
     var elements = [
-      // 0: CR智能分析 - 磨砂玻璃紫色放大镜（统一画风）
+      // 0: CR智能分析 - 磨砂玻璃紫色放大镜（右下角微微探出）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
-        // 接触阴影
-        '<div class="contact-shadow" style="width:65%;height:8px;"></div>' +
+        '<div class="contact-shadow" style="width:60%;height:7px;"></div>' +
         // 放大镜主体 - 磨砂玻璃，紫色渐变
-        '<div class="glass-3d" style="position:absolute;bottom:12px;left:8px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,rgba(196,181,253,0.45) 0%,rgba(139,92,246,0.3) 50%,rgba(109,40,217,0.2) 100%);border:2px solid rgba(167,139,250,0.6);box-shadow:inset 0 2px 8px rgba(255,255,255,0.35),inset 0 -4px 10px rgba(109,40,217,0.25),0 0 16px rgba(139,92,246,0.35),0 4px 10px rgba(0,0,0,0.2);">' +
-        // 内部高光（左上打光）
-        '<div style="position:absolute;top:5px;left:7px;width:14px;height:9px;background:linear-gradient(135deg,rgba(255,255,255,0.5),transparent);border-radius:50%;transform:rotate(-30deg);"></div>' +
-        // 内部数据点
+        '<div class="glass-3d" style="position:absolute;bottom:14px;left:10px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,rgba(196,181,253,0.5) 0%,rgba(139,92,246,0.35) 50%,rgba(109,40,217,0.25) 100%);border:2px solid rgba(167,139,250,0.65);box-shadow:inset 0 2px 8px rgba(255,255,255,0.4),inset 0 -4px 10px rgba(109,40,217,0.3),0 0 18px rgba(139,92,246,0.4),0 4px 10px rgba(0,0,0,0.2);">' +
+        // 左上高光
+        '<div style="position:absolute;top:5px;left:7px;width:13px;height:8px;background:linear-gradient(135deg,rgba(255,255,255,0.55),transparent);border-radius:50%;transform:rotate(-30deg);"></div>' +
+        // 内部数据图表（简洁柱状图）
         '<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:3px;align-items:flex-end;">' +
-        '<div style="width:5px;height:10px;background:rgba(139,92,246,0.6);border-radius:1px;"></div>' +
-        '<div style="width:5px;height:16px;background:rgba(167,139,250,0.7);border-radius:1px;"></div>' +
-        '<div style="width:5px;height:12px;background:rgba(139,92,246,0.6);border-radius:1px;"></div>' +
+        '<div style="width:4px;height:9px;background:linear-gradient(180deg,rgba(196,181,253,0.8),rgba(139,92,246,0.6));border-radius:1px;"></div>' +
+        '<div style="width:4px;height:14px;background:linear-gradient(180deg,rgba(221,214,254,0.9),rgba(167,139,250,0.7));border-radius:1px;"></div>' +
+        '<div style="width:4px;height:11px;background:linear-gradient(180deg,rgba(196,181,253,0.8),rgba(139,92,246,0.6));border-radius:1px;"></div>' +
+        '<div style="width:4px;height:16px;background:linear-gradient(180deg,rgba(233,213,255,0.9),rgba(192,132,252,0.7));border-radius:1px;"></div>' +
         '</div>' +
         '</div>' +
-        // 手柄 - 简洁
-        '<div style="position:absolute;top:6px;right:6px;width:7px;height:28px;background:linear-gradient(180deg,rgba(167,139,250,0.8),rgba(124,58,237,0.7));border-radius:4px;transform:rotate(35deg);box-shadow:0 1px 4px rgba(124,58,237,0.4),inset 1px 0 2px rgba(255,255,255,0.3);"></div>' +
+        // 手柄 - 简洁，微微探出
+        '<div style="position:absolute;top:8px;right:8px;width:6px;height:24px;background:linear-gradient(180deg,rgba(167,139,250,0.85),rgba(124,58,237,0.75));border-radius:3px;transform:rotate(35deg);box-shadow:0 1px 4px rgba(124,58,237,0.45),inset 1px 0 2px rgba(255,255,255,0.35);"></div>' +
+        '<div style="position:absolute;top:4px;right:13px;width:9px;height:9px;background:radial-gradient(circle at 30% 30%,rgba(196,181,253,0.9),rgba(139,92,246,0.7));border-radius:50%;transform:rotate(35deg);box-shadow:0 0 8px rgba(139,92,246,0.5);"></div>' +
         '</div></div>',
 
-      // 1: 邮件助手 - 果冻粉色信封+小翅膀（统一画风）
+      // 1: 邮件助手 - 带翅膀的果冻粉色信封（线条轻盈）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
-        '<div class="contact-shadow" style="width:70%;height:8px;"></div>' +
-        // 左翅膀 - 小而精致
-        '<div style="position:absolute;top:18px;left:2px;width:24px;height:18px;background:linear-gradient(135deg,rgba(255,255,255,0.85),rgba(251,207,232,0.7) 60%,rgba(249,168,212,0.5));border-radius:50% 50% 50% 0;transform:rotate(-20deg);box-shadow:0 2px 6px rgba(236,72,153,0.3),inset 1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2s ease-in-out infinite;border:1px solid rgba(255,255,255,0.4);"></div>' +
-        // 右翅膀
-        '<div style="position:absolute;top:18px;right:0px;width:24px;height:18px;background:linear-gradient(225deg,rgba(255,255,255,0.85),rgba(251,207,232,0.7) 60%,rgba(249,168,212,0.5));border-radius:50% 50% 0 50%;transform:rotate(20deg);box-shadow:0 2px 6px rgba(236,72,153,0.3),inset -1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2s ease-in-out infinite 0.4s;border:1px solid rgba(255,255,255,0.4);"></div>' +
+        '<div class="contact-shadow" style="width:65%;height:7px;"></div>' +
+        // 左翅膀 - 轻盈半透明
+        '<div style="position:absolute;top:16px;left:0px;width:22px;height:16px;background:linear-gradient(135deg,rgba(255,255,255,0.8),rgba(251,207,232,0.65) 60%,rgba(249,168,212,0.45));border-radius:50% 50% 50% 0;transform:rotate(-18deg);box-shadow:0 2px 5px rgba(236,72,153,0.25),inset 1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2.2s ease-in-out infinite;border:1px solid rgba(255,255,255,0.45);"></div>' +
+        // 右翅膀 - 轻盈半透明
+        '<div style="position:absolute;top:16px;right:-2px;width:22px;height:16px;background:linear-gradient(225deg,rgba(255,255,255,0.8),rgba(251,207,232,0.65) 60%,rgba(249,168,212,0.45));border-radius:50% 50% 0 50%;transform:rotate(18deg);box-shadow:0 2px 5px rgba(236,72,153,0.25),inset -1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2.2s ease-in-out infinite 0.5s;border:1px solid rgba(255,255,255,0.45);"></div>' +
         // 信封主体 - 果冻材质，粉色渐变
-        '<div class="jelly-3d" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:54px;height:38px;background:linear-gradient(135deg,rgba(255,255,255,0.45) 0%,rgba(251,207,232,0.55) 40%,rgba(249,168,212,0.45) 100%);border-radius:6px;border:1.5px solid rgba(255,255,255,0.55);box-shadow:inset 0 2px 7px rgba(255,255,255,0.4),inset 0 -3px 10px rgba(236,72,153,0.18),0 4px 10px rgba(236,72,153,0.3),0 0 14px rgba(244,114,182,0.25);">' +
+        '<div class="jelly-3d" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:50px;height:36px;background:linear-gradient(135deg,rgba(255,255,255,0.5) 0%,rgba(251,207,232,0.6) 40%,rgba(249,168,212,0.5) 100%);border-radius:6px;border:1.5px solid rgba(255,255,255,0.6);box-shadow:inset 0 2px 7px rgba(255,255,255,0.45),inset 0 -3px 10px rgba(236,72,153,0.2),0 4px 10px rgba(236,72,153,0.3),0 0 16px rgba(244,114,182,0.3);">' +
         // 信封翻盖
-        '<div style="position:absolute;top:0;left:0;right:0;height:20px;background:linear-gradient(135deg,rgba(249,168,212,0.6),rgba(244,114,182,0.5));clip-path:polygon(0 0,100% 0,50% 100%);border-radius:6px 6px 0 0;"></div>' +
+        '<div style="position:absolute;top:0;left:0;right:0;height:19px;background:linear-gradient(135deg,rgba(249,168,212,0.65),rgba(244,114,182,0.55));clip-path:polygon(0 0,100% 0,50% 100%);border-radius:6px 6px 0 0;"></div>' +
         // 爱心封蜡
-        '<div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);width:14px;height:14px;background:radial-gradient(circle at 30% 30%,#fda4af,#e11d48 60%,#be123c);border-radius:50%;box-shadow:0 2px 5px rgba(225,29,72,0.5),inset 1px 1px 3px rgba(255,255,255,0.35),0 0 8px rgba(244,63,94,0.4);"></div>' +
+        '<div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:13px;height:13px;background:radial-gradient(circle at 30% 30%,#fda4af,#e11d48 60%,#be123c);border-radius:50%;box-shadow:0 2px 5px rgba(225,29,72,0.5),inset 1px 1px 3px rgba(255,255,255,0.4),0 0 8px rgba(244,63,94,0.45);"></div>' +
+        // 左上高光
+        '<div style="position:absolute;top:3px;left:5px;width:10px;height:5px;background:linear-gradient(135deg,rgba(255,255,255,0.5),transparent);border-radius:50%;"></div>' +
         '</div>' +
         '</div></div>',
 
-      // 2: 智能知识库 - 磨砂玻璃蓝色书籍（C位，统一画风）
+      // 2: 智能知识库 - 悬浮发蓝光的半透明书籍（书页微微翻开，C位）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
-        '<div class="contact-shadow" style="width:75%;height:10px;"></div>' +
+        '<div class="contact-shadow" style="width:70%;height:9px;"></div>' +
+        // 蓝色光晕（悬浮发光效果）
+        '<div style="position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,0.35),transparent 65%);filter:blur(6px);animation:pulseGlow 2.5s ease-in-out infinite;"></div>' +
         // 书籍主体 - 磨砂玻璃，蓝色渐变
-        '<div class="glass-3d" style="position:absolute;bottom:14px;left:10px;width:60px;height:48px;background:linear-gradient(135deg,rgba(191,219,254,0.5) 0%,rgba(147,197,253,0.4) 40%,rgba(96,165,250,0.3) 100%);border-radius:5px 8px 8px 5px;border:2px solid rgba(191,219,254,0.6);box-shadow:inset 0 2px 8px rgba(255,255,255,0.4),inset 0 -4px 12px rgba(37,99,235,0.22),0 4px 12px rgba(59,130,246,0.35),0 0 20px rgba(96,165,250,0.3);">' +
+        '<div class="glass-3d" style="position:absolute;bottom:16px;left:12px;width:56px;height:44px;background:linear-gradient(135deg,rgba(191,219,254,0.55) 0%,rgba(147,197,253,0.45) 40%,rgba(96,165,250,0.35) 100%);border-radius:5px 8px 8px 5px;border:2px solid rgba(191,219,254,0.65);box-shadow:inset 0 2px 8px rgba(255,255,255,0.45),inset 0 -4px 12px rgba(37,99,235,0.25),0 4px 12px rgba(59,130,246,0.4),0 0 22px rgba(96,165,250,0.4);">' +
         // 书脊
-        '<div style="position:absolute;top:0;left:0;bottom:0;width:9px;background:linear-gradient(90deg,rgba(37,99,235,0.55),rgba(59,130,246,0.4));border-radius:5px 0 0 5px;"></div>' +
-        // 书页线条（左上打光，右侧反光）
-        '<div style="position:absolute;top:9px;left:14px;right:10px;height:2px;background:rgba(255,255,255,0.55);border-radius:1px;"></div>' +
-        '<div style="position:absolute;top:16px;left:14px;right:14px;height:2px;background:rgba(255,255,255,0.45);border-radius:1px;"></div>' +
-        '<div style="position:absolute;top:23px;left:14px;right:12px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;"></div>' +
-        // 顶部高光
-        '<div style="position:absolute;top:3px;left:12px;width:20px;height:6px;background:linear-gradient(135deg,rgba(255,255,255,0.5),transparent);border-radius:50%;"></div>' +
+        '<div style="position:absolute;top:0;left:0;bottom:0;width:8px;background:linear-gradient(90deg,rgba(37,99,235,0.6),rgba(59,130,246,0.45));border-radius:5px 0 0 5px;"></div>' +
+        // 书页微微翻开（右侧书页翘起）
+        '<div style="position:absolute;top:2px;right:-3px;width:14px;height:40px;background:linear-gradient(135deg,rgba(219,234,254,0.6),rgba(191,219,254,0.5));border-radius:0 6px 6px 0;border:1.5px solid rgba(219,234,254,0.5);transform:rotateY(-15deg);transform-origin:left center;box-shadow:2px 0 6px rgba(59,130,246,0.25),inset 1px 0 3px rgba(255,255,255,0.4);"></div>' +
+        // 书页线条
+        '<div style="position:absolute;top:9px;left:13px;right:10px;height:2px;background:rgba(255,255,255,0.6);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:16px;left:13px;right:12px;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:23px;left:13px;right:10px;height:2px;background:rgba(255,255,255,0.4);border-radius:1px;"></div>' +
+        // 左上高光
+        '<div style="position:absolute;top:3px;left:11px;width:16px;height:6px;background:linear-gradient(135deg,rgba(255,255,255,0.55),transparent);border-radius:50%;"></div>' +
         '</div>' +
-        // 金色书签 - 简洁探出
-        '<div style="position:absolute;top:4px;right:16px;width:9px;height:24px;background:linear-gradient(180deg,#fcd34d,#f59e0b);clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%);box-shadow:0 1px 5px rgba(245,158,11,0.5),0 0 8px rgba(251,191,36,0.35);"></div>' +
-        // 悬浮微光
-        '<div style="position:absolute;top:10px;left:12px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,rgba(147,197,253,0.6),transparent 70%);box-shadow:0 0 16px rgba(96,165,250,0.5);animation:pulseGlow 2.5s ease-in-out infinite;"></div>' +
+        // 金色书签 - 微微探出
+        '<div style="position:absolute;top:6px;right:18px;width:8px;height:22px;background:linear-gradient(180deg,#fcd34d,#f59e0b);clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%);box-shadow:0 1px 5px rgba(245,158,11,0.55),0 0 10px rgba(251,191,36,0.4);"></div>' +
         '</div></div>',
 
-      // 3: 牛马笔记 - 果冻绿色便签本（统一画风）
+      // 3: 牛马笔记 - 绿色果冻质感便签本（边角微微卷起）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
-        '<div class="contact-shadow" style="width:68%;height:8px;"></div>' +
+        '<div class="contact-shadow" style="width:62%;height:7px;"></div>' +
         // 便签本主体 - 果冻材质，绿色渐变
-        '<div class="jelly-3d" style="position:absolute;bottom:12px;left:10px;width:54px;height:54px;background:linear-gradient(135deg,rgba(187,247,208,0.5) 0%,rgba(134,239,172,0.45) 50%,rgba(74,222,128,0.35) 100%);border-radius:5px;border:1.5px solid rgba(187,247,208,0.6);box-shadow:inset 0 2px 7px rgba(255,255,255,0.4),inset 0 -4px 10px rgba(22,163,74,0.2),0 4px 10px rgba(74,222,128,0.3),0 0 14px rgba(134,239,172,0.25);transform:rotate(-4deg);">' +
+        '<div class="jelly-3d" style="position:absolute;bottom:14px;left:11px;width:50px;height:50px;background:linear-gradient(135deg,rgba(187,247,208,0.55) 0%,rgba(134,239,172,0.5) 50%,rgba(74,222,128,0.4) 100%);border-radius:5px;border:1.5px solid rgba(187,247,208,0.65);box-shadow:inset 0 2px 7px rgba(255,255,255,0.45),inset 0 -4px 10px rgba(22,163,74,0.22),0 4px 10px rgba(74,222,128,0.35),0 0 16px rgba(134,239,172,0.3);transform:rotate(-3deg);">' +
         // 笔迹线条
-        '<div style="position:absolute;top:10px;left:9px;right:9px;height:2px;background:rgba(22,101,52,0.55);border-radius:1px;"></div>' +
-        '<div style="position:absolute;top:18px;left:9px;right:12px;height:2px;background:rgba(22,101,52,0.45);border-radius:1px;"></div>' +
-        '<div style="position:absolute;top:26px;left:9px;right:8px;height:2px;background:rgba(22,101,52,0.4);border-radius:1px;"></div>' +
-        '<div style="position:absolute;top:34px;left:9px;right:14px;height:2px;background:rgba(22,101,52,0.35);border-radius:1px;"></div>' +
-        // 卷角
-        '<div style="position:absolute;bottom:0;right:0;width:14px;height:14px;background:linear-gradient(135deg,transparent 50%,rgba(22,163,74,0.45) 50%);border-radius:0 0 5px 0;"></div>' +
-        // 顶部高光
-        '<div style="position:absolute;top:3px;left:6px;width:14px;height:5px;background:linear-gradient(135deg,rgba(255,255,255,0.5),transparent);border-radius:50%;"></div>' +
+        '<div style="position:absolute;top:9px;left:8px;right:8px;height:2px;background:rgba(22,101,52,0.6);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:17px;left:8px;right:11px;height:2px;background:rgba(22,101,52,0.5);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:25px;left:8px;right:7px;height:2px;background:rgba(22,101,52,0.45);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:33px;left:8px;right:13px;height:2px;background:rgba(22,101,52,0.4);border-radius:1px;"></div>' +
+        // 边角微微卷起（右下角）
+        '<div style="position:absolute;bottom:0;right:0;width:13px;height:13px;background:linear-gradient(135deg,transparent 50%,rgba(22,163,74,0.5) 50%);border-radius:0 0 5px 0;box-shadow:-1px -1px 3px rgba(0,0,0,0.1);"></div>' +
+        // 卷边高光
+        '<div style="position:absolute;bottom:1px;right:1px;width:6px;height:6px;background:linear-gradient(135deg,rgba(255,255,255,0.3),transparent);border-radius:0 0 3px 0;"></div>' +
+        // 左上高光
+        '<div style="position:absolute;top:3px;left:5px;width:12px;height:5px;background:linear-gradient(135deg,rgba(255,255,255,0.5),transparent);border-radius:50%;"></div>' +
         '</div>' +
-        // 笔 - 简洁
-        '<div style="position:absolute;top:8px;right:4px;width:6px;height:34px;background:linear-gradient(180deg,rgba(252,211,77,0.9),rgba(245,158,11,0.8) 60%,rgba(217,119,6,0.8));border-radius:3px 3px 0 0;transform:rotate(28deg);box-shadow:0 2px 6px rgba(245,158,11,0.4),inset 1px 0 2px rgba(255,255,255,0.3);">' +
-        '<div style="position:absolute;bottom:-7px;left:0;right:0;height:9px;background:linear-gradient(180deg,rgba(217,119,6,0.8),rgba(31,41,55,0.9));clip-path:polygon(0 0,100% 0,50% 100%);"></div>' +
+        // 笔 - 简洁，微微探出
+        '<div style="position:absolute;top:10px;right:6px;width:5px;height:30px;background:linear-gradient(180deg,rgba(252,211,77,0.9),rgba(245,158,11,0.8) 60%,rgba(217,119,6,0.8));border-radius:3px 3px 0 0;transform:rotate(25deg);box-shadow:0 2px 5px rgba(245,158,11,0.45),inset 1px 0 2px rgba(255,255,255,0.35);">' +
+        '<div style="position:absolute;bottom:-6px;left:0;right:0;height:8px;background:linear-gradient(180deg,rgba(217,119,6,0.8),rgba(31,41,55,0.9));clip-path:polygon(0 0,100% 0,50% 100%);"></div>' +
         '</div>' +
         '</div></div>',
 
-      // 4: 研发知识图谱 - 磨砂玻璃紫色球体网络（统一画风）
+      // 4: 研发知识图谱 - 半透明紫色节点球体网络（右下角）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
-        '<div class="contact-shadow" style="width:70%;height:8px;"></div>' +
-        // 大节点 - 中心，磨砂玻璃
-        '<div class="sphere-3d glass-3d" style="width:32px;height:32px;bottom:18px;right:18px;background:radial-gradient(circle at 30% 30%,rgba(221,214,254,0.7),rgba(167,139,250,0.5) 50%,rgba(139,92,246,0.4));border:1.5px solid rgba(196,181,253,0.6);box-shadow:inset 0 2px 7px rgba(255,255,255,0.45),inset 0 -3px 8px rgba(109,40,217,0.25),0 0 18px rgba(167,139,250,0.5),0 3px 8px rgba(0,0,0,0.2);">' +
+        '<div class="contact-shadow" style="width:65%;height:7px;"></div>' +
+        // 大节点 - 中心，磨砂玻璃紫色
+        '<div class="sphere-3d glass-3d" style="width:30px;height:30px;bottom:16px;right:16px;background:radial-gradient(circle at 30% 30%,rgba(221,214,254,0.75),rgba(167,139,250,0.55) 50%,rgba(139,92,246,0.45));border:1.5px solid rgba(196,181,253,0.65);box-shadow:inset 0 2px 7px rgba(255,255,255,0.5),inset 0 -3px 8px rgba(109,40,217,0.3),0 0 20px rgba(167,139,250,0.55),0 3px 8px rgba(0,0,0,0.2);">' +
         '<div class="rim-light"></div>' +
         '</div>' +
         // 节点1 - 左上
-        '<div class="sphere-3d" style="width:18px;height:18px;top:8px;left:8px;background:radial-gradient(circle at 30% 30%,rgba(196,181,253,0.75),rgba(139,92,246,0.55));border:1px solid rgba(196,181,253,0.55);box-shadow:inset 0 1px 4px rgba(255,255,255,0.4),0 0 12px rgba(139,92,246,0.5);"></div>' +
+        '<div class="sphere-3d" style="width:17px;height:17px;top:9px;left:9px;background:radial-gradient(circle at 30% 30%,rgba(196,181,253,0.8),rgba(139,92,246,0.6));border:1px solid rgba(196,181,253,0.6);box-shadow:inset 0 1px 4px rgba(255,255,255,0.45),0 0 14px rgba(139,92,246,0.55);"></div>' +
         // 节点2 - 右上
-        '<div class="sphere-3d" style="width:14px;height:14px;top:14px;right:6px;background:radial-gradient(circle at 30% 30%,rgba(221,214,254,0.75),rgba(167,139,250,0.55));border:1px solid rgba(221,214,254,0.55);box-shadow:inset 0 1px 3px rgba(255,255,255,0.4),0 0 10px rgba(167,139,250,0.5);"></div>' +
+        '<div class="sphere-3d" style="width:13px;height:13px;top:14px;right:7px;background:radial-gradient(circle at 30% 30%,rgba(221,214,254,0.8),rgba(167,139,250,0.6));border:1px solid rgba(221,214,254,0.6);box-shadow:inset 0 1px 3px rgba(255,255,255,0.45),0 0 10px rgba(167,139,250,0.55);"></div>' +
         // 节点3 - 左下
-        '<div class="sphere-3d" style="width:12px;height:12px;bottom:10px;left:6px;background:radial-gradient(circle at 30% 30%,rgba(233,213,255,0.75),rgba(192,132,252,0.55));border:1px solid rgba(233,213,255,0.55);box-shadow:inset 0 1px 3px rgba(255,255,255,0.4),0 0 8px rgba(192,132,252,0.5);"></div>' +
-        // 连接线
+        '<div class="sphere-3d" style="width:11px;height:11px;bottom:11px;left:7px;background:radial-gradient(circle at 30% 30%,rgba(233,213,255,0.8),rgba(192,132,252,0.6));border:1px solid rgba(233,213,255,0.6);box-shadow:inset 0 1px 3px rgba(255,255,255,0.45),0 0 8px rgba(192,132,252,0.55);"></div>' +
+        // 光线连接线（形成网络结构）
         '<svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 82 82">' +
-        '<line x1="17" y1="17" x2="56" y2="50" stroke="rgba(167,139,250,0.65)" stroke-width="2" stroke-dasharray="3,2.5" stroke-linecap="round"/>' +
-        '<line x1="68" y1="21" x2="60" y2="48" stroke="rgba(167,139,250,0.55)" stroke-width="1.5" stroke-dasharray="3,2.5" stroke-linecap="round"/>' +
-        '<line x1="12" y1="66" x2="52" y2="56" stroke="rgba(192,132,252,0.55)" stroke-width="1.5" stroke-dasharray="3,2.5" stroke-linecap="round"/>' +
-        '<circle cx="17" cy="17" r="2.5" fill="rgba(167,139,250,0.8)"/>' +
-        '<circle cx="56" cy="50" r="3" fill="rgba(196,181,253,0.9)"/>' +
-        '<circle cx="68" cy="21" r="2" fill="rgba(167,139,250,0.7)"/>' +
+        // 主连接线（更亮更粗）
+        '<line x1="17" y1="17" x2="55" y2="49" stroke="url(#lineGrad1)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0"/>' +
+        '<line x1="67" y1="20" x2="59" y2="47" stroke="rgba(167,139,250,0.7)" stroke-width="1.8" stroke-linecap="round"/>' +
+        '<line x1="12" y1="65" x2="51" y2="55" stroke="rgba(192,132,252,0.65)" stroke-width="1.8" stroke-linecap="round"/>' +
+        // 发光点
+        '<circle cx="17" cy="17" r="3" fill="rgba(167,139,250,0.9)"><animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite"/></circle>' +
+        '<circle cx="55" cy="49" r="3.5" fill="rgba(196,181,253,0.95)"><animate attributeName="r" values="3;4;3" dur="2.5s" repeatCount="indefinite"/></circle>' +
+        '<circle cx="67" cy="20" r="2.5" fill="rgba(167,139,250,0.8)"/>' +
+        '<circle cx="12" cy="65" r="2" fill="rgba(192,132,252,0.8)"/>' +
+        '<defs><linearGradient id="lineGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="rgba(167,139,250,0.9)"/><stop offset="100%" stop-color="rgba(196,181,253,0.8)"/></linearGradient></defs>' +
         '</svg>' +
         '</div></div>'
     ];
@@ -692,7 +703,7 @@
     if (!document.getElementById('card3dKeyframes')) {
       var style = document.createElement('style');
       style.id = 'card3dKeyframes';
-      style.textContent = '@keyframes wingFlap{0%,100%{transform:rotate(-20deg) scaleY(1)}50%{transform:rotate(-12deg) scaleY(1.12)}}@keyframes pulseGlow{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:0.9;transform:scale(1.15)}}';
+      style.textContent = '@keyframes wingFlap{0%,100%{transform:rotate(-18deg) scaleY(1)}50%{transform:rotate(-10deg) scaleY(1.1)}}@keyframes pulseGlow{0%,100%{opacity:0.65;transform:scale(1)}50%{opacity:0.95;transform:scale(1.12)}}';
       document.head.appendChild(style);
     }
 
