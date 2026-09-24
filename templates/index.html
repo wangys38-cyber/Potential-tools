@@ -1070,6 +1070,11 @@
   } else {
     requestAnimationFrame(renderHeroCards);
   }
+
+  // 暴露全局函数（IIFE内部函数需要供内联onclick调用）
+  window.switchNavTab = switchNavTab;
+  window.scrollToTools = scrollToTools;
+  if (typeof clearRecent === 'function') window.clearRecent = clearRecent;
 })();
 </script>
 
