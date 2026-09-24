@@ -358,7 +358,188 @@
     }
     .pa-mod-table::-webkit-scrollbar-thumb:hover,
     .pa-msgs::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25) !important; }
-    </style>
+    
+    /* ========== v2.1 细节优化 ========== */
+
+    /* 1. 模块名称提升亮度 + 添加图标 */
+    .pa-mod-name {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #fff !important;
+      letter-spacing: -0.01em !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    .pa-mod-name::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+      flex-shrink: 0;
+    }
+    .pa-mod-row.fail .pa-mod-name::before {
+      background: linear-gradient(135deg, #ef4444, #f87171);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    }
+    .pa-mod-sub {
+      font-size: 11px !important;
+      color: rgba(255,255,255,0.4) !important;
+      margin-top: 3px !important;
+      font-weight: 500 !important;
+    }
+
+    /* 2. Tab切换器更精致 */
+    .pa-mode {
+      display: inline-flex !important;
+      background: rgba(255,255,255,0.04) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 980px !important;
+      padding: 4px !important;
+      gap: 2px !important;
+      position: relative !important;
+    }
+    .pa-mode button {
+      position: relative !important;
+      padding: 8px 22px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 980px !important;
+      background: transparent !important;
+      color: rgba(255,255,255,0.5) !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      z-index: 1 !important;
+    }
+    .pa-mode button:hover {
+      color: rgba(255,255,255,0.8) !important;
+      background: rgba(255,255,255,0.04) !important;
+    }
+    .pa-mode button.on {
+      color: #fff !important;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35) !important;
+    }
+    .pa-mode button.on::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 3px;
+      border-radius: 980px;
+      background: linear-gradient(90deg, #8b5cf6, #6366f1);
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+    }
+
+    /* 3. 模块列表标签降噪 */
+    .pa-mod-line {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 12px 14px !important;
+      border-radius: 12px !important;
+      transition: all 0.2s ease !important;
+      cursor: pointer !important;
+    }
+    .pa-mod-line:hover {
+      background: rgba(255,255,255,0.04) !important;
+    }
+    .pa-mod-row.fail .pa-mod-line {
+      background: rgba(239, 68, 68, 0.05) !important;
+      border-left: 3px solid #ef4444 !important;
+      padding-left: 11px !important;
+    }
+    .pa-mod-row.fail .pa-mod-line:hover {
+      background: rgba(239, 68, 68, 0.1) !important;
+    }
+    .pa-pill {
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      padding: 4px 10px !important;
+      border-radius: 980px !important;
+      letter-spacing: 0.03em !important;
+      flex-shrink: 0 !important;
+    }
+    .pa-pill.fail {
+      background: rgba(239, 68, 68, 0.15) !important;
+      color: #f87171 !important;
+      border: 1px solid rgba(239, 68, 68, 0.3) !important;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.15) !important;
+    }
+    .pa-pill.pass {
+      background: rgba(34, 197, 94, 0.12) !important;
+      color: #4ade80 !important;
+      border: 1px solid rgba(34, 197, 94, 0.25) !important;
+    }
+    /* B/C 标签降噪：改为灰色小字，降低视觉权重 */
+    .pa-bc-num {
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      color: rgba(255,255,255,0.35) !important;
+      min-width: auto !important;
+      text-align: left !important;
+      flex-shrink: 0 !important;
+    }
+    .pa-bc-num .b,
+    .pa-bc-num .c {
+      color: rgba(255,255,255,0.4) !important;
+      background: rgba(255,255,255,0.05) !important;
+      padding: 2px 6px !important;
+      border-radius: 6px !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+    }
+    .pa-caret {
+      color: rgba(255,255,255,0.3) !important;
+      font-size: 10px !important;
+      transition: transform 0.2s ease !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* 4. 浮窗暗黑化 + 毛玻璃效果 */
+    .pa-toast,
+    .pa-modal,
+    .pa-popup,
+    [class*="toast"],
+    [class*="modal"]:not(.pa-modal-overlay),
+    [class*="popup"] {
+      background: rgba(30, 30, 36, 0.85) !important;
+      backdrop-filter: blur(20px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #fff !important;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* 展开更多按钮优化 */
+    .pa-mod-toggle {
+      text-align: center !important;
+      padding: 12px !important;
+    }
+    .pa-mod-toggle button {
+      padding: 8px 20px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      border-radius: 980px !important;
+      background: rgba(139, 92, 246, 0.1) !important;
+      color: #c4b5fd !important;
+      border: 1px solid rgba(139, 92, 246, 0.25) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .pa-mod-toggle button:hover {
+      background: rgba(139, 92, 246, 0.2) !important;
+      border-color: rgba(139, 92, 246, 0.45) !important;
+      color: #ddd6fe !important;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.2) !important;
+    }
+    </style></style>
 </head>
 <body>
 {% include '_navbar.html' %}
