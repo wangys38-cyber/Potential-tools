@@ -53,6 +53,30 @@
       #heroCards { contain: layout; }
     </style>
 
+  <style>
+    /* 覆盖 design-system.css 中的全局 backdrop-filter:none!important */
+    #visitCounter {
+      background: rgba(255,255,255,0.08) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      border-radius: 14px !important;
+      padding: 10px 16px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      color: #fff !important;
+    }
+    #visitCounter .label {
+      color: rgba(255,255,255,0.55) !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+    }
+    #visitCounter .num {
+      color: #fff !important;
+      font-weight: 700 !important;
+      font-size: 15px !important;
+      margin-left: 6px !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -170,9 +194,9 @@
 
 <!-- 访问次数 -->
 
-<div class="visit-counter" id="visitCounter" style="background:rgba(255,255,255,0.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:8px 14px;">
-    <span class="label" style="color:rgba(255,255,255,0.5);font-size:11px;">访问</span>
-    <span class="num" id="visitNum" style="color:#fff;font-weight:600;font-size:14px;margin-left:6px;">0</span>
+<div class="visit-counter" id="visitCounter">
+    <span class="label">访问</span>
+    <span class="num" id="visitNum">0</span>
 </div>
 
 
