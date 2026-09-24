@@ -65,9 +65,14 @@
     </div>
 
     <div class="container">
-        <div class="header">
-            <h1>🤖 AI Agent</h1>
-            <p>Potential Tools 9.0 · 自主任务规划与多工具调用</p>
+        <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+                <h1>🤖 AI Agent</h1>
+                <p>Potential Tools 9.0 · 自主任务规划与多工具调用</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="toggleMemoryPanel()" style="font-size:13px;padding:8px 16px;">🧠 记忆管理</button>
+            </div>
         </div>
 
         <div class="input-area">
@@ -77,6 +82,7 @@
                     <span class="example-tag" onclick="setExample('查询 EKSANTOS 项目状态并生成日报')">📊 生成项目日报</span>
                     <span class="example-tag" onclick="setExample('查询项目状态，生成报告并同步到牛马笔记')">📝 同步到笔记</span>
                     <span class="example-tag" onclick="setExample('在知识库中搜索 CR 分析方法')">🔍 知识库搜索</span>
+                    <span class="example-tag" onclick="saveCurrentAsMemory()" style="background:#e8f5e9;color:#2e7d32;">💾 保存为记忆</span>
                 </div>
                 <button class="btn btn-primary" id="runBtn" onclick="runAgent()">🚀 执行任务</button>
             </div>
@@ -85,6 +91,40 @@
         <div class="result-area" id="resultArea" style="display:none;">
             <h2>执行结果</h2>
             <div id="stepsContainer"></div>
+        </div>
+
+        <!-- 记忆管理面板 -->
+        <div id="memoryPanel" style="display:none;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h2 style="font-size:18px;">🧠 记忆管理</h2>
+                <button class="btn btn-secondary" onclick="toggleMemoryPanel()" style="font-size:12px;padding:6px 12px;">✕ 关闭</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                <select id="memoryTypeFilter" onchange="loadMemories()" style="padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+                    <option value="">全部类型</option>
+                    <option value="instruction">常用指令</option>
+                    <option value="preference">偏好设置</option>
+                    <option value="contact">常用联系人</option>
+                    <option value="project">项目相关</option>
+                    <option value="other">其他</option>
+                </select>
+                <input type="text" id="memorySearch" placeholder="搜索记忆..." oninput="searchMemories()" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+            </div>
+            <div id="memoryList" style="max-height:400px;overflow-y:auto;"></div>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e8e8ed;">
+                <h3 style="font-size:14px;margin-bottom:8px;">➕ 添加新记忆</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <select id="newMemoryType" style="padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+                        <option value="instruction">常用指令</option>
+                        <option value="preference">偏好设置</option>
+                        <option value="contact">常用联系人</option>
+                        <option value="project">项目相关</option>
+                        <option value="other">其他</option>
+                    </select>
+                    <input type="text" id="newMemoryContent" placeholder="记忆内容..." style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+                    <button class="btn btn-primary" onclick="addMemory()" style="font-size:13px;padding:8px 16px;">添加</button>
+                </div>
+            </div>
         </div>
 
         <div style="margin-top: 30px;">
@@ -170,6 +210,12 @@
                         ${step.status === 'needs_confirmation' ? `
                             <div class="confirm-area">
                                 <p>⚠️ 此操作需要您的确认：</p>
+                                <div style="margin-bottom:12px;">
+                                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                                        <input type="checkbox" id="skipConfirm_${idx}" style="width:16px;height:16px;">
+                                        <span>以后不再询问此操作（${step.tool_name}）</span>
+                                    </label>
+                                </div>
                                 <div class="confirm-buttons">
                                     <button class="btn btn-primary" onclick="confirmStep(${idx}, true)">✅ 确认执行</button>
                                     <button class="btn btn-secondary" onclick="confirmStep(${idx}, false)">⏭️ 跳过</button>
@@ -227,6 +273,139 @@
             }
             return String(result);
         }
+
+        // ==================== 记忆管理功能 ====================
+        let memoryPanelOpen = false;
+
+        function toggleMemoryPanel() {
+            memoryPanelOpen = !memoryPanelOpen;
+            document.getElementById('memoryPanel').style.display = memoryPanelOpen ? 'block' : 'none';
+            if (memoryPanelOpen) loadMemories();
+        }
+
+        async function loadMemories() {
+            try {
+                const type = document.getElementById('memoryTypeFilter').value;
+                const url = type ? `/api/agent/memory?type=${encodeURIComponent(type)}` : '/api/agent/memory';
+                const resp = await fetch(url);
+                const data = await resp.json();
+                renderMemoryList(data.data || []);
+            } catch (e) {
+                console.error('加载记忆失败', e);
+            }
+        }
+
+        async function searchMemories() {
+            const query = document.getElementById('memorySearch').value.trim();
+            if (!query) { loadMemories(); return; }
+            try {
+                const resp = await fetch(`/api/agent/memory/search?q=${encodeURIComponent(query)}`);
+                const data = await resp.json();
+                renderMemoryList(data.data || []);
+            } catch (e) {
+                console.error('搜索记忆失败', e);
+            }
+        }
+
+        function renderMemoryList(memories) {
+            const list = document.getElementById('memoryList');
+            if (!memories.length) {
+                list.innerHTML = '<p style="color:#86868b;text-align:center;padding:20px;">暂无记忆</p>';
+                return;
+            }
+            const typeNames = {
+                'instruction': '📋 常用指令',
+                'preference': '⚙️ 偏好设置',
+                'contact': '👤 常用联系人',
+                'project': '📊 项目相关',
+                'other': '📝 其他'
+            };
+            list.innerHTML = memories.map(m => `
+                <div style="padding:12px;border:1px solid #e8e8ed;border-radius:10px;margin-bottom:8px;background:#fafafa;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                        <div style="flex:1;">
+                            <div style="font-size:11px;color:#0071e3;margin-bottom:4px;">${typeNames[m.type] || m.type}</div>
+                            <div style="font-size:13px;color:#1d1d1f;line-height:1.5;">${m.content}</div>
+                            <div style="font-size:11px;color:#86868b;margin-top:4px;">使用 ${m.usage_count || 0} 次</div>
+                        </div>
+                        <button onclick="deleteMemory('${m.id}')" style="background:none;border:none;color:#ff3b30;cursor:pointer;font-size:12px;padding:4px;">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addMemory() {
+            const content = document.getElementById('newMemoryContent').value.trim();
+            const type = document.getElementById('newMemoryType').value;
+            if (!content) { alert('请输入记忆内容'); return; }
+            try {
+                await fetch('/api/agent/memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, type })
+                });
+                document.getElementById('newMemoryContent').value = '';
+                loadMemories();
+            } catch (e) {
+                alert('添加记忆失败: ' + e.message);
+            }
+        }
+
+        async function deleteMemory(id) {
+            if (!confirm('确定删除这条记忆吗？')) return;
+            try {
+                await fetch(`/api/agent/memory/${id}`, { method: 'DELETE' });
+                loadMemories();
+            } catch (e) {
+                alert('删除记忆失败: ' + e.message);
+            }
+        }
+
+        function saveCurrentAsMemory() {
+            const task = document.getElementById('taskInput').value.trim();
+            if (!task) { alert('请先输入任务内容'); return; }
+            document.getElementById('newMemoryContent').value = task;
+            document.getElementById('newMemoryType').value = 'instruction';
+            if (!memoryPanelOpen) toggleMemoryPanel();
+            setTimeout(() => addMemory(), 100);
+        }
+
+        // ==================== 免确认功能 ====================
+        async function setSkipConfirmation(toolName, skip) {
+            try {
+                await fetch('/api/agent/skip-confirmation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool_name: toolName, skip })
+                });
+            } catch (e) {
+                console.error('设置免确认失败', e);
+            }
+        }
+
+        // 重写confirmStep，支持免确认
+        const originalConfirmStep = confirmStep;
+        confirmStep = async function(stepIndex, confirmed) {
+            if (confirmed) {
+                const skipCheckbox = document.getElementById(`skipConfirm_${stepIndex}`);
+                if (skipCheckbox && skipCheckbox.checked) {
+                    // 获取工具名称
+                    const step = currentCtx && currentCtx.steps ? currentCtx.steps[stepIndex] : null;
+                    if (step && step.tool_name) {
+                        await setSkipConfirmation(step.tool_name, true);
+                    }
+                }
+            }
+            return originalConfirmStep(stepIndex, confirmed);
+        };
+
+        // 保存当前上下文供confirmStep使用
+        let currentCtx = null;
+        const originalRenderSteps = renderSteps;
+        renderSteps = function(ctx) {
+            currentCtx = ctx;
+            return originalRenderSteps(ctx);
+        };
 
         // 初始化
         loadTools();

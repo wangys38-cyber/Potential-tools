@@ -664,6 +664,78 @@ def agent_confirm_step(agent_id, step_index):
     return jsonify(ctx.to_dict())
 
 
+# ==================== Agent 记忆 API ====================
+@app.route('/api/agent/memory', methods=['GET'])
+def agent_list_memory():
+    """获取用户的所有记忆"""
+    from services.agent_memory import load_memories
+    memory_type = request.args.get('type')
+    memories = load_memories()
+    if memory_type:
+        memories = [m for m in memories if m['type'] == memory_type]
+    return jsonify({'status': 'success', 'data': memories})
+
+
+@app.route('/api/agent/memory', methods=['POST'])
+def agent_add_memory():
+    """添加一条记忆"""
+    from services.agent_memory import add_memory
+    data = request.get_json(force=True, silent=True) or {}
+    content = data.get('content', '').strip()
+    if not content:
+        return jsonify({'error': '记忆内容不能为空'}), 400
+    memory_type = data.get('type', 'other')
+    title = data.get('title')
+    metadata = data.get('metadata', {})
+    memory = add_memory(content, memory_type, title, metadata=metadata)
+    return jsonify({'status': 'success', 'data': memory})
+
+
+@app.route('/api/agent/memory/<memory_id>', methods=['DELETE'])
+def agent_delete_memory(memory_id):
+    """删除一条记忆"""
+    from services.agent_memory import delete_memory
+    success = delete_memory(memory_id)
+    if success:
+        return jsonify({'status': 'success'})
+    return jsonify({'error': '记忆不存在'}), 404
+
+
+@app.route('/api/agent/memory/search', methods=['GET'])
+def agent_search_memory():
+    """搜索记忆"""
+    from services.agent_memory import search_memories
+    query = request.args.get('q', '').strip()
+    memory_type = request.args.get('type')
+    limit = int(request.args.get('limit', 10))
+    if not query:
+        return jsonify({'error': '搜索关键词不能为空'}), 400
+    results = search_memories(query, memory_type, limit=limit)
+    return jsonify({'status': 'success', 'data': results})
+
+
+# ==================== Agent 免确认设置 API ====================
+@app.route('/api/agent/skip-confirmation', methods=['GET'])
+def agent_get_skip_confirmation():
+    """获取跳过确认的工具列表"""
+    from services.agent_memory import get_skip_confirmation_tools
+    tools = get_skip_confirmation_tools()
+    return jsonify({'status': 'success', 'data': tools})
+
+
+@app.route('/api/agent/skip-confirmation', methods=['POST'])
+def agent_set_skip_confirmation():
+    """设置某个工具是否跳过确认"""
+    from services.agent_memory import set_skip_confirmation
+    data = request.get_json(force=True, silent=True) or {}
+    tool_name = data.get('tool_name', '').strip()
+    skip = data.get('skip', True)
+    if not tool_name:
+        return jsonify({'error': '工具名称不能为空'}), 400
+    set_skip_confirmation(tool_name, skip)
+    return jsonify({'status': 'success', 'tool': tool_name, 'skip': skip})
+
+
 # ==================== 数据源管理 API ====================
 @app.route('/api/data-sources')
 def list_data_sources():

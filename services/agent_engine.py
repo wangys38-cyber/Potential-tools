@@ -183,8 +183,16 @@ class AgentEngine:
         """用 AI 进行任务规划"""
         try:
             tools_schema = tool_registry.get_tools_schema()
+            # 加载用户记忆
+            try:
+                from services.agent_memory import get_memory_context
+                memory_context = get_memory_context()
+            except Exception:
+                memory_context = ''
+            
+            memory_section = f'\n{memory_context}\n' if memory_context else ''
             prompt = f"""你是一个任务规划助手。请将用户的任务拆解为一系列工具调用步骤。
-
+{memory_section}
 可用工具：
 {json.dumps(tools_schema, ensure_ascii=False, indent=2)}
 
@@ -361,8 +369,14 @@ class AgentEngine:
             step.error = f"工具不存在: {step.tool_name}"
             return step
 
-        # 检查是否需要用户确认
-        if tool.requires_confirmation and step.status != StepStatus.COMPLETED.value:
+        # 检查是否需要用户确认（支持免确认设置）
+        try:
+            from services.agent_memory import should_skip_confirmation
+            skip_confirm = should_skip_confirmation(tool.name)
+        except Exception:
+            skip_confirm = False
+        
+        if tool.requires_confirmation and not skip_confirm and step.status != StepStatus.COMPLETED.value:
             step.status = StepStatus.NEEDS_CONFIRMATION.value
             ctx.status = AgentStatus.WAITING_CONFIRMATION.value
             return step
