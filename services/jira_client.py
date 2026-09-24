@@ -146,7 +146,7 @@ def _names(value, key="name") -> str:
 
 class JiraClient:
     def __init__(self, base_url, auth_mode="dc", email="", token="",
-                 verify_ssl=True, timeout=30, max_retries=5, min_interval=0.5):
+                 verify_ssl=True, timeout=30, max_retries=8, min_interval=1.0):
         """
         :param auth_mode: 'dc' -> Bearer PAT；'cloud' -> Basic(email:api_token)
         """
@@ -158,6 +158,8 @@ class JiraClient:
         self.timeout = timeout
         self.max_retries = int(max_retries)
         self.min_interval = float(min_interval)
+        self._base_min_interval = float(min_interval)
+        self._rate_limited_count = 0  # 连续限流次数，用于自适应降速
         self._session = None
         self._field_map = None
         self._last_request_ts = 0.0
@@ -191,7 +193,11 @@ class JiraClient:
         return self._session
 
     def _throttle(self):
-        """两次请求之间保持最小间隔，降低触发服务端限流(429)的概率。"""
+        """两次请求之间保持最小间隔，降低触发服务端限流(429)的概率。
+        连续限流后自动增加间隔（自适应降速），最长5秒。"""
+        # 自适应：每连续限流1次，间隔增加0.5秒，最长5秒
+        adaptive_interval = min(self._base_min_interval + 0.5 * self._rate_limited_count, 5.0)
+        self.min_interval = adaptive_interval
         if self.min_interval and self.min_interval > 0:
             wait = self.min_interval - (time.monotonic() - self._last_request_ts)
             if wait > 0:
@@ -240,20 +246,33 @@ class JiraClient:
             # 限流(429) / 服务端临时错误(5xx)：按 Retry-After 或指数退避重试
             if code == 429 or code >= 500:
                 last_snippet = (resp.text or "")[:300]
+                if code == 429:
+                    self._rate_limited_count += 1  # 连续限流计数，触发自适应降速
                 if attempt < self.max_retries:
                     wait = self._retry_after(resp, attempt)
-                    logger.warning("Jira HTTP %s（第%d次），%.1fs 后重试 %s", code, attempt + 1, wait, path)
+                    # 429时额外增加等待时间（在指数退避基础上再加限流计数*1秒）
+                    if code == 429:
+                        wait = min(wait + self._rate_limited_count * 1.0, 60.0)
+                    logger.warning("Jira HTTP %s（第%d次/%d次），%.1fs 后重试 %s（连续限流%d次，当前间隔%.1fs）",
+                                   code, attempt + 1, self.max_retries, wait, path,
+                                   self._rate_limited_count, self.min_interval)
                     time.sleep(wait)
                     self._last_request_ts = time.monotonic()
                     continue
                 if code == 429:
                     raise JiraError(
-                        "eDart 接口限流（HTTP 429），多次重试后仍被拒绝。请稍后再试；"
-                        "数据量大时建议改用「增量拉取（近 N 天）」减小单次范围。")
+                        "eDart 接口限流（HTTP 429），多次重试后仍被拒绝。\n"
+                        "建议：\n"
+                        "1. 改用「增量拉取（近 N 天）」减小单次范围（推荐7-14天）\n"
+                        "2. 等待5-10分钟后再试（服务端限流窗口通常会自动恢复）\n"
+                        "3. 在「高级：自定义 JQL」中添加更精确的筛选条件（如指定模块/状态/负责人）")
                 raise JiraError(f"Jira 服务端错误 HTTP {code}（多次重试失败）：{last_snippet}")
             if code >= 400:
                 raise JiraError(f"Jira 返回错误 HTTP {code}：{(resp.text or '')[:300]}")
             self._last_request_ts = time.monotonic()
+            # 请求成功，逐步恢复限流计数（每次成功减1，最低0）
+            if self._rate_limited_count > 0:
+                self._rate_limited_count = max(0, self._rate_limited_count - 1)
             try:
                 return resp.json()
             except Exception:
@@ -649,6 +668,8 @@ def client_from_config(cfg: dict) -> JiraClient:
         email=cfg.get("email", ""),
         token=cfg.get("token", ""),
         verify_ssl=cfg.get("verify_ssl", True),
+        max_retries=cfg.get("max_retries", 8),
+        min_interval=cfg.get("min_interval", 1.0),
     )
 
 
