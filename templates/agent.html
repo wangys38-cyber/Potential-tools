@@ -31,18 +31,22 @@
         .nav-back {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             text-decoration: none;
-            color: rgba(255, 255, 255, 0.65);
-            font-size: 13px;
-            font-weight: 500;
-            padding: 6px 12px;
-            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 10px;
             transition: all 0.2s;
         }
         .nav-back:hover {
             color: #fff;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .nav-back svg {
+            opacity: 0.9;
+            flex-shrink: 0;
         }
         .nav-divider {
             width: 1px;
@@ -50,8 +54,8 @@
             background: rgba(255, 255, 255, 0.12);
         }
         .nav-title {
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
             color: #fff;
             letter-spacing: 0.3px;
         }
@@ -155,7 +159,7 @@
             transition: all 0.2s;
         }
         .input-area textarea::placeholder {
-            color: rgba(255, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.55);
         }
         .input-area textarea:focus {
             outline: none;
@@ -322,8 +326,19 @@
         }
         .section-divider {
             height: 1px;
-            background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), transparent);
+            background: linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.4) 20%, rgba(139, 92, 246, 0.6) 50%, rgba(139, 92, 246, 0.4) 80%, transparent 100%);
             margin-bottom: 24px;
+            position: relative;
+        }
+        .section-divider::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 40%;
+            right: 40%;
+            height: 3px;
+            background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+            filter: blur(2px);
         }
         .tools-list {
             display: grid;
@@ -350,9 +365,17 @@
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
         }
         .tool-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(139, 92, 246, 0.3);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.1);
+            transform: translateY(-4px);
+            border-color: rgba(139, 92, 246, 0.5);
+            background: linear-gradient(180deg, #22252E 0%, #1C1F27 100%);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.2), 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+        .tool-card:hover .tool-name {
+            color: #c4b5fd;
+        }
+        .tool-card:hover .tool-cat {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
         }
         .tool-card .tool-name {
             font-weight: 600;
