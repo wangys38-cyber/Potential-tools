@@ -468,12 +468,14 @@
   }
 
   // 全局扇形排列transform，bindHover和renderHeroCards共享
+  // 严格镜像对称：以中间卡片为轴，左右两侧角度和Y轴偏移完全对称
+  // Y轴偏移均匀递增：0 → 24 → 48，形成优美的拱形弧线
   var fanTransforms = [
-    'translateY(36px) rotate(-16deg)',
-    'translateY(14px) rotate(-8deg)',
-    'translateY(-18px)',
-    'translateY(14px) rotate(8deg)',
-    'translateY(36px) rotate(16deg)'
+    'translateY(48px) rotate(-16deg)',
+    'translateY(24px) rotate(-8deg)',
+    'translateY(0px)',
+    'translateY(24px) rotate(8deg)',
+    'translateY(48px) rotate(16deg)'
   ];
   var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
@@ -511,7 +513,8 @@
       card.className = 'relative block rounded-[28px] cursor-pointer transition-all duration-300 ease-out no-underline w-[175px] h-[235px] ' +
         'shadow-[0_12px_40px_rgba(0,0,0,0.2),0_30px_80px_rgba(0,0,0,0.15)] ' +
         'hover:shadow-[0_20px_50px_rgba(0,0,0,0.3),0_50px_120px_rgba(0,0,0,0.2)] ' +
-        (idx > 0 ? '-ml-5' : '');
+        (idx > 0 ? '-ml-6' : '');
+      card.style.transformOrigin = 'bottom center';
       card.href = t.url;
       card.style.transform = fanTransforms[idx % 5];
       card.style.background = CARD_GRADIENTS[idx % 5];
@@ -643,7 +646,7 @@
     // 邻位让位的transform：translateX必须在rotate前面，否则会沿旋转轴移动
     function getNeighborTransform(i, direction) {
       var base = fanTransforms[i % 5];
-      var offset = direction === 'left' ? 'translateX(-28px) ' : 'translateX(28px) ';
+      var offset = direction === 'left' ? 'translateX(-32px) ' : 'translateX(32px) ';
       // 把translateX插入到最前面
       return offset + base;
     }
@@ -661,9 +664,10 @@
         e.stopPropagation();
         cards.forEach(function(c, i) {
           if (i === idx) {
-            c.style.transform = 'translateY(-22px) scale(1.07)';
+            c.style.transform = 'translateY(-28px) scale(1.08)';
+            c.style.transformOrigin = 'bottom center';
             c.style.zIndex = '100';
-            c.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3), 0 50px 120px rgba(0,0,0,0.45), 0 0 40px rgba(139,92,246,0.15)';
+            c.style.boxShadow = '0 24px 48px rgba(0,0,0,0.35), 0 60px 140px rgba(0,0,0,0.5), 0 0 50px rgba(139,92,246,0.2)';
           } else if (i < idx) {
             c.style.transform = getNeighborTransform(i, 'left');
             c.style.zIndex = '10';
