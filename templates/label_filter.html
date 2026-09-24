@@ -33,6 +33,9 @@
                 <p class="upload-hint">支持 .xlsx, .xls, .csv 格式</p>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
             </div>
+            <div style="text-align:center;margin-top:12px;margin-bottom:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="edartOpen()">🔗 从 eDart / Jira 直连拉取（免手动导出 CSV）</button>
+            </div>
             <div class="file-info" id="fileInfo" style="display:none;">
                 <span><span id="fileName"></span><span id="fileSize" style="color:#86868b;font-size:12px;margin-left:8px;"></span></span>
                 <button class="btn btn-secondary btn-sm" onclick="resetUpload()">重新上传</button>
@@ -255,7 +258,64 @@
 
     
 
-    <script src="/static/js/page/label_filter.js?v={ STATIC_VERSION }"></script>
+    <script src="/static/js/page/label_filter.js?v={{ STATIC_VERSION }}"></script>
+
+<!-- eDart / Jira 直连数据源弹窗 -->
+<div id="edartModal" class="edart-mask" style="display:none;">
+  <div class="edart-dialog">
+    <div class="edart-head">
+      <span>🔗 eDart / Jira 直连拉取</span>
+      <button type="button" class="edart-x" onclick="edartClose()">&times;</button>
+    </div>
+    <div class="edart-body">
+      <label>站点地址 Base URL（填到域名即可，不要带 /rest/...）</label>
+      <input id="edtBase" placeholder="https://edart.your-company.com">
+      <div class="edart-row">
+        <div>
+          <label>认证类型</label>
+          <select id="edtMode">
+            <option value="dc">Data Center / 内网 eDart（PAT）</option>
+            <option value="cloud">Jira Cloud（邮箱 + API Token）</option>
+          </select>
+        </div>
+        <div>
+          <label>Project Key</label>
+          <input id="edtProject" placeholder="如 EKSANTOS">
+        </div>
+      </div>
+      <div class="edart-row" id="edtEmailRow" style="display:none;">
+        <div>
+          <label>登录邮箱（仅 Cloud）</label>
+          <input id="edtEmail" placeholder="you@company.com">
+        </div>
+      </div>
+      <label>Token / Personal Access Token</label>
+      <input id="edtToken" type="password" autocomplete="off" placeholder="Data Center 填 PAT；Cloud 填 API Token；留空表示不修改已保存的">
+      <div class="edart-row">
+        <div>
+          <label>增量天数（N 天内有更新）</label>
+          <input id="edtDays" type="number" value="7" min="1">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#1d1d1f;">
+            <input type="checkbox" id="edtInsecure" style="width:auto;"> 忽略证书校验（内网自签）
+          </label>
+        </div>
+      </div>
+      <label>高级：自定义 JQL（可选，填写后覆盖 Project / 增量条件）</label>
+      <input id="edtJql" placeholder="如 project = EKSANTOS AND status != Closed ORDER BY updated DESC">
+      <div id="edtTestResult" class="edart-test-result"></div>
+    </div>
+    <div class="edart-foot">
+      <button type="button" class="btn btn-secondary" onclick="edartSave()">保存配置</button>
+      <button type="button" class="btn btn-secondary" onclick="edartTest()">测试连接</button>
+      <button type="button" class="btn btn-secondary" onclick="edartFetch('incremental')">增量拉取（近 N 天）</button>
+      <button type="button" class="btn btn-primary" onclick="edartFetch('full')">全量拉取并分析</button>
+    </div>
+  </div>
+</div>
+<script src="/static/js/edart_source.js?v={{ STATIC_VERSION }}" defer></script>
 
     <!-- Labels 下拉菜单（移到 body 末尾，避免父容器 transform 影响 fixed 定位） -->
     <div class="dropdown-menu" id="dropdownMenu" style="display:none;">

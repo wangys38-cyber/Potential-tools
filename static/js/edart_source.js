@@ -181,6 +181,11 @@
     function handoffToAnalysis(data) {
         data = data || {};
         try {
+            // Labels 筛选分析页面适配：下载CSV文件后走现有解析流程
+            if (window.location.pathname.indexOf('/label-filter') >= 0) {
+                handoffToLabelFilter(data);
+                return;
+            }
             // 这些绑定由 excel_analysis.js 在全局词法环境声明
             currentFileId = data.file_id;
             currentFileName = data.file_name || 'eDart CR';
@@ -196,6 +201,60 @@
         } catch (e) {
             failAnalyze('接入分析失败：' + e.message);
         }
+    }
+
+    function handoffToLabelFilter(data) {
+        var fileId = data.file_id;
+        var fileName = data.file_name || ('eDart_CR_' + fileId + '.csv');
+        var total = data.total || 0;
+        try {
+            // 更新UI
+            var uploadArea = $('uploadArea');
+            var fileInfo = $('fileInfo');
+            var fn = $('fileName');
+            var fs = $('fileSize');
+            if (uploadArea) uploadArea.style.display = 'none';
+            if (fileInfo) fileInfo.style.display = 'flex';
+            if (fn) fn.textContent = fileName + '（eDart直连）';
+            if (fs) fs.textContent = ' · 共 ' + total + ' 条';
+
+            // 显示进度
+            var progressSection = $('progressSection');
+            if (progressSection) {
+                progressSection.style.display = 'block';
+                updateLabelProgress(10, '正在从 eDart 拉取数据…');
+            }
+
+            // 下载CSV文件
+            fetch('/download/excel_' + fileId + '.csv')
+                .then(function (r) {
+                    if (!r.ok) throw new Error('下载失败: ' + r.status);
+                    return r.blob();
+                })
+                .then(function (blob) {
+                    // 转换为File对象
+                    var file = new File([blob], fileName, { type: 'text/csv' });
+                    updateLabelProgress(30, '数据下载完成，正在解析…');
+                    // 调用label_filter.js的handleFile函数
+                    if (typeof handleFile === 'function') {
+                        handleFile(file);
+                    } else {
+                        failAnalyze('Label筛选页面未找到 handleFile 函数');
+                    }
+                })
+                .catch(function (e) {
+                    failAnalyze('下载CSV失败：' + e.message);
+                });
+        } catch (e) {
+            failAnalyze('接入Label筛选失败：' + e.message);
+        }
+    }
+
+    function updateLabelProgress(percent, text) {
+        var fill = $('progressFill');
+        var txt = $('progressText');
+        if (fill) fill.style.width = percent + '%';
+        if (txt) txt.textContent = text;
     }
 
     function failAnalyze(msg) {
