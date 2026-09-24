@@ -6,101 +6,581 @@
     <title>AI Agent - Potential Tools 9.0</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .header p { color: #86868b; font-size: 14px; }
-        .input-area { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
-        .input-area textarea { width: 100%; min-height: 80px; border: 1px solid #d2d2d7; border-radius: 12px; padding: 12px; font-size: 15px; resize: vertical; font-family: inherit; }
-        .input-area textarea:focus { outline: none; border-color: #0071e3; }
-        .input-area .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
-        .btn { padding: 10px 24px; border-radius: 980px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: #0071e3; color: #fff; }
-        .btn-primary:hover { background: #0077ed; }
-        .btn-primary:disabled { background: #a8c8f0; cursor: not-allowed; }
-        .btn-secondary { background: #e8e8ed; color: #1d1d1f; }
-        .btn-secondary:hover { background: #dcdce0; }
-        .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-        .example-tag { padding: 6px 14px; background: #f0f0f5; border-radius: 980px; font-size: 13px; color: #424245; cursor: pointer; transition: all 0.2s; }
-        .example-tag:hover { background: #e0e0e8; }
-        .result-area { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); min-height: 200px; }
-        .result-area h2 { font-size: 18px; margin-bottom: 16px; }
-        .step { border-left: 3px solid #d2d2d7; padding: 12px 16px; margin-bottom: 12px; background: #fafafa; border-radius: 0 8px 8px 0; }
-        .step.completed { border-left-color: #34c759; }
-        .step.failed { border-left-color: #ff3b30; }
-        .step.running { border-left-color: #ff9500; }
-        .step.pending { border-left-color: #8e8e93; opacity: 0.6; }
-        .step .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .step .tool-name { font-weight: 600; font-size: 14px; }
-        .step .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 980px; font-weight: 500; }
-        .status-completed { background: #d4edda; color: #155724; }
-        .status-failed { background: #f8d7da; color: #721c24; }
-        .status-running { background: #fff3cd; color: #856404; }
-        .status-pending { background: #e2e3e5; color: #383d41; }
-        .step .reasoning { font-size: 12px; color: #86868b; margin-bottom: 6px; }
-        .step .result { font-size: 13px; color: #424245; background: #fff; padding: 10px 14px; border-radius: 6px; margin-top: 6px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
-        .step .error { font-size: 13px; color: #ff3b30; }
-        .confirm-area { background: #fff8e6; border: 1px solid #ffd60a; border-radius: 12px; padding: 16px; margin: 12px 0; }
-        .confirm-area p { margin-bottom: 12px; font-size: 14px; }
-        .confirm-buttons { display: flex; gap: 10px; }
-        .tools-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
-        .tool-card { background: #fafafa; border-radius: 10px; padding: 12px; border: 1px solid #e8e8ed; }
-        .tool-card .tool-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-        .tool-card .tool-desc { font-size: 11px; color: #86868b; }
-        .tool-card .tool-cat { font-size: 10px; color: #0071e3; margin-top: 4px; }
-        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #0071e3; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0D0E12;
+            color: #F5F5F7;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(13, 14, 18, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-left { display: flex; align-items: center; gap: 16px; }
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-back:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .nav-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .nav-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        .nav-right { display: flex; align-items: center; gap: 10px; }
+
+        /* 主容器 */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 32px 80px;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 15px;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+        .btn-primary:disabled {
+            background: rgba(139, 92, 246, 0.4);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 输入区域 */
+        .input-area {
+            background: linear-gradient(180deg, #1A1D24 0%, #15171D 100%);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.05) inset;
+            margin-bottom: 48px;
+            position: relative;
+        }
+        .input-area::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 20%;
+            right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+        }
+        .input-area textarea {
+            width: 100%;
+            min-height: 120px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 15px;
+            color: #F5F5F7;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.6;
+            transition: all 0.2s;
+        }
+        .input-area textarea::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+        .input-area textarea:focus {
+            outline: none;
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .input-area .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* 快捷标签 */
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .example-tag {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 980px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .example-tag:hover {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #c4b5fd;
+        }
+        .example-tag.save-memory {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+        }
+        .example-tag.save-memory:hover {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        /* 结果区域 */
+        .result-area {
+            background: #1A1D24;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 48px;
+            display: none;
+        }
+        .result-area h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* 步骤卡片 */
+        .step {
+            border-left: 3px solid rgba(255, 255, 255, 0.15);
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0 12px 12px 0;
+            transition: all 0.2s;
+        }
+        .step:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .step.completed { border-left-color: #22c55e; }
+        .step.failed { border-left-color: #ef4444; }
+        .step.running { border-left-color: #f59e0b; }
+        .step.pending { border-left-color: rgba(255, 255, 255, 0.2); opacity: 0.6; }
+        .step.needs_confirmation { border-left-color: #f59e0b; }
+        .step .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .step .tool-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #fff;
+        }
+        .step .status-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 980px;
+            font-weight: 500;
+        }
+        .status-completed { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .status-failed { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .status-running { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .status-pending { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.5); }
+        .status-needs_confirmation { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .step .reasoning {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .step .result {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.7;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .step .error {
+            font-size: 13px;
+            color: #f87171;
+        }
+
+        /* 确认区域 */
+        .confirm-area {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 14px;
+            padding: 18px;
+            margin: 12px 0;
+        }
+        .confirm-area p {
+            margin-bottom: 14px;
+            font-size: 14px;
+            color: #fbbf24;
+        }
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        /* 工具列表区域 */
+        .tools-section {
+            margin-top: 64px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 24px;
+        }
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), transparent);
+            margin-bottom: 24px;
+        }
+        .tools-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .tool-card {
+            background: linear-gradient(180deg, #1A1D24 0%, #17191F 100%);
+            border-radius: 14px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.25s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+        .tool-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.1);
+        }
+        .tool-card .tool-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .tool-card .tool-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .tool-card .tool-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tool-card .tool-cat {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 980px;
+            background: rgba(139, 92, 246, 0.12);
+            color: #a78bfa;
+            font-weight: 500;
+        }
+        .tool-card .tool-confirm {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 980px;
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            font-weight: 500;
+        }
+
+        /* 记忆面板 */
+        #memoryPanel {
+            display: none;
+            background: #1A1D24;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 48px;
+        }
+        #memoryPanel h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #fff;
+            font-weight: 600;
+        }
+        .memory-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .memory-filters select,
+        .memory-filters input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #F5F5F7;
+            font-family: inherit;
+        }
+        .memory-filters select:focus,
+        .memory-filters input:focus {
+            outline: none;
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+        .memory-filters input {
+            flex: 1;
+            min-width: 200px;
+        }
+        #memoryList {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .memory-item {
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .memory-item-content { flex: 1; }
+        .memory-item-type {
+            font-size: 11px;
+            color: #a78bfa;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .memory-item-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+        .memory-item-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+        .memory-delete-btn {
+            background: none;
+            border: none;
+            color: rgba(239, 68, 68, 0.6);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            transition: all 0.2s;
+        }
+        .memory-delete-btn:hover {
+            color: #ef4444;
+        }
+        .memory-add-section {
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .memory-add-section h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .memory-add-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .memory-add-form select,
+        .memory-add-form input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #F5F5F7;
+            font-family: inherit;
+        }
+        .memory-add-form input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top: 2px solid #a78bfa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 复选框 */
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <!-- 顶部导航栏 -->
-    <div style="position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);border-bottom:1px solid #e8e8ed;padding:10px 20px;display:flex;align-items:center;gap:16px;">
-        <a href="/" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#0071e3;font-size:14px;font-weight:500;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            返回首页
-        </a>
-        <div style="width:1px;height:20px;background:#e8e8ed;"></div>
-        <span style="font-size:15px;font-weight:600;color:#1d1d1f;">🤖 AI Agent 2.0</span>
+    <div class="top-nav">
+        <div class="nav-left">
+            <a href="/" class="nav-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                返回工作台
+            </a>
+            <div class="nav-divider"></div>
+            <span class="nav-title">🤖 AI Agent 2.0</span>
+        </div>
+        <div class="nav-right">
+            <button class="btn btn-secondary" onclick="toggleMemoryPanel()">🧠 记忆管理</button>
+        </div>
     </div>
 
     <div class="container">
-        <div class="header" style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-                <h1>🤖 AI Agent</h1>
-                <p>Potential Tools 9.0 · 自主任务规划与多工具调用</p>
-            </div>
-            <div style="display:flex;gap:8px;">
-                <button class="btn btn-secondary" onclick="toggleMemoryPanel()" style="font-size:13px;padding:8px 16px;">🧠 记忆管理</button>
-            </div>
+        <div class="header">
+            <h1>AI Agent 指挥中心</h1>
+            <p>自主任务规划 · 多工具调用 · 智能执行</p>
         </div>
 
+        <!-- 输入区域 -->
         <div class="input-area">
-            <textarea id="taskInput" placeholder="描述你想完成的任务，例如：查询 Santos 项目状态，生成日报并发送给团队"></textarea>
+            <textarea id="taskInput" placeholder="描述你想完成的任务，例如：查询 Santos 项目状态，生成日报并发送给团队..."></textarea>
             <div class="actions">
                 <div class="examples">
                     <span class="example-tag" onclick="setExample('查询 EKSANTOS 项目状态并生成日报')">📊 生成项目日报</span>
                     <span class="example-tag" onclick="setExample('查询项目状态，生成报告并同步到牛马笔记')">📝 同步到笔记</span>
                     <span class="example-tag" onclick="setExample('在知识库中搜索 CR 分析方法')">🔍 知识库搜索</span>
-                    <span class="example-tag" onclick="saveCurrentAsMemory()" style="background:#e8f5e9;color:#2e7d32;">💾 保存为记忆</span>
+                    <span class="example-tag save-memory" onclick="saveCurrentAsMemory()">💾 保存为记忆</span>
                 </div>
                 <button class="btn btn-primary" id="runBtn" onclick="runAgent()">🚀 执行任务</button>
             </div>
         </div>
 
-        <div class="result-area" id="resultArea" style="display:none;">
-            <h2>执行结果</h2>
-            <div id="stepsContainer"></div>
-        </div>
-
         <!-- 记忆管理面板 -->
-        <div id="memoryPanel" style="display:none;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:20px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h2 style="font-size:18px;">🧠 记忆管理</h2>
+        <div id="memoryPanel">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2>🧠 记忆管理</h2>
                 <button class="btn btn-secondary" onclick="toggleMemoryPanel()" style="font-size:12px;padding:6px 12px;">✕ 关闭</button>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-                <select id="memoryTypeFilter" onchange="loadMemories()" style="padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+            <div class="memory-filters">
+                <select id="memoryTypeFilter" onchange="loadMemories()">
                     <option value="">全部类型</option>
                     <option value="instruction">常用指令</option>
                     <option value="preference">偏好设置</option>
@@ -108,33 +588,45 @@
                     <option value="project">项目相关</option>
                     <option value="other">其他</option>
                 </select>
-                <input type="text" id="memorySearch" placeholder="搜索记忆..." oninput="searchMemories()" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+                <input type="text" id="memorySearch" placeholder="搜索记忆..." oninput="searchMemories()">
             </div>
-            <div id="memoryList" style="max-height:400px;overflow-y:auto;"></div>
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e8e8ed;">
-                <h3 style="font-size:14px;margin-bottom:8px;">➕ 添加新记忆</h3>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <select id="newMemoryType" style="padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
+            <div id="memoryList"></div>
+            <div class="memory-add-section">
+                <h3>➕ 添加新记忆</h3>
+                <div class="memory-add-form">
+                    <select id="newMemoryType">
                         <option value="instruction">常用指令</option>
                         <option value="preference">偏好设置</option>
                         <option value="contact">常用联系人</option>
                         <option value="project">项目相关</option>
                         <option value="other">其他</option>
                     </select>
-                    <input type="text" id="newMemoryContent" placeholder="记忆内容..." style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #d2d2d7;font-size:13px;">
-                    <button class="btn btn-primary" onclick="addMemory()" style="font-size:13px;padding:8px 16px;">添加</button>
+                    <input type="text" id="newMemoryContent" placeholder="记忆内容...">
+                    <button class="btn btn-primary" onclick="addMemory()">添加</button>
                 </div>
             </div>
         </div>
 
-        <div style="margin-top: 30px;">
-            <h3 style="font-size: 16px; margin-bottom: 12px;">可用工具</h3>
+        <!-- 结果区域 -->
+        <div class="result-area" id="resultArea">
+            <h2>执行结果</h2>
+            <div id="stepsContainer"></div>
+        </div>
+
+        <!-- 可用工具区域 -->
+        <div class="tools-section">
+            <div class="section-title">
+                <span>⚡ 支持的原子能力</span>
+            </div>
+            <p class="section-subtitle">Agent 可自主调用以下工具完成复杂任务</p>
+            <div class="section-divider"></div>
             <div class="tools-list" id="toolsList"></div>
         </div>
     </div>
 
     <script>
         let currentAgentId = null;
+        let currentCtx = null;
 
         // 加载工具列表
         async function loadTools() {
@@ -143,10 +635,13 @@
                 const tools = await resp.json();
                 const list = document.getElementById('toolsList');
                 list.innerHTML = tools.map(t => `
-                    <div class="tool-card">
+                    <div class="tool-card" onclick="setExample('使用 ${t.name} 工具')">
                         <div class="tool-name">${t.name}</div>
                         <div class="tool-desc">${t.description}</div>
-                        <div class="tool-cat">${t.category}${t.requires_confirmation ? ' · 需确认' : ''}</div>
+                        <div class="tool-meta">
+                            <span class="tool-cat">${t.category}</span>
+                            ${t.requires_confirmation ? '<span class="tool-confirm">需确认</span>' : ''}
+                        </div>
                     </div>
                 `).join('');
             } catch (e) {
@@ -156,6 +651,7 @@
 
         function setExample(text) {
             document.getElementById('taskInput').value = text;
+            document.getElementById('taskInput').focus();
         }
 
         async function runAgent() {
@@ -168,7 +664,7 @@
 
             const resultArea = document.getElementById('resultArea');
             resultArea.style.display = 'block';
-            document.getElementById('stepsContainer').innerHTML = '<p style="color:#86868b;">正在规划任务...</p>';
+            document.getElementById('stepsContainer').innerHTML = '<p style="color:rgba(255,255,255,0.5);">正在规划任务...</p>';
 
             try {
                 const resp = await fetch('/api/agent/run', {
@@ -178,9 +674,10 @@
                 });
                 const ctx = await resp.json();
                 currentAgentId = ctx.agent_id;
+                currentCtx = ctx;
                 renderSteps(ctx);
             } catch (e) {
-                document.getElementById('stepsContainer').innerHTML = `<p style="color:#ff3b30;">执行失败: ${e.message}</p>`;
+                document.getElementById('stepsContainer').innerHTML = `<p style="color:#f87171;">执行失败: ${e.message}</p>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '🚀 执行任务';
@@ -189,7 +686,7 @@
 
         function renderSteps(ctx) {
             const container = document.getElementById('stepsContainer');
-            let html = `<p style="margin-bottom:12px;color:#86868b;">任务: ${ctx.task} | 状态: <strong>${ctx.status}</strong></p>`;
+            let html = `<p style="margin-bottom:16px;color:rgba(255,255,255,0.5);font-size:13px;">任务: ${ctx.task} | 状态: <strong style="color:#fff;">${ctx.status}</strong></p>`;
 
             ctx.steps.forEach((step, idx) => {
                 const statusClass = `status-${step.status}`;
@@ -210,9 +707,9 @@
                         ${step.status === 'needs_confirmation' ? `
                             <div class="confirm-area">
                                 <p>⚠️ 此操作需要您的确认：</p>
-                                <div style="margin-bottom:12px;">
-                                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
-                                        <input type="checkbox" id="skipConfirm_${idx}" style="width:16px;height:16px;">
+                                <div style="margin-bottom:14px;">
+                                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;color:rgba(255,255,255,0.7);">
+                                        <input type="checkbox" id="skipConfirm_${idx}">
                                         <span>以后不再询问此操作（${step.tool_name}）</span>
                                     </label>
                                 </div>
@@ -227,9 +724,9 @@
             });
 
             if (ctx.status === 'completed') {
-                html += `<p style="margin-top:16px;color:#34c759;font-weight:600;">✅ 任务执行完成！耗时 ${ctx.duration ? ctx.duration.toFixed(1) : '?'} 秒</p>`;
+                html += `<p style="margin-top:20px;color:#4ade80;font-weight:600;">✅ 任务执行完成！耗时 ${ctx.duration ? ctx.duration.toFixed(1) : '?'} 秒</p>`;
             } else if (ctx.status === 'failed') {
-                html += `<p style="margin-top:16px;color:#ff3b30;font-weight:600;">❌ 任务执行失败: ${ctx.error || '未知错误'}</p>`;
+                html += `<p style="margin-top:20px;color:#f87171;font-weight:600;">❌ 任务执行失败: ${ctx.error || '未知错误'}</p>`;
             }
 
             container.innerHTML = html;
@@ -237,6 +734,15 @@
 
         async function confirmStep(stepIndex, confirmed) {
             if (!currentAgentId) return;
+            if (confirmed) {
+                const skipCheckbox = document.getElementById(`skipConfirm_${stepIndex}`);
+                if (skipCheckbox && skipCheckbox.checked && currentCtx && currentCtx.steps) {
+                    const step = currentCtx.steps[stepIndex];
+                    if (step && step.tool_name) {
+                        await setSkipConfirmation(step.tool_name, true);
+                    }
+                }
+            }
             try {
                 const resp = await fetch(`/api/agent/confirm/${currentAgentId}/${stepIndex}`, {
                     method: 'POST',
@@ -244,6 +750,7 @@
                     body: JSON.stringify({ confirmed })
                 });
                 const ctx = await resp.json();
+                currentCtx = ctx;
                 renderSteps(ctx);
             } catch (e) {
                 alert('确认操作失败: ' + e.message);
@@ -253,18 +760,15 @@
         // 格式化步骤结果
         function formatStepResult(result) {
             if (typeof result === 'string') {
-                // 如果是字符串，直接显示（保留换行）
                 return result.length > 2000 ? result.substring(0, 2000) + '\n...（内容过长，已截断）' : result;
             }
             if (typeof result === 'object' && result !== null) {
-                // 如果是对象，检查是否有 preview 字段（如报告生成）
                 if (result.preview && typeof result.preview === 'string') {
                     return '📄 报告已生成\n\n' + result.preview;
                 }
                 if (result.error) {
                     return '❌ ' + result.error;
                 }
-                // 其他对象，格式化显示
                 try {
                     return JSON.stringify(result, null, 2);
                 } catch (e) {
@@ -310,7 +814,7 @@
         function renderMemoryList(memories) {
             const list = document.getElementById('memoryList');
             if (!memories.length) {
-                list.innerHTML = '<p style="color:#86868b;text-align:center;padding:20px;">暂无记忆</p>';
+                list.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:30px;">暂无记忆</p>';
                 return;
             }
             const typeNames = {
@@ -321,15 +825,13 @@
                 'other': '📝 其他'
             };
             list.innerHTML = memories.map(m => `
-                <div style="padding:12px;border:1px solid #e8e8ed;border-radius:10px;margin-bottom:8px;background:#fafafa;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                        <div style="flex:1;">
-                            <div style="font-size:11px;color:#0071e3;margin-bottom:4px;">${typeNames[m.type] || m.type}</div>
-                            <div style="font-size:13px;color:#1d1d1f;line-height:1.5;">${m.content}</div>
-                            <div style="font-size:11px;color:#86868b;margin-top:4px;">使用 ${m.usage_count || 0} 次</div>
-                        </div>
-                        <button onclick="deleteMemory('${m.id}')" style="background:none;border:none;color:#ff3b30;cursor:pointer;font-size:12px;padding:4px;">🗑️</button>
+                <div class="memory-item">
+                    <div class="memory-item-content">
+                        <div class="memory-item-type">${typeNames[m.type] || m.type}</div>
+                        <div class="memory-item-text">${m.content}</div>
+                        <div class="memory-item-meta">使用 ${m.usage_count || 0} 次</div>
                     </div>
+                    <button class="memory-delete-btn" onclick="deleteMemory('${m.id}')">🗑️</button>
                 </div>
             `).join('');
         }
@@ -382,30 +884,6 @@
                 console.error('设置免确认失败', e);
             }
         }
-
-        // 重写confirmStep，支持免确认
-        const originalConfirmStep = confirmStep;
-        confirmStep = async function(stepIndex, confirmed) {
-            if (confirmed) {
-                const skipCheckbox = document.getElementById(`skipConfirm_${stepIndex}`);
-                if (skipCheckbox && skipCheckbox.checked) {
-                    // 获取工具名称
-                    const step = currentCtx && currentCtx.steps ? currentCtx.steps[stepIndex] : null;
-                    if (step && step.tool_name) {
-                        await setSkipConfirmation(step.tool_name, true);
-                    }
-                }
-            }
-            return originalConfirmStep(stepIndex, confirmed);
-        };
-
-        // 保存当前上下文供confirmStep使用
-        let currentCtx = null;
-        const originalRenderSteps = renderSteps;
-        renderSteps = function(ctx) {
-            currentCtx = ctx;
-            return originalRenderSteps(ctx);
-        };
 
         // 初始化
         loadTools();
