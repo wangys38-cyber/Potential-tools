@@ -56,9 +56,9 @@
   <style>
     /* 覆盖 design-system.css 中的全局 backdrop-filter:none!important */
     #visitCounter {
-      background: rgba(28, 28, 32, 0.85) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
+      background: rgba(30, 30, 35, 0.82) !important;
+      backdrop-filter: blur(24px) saturate(1.4) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
       border: 1px solid rgba(139, 92, 246, 0.25) !important;
       border-radius: 14px !important;
       padding: 10px 16px !important;
@@ -164,7 +164,7 @@
       <div class="flex items-center gap-8">
         <span class="text-white text-lg font-semibold tracking-wide cursor-pointer hover:opacity-80 transition-opacity" onclick="window.scrollTo({top:0,behavior:'smooth'})">Potential Tools</span>
         <div class="flex items-center gap-1">
-          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-[13px] font-semibold px-4 py-2 rounded-lg bg-purple-500/15 border-b-2 border-purple-400 transition-all">首页</button>
+          <button onclick="switchNavTab(this,'home')" class="nav-tab-active text-white text-[13px] font-semibold px-4 py-2 rounded-lg bg-purple-500/25 border-b-2 border-purple-400 shadow-[0_0_16px_rgba(139,92,246,0.35)] transition-all">首页</button>
           <button onclick="switchNavTab(this,'explore')" class="text-white/65 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white hover:bg-white/[0.08] transition-all">全部工具</button>
           <button onclick="switchNavTab(this,'about')" class="text-white/65 text-[13px] font-medium px-4 py-2 rounded-lg hover:text-white hover:bg-white/[0.08] transition-all">关于</button>
         </div>
@@ -552,10 +552,10 @@
   function switchNavTab(btn, tab) {
     var tabs = btn.parentElement.querySelectorAll('button');
     tabs.forEach(function(t) {
-      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/15', 'border-b-2', 'border-purple-400');
+      t.classList.remove('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/25', 'border-b-2', 'border-purple-400', 'shadow-[0_0_16px_rgba(139,92,246,0.35)]');
       t.classList.add('text-white/65', 'font-medium');
     });
-    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/15', 'border-b-2', 'border-purple-400');
+    btn.classList.add('nav-tab-active', 'text-white', 'font-semibold', 'bg-purple-500/25', 'border-b-2', 'border-purple-400', 'shadow-[0_0_16px_rgba(139,92,246,0.35)]');
     btn.classList.remove('text-white/65', 'font-medium');
     if (tab === 'home') {
       window.scrollTo({top: 0, behavior: 'smooth'});
@@ -614,8 +614,8 @@
         '<div style="position:absolute;top:16px;left:0px;width:22px;height:16px;background:linear-gradient(135deg,rgba(255,255,255,0.8),rgba(251,207,232,0.65) 60%,rgba(249,168,212,0.45));border-radius:50% 50% 50% 0;transform:rotate(-18deg);box-shadow:0 2px 5px rgba(236,72,153,0.25),inset 1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2.2s ease-in-out infinite;border:1px solid rgba(255,255,255,0.45);"></div>' +
         // 右翅膀 - 轻盈半透明
         '<div style="position:absolute;top:16px;right:-2px;width:22px;height:16px;background:linear-gradient(225deg,rgba(255,255,255,0.8),rgba(251,207,232,0.65) 60%,rgba(249,168,212,0.45));border-radius:50% 50% 0 50%;transform:rotate(18deg);box-shadow:0 2px 5px rgba(236,72,153,0.25),inset -1px 1px 3px rgba(255,255,255,0.4);animation:wingFlap 2.2s ease-in-out infinite 0.5s;border:1px solid rgba(255,255,255,0.45);"></div>' +
-        // 信封主体 - 果冻材质，粉色渐变
-        '<div class="jelly-3d" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:50px;height:36px;background:linear-gradient(135deg,rgba(255,255,255,0.5) 0%,rgba(251,207,232,0.6) 40%,rgba(249,168,212,0.5) 100%);border-radius:6px;border:1.5px solid rgba(255,255,255,0.6);box-shadow:inset 0 2px 7px rgba(255,255,255,0.45),inset 0 -3px 10px rgba(236,72,153,0.2),0 4px 10px rgba(236,72,153,0.3),0 0 16px rgba(244,114,182,0.3);">' +
+        // 信封主体 - 磨砂玻璃材质，粉色渐变
+        '<div class="glass-3d" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:50px;height:36px;background:linear-gradient(135deg,rgba(251,207,232,0.45) 0%,rgba(249,168,212,0.35) 40%,rgba(244,114,182,0.25) 100%);border-radius:6px;border:1.5px solid rgba(251,207,232,0.55);box-shadow:inset 0 2px 7px rgba(255,255,255,0.4),inset 0 -3px 10px rgba(236,72,153,0.2),0 4px 10px rgba(236,72,153,0.25),0 0 16px rgba(244,114,182,0.25);">' +
         // 信封翻盖
         '<div style="position:absolute;top:0;left:0;right:0;height:19px;background:linear-gradient(135deg,rgba(249,168,212,0.65),rgba(244,114,182,0.55));clip-path:polygon(0 0,100% 0,50% 100%);border-radius:6px 6px 0 0;"></div>' +
         // 爱心封蜡
@@ -650,8 +650,8 @@
       // 3: 牛马笔记 - 绿色果冻质感便签本（边角微微卷起）
       '<div class="' + sizeClass + '"><div class="card-3d-element">' +
         '<div class="contact-shadow" style="width:62%;height:7px;"></div>' +
-        // 便签本主体 - 果冻材质，绿色渐变
-        '<div class="jelly-3d" style="position:absolute;bottom:14px;left:11px;width:50px;height:50px;background:linear-gradient(135deg,rgba(187,247,208,0.55) 0%,rgba(134,239,172,0.5) 50%,rgba(74,222,128,0.4) 100%);border-radius:5px;border:1.5px solid rgba(187,247,208,0.65);box-shadow:inset 0 2px 7px rgba(255,255,255,0.45),inset 0 -4px 10px rgba(22,163,74,0.22),0 4px 10px rgba(74,222,128,0.35),0 0 16px rgba(134,239,172,0.3);transform:rotate(-3deg);">' +
+        // 便签本主体 - 磨砂玻璃材质，绿色渐变
+        '<div class="glass-3d" style="position:absolute;bottom:14px;left:11px;width:50px;height:50px;background:linear-gradient(135deg,rgba(187,247,208,0.45) 0%,rgba(134,239,172,0.38) 50%,rgba(74,222,128,0.3) 100%);border-radius:5px;border:1.5px solid rgba(187,247,208,0.55);box-shadow:inset 0 2px 7px rgba(255,255,255,0.4),inset 0 -4px 10px rgba(22,163,74,0.2),0 4px 10px rgba(74,222,128,0.3),0 0 16px rgba(134,239,172,0.25);transform:rotate(-3deg);">' +
         // 笔迹线条
         '<div style="position:absolute;top:9px;left:8px;right:8px;height:2px;background:rgba(22,101,52,0.6);border-radius:1px;"></div>' +
         '<div style="position:absolute;top:17px;left:8px;right:11px;height:2px;background:rgba(22,101,52,0.5);border-radius:1px;"></div>' +
