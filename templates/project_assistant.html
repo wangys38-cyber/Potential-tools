@@ -539,6 +539,127 @@
       color: #ddd6fe !important;
       box-shadow: 0 0 16px rgba(139, 92, 246, 0.2) !important;
     }
+    </style>
+    /* ========== v2.2 搜索框 + Tab + 列表Hover优化 ========== */
+
+    /* 1. 搜索框暗黑化 + 高度降低 */
+    .pa-search {
+      padding: 5px !important;
+      border-radius: 12px !important;
+      background: rgba(26, 29, 36, 0.9) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .pa-search:focus-within {
+      border-color: rgba(139, 92, 246, 0.4) !important;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.08), 0 4px 12px rgba(0,0,0,0.25) !important;
+    }
+    .pa-search input {
+      font-size: 14px !important;
+      padding: 9px 12px !important;
+      color: rgba(255,255,255,0.9) !important;
+      background: transparent !important;
+    }
+    .pa-search input::placeholder {
+      color: rgba(255,255,255,0.35) !important;
+      font-weight: 400 !important;
+    }
+    .pa-search .pa-btn {
+      padding: 9px 18px !important;
+      font-size: 13px !important;
+      border-radius: 9px !important;
+      height: auto !important;
+    }
+    .pa-search .pa-btn.ghost {
+      padding: 9px 16px !important;
+    }
+
+    /* 2. Tab切换器更克制高级 - 底部下划线风格 */
+    .pa-mode {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      gap: 0 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 0 !important;
+    }
+    .pa-mode button {
+      padding: 10px 24px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      color: rgba(255,255,255,0.45) !important;
+      border: none !important;
+      position: relative !important;
+      transition: color 0.25s ease !important;
+    }
+    .pa-mode button:hover {
+      color: rgba(255,255,255,0.75) !important;
+      background: transparent !important;
+    }
+    .pa-mode button.on {
+      color: #c4b5fd !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .pa-mode button.on::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: -1px !important;
+      left: 16px !important;
+      right: 16px !important;
+      height: 2px !important;
+      border-radius: 980px !important;
+      background: linear-gradient(90deg, #8b5cf6, #6366f1) !important;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.7), 0 0 20px rgba(139, 92, 246, 0.3) !important;
+      transform: none !important;
+      width: auto !important;
+    }
+
+    /* 3. 右侧列表项Hover状态增强 */
+    .pa-mod-line {
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    .pa-mod-line::after {
+      content: '›' !important;
+      position: absolute !important;
+      right: 14px !important;
+      top: 50% !important;
+      transform: translateY(-50%) translateX(8px) !important;
+      font-size: 18px !important;
+      font-weight: 300 !important;
+      color: rgba(139, 92, 246, 0) !important;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      pointer-events: none !important;
+      line-height: 1 !important;
+    }
+    .pa-mod-line:hover {
+      background: rgba(255,255,255,0.06) !important;
+    }
+    .pa-mod-line:hover::after {
+      color: rgba(139, 92, 246, 0.7) !important;
+      transform: translateY(-50%) translateX(0) !important;
+    }
+    .pa-mod-row.fail .pa-mod-line:hover {
+      background: rgba(239, 68, 68, 0.12) !important;
+    }
+    .pa-mod-row.fail .pa-mod-line:hover::after {
+      color: rgba(248, 113, 113, 0.8) !important;
+    }
+    /* 展开状态下隐藏箭头 */
+    .pa-mod-row.open .pa-mod-line::after {
+      display: none !important;
+    }
+
+    /* 4. 结果区头部操作按钮优化 */
+    .pa-actions .pa-btn {
+      padding: 8px 16px !important;
+      font-size: 12px !important;
+      border-radius: 10px !important;
+    }
     </style></style>
 </head>
 <body>
