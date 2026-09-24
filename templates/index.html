@@ -259,6 +259,52 @@
         </div>
     </div>
 
+    <!-- 关于部分 -->
+    <div id="aboutSection" class="relative z-[2] max-w-[900px] mx-auto px-5 py-16">
+        <div class="text-center mb-10">
+            <div class="text-[13px] font-semibold text-purple-300/80 tracking-[0.15em] uppercase mb-3">About</div>
+            <h2 class="text-3xl font-bold text-white mb-3">关于 Potential Tools</h2>
+            <p class="text-white/50 text-sm max-w-[600px] mx-auto leading-relaxed">一站式研发效能平台，集成 CR 智能分析、智能知识库、邮件助手、牛马笔记、研发知识图谱等核心工具，助力研发团队高效协作。</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+            <!-- 核心功能 -->
+            <div class="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 hover:bg-white/[0.06] hover:border-purple-500/30 transition-all duration-300">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-600/20 flex items-center justify-center mb-3">
+                    <span class="text-lg">🚀</span>
+                </div>
+                <h3 class="text-white font-semibold text-sm mb-2">核心功能</h3>
+                <p class="text-white/45 text-xs leading-relaxed">CR 智能分析、项目状态日报、智能知识库问答、AI Agent 自主任务执行、邮件助手一键发送。</p>
+            </div>
+
+            <!-- 技术栈 -->
+            <div class="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 hover:bg-white/[0.06] hover:border-blue-500/30 transition-all duration-300">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/30 to-blue-600/20 flex items-center justify-center mb-3">
+                    <span class="text-lg">⚙️</span>
+                </div>
+                <h3 class="text-white font-semibold text-sm mb-2">技术栈</h3>
+                <p class="text-white/45 text-xs leading-relaxed">Flask + 原生 JavaScript + Tailwind CSS + SQLite + LightRAG 知识库 + 多模型 AI 接入。</p>
+            </div>
+
+            <!-- 开源协议 -->
+            <div class="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 hover:bg-white/[0.06] hover:border-emerald-500/30 transition-all duration-300">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 flex items-center justify-center mb-3">
+                    <span class="text-lg">📦</span>
+                </div>
+                <h3 class="text-white font-semibold text-sm mb-2">开源协作</h3>
+                <p class="text-white/45 text-xs leading-relaxed">项目完全开源，欢迎提交 Issue 和 Pull Request。GitHub: wangys38-cyber/Potential-tools。</p>
+            </div>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="text-center">
+            <div class="inline-flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-full px-4 py-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-white/60 text-xs">当前版本 v9.0 · 服务运行中</span>
+            </div>
+        </div>
+    </div>
+
     <div class="footer" style="background:#0a0a0f;border-top:1px solid rgba(255,255,255,0.06);padding:24px 20px;text-align:center;">
         <p style="color:rgba(255,255,255,0.45);font-size:13px;margin:0;">Potential Tools v9.0 · <a href="https://github.com/wangys38-cyber/Potential-tools" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,0.6);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.2);">GitHub</a> · Powered by Yongshuo</p>
     </div>
@@ -561,9 +607,17 @@
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (tab === 'explore') {
       var more = document.getElementById('heroMoreTools');
-      if (more) more.scrollIntoView({behavior: 'smooth', block: 'center'});
+      if (more) {
+        var y = more.getBoundingClientRect().top + window.pageYOffset - 80;
+        window.scrollTo({top: y, behavior: 'smooth'});
+      }
     } else if (tab === 'about') {
-      window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+      var about = document.getElementById('aboutSection');
+      if (about) {
+        about.scrollIntoView({behavior: 'smooth', block: 'start'});
+      } else {
+        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+      }
     }
   }
   function scrollToTools() {
