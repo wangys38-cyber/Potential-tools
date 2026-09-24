@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Potential-tools 9.0 - Agent 工具注册
 将平台内核心功能注册为 Agent 可调用的工具
@@ -158,43 +158,48 @@ def register_builtin_tools():
                 return {'sent': False, 'error': 'SMTP未配置，请先在设置中配置邮箱'}
             if not password:
                 return {'sent': False, 'error': 'SMTP密码未配置，请在设置中填写邮箱密码/授权码'}
-            # 构建邮件（Markdown转HTML，同时包含纯文本和HTML版本）
+            # 构建邮件（优化版：确保转发时格式稳定）
             import markdown as md_lib
-            # Markdown转HTML，启用表格、代码块等扩展
-            html_body = md_lib.markdown(
-                body,
-                extensions=['tables', 'fenced_code', 'nl2br', 'sane_lists'],
-                output_format='html5'
-            )
-            # 添加基础样式，让邮件在邮箱中显示更好看
-            html_content = f'''<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.7; color: #1d1d1f; max-width: 800px; margin: 0 auto; padding: 20px; }}
-h1 {{ font-size: 22px; font-weight: 700; color: #1d1d1f; border-bottom: 2px solid #0071e3; padding-bottom: 8px; margin-top: 24px; }}
-h2 {{ font-size: 18px; font-weight: 600; color: #1d1d1f; margin-top: 20px; }}
-h3 {{ font-size: 16px; font-weight: 600; color: #1d1d1f; margin-top: 16px; }}
-p {{ margin: 8px 0; }}
-strong {{ font-weight: 600; }}
-table {{ border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; }}
-th, td {{ border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; }}
-th {{ background-color: #f5f5f7; font-weight: 600; }}
-tr:nth-child(even) {{ background-color: #fafafa; }}
-ul, ol {{ margin: 8px 0; padding-left: 24px; }}
-li {{ margin: 4px 0; }}
-code {{ background-color: #f5f5f7; padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 13px; }}
-pre {{ background-color: #f5f5f7; padding: 12px; border-radius: 8px; overflow-x: auto; }}
-pre code {{ background: none; padding: 0; }}
-blockquote {{ border-left: 4px solid #0071e3; margin: 12px 0; padding: 8px 16px; background-color: #f5f5f7; color: #666; }}
-hr {{ border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }}
-</style>
-</head>
-<body>
+            import re as _re_mail
+            
+            # 检测内容是否包含HTML表格
+            _has_html_table = '<table' in body.lower()
+            
+            if _has_html_table:
+                # 包含HTML表格时，不使用nl2br扩展（避免在HTML标签内添加<br>）
+                html_body = md_lib.markdown(
+                    body,
+                    extensions=['tables', 'fenced_code', 'sane_lists'],
+                    output_format='html5'
+                )
+            else:
+                # 纯Markdown内容，使用nl2br扩展
+                html_body = md_lib.markdown(
+                    body,
+                    extensions=['tables', 'fenced_code', 'nl2br', 'sane_lists'],
+                    output_format='html5'
+                )
+            
+            # 使用内联样式包裹内容，确保转发时样式不丢失
+            html_content = f'''<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.7; color: #1d1d1f; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
 {html_body}
-</body>
-</html>'''
+</div>'''
+            
+            # 为HTML标签添加内联样式（确保转发时样式不丢失）
+            _style_map = [
+                ('<table\b', '<table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; border: 1px solid #e0e0e0;"'),
+                ('<th\b', '<th style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; background-color: #f5f5f7; font-weight: 600;"'),
+                ('<td\b', '<td style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; vertical-align: top;"'),
+                ('<h1\b', '<h1 style="font-size: 22px; font-weight: 700; color: #1d1d1f; border-bottom: 2px solid #0071e3; padding-bottom: 8px; margin-top: 24px;"'),
+                ('<h2\b', '<h2 style="font-size: 18px; font-weight: 600; color: #1d1d1f; margin-top: 20px;"'),
+                ('<h3\b', '<h3 style="font-size: 16px; font-weight: 600; color: #1d1d1f; margin-top: 16px;"'),
+                ('<p\b', '<p style="margin: 8px 0;"'),
+                ('<ul\b', '<ul style="margin: 8px 0; padding-left: 24px;"'),
+                ('<ol\b', '<ol style="margin: 8px 0; padding-left: 24px;"'),
+                ('<li\b', '<li style="margin: 4px 0;"'),
+            ]
+            for _pattern, _replacement in _style_map:
+                html_content = _re_mail.sub(_pattern, _replacement, html_content)
             # 使用 alternative 同时包含纯文本和HTML版本
             msg = MIMEMultipart('alternative')
             msg['From'] = username
