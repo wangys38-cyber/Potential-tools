@@ -1,3 +1,8 @@
+<!-- 页面过渡动画 - 防止白屏，提升丝滑度 -->
+<link rel="stylesheet" href="/static/css/page-transition.css?v={{ STATIC_VERSION }}">
+<div id="page-transition-overlay"><div class="pt-loader"></div></div>
+<script src="/static/js/page-transition.js?v={{ STATIC_VERSION }}" defer></script>
+
 <link rel="stylesheet" href="/static/css/page/_navbar.css?v={{ STATIC_VERSION }}">
 {# Potential-tools v6.0 统一 Apple 风格导航栏
    用法：在 <body> 后添加 {% include '_navbar.html' %}

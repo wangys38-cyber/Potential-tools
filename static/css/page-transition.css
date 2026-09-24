@@ -1,0 +1,127 @@
+/* ============================================
+   页面过渡动画 - 防止白屏，提升丝滑度
+   ============================================ */
+
+/* 1. 立即设置深色背景，防止白屏 */
+html {
+  background-color: #0D0E12 !important;
+}
+
+body {
+  background-color: #0D0E12 !important;
+  color: #F5F5F7 !important;
+  /* 防止页面加载时的闪烁 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. 页面加载遮罩 */
+#page-transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #1a1a1e 0%, #121216 50%, #0e0e12 100%);
+  z-index: 999999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  /* 居中的加载指示器 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#page-transition-overlay .pt-loader {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: pt-spin 0.8s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes pt-spin {
+  to { transform: rotate(360deg); }
+}
+
+#page-transition-overlay.pt-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* 3. 页面内容淡入动画 */
+.pt-page-content {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pt-page-content.pt-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 4. 优化动画性能：使用GPU加速 */
+#page-transition-overlay,
+.pt-page-content {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 5. 减少重排重排：给常见动画元素添加contain */
+a, button, .tool-card, .example-tag {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 6. 优化滚动性能 */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 7. 防止图片加载时的布局偏移 */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 8. 减少字体加载时的FOIT（Flash of Invisible Text） */
+.fonts-loaded body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 9. 优化首页卡片动画性能 */
+#heroCards a {
+  will-change: transform;
+  contain: layout paint;
+}
+
+#heroCards {
+  contain: layout;
+}
+
+/* 10. 响应式：移动端减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  #page-transition-overlay,
+  .pt-page-content,
+  a, button, .tool-card, .example-tag {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #page-transition-overlay .pt-loader {
+    width: 24px;
+    height: 24px;
+  }
+}
