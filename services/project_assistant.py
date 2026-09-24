@@ -378,6 +378,9 @@ def generate_report_markdown(snap):
     """专业项目状态报告 - 优化版：结构清晰，无冗余信息。"""
     import json
     lines = []
+    # 防御性初始化：确保变量在任何分支下都有定义
+    functional_blockers = []
+    label_blockers = []
     st = snap.get('stats', {}) or {}
     project_name = snap.get('project_name') or snap.get('name') or 'Project'
 
