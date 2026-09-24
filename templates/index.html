@@ -56,17 +56,17 @@
   <style>
     /* 覆盖 design-system.css 中的全局 backdrop-filter:none!important */
     #visitCounter {
-      background: rgba(255,255,255,0.08) !important;
-      backdrop-filter: blur(16px) !important;
-      -webkit-backdrop-filter: blur(16px) !important;
-      border: 1px solid rgba(255,255,255,0.15) !important;
+      background: rgba(28, 28, 32, 0.85) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(139, 92, 246, 0.25) !important;
       border-radius: 14px !important;
       padding: 10px 16px !important;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(139,92,246,0.1) !important;
       color: #fff !important;
     }
     #visitCounter .label {
-      color: rgba(255,255,255,0.55) !important;
+      color: rgba(167, 139, 250, 0.8) !important;
       font-size: 11px !important;
       font-weight: 500 !important;
     }
@@ -596,7 +596,7 @@
         return item;
       }
 
-      function createCategoryGroup(cat, tools, isNew) {
+      function createCategoryGroup(cat, tools, isNew, collapsible) {
         if (!tools.length) return null;
         var group = document.createElement('div');
         group.style.display = 'flex';
@@ -604,6 +604,7 @@
         group.style.alignItems = 'center';
         group.style.gap = '12px';
         group.style.width = '100%';
+        group.style.transition = 'all 0.3s ease';
 
         var title = document.createElement('div');
         title.className = 'text-[15px] font-bold tracking-[0.1em] ' + (cat.color || 'text-white/70');
@@ -616,8 +617,8 @@
         dot.style.width = '6px';
         dot.style.height = '6px';
         dot.style.borderRadius = '50%';
-        dot.style.background = 'linear-gradient(135deg,#a78bfa,#818cf8)';
-        dot.style.boxShadow = '0 0 10px rgba(139,92,246,0.7)';
+        dot.style.background = 'linear-gradient(135deg,#c4b5fd,#818cf8)';
+        dot.style.boxShadow = '0 0 12px rgba(139,92,246,0.8), 0 0 4px rgba(103,232,249,0.4)';
         title.appendChild(dot);
         var titleText = document.createElement('span');
         titleText.textContent = cat.name;
@@ -630,10 +631,40 @@
         tagsWrap.style.justifyContent = 'center';
         tagsWrap.style.gap = '14px';
         tagsWrap.style.maxWidth = '800px';
+        tagsWrap.style.overflow = 'hidden';
+        tagsWrap.style.transition = 'max-height 0.4s ease';
         tools.forEach(function(t) {
           tagsWrap.appendChild(createTagItem(t, isNew));
         });
         group.appendChild(tagsWrap);
+
+        // 折叠功能：默认只显示一行
+        if (collapsible && tools.length > 6) {
+          tagsWrap.style.maxHeight = '44px'; // 一行高度
+          var toggleBtn = document.createElement('button');
+          toggleBtn.textContent = '展开全部 ▾';
+          toggleBtn.style.cssText = 'margin-top:4px;padding:6px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:980px;color:#c4b5fd;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s ease;font-family:inherit;';
+          toggleBtn.onmouseenter = function() {
+            this.style.background = 'rgba(139,92,246,0.2)';
+            this.style.borderColor = 'rgba(139,92,246,0.5)';
+          };
+          toggleBtn.onmouseleave = function() {
+            this.style.background = 'rgba(139,92,246,0.1)';
+            this.style.borderColor = 'rgba(139,92,246,0.3)';
+          };
+          var expanded = false;
+          toggleBtn.onclick = function() {
+            expanded = !expanded;
+            if (expanded) {
+              tagsWrap.style.maxHeight = '500px';
+              this.textContent = '收起 ▴';
+            } else {
+              tagsWrap.style.maxHeight = '44px';
+              this.textContent = '展开全部 ▾';
+            }
+          };
+          group.appendChild(toggleBtn);
+        }
 
         return group;
       }
@@ -664,9 +695,9 @@
         if (group) moreList.appendChild(group);
       });
 
-      // 其他工具
+      // 其他工具（可折叠，默认只显示一行）
       if (others.length) {
-        var otherGroup = createCategoryGroup(defaultCategory, others, false);
+        var otherGroup = createCategoryGroup(defaultCategory, others, false, true);
         if (otherGroup) moreList.appendChild(otherGroup);
       }
 
