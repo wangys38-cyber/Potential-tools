@@ -618,7 +618,7 @@ def extract_knowledge():
 
     try:
         ai_config = get_ai_config()
-        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=8000, temperature=0.2, timeout=180)
+        result = _call_ai(messages, model=ai_config.get('model'), max_tokens=16000, temperature=0.2, timeout=180)
 
         # 解析JSON结果 - 增强的JSON提取和修复逻辑
         result = result.strip()
@@ -658,19 +658,21 @@ def extract_knowledge():
                         return text[start:i+1]
             return None
 
-        # 方法3：修复被截断的JSON
+        # 方法3：修复被截断的JSON（增强版）
         def fix_truncated_json(text):
             """修复被截断的JSON，找到最后一个完整的节点后补全"""
+            import re as _re
             start = text.find('{')
             if start == -1:
                 return None
-            # 找到 nodes 数组的开始
-            nodes_start = text.find('"nodes"', start)
-            if nodes_start == -1:
+            # 找到 nodes 数组的开始（支持多种格式）
+            nodes_match = _re.search(r'"nodes"\s*:\s*\[', text[start:])
+            if not nodes_match:
+                # 尝试单引号或其他格式
+                nodes_match = _re.search(r"'nodes'\s*:\s*\[", text[start:])
+            if not nodes_match:
                 return None
-            array_start = text.find('[', nodes_start)
-            if array_start == -1:
-                return None
+            array_start = start + nodes_match.start() + nodes_match.group().find('[')
             # 从数组开始，找到最后一个完整的对象
             depth = 0
             in_string = False
@@ -696,6 +698,11 @@ def extract_knowledge():
                     if depth == 0:
                         last_complete_obj_end = i + 1
             if last_complete_obj_end == -1:
+                # 没有找到完整对象，尝试从第一个对象开始截断
+                first_obj_start = text.find('{', array_start)
+                if first_obj_start != -1:
+                    # 至少返回一个空的nodes数组
+                    return text[start:array_start+1] + '], "relations": []}'
                 return None
             # 构建修复后的JSON
             fixed = text[start:last_complete_obj_end] + '], "relations": []}'
