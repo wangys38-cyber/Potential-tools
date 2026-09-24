@@ -801,7 +801,7 @@ def generate_report_markdown(snap):
     lines.append("")
 
     # ===== 5. Device SW 状态 (eDart EKANDES Project Space) =====
-    lines.append("## 5. Device SW 状态 (eDart EKANDES Project Space)")
+    lines.append(f"## 5. Device SW 状态 (eDart {project_name} Project Space)")
     lines.append("")
     # 按严重度统计所有未解决BC
     _sev_stats = {'blocker': {'open': 0, 'new': 0, 'closed': 0}, 'critical': {'open': 0, 'new': 0, 'closed': 0}, 'major': {'open': 0, 'new': 0, 'closed': 0}, 'minor': {'open': 0, 'new': 0, 'closed': 0}}
@@ -848,7 +848,7 @@ def generate_report_markdown(snap):
     lines.append("")
 
     # ===== 6. Companion App 状态 (Companion / MotoEye App - iOS & Android) =====
-    lines.append("## 6. Companion App 状态 (Companion / MotoEye App - iOS & Android)")
+    lines.append("## 6. Companion App 状态 (Companion App - iOS & Android)")
     lines.append("")
     # 筛选iOS/Android相关的BC
     _ca_bc = [r for r in (snap.get('unresolved_bc', []) or []) if _is_ios_module(r.get('module', '')) or 'companion' in str(r.get('module', '')).lower() or 'app' in str(r.get('module', '')).lower()]
