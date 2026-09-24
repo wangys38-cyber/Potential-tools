@@ -77,6 +77,58 @@
       margin-left: 6px !important;
     }
   </style>
+  <style>
+    /* 3D破框悬浮元素 */
+    .card-3d-wrap {
+      position: absolute;
+      bottom: -18px;
+      right: -18px;
+      width: 90px;
+      height: 90px;
+      z-index: 10;
+      pointer-events: none;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .card-3d-wrap.center-card {
+      width: 110px;
+      height: 110px;
+      bottom: -24px;
+      right: -24px;
+    }
+    /* 3D元素通用阴影 */
+    .card-3d-element {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      filter: drop-shadow(0 12px 20px rgba(0,0,0,0.45)) drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      animation: float3d 3s ease-in-out infinite;
+    }
+    @keyframes float3d {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(2deg); }
+    }
+    /* 悬停时3D元素动画增强 */
+    a:hover .card-3d-element {
+      animation: float3dHover 1.5s ease-in-out infinite;
+    }
+    @keyframes float3dHover {
+      0%, 100% { transform: translateY(-4px) rotate(-3deg) scale(1.05); }
+      50% { transform: translateY(-10px) rotate(3deg) scale(1.08); }
+    }
+    /* 3D球体基础样式 */
+    .sphere-3d {
+      border-radius: 50%;
+      position: absolute;
+    }
+    /* 边缘轮廓光 */
+    .rim-light {
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
 
@@ -505,6 +557,107 @@
   ];
   var cardZIndex = [20, 10, 30, 10, 20]; // 中间最上层，左一右一第二层，左二右二第三层
 
+  // 生成每张卡片的3D破框元素
+  function getCard3DElement(idx, isCenter) {
+    var sizeClass = isCenter ? 'card-3d-wrap center-card' : 'card-3d-wrap';
+    var elements = [
+      // 0: CR智能分析 - 紫色机器人+放大镜
+      '<div class="' + sizeClass + '"><div class="card-3d-element">' +
+        '<div class="sphere-3d" style="width:55px;height:55px;bottom:10px;right:10px;background:radial-gradient(circle at 30% 30%,#c4b5fd,#8b5cf6 50%,#6d28d9);box-shadow:inset -4px -4px 10px rgba(0,0,0,0.3),inset 3px 3px 8px rgba(255,255,255,0.3);">' +
+        '<div class="rim-light"></div>' +
+        // 眼睛
+        '<div style="position:absolute;top:18px;left:14px;width:8px;height:10px;background:#1e1b4b;border-radius:50%;box-shadow:0 0 4px rgba(255,255,255,0.5);"></div>' +
+        '<div style="position:absolute;top:18px;right:14px;width:8px;height:10px;background:#1e1b4b;border-radius:50%;box-shadow:0 0 4px rgba(255,255,255,0.5);"></div>' +
+        // 微笑
+        '<div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:18px;height:9px;border:2px solid #1e1b4b;border-top:none;border-radius:0 0 18px 18px;"></div>' +
+        '</div>' +
+        // 放大镜
+        '<div style="position:absolute;top:8px;right:5px;width:28px;height:28px;border:4px solid #a78bfa;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.4),rgba(167,139,250,0.2));box-shadow:0 0 10px rgba(167,139,250,0.5),inset 0 0 8px rgba(255,255,255,0.3);transform:rotate(-20deg);"></div>' +
+        '<div style="position:absolute;top:28px;right:0px;width:4px;height:16px;background:linear-gradient(to bottom,#a78bfa,#7c3aed);border-radius:2px;transform:rotate(-20deg);"></div>' +
+        '</div></div>',
+
+      // 1: 邮件助手 - 粉色信封+翅膀
+      '<div class="' + sizeClass + '"><div class="card-3d-element">' +
+        // 信封主体
+        '<div style="position:absolute;bottom:15px;right:8px;width:60px;height:42px;background:linear-gradient(135deg,#fbcfe8,#f9a8d4 50%,#ec4899);border-radius:6px;box-shadow:inset -3px -3px 8px rgba(0,0,0,0.2),inset 2px 2px 6px rgba(255,255,255,0.4),0 4px 12px rgba(236,72,153,0.3);">' +
+        // 信封翻盖
+        '<div style="position:absolute;top:0;left:0;right:0;height:22px;background:linear-gradient(135deg,#f9a8d4,#f472b6);clip-path:polygon(0 0,100% 0,50% 100%);border-radius:6px 6px 0 0;"></div>' +
+        // 爱心封蜡
+        '<div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:14px;height:14px;background:radial-gradient(circle at 30% 30%,#fda4af,#e11d48);border-radius:50%;box-shadow:0 2px 6px rgba(225,29,72,0.5),inset 1px 1px 3px rgba(255,255,255,0.4);"></div>' +
+        '</div>' +
+        // 左翅膀
+        '<div style="position:absolute;top:20px;left:5px;width:24px;height:16px;background:linear-gradient(135deg,rgba(255,255,255,0.9),rgba(251,207,232,0.7));border-radius:50% 50% 50% 0;transform:rotate(-30deg);box-shadow:0 2px 8px rgba(236,72,153,0.3);animation:wingFlap 2s ease-in-out infinite;"></div>' +
+        // 右翅膀
+        '<div style="position:absolute;top:20px;right:0px;width:24px;height:16px;background:linear-gradient(225deg,rgba(255,255,255,0.9),rgba(251,207,232,0.7));border-radius:50% 50% 0 50%;transform:rotate(30deg);box-shadow:0 2px 8px rgba(236,72,153,0.3);animation:wingFlap 2s ease-in-out infinite 0.5s;"></div>' +
+        '</div></div>',
+
+      // 2: 智能知识库 - 蓝色书籍（C位，更大更精致）
+      '<div class="' + sizeClass + '"><div class="card-3d-element">' +
+        // 书籍主体
+        '<div style="position:absolute;bottom:12px;right:10px;width:65px;height:50px;background:linear-gradient(135deg,#93c5fd,#60a5fa 40%,#3b82f6);border-radius:4px 8px 8px 4px;box-shadow:inset -4px -4px 10px rgba(0,0,0,0.25),inset 3px 3px 8px rgba(255,255,255,0.35),0 6px 16px rgba(59,130,246,0.35);">' +
+        // 书脊
+        '<div style="position:absolute;top:0;left:0;bottom:0;width:8px;background:linear-gradient(90deg,#2563eb,#3b82f6);border-radius:4px 0 0 4px;"></div>' +
+        // 书页线条
+        '<div style="position:absolute;top:8px;left:14px;right:8px;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:14px;left:14px;right:12px;height:2px;background:rgba(255,255,255,0.4);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:20px;left:14px;right:10px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:26px;left:14px;right:14px;height:2px;background:rgba(255,255,255,0.3);border-radius:1px;"></div>' +
+        // 书签
+        '<div style="position:absolute;top:-6px;right:16px;width:10px;height:24px;background:linear-gradient(180deg,#fbbf24,#f59e0b);clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%);box-shadow:0 2px 6px rgba(245,158,11,0.5);"></div>' +
+        '</div>' +
+        // 悬浮光环
+        '<div style="position:absolute;top:10px;left:10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,rgba(147,197,253,0.6),transparent);box-shadow:0 0 20px rgba(96,165,250,0.6);animation:pulseGlow 2s ease-in-out infinite;"></div>' +
+        '</div></div>',
+
+      // 3: 牛马笔记 - 绿色便签本+笔
+      '<div class="' + sizeClass + '"><div class="card-3d-element">' +
+        // 便签本
+        '<div style="position:absolute;bottom:12px;right:10px;width:55px;height:55px;background:linear-gradient(135deg,#bbf7d0,#86efac 50%,#4ade80);border-radius:4px;box-shadow:inset -3px -3px 8px rgba(0,0,0,0.2),inset 2px 2px 6px rgba(255,255,255,0.4),0 4px 12px rgba(74,222,128,0.3);transform:rotate(-5deg);">' +
+        // 横线
+        '<div style="position:absolute;top:12px;left:8px;right:8px;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:20px;left:8px;right:10px;height:2px;background:rgba(255,255,255,0.45);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:28px;left:8px;right:8px;height:2px;background:rgba(255,255,255,0.4);border-radius:1px;"></div>' +
+        '<div style="position:absolute;top:36px;left:8px;right:12px;height:2px;background:rgba(255,255,255,0.35);border-radius:1px;"></div>' +
+        // 卷角
+        '<div style="position:absolute;bottom:0;right:0;width:14px;height:14px;background:linear-gradient(135deg,transparent 50%,#22c55e 50%);border-radius:0 0 4px 0;"></div>' +
+        '</div>' +
+        // 笔
+        '<div style="position:absolute;top:8px;right:0px;width:8px;height:40px;background:linear-gradient(180deg,#fbbf24,#f59e0b);border-radius:2px 2px 0 0;transform:rotate(25deg);box-shadow:0 2px 8px rgba(245,158,11,0.4);">' +
+        '<div style="position:absolute;bottom:-8px;left:0;right:0;height:10px;background:linear-gradient(180deg,#f59e0b,#1f2937);clip-path:polygon(0 0,100% 0,50% 100%);"></div>' +
+        '</div>' +
+        '</div></div>',
+
+      // 4: 研发知识图谱 - 淡紫节点球体
+      '<div class="' + sizeClass + '"><div class="card-3d-element">' +
+        // 大节点
+        '<div class="sphere-3d" style="width:32px;height:32px;bottom:20px;right:20px;background:radial-gradient(circle at 30% 30%,#ddd6fe,#a78bfa 50%,#8b5cf6);box-shadow:inset -3px -3px 8px rgba(0,0,0,0.25),inset 2px 2px 6px rgba(255,255,255,0.4),0 0 16px rgba(167,139,250,0.6);">' +
+        '<div class="rim-light"></div></div>' +
+        // 小节点1
+        '<div class="sphere-3d" style="width:18px;height:18px;top:12px;left:12px;background:radial-gradient(circle at 30% 30%,#c4b5fd,#8b5cf6);box-shadow:inset -2px -2px 5px rgba(0,0,0,0.2),0 0 12px rgba(139,92,246,0.5);"></div>' +
+        // 小节点2
+        '<div class="sphere-3d" style="width:14px;height:14px;top:30px;right:8px;background:radial-gradient(circle at 30% 30%,#ddd6fe,#a78bfa);box-shadow:inset -2px -2px 4px rgba(0,0,0,0.2),0 0 10px rgba(167,139,250,0.5);"></div>' +
+        // 小节点3
+        '<div class="sphere-3d" style="width:12px;height:12px;bottom:10px;left:18px;background:radial-gradient(circle at 30% 30%,#e9d5ff,#c084fc);box-shadow:inset -1px -1px 3px rgba(0,0,0,0.2),0 0 8px rgba(192,132,252,0.5);"></div>' +
+        // 连接线
+        '<svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 90 90">' +
+        '<line x1="21" y1="21" x2="54" y2="54" stroke="rgba(167,139,250,0.6)" stroke-width="2" stroke-dasharray="3,2"/>' +
+        '<line x1="76" y1="37" x2="58" y2="52" stroke="rgba(167,139,250,0.5)" stroke-width="1.5" stroke-dasharray="3,2"/>' +
+        '<line x1="24" y1="72" x2="50" y2="58" stroke="rgba(192,132,252,0.5)" stroke-width="1.5" stroke-dasharray="3,2"/>' +
+        '</svg>' +
+        '</div></div>'
+    ];
+
+    // 翅膀动画
+    if (!document.getElementById('card3dKeyframes')) {
+      var style = document.createElement('style');
+      style.id = 'card3dKeyframes';
+      style.textContent = '@keyframes wingFlap{0%,100%{transform:rotate(-30deg) scaleY(1)}50%{transform:rotate(-20deg) scaleY(1.1)}}@keyframes pulseGlow{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.2)}}';
+      document.head.appendChild(style);
+    }
+
+    return elements[idx];
+  }
+
   function renderHeroCards() {
     var grid = document.getElementById('tools-grid');
     var wrap = document.getElementById('heroCards');
@@ -545,14 +698,18 @@
       card.style.transform = fanTransforms[idx % 5];
       card.style.background = CARD_GRADIENTS[idx % 5];
       card.style.zIndex = cardZIndex[idx % 5];
+      // 3D元素HTML（每张卡片不同）
+      var card3dHTML = getCard3DElement(idx % 5, center);
+
       card.innerHTML =
         '<div class="absolute inset-0 rounded-[28px] overflow-hidden">' +
         '<div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.1) 40%,transparent 60%)"></div>' +
         '<div class="absolute top-0 left-0 right-0 h-[2px]" style="background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)"></div>' +
         '</div>' +
-        '<div class="absolute inset-0 flex items-center justify-center">' +
-        '<span class="text-[#1e293b] text-[18px] font-quicksand font-semibold tracking-[0.5px] text-center px-3 relative z-[1]" style="text-shadow:0 1px 3px rgba(255,255,255,0.5)">' + t.name + '</span>' +
-        '</div>';
+        '<div class="absolute inset-0 flex items-start justify-start pt-5 pl-5">' +
+        '<span class="text-[#1e293b] text-[17px] font-quicksand font-bold tracking-[0.3px] text-left relative z-[1] leading-tight" style="text-shadow:0 1px 3px rgba(255,255,255,0.5);max-width:110px;">' + t.name + '</span>' +
+        '</div>' +
+        card3dHTML;
       wrap.appendChild(card);
     });
 
