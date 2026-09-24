@@ -186,17 +186,19 @@ def register_builtin_tools():
 </div>'''
             
             # 为HTML标签添加内联样式（确保转发时样式不丢失）
+            # 只给没有style属性的标签添加内联样式（避免覆盖报告中已有的内联样式）
+            # 使用负向先行断言，只匹配没有style属性的标签
             _style_map = [
-                ('<table\b', '<table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; border: 1px solid #e0e0e0;"'),
-                ('<th\b', '<th style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; background-color: #f5f5f7; font-weight: 600;"'),
-                ('<td\b', '<td style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; vertical-align: top;"'),
-                ('<h1\b', '<h1 style="font-size: 22px; font-weight: 700; color: #1d1d1f; border-bottom: 2px solid #0071e3; padding-bottom: 8px; margin-top: 24px;"'),
-                ('<h2\b', '<h2 style="font-size: 18px; font-weight: 600; color: #1d1d1f; margin-top: 20px;"'),
-                ('<h3\b', '<h3 style="font-size: 16px; font-weight: 600; color: #1d1d1f; margin-top: 16px;"'),
-                ('<p\b', '<p style="margin: 8px 0;"'),
-                ('<ul\b', '<ul style="margin: 8px 0; padding-left: 24px;"'),
-                ('<ol\b', '<ol style="margin: 8px 0; padding-left: 24px;"'),
-                ('<li\b', '<li style="margin: 4px 0;"'),
+                ('<table(?![^>]*style)', '<table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px; border: 1px solid #e0e0e0;"'),
+                ('<th(?![^>]*style)', '<th style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; background-color: #f5f5f7; font-weight: 600;"'),
+                ('<td(?![^>]*style)', '<td style="border: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; vertical-align: top;"'),
+                ('<h1(?![^>]*style)', '<h1 style="font-size: 22px; font-weight: 700; color: #1d1d1f; border-bottom: 2px solid #0071e3; padding-bottom: 8px; margin-top: 24px;"'),
+                ('<h2(?![^>]*style)', '<h2 style="font-size: 18px; font-weight: 600; color: #1d1d1f; margin-top: 20px;"'),
+                ('<h3(?![^>]*style)', '<h3 style="font-size: 16px; font-weight: 600; color: #1d1d1f; margin-top: 16px;"'),
+                ('<p(?![^>]*style)', '<p style="margin: 8px 0;"'),
+                ('<ul(?![^>]*style)', '<ul style="margin: 8px 0; padding-left: 24px;"'),
+                ('<ol(?![^>]*style)', '<ol style="margin: 8px 0; padding-left: 24px;"'),
+                ('<li(?![^>]*style)', '<li style="margin: 4px 0;"'),
             ]
             for _pattern, _replacement in _style_map:
                 html_content = _re_mail.sub(_pattern, _replacement, html_content)
