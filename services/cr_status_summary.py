@@ -40,8 +40,8 @@ except Exception:  # 兜底：脚本方式直接运行时
                 return 'trivial'
             return ''
 
-# 已解决关键字（与 excel_analyzers.module_stats 口径一致，不含 verified）
-_RESOLVED_KW = ('resolved', 'fixed', 'closed', 'done', '已解决', '已关闭')
+# 已解决关键字（包含 verified，因为 verified 表示已验证通过，不再阻塞）
+_RESOLVED_KW = ('resolved', 'fixed', 'closed', 'done', 'verified', '已解决', '已关闭', '已验证')
 _SEV_RANK = {'blocker': 0, 'critical': 1, 'major': 2, 'minor': 3, 'trivial': 4, '': 5}
 _SEV_CN = {'blocker': 'Blocker', 'critical': 'Critical', 'major': 'Major',
            'minor': 'Minor', 'trivial': 'Trivial', '': '-'}

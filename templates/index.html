@@ -30,6 +30,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Three.js 3D 动物 -->
     <script src="/static/js/vendor/three/three.min.js"></script>
+<script src="/static/js/3d-characters.js"></script>
     <script src="/static/js/3d-animals.js?v={{ STATIC_VERSION }}"></script>
 <meta name="theme-color" content="#0a0a0f">
     <script>
@@ -57,7 +58,13 @@
       body { background: linear-gradient(160deg, #1a1a1e 0%, #121216 50%, #0e0e12 100%) !important; min-height: 100vh; }
       #heroCards a { will-change: transform; contain: layout paint; }
       #heroCards { contain: layout; }
-    </style>
+    
+/* 卡片3D图片悬停动画 */
+.hero-card:hover .card-3d-image {
+  transform: translateY(-15px) scale(1.12) rotate(-8deg) !important;
+  filter: drop-shadow(0 25px 40px rgba(0,0,0,0.55)) !important;
+}
+</style>
 
   <style>
     /* 覆盖 design-system.css 中的全局 backdrop-filter:none!important */
@@ -82,7 +89,13 @@
       font-size: 15px !important;
       margin-left: 6px !important;
     }
-  </style>
+  
+/* 卡片3D图片悬停动画 */
+.hero-card:hover .card-3d-image {
+  transform: translateY(-15px) scale(1.12) rotate(-8deg) !important;
+  filter: drop-shadow(0 25px 40px rgba(0,0,0,0.55)) !important;
+}
+</style>
   <style>
     /* 3D破框悬浮元素 - 统一精致版 */
     .card-3d-wrap {
@@ -160,7 +173,13 @@
       background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 50%);
       pointer-events: none;
     }
-  </style>
+  
+/* 卡片3D图片悬停动画 */
+.hero-card:hover .card-3d-image {
+  transform: translateY(-15px) scale(1.12) rotate(-8deg) !important;
+  filter: drop-shadow(0 25px 40px rgba(0,0,0,0.55)) !important;
+}
+</style>
     
     <!-- ========== Linear Design System 优化 - 基于 design-md-reference Skill ========== -->
     <style>
@@ -466,7 +485,13 @@
         background: rgba(94, 106, 210, 0.3) !important;
         color: var(--linear-ink) !important;
     }
-    </style>
+    
+/* 卡片3D图片悬停动画 */
+.hero-card:hover .card-3d-image {
+  transform: translateY(-15px) scale(1.12) rotate(-8deg) !important;
+  filter: drop-shadow(0 25px 40px rgba(0,0,0,0.55)) !important;
+}
+</style>
     <!-- ========== End Linear Design System 优化 ========== -->
     <style>
     /* 3D动物容器 - 确保可见 */
@@ -483,6 +508,12 @@
         visibility: visible !important;
         opacity: 1 !important;
     }
+
+/* 卡片3D图片悬停动画 */
+.hero-card:hover .card-3d-image {
+  transform: translateY(-15px) scale(1.12) rotate(-8deg) !important;
+  filter: drop-shadow(0 25px 40px rgba(0,0,0,0.55)) !important;
+}
 </style></head>
 <body>
 
@@ -528,12 +559,30 @@
       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-transparent pointer-events-none"></div>
       <!-- 漂浮元素 -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">
-        <span class="absolute text-base text-white/30 animate-float" style="top:15%;left:12%;">✦</span>
-        <span class="absolute text-base text-white/30 animate-float" style="top:25%;right:15%;animation-delay:1s;">✧</span>
-        <span class="absolute text-base text-white/30 animate-float" style="top:60%;left:8%;animation-delay:2s;">✦</span>
-        <span class="absolute text-base text-white/30 animate-float" style="top:70%;right:10%;animation-delay:0.5s;">✧</span>
-        <div class="absolute text-xs text-white/40 bg-white/[0.06] border border-white/[0.1] px-2.5 py-1 rounded-xl animate-float" style="top:20%;right:25%;animation-delay:1.5s;">Hi!</div>
-        <div class="absolute text-xs text-white/40 bg-white/[0.06] border border-white/[0.1] px-2.5 py-1 rounded-xl animate-float" style="top:55%;left:20%;animation-delay:3s;">✨</div>
+        <!-- 小星星 -->
+        <span class="absolute text-lg text-white/40 animate-float" style="top:12%;left:10%;">✦</span>
+        <span class="absolute text-sm text-white/30 animate-float" style="top:22%;right:12%;animation-delay:0.8s;">✧</span>
+        <span class="absolute text-base text-white/35 animate-float" style="top:58%;left:6%;animation-delay:1.6s;">✦</span>
+        <span class="absolute text-lg text-white/25 animate-float" style="top:68%;right:8%;animation-delay:0.4s;">✧</span>
+        <span class="absolute text-sm text-white/30 animate-float" style="top:35%;left:5%;animation-delay:2.2s;">✦</span>
+        <span class="absolute text-base text-white/25 animate-float" style="top:45%;right:5%;animation-delay:1.2s;">✧</span>
+        <span class="absolute text-xs text-white/20 animate-float" style="top:80%;left:15%;animation-delay:2.8s;">✦</span>
+        <span class="absolute text-sm text-white/30 animate-float" style="top:85%;right:18%;animation-delay:0.6s;">✧</span>
+        <!-- 发光小光点 -->
+        <div class="absolute w-1 h-1 rounded-full bg-white/50 animate-pulse" style="top:18%;left:20%;box-shadow:0 0 8px rgba(255,255,255,0.6);"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-purple-400/40 animate-pulse" style="top:30%;right:22%;animation-delay:1s;box-shadow:0 0 12px rgba(167,139,250,0.5);"></div>
+        <div class="absolute w-1 h-1 rounded-full bg-blue-400/40 animate-pulse" style="top:65%;left:18%;animation-delay:1.5s;box-shadow:0 0 10px rgba(96,165,250,0.5);"></div>
+        <div class="absolute w-1 h-1 rounded-full bg-pink-400/40 animate-pulse" style="top:75%;right:20%;animation-delay:0.5s;box-shadow:0 0 10px rgba(244,114,182,0.5);"></div>
+        <div class="absolute w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" style="top:40%;left:8%;animation-delay:2s;"></div>
+        <div class="absolute w-0.5 h-0.5 rounded-full bg-white/30 animate-pulse" style="top:50%;right:7%;animation-delay:1.8s;"></div>
+        <!-- 小气泡 -->
+        <div class="absolute w-2 h-2 rounded-full border border-white/10 bg-white/[0.03] animate-float" style="top:28%;left:15%;animation-delay:1.2s;"></div>
+        <div class="absolute w-3 h-3 rounded-full border border-white/10 bg-white/[0.02] animate-float" style="top:72%;left:25%;animation-delay:2.5s;"></div>
+        <div class="absolute w-2 h-2 rounded-full border border-white/10 bg-white/[0.03] animate-float" style="top:38%;right:18%;animation-delay:0.8s;"></div>
+        <!-- 文字气泡 -->
+        <div class="absolute text-[10px] text-white/35 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-lg animate-float" style="top:18%;right:28%;animation-delay:1.5s;">v9.0</div>
+        <div class="absolute text-[10px] text-white/35 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-lg animate-float" style="top:52%;left:22%;animation-delay:3s;">AI</div>
+        <div class="absolute text-[10px] text-white/30 bg-white/[0.04] border border-white/[0.06] px-1.5 py-0.5 rounded-md animate-float" style="top:82%;right:25%;animation-delay:2.2s;">✨</div>
       </div>
       <!-- 标题 -->
       <div class="relative z-[2] text-center mb-8">
@@ -547,7 +596,11 @@
       </div>
       <!-- 卡片容器 -->
       <div class="relative z-[2] flex justify-center items-end pb-16 pt-5">
-        <div class="flex items-end justify-center" id="heroCards">
+        <!-- 背景大字母装饰 -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" style="z-index:0;">
+          <span style="font-size:280px;font-weight:900;color:rgba(255,255,255,0.03);letter-spacing:-0.05em;font-family:Inter,sans-serif;user-select:none;white-space:nowrap;">POTENTIAL</span>
+        </div>
+        <div class="flex items-end justify-center relative" id="heroCards" style="z-index:1;">
           <!-- 由内联 JS 渲染 -->
         </div>
       </div>
@@ -1008,142 +1061,216 @@
 
   // 生成每张卡片的3D破框元素 - 按用户要求定制版
   function getCard3DElement(idx, isCenter) {
-    var animalTypes = ['owl', 'bird', 'whale', 'cow', 'fox'];
-    var animalType = animalTypes[idx % 5];
-    var size = isCenter ? 120 : 100;
+    var characterImages = ['cloud', 'robot', 'planet', 'sunflower', 'heart'];
+    var imageName = characterImages[idx % 5];
+    var size = isCenter ? 200 : 180;
     
-    // 3D动物容器 - 放在卡片中间偏下，确保可见
-    return '<div class="card-animal-container" data-animal="' + animalType + '" data-size="' + size + '" 
-      style="position:absolute;bottom:15px;left:50%;transform:translateX(-50%);width:' + size + 'px;height:' + size + 'px;z-index:100;pointer-events:none;display:block;"></div>';
+    return '<img src="/static/images/3d-characters/' + imageName + '.png" class="card-3d-image" data-character="' + imageName + '" style="position:absolute;bottom:-55px;right:-45px;width:' + size + 'px;height:' + size + 'px;z-index:100;pointer-events:none;display:block;object-fit:contain;background:transparent !important;filter:drop-shadow(0 18px 35px rgba(0,0,0,0.5));transition:transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);">';
   }
 
-  // 初始化所有卡片的3D动物
-  function initCard3DAnimals() {
-    if (typeof create3DAnimal === 'undefined' || typeof THREE === 'undefined') {
-      setTimeout(initCard3DAnimals, 200);
-      return;
-    }
-    
-    var containers = document.querySelectorAll('#heroCards [data-animal]');
-    
-    containers.forEach(function(container, idx) {
-      if (container.dataset.initialized) return;
-      container.dataset.initialized = 'true';
-      
-      var animalType = container.dataset.animal;
-      var size = parseInt(container.dataset.size) || 100;
-      
-      try {
-        create3DAnimal(container, animalType, { width: size, height: size, scale: 1.5 });
-      } catch(e) {
-        console.error('3D动物初始化失败:', animalType, e);
-      }
-    });
-  }
+  // 3D角色使用图片，无需JS初始化
 
-  // 初始化所有卡片的3D动物
-  function initCard3DAnimals() {
-    if (typeof create3DAnimal === 'undefined' || typeof THREE === 'undefined') {
-      console.log('[3D动物] 等待JS加载...', typeof create3DAnimal, typeof THREE);
-      setTimeout(initCard3DAnimals, 200);
-      return;
-    }
-    
-    var containers = document.querySelectorAll('#heroCards [data-animal]');
-    console.log('[3D动物] 找到容器数量:', containers.length);
-    
-    containers.forEach(function(container, idx) {
-      if (container.dataset.initialized) return;
-      container.dataset.initialized = 'true';
-      
-      var animalType = container.dataset.animal;
-      var size = parseInt(container.dataset.size) || 85;
-      
-      console.log('[3D动物] 初始化:', idx, animalType, size);
-      
-      try {
-        create3DAnimal(container, animalType, { width: size, height: size, scale: 1.3 });
-        console.log('[3D动物] 初始化成功:', animalType);
-      } catch(e) {
-        console.error('[3D动物] 初始化失败:', animalType, e);
-      }
-    });
-  }
 
-  // 初始化所有卡片的3D动物
-  function initCard3DAnimals() {
-    if (typeof create3DAnimal === 'undefined') {
-      setTimeout(initCard3DAnimals, 200);
-      return;
-    }
-    
-    var containers = document.querySelectorAll('#heroCards [data-animal]');
-    containers.forEach(function(container) {
-      if (container.dataset.initialized) return;
-      container.dataset.initialized = 'true';
-      
-      var animalType = container.dataset.animal;
-      var size = parseInt(container.dataset.size) || 75;
-      
-      try {
-        create3DAnimal(container, animalType, { width: size, height: size, scale: 1.2 });
-      } catch(e) {
-        console.warn('3D动物初始化失败:', animalType, e);
-      }
-    });
-  }
 
   function renderHeroCards() {
+    console.log('[renderHeroCards] 开始执行');
     var wrap = document.getElementById('heroCards');
-    var moreList = document.getElementById('heroMoreList');
-    if (!wrap) return;
+    console.log('[renderHeroCards] heroCards元素:', wrap);
+    if (!wrap) { console.error('[renderHeroCards] heroCards不存在！'); return; }
 
-    // 直接定义五张主要工具（不依赖tools-grid）
+    // 直接定义五张主要工具
     var mainTools = [
-      { name: 'CR 智能分析', url: '/cr-analysis', desc: '智能分析CR数据' },
-      { name: '邮件助手', url: '/email-assistant', desc: 'AI邮件起草发送' },
-      { name: '智能知识库', url: '/knowledge-base', desc: '智能问答与检索' },
-      { name: '牛马笔记', url: '/notes', desc: '高效项目笔记' },
-      { name: '研发知识图谱', url: '/knowledge-graph', desc: '知识关联与推荐' }
+      { name: 'CR 智能分析', url: '/cr-analysis' },
+      { name: '邮件助手', url: '/email-assistant' },
+      { name: '智能知识库', url: '/knowledge-base' },
+      { name: '牛马笔记', url: '/notes' },
+      { name: '研发知识图谱', url: '/knowledge-graph' }
     ];
 
-    var isCenter = [false, false, true, false, false];
+    var cardColors = ['#c4b5fd', '#f9a8d4', '#93c5fd', '#86efac', '#a5b4fc'];
 
-    // 渲染主要工具卡片
+    // 渲染卡片 - 简化版，确保可见
     wrap.innerHTML = '';
+    wrap.style.display = 'flex';
+    wrap.style.justifyContent = 'center';
+    wrap.style.alignItems = 'flex-end';
+    wrap.style.gap = '2px';
+    
     mainTools.forEach(function(t, idx) {
       var card = document.createElement('a');
-      var center = isCenter[idx % 5];
-      card.className = 'relative block rounded-[28px] cursor-pointer transition-all duration-300 ease-out no-underline w-[175px] h-[235px] ' +
-        'shadow-[0_12px_40px_rgba(0,0,0,0.2),0_30px_80px_rgba(0,0,0,0.15)] ' +
-        'hover:shadow-[0_20px_50px_rgba(0,0,0,0.3),0_50px_120px_rgba(0,0,0,0.2)] ' +
-        (idx > 0 ? '-ml-6' : '');
-      card.style.transformOrigin = 'bottom center';
       card.href = t.url;
-      card.style.transform = fanTransforms[idx % 5];
-      card.style.background = CARD_GRADIENTS[idx % 5];
-      card.style.zIndex = cardZIndex[idx % 5];
+      card.style.display = 'block';
+      card.style.width = '160px';
+      card.style.height = '220px';
+      card.style.borderRadius = '28px';
+      var gradients = [
+  'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 50%, #a78bfa 100%)',
+  'linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 50%, #f472b6 100%)',
+  'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 50%, #60a5fa 100%)',
+  'linear-gradient(135deg, #bbf7d0 0%, #86efac 50%, #4ade80 100%)',
+  'linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 50%, #818cf8 100%)'
+];
+card.style.background = gradients[idx % 5];
+      card.style.position = 'relative';
+      card.style.cursor = 'pointer';
+      card.style.textDecoration = 'none';
+      // 更柔和的多层阴影，添加同色系光晕
+var shadowColors = ['rgba(167,139,250,0.15)', 'rgba(244,114,182,0.15)', 'rgba(96,165,250,0.15)', 'rgba(74,222,128,0.15)', 'rgba(129,140,248,0.15)'];
+card.style.boxShadow = '0 25px 60px rgba(0,0,0,0.35), 0 10px 25px rgba(0,0,0,0.2), 0 0 40px ' + shadowColors[idx % 5] + ', inset 0 1px 0 rgba(255,255,255,0.2)';
+      card.style.transition = 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      // 扇形排列：中间最高，两边依次下沉，带旋转角度
+      var offsets = [28, 8, -32, 8, 28];
+      var rotations = [-8, -4, 0, 4, 8];
+      var zIndexes = [6, 8, 10, 8, 6];
+      card.style.transform = 'translateY(' + offsets[idx] + 'px) rotate(' + rotations[idx] + 'deg)';
+      card.style.zIndex = zIndexes[idx];
+      card.style.transformOrigin = 'center bottom';
       
-      // 3D动物HTML
-      var card3dHTML = getCard3DElement(idx % 5, center);
-
-      card.innerHTML =
-        '<div class="absolute inset-0 rounded-[28px] overflow-hidden">' +
-        '<div class="absolute inset-0" style="background:linear-gradient(135deg,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0.1) 40%,transparent 60%)"></div>' +
-        '<div class="absolute top-0 left-0 right-0 h-[2px]" style="background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)"></div>' +
-        '</div>' +
-        '<div class="absolute inset-0 flex items-start justify-start pt-5 pl-5">' +
-        '<span class="text-[#1e293b] text-[17px] font-quicksand font-bold tracking-[0.3px] text-left relative z-[1] leading-tight" style="text-shadow:0 1px 3px rgba(255,255,255,0.5);max-width:110px;">' + t.name + '</span>' +
+      // 卡片内容
+      var card3dHTML = getCard3DElement(idx % 5, idx === 2);
+      card.innerHTML = 
+        // 顶部高光（模拟光照）
+        '<div style="position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0) 100%);border-radius:28px 28px 0 0;pointer-events:none;z-index:5;"></div>' +
+        // 内边框（增加质感）
+        '<div style="position:absolute;inset:0;border-radius:28px;border:1px solid rgba(255,255,255,0.3);box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 -1px 0 rgba(0,0,0,0.1);pointer-events:none;z-index:6;"></div>' +
+        // 底部反光（模拟环境光反射）
+        '<div style="position:absolute;bottom:0;left:10%;right:10%;height:30%;background:linear-gradient(0deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0) 100%);border-radius:0 0 28px 28px;pointer-events:none;z-index:4;"></div>' +
+        // 标题区域
+        '<div style="position:absolute;top:18px;left:20px;right:20px;z-index:10;">' +
+        '<div style="font-size:11px;font-weight:600;color:rgba(30,41,59,0.65);font-family:Inter,Quicksand,sans-serif;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">' + (idx === 2 ? 'Featured' : 'Tool') + '</div>' +
+        '<div style="font-size:17px;font-weight:700;color:#1e293b;font-family:Inter,Quicksand,sans-serif;letter-spacing:-0.02em;text-shadow:0 1px 2px rgba(255,255,255,0.4);line-height:1.2;">' + t.name + '</div>' +
         '</div>' +
         card3dHTML;
+      
       wrap.appendChild(card);
+      console.log('[renderHeroCards] 已添加卡片:', idx, t.name);
     });
 
-    bindHover();
+    console.log('[renderHeroCards] 卡片渲染完成，共', mainTools.length, '张');
     
     // 初始化3D动物
-    setTimeout(initCard3DAnimals, 200);
-  }
+    // 3D角色图片直接渲染，无需初始化
+  
+    // 渲染其他工具列表
+    var moreList = document.getElementById('heroMoreList');
+    if (moreList) {
+      var otherTools = [
+        { name: '🤖 AI Agent', url: '/agent', group: 'V9.0新功能' },
+        { name: '📊 项目助手', url: '/project-assistant', group: 'V9.0新功能' },
+        { name: '🔔 智能预警', url: '/alerts', group: 'V9.0新功能' },
+        { name: '📈 Excel分析', url: '/excel-analysis', group: '研发效能' },
+        { name: '🐛 Bug趋势', url: '/bug-trend', group: '研发效能' },
+        { name: '🏷️ 标签筛选', url: '/label-filter', group: '研发效能' },
+        { name: '📝 日志分析', url: '/log-analyzer', group: '研发效能' },
+        { name: '📅 每日站会', url: '/daily-standup', group: '研发效能' },
+        { name: '📋 周报', url: '/weekly-report', group: '研发效能' },
+        { name: '✅ 发布检查', url: '/release-checklist', group: '研发效能' },
+        { name: '🧪 测试报告', url: '/test-report', group: '研发效能' },
+        { name: '💬 智能知识库', url: '/knowledge-base', group: 'AI助手' },
+        { name: '📝 牛马笔记', url: '/notes', group: 'AI助手' },
+        { name: '🔗 研发知识图谱', url: '/knowledge-graph', group: 'AI助手' },
+        { name: '📊 AI报告', url: '/ai-reports', group: 'AI助手' },
+        { name: '🎙️ 会议纪要', url: '/meeting-minutes', group: 'AI助手' },
+        { name: '📐 HLD生成', url: '/hld-generator', group: 'AI助手' },
+        { name: '📋 计划生成', url: '/plan-generator', group: 'AI助手' },
+        { name: '🌐 翻译器', url: '/translator', group: 'AI助手' },
+        { name: '📊 数据看板', url: '/dashboard', group: '数据分析' },
+        { name: '📈 数据可视化', url: '/data-viz', group: '数据分析' },
+        { name: '📉 MTTF看板', url: '/mttf-dashboard', group: '数据分析' },
+        { name: '📧 邮件助手', url: '/email-assistant', group: '团队协作' },
+        { name: '👥 团队', url: '/teams', group: '团队协作' },
+        { name: '💼 工作区', url: '/workspaces', group: '团队协作' },
+        { name: '📊 我的活动', url: '/my-activity', group: '团队协作' },
+        { name: '🔌 数据源', url: '/data-sources', group: '团队协作' },
+        { name: '⚙️ 设置', url: '/settings', group: '团队协作' }
+      ];
+
+      // 按分组渲染
+      var groups = {};
+      otherTools.forEach(function(t) {
+        if (!groups[t.group]) groups[t.group] = [];
+        groups[t.group].push(t);
+      });
+
+      var groupColors = {
+        'V9.0新功能': 'border-purple-500/30 bg-purple-500/10 text-purple-300',
+        '研发效能': 'border-blue-500/30 bg-blue-500/10 text-blue-300',
+        'AI助手': 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+        '数据分析': 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+        '团队协作': 'border-pink-500/30 bg-pink-500/10 text-pink-300'
+      };
+
+      moreList.innerHTML = '';
+      moreList.style.display = 'flex';
+      moreList.style.flexDirection = 'column';
+      moreList.style.gap = '24px';
+      moreList.style.alignItems = 'center';
+
+      Object.keys(groups).forEach(function(groupName) {
+        var groupDiv = document.createElement('div');
+        groupDiv.style.width = '100%';
+        groupDiv.style.maxWidth = '800px';
+        
+        var title = document.createElement('div');
+        title.style.fontSize = '12px';
+        title.style.fontWeight = '600';
+        title.style.color = 'rgba(255,255,255,0.5)';
+        title.style.textTransform = 'uppercase';
+        title.style.letterSpacing = '0.1em';
+        title.style.marginBottom = '10px';
+        title.style.textAlign = 'center';
+        title.textContent = groupName;
+        groupDiv.appendChild(title);
+
+        var toolsDiv = document.createElement('div');
+        toolsDiv.style.display = 'flex';
+        toolsDiv.style.flexWrap = 'wrap';
+        toolsDiv.style.justifyContent = 'center';
+        toolsDiv.style.gap = '8px';
+
+        groups[groupName].forEach(function(t) {
+          var link = document.createElement('a');
+          link.href = t.url;
+          link.textContent = t.name;
+          link.style.display = 'inline-block';
+          link.style.padding = '8px 16px';
+          link.style.borderRadius = '9999px';
+          link.style.fontSize = '13px';
+          link.style.fontWeight = '500';
+          link.style.textDecoration = 'none';
+          link.style.border = '1px solid rgba(255,255,255,0.1)';
+          link.style.background = 'rgba(255,255,255,0.05)';
+          link.style.color = 'rgba(255,255,255,0.7)';
+          link.style.transition = 'all 0.2s ease';
+          link.style.cursor = 'pointer';
+          
+          // V9.0新功能高亮
+          if (groupName === 'V9.0新功能') {
+            link.style.border = '1px solid rgba(168,85,247,0.3)';
+            link.style.background = 'rgba(168,85,247,0.1)';
+            link.style.color = 'rgba(216,180,254,0.9)';
+          }
+          
+          link.onmouseenter = function() {
+            this.style.background = 'rgba(255,255,255,0.1)';
+            this.style.color = 'rgba(255,255,255,0.95)';
+            this.style.transform = 'translateY(-2px)';
+          };
+          link.onmouseleave = function() {
+            this.style.background = groupName === 'V9.0新功能' ? 'rgba(168,85,247,0.1)' : 'rgba(255,255,255,0.05)';
+            this.style.color = groupName === 'V9.0新功能' ? 'rgba(216,180,254,0.9)' : 'rgba(255,255,255,0.7)';
+            this.style.transform = 'translateY(0)';
+          };
+          
+          toolsDiv.appendChild(link);
+        });
+
+        groupDiv.appendChild(toolsDiv);
+        moreList.appendChild(groupDiv);
+      });
+
+      console.log('[renderHeroCards] 其他工具渲染完成，共', otherTools.length, '个工具');
+    }}
 
   function bindHover() {
     var wrap = document.getElementById('heroCards');
@@ -1152,11 +1279,12 @@
     if (!cards.length) return;
 
     // 邻位让位的transform：translateX必须在rotate前面，否则会沿旋转轴移动
-    function getNeighborTransform(i, direction) {
+        function getNeighborTransform(i, direction) {
       var base = fanTransforms[i % 5];
-      var offset = direction === 'left' ? 'translateX(-32px) ' : 'translateX(32px) ';
-      // 把translateX插入到最前面
-      return offset + base;
+      var distance = direction === 'left' ? -40 : 40;
+      var scale = 0.96;
+      // 邻位让位：向左右移动40px，略微缩小，增加层次感
+      return 'translateX(' + distance + 'px) scale(' + scale + ') ' + base;
     }
 
     function resetAll() {
@@ -1172,10 +1300,10 @@
         e.stopPropagation();
         cards.forEach(function(c, i) {
           if (i === idx) {
-            c.style.transform = 'translateY(-28px) scale(1.08)';
+            c.style.transform = 'translateY(-35px) scale(1.12)';
             c.style.transformOrigin = 'bottom center';
             c.style.zIndex = '100';
-            c.style.boxShadow = '0 24px 48px rgba(0,0,0,0.35), 0 60px 140px rgba(0,0,0,0.5), 0 0 50px rgba(139,92,246,0.2)';
+            c.style.boxShadow = '0 35px 70px rgba(0,0,0,0.4), 0 100px 200px rgba(0,0,0,0.5), 0 0 80px ' + shadowColors[idx % 5].replace('0.15', '0.4') + ', inset 0 1px 0 rgba(255,255,255,0.3)';
           } else if (i < idx) {
             c.style.transform = getNeighborTransform(i, 'left');
             c.style.zIndex = '10';

@@ -4,14 +4,80 @@
 html, body {
   background: #0D0E12 !important;
   color: #F5F5F7 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* ========== 全局去掉左右留白，内容铺满整个屏幕 ========== */
+body .container,
+body .container-fluid,
+body .wrap,
+body .wrapper,
+body .main,
+body .main-content,
+body .content,
+body .page,
+body .page-content,
+body .app,
+body .app-content,
+body .dashboard,
+body .dashboard-content,
+body .tool-page,
+body .tool-content,
+body .pa-wrap,
+body .pa-container,
+body .pa-main,
+body .kb-container,
+body .kb-main,
+body .notes-container,
+body .notes-main,
+body .kg-container,
+body .kg-main,
+body .email-container,
+body .email-main {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* Hero区域和结果区域铺满 */
+body .pa-hero,
+body .pa-result,
+body .hero,
+body .result,
+body .content-area,
+body .main-area {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  max-width: 100% !important;
+}
+
+/* 网格和卡片间距优化 */
+body .pa-stats,
+body .stats-grid,
+body .kpi-grid,
+body .card-grid {
+  gap: 10px !important;
+}
+
+body .pa-grid,
+body .grid,
+body .grid-2,
+body .grid-3,
+body .grid-4 {
+  gap: 12px !important;
 }
 
 /* 使用ID选择器强制覆盖导航栏 */
 #ptNavBar.pt-nav-bar {
-  background: rgba(26, 29, 36, 0.92) !important;
+  background: rgba(13, 14, 18, 0.95) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 #ptNavBar .pt-nav-icon-btn {
   color: rgba(255, 255, 255, 0.75) !important;
@@ -118,29 +184,50 @@ body #ptSkillsContainer {
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-/* 强制覆盖所有白色背景元素 */
+/* 强制覆盖所有白色背景元素 - 更全面 */
 body [style*="background:#fff"],
 body [style*="background: #fff"],
 body [style*="background-color:#fff"],
-body [style*="background-color: #fff"] {
-  background: rgba(26, 29, 36, 0.95) !important;
+body [style*="background-color: #fff"],
+body [style*="background:white"],
+body [style*="background: white"] {
+  background: rgba(13, 14, 18, 0.98) !important;
 }
 body [style*="background:#f5f5f7"],
-body [style*="background: #f5f5f7"] {
-  background: rgba(255, 255, 255, 0.08) !important;
+body [style*="background: #f5f5f7"],
+body [style*="background:#fafafa"],
+body [style*="background: #fafafa"],
+body [style*="background:#f0f0f0"],
+body [style*="background: #f0f0f0"] {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 body [style*="color:#1d1d1f"],
-body [style*="color: #1d1d1f"] {
+body [style*="color: #1d1d1f"],
+body [style*="color:#000"],
+body [style*="color: #000"],
+body [style*="color:#333"],
+body [style*="color: #333"] {
   color: rgba(255, 255, 255, 0.9) !important;
 }
 body [style*="color:#86868b"],
-body [style*="color: #86868b"] {
+body [style*="color: #86868b"],
+body [style*="color:#666"],
+body [style*="color: #666"],
+body [style*="color:#999"],
+body [style*="color: #999"] {
   color: rgba(255, 255, 255, 0.5) !important;
 }
 body [style*="border:1px solid #f0f0f0"],
 body [style*="border:1px solid #e5e5e7"],
-body [style*="border:1px solid #e0e0e0"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+body [style*="border:1px solid #e0e0e0"],
+body [style*="border:1px solid #ddd"] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 强制覆盖所有div的白色背景 */
+body div[style*="background:#fff"],
+body div[style*="background: #fff"] {
+  background: rgba(13, 14, 18, 0.98) !important;
 }
 </style>
 <!-- 页面过渡动画 - 防止白屏，提升丝滑度 -->
@@ -272,10 +359,10 @@ body [style*="border:1px solid #e0e0e0"] {
 {% endif %}
 
 <!-- 同步详情面板 -->
-<div id="ptSyncPanel" style="display:none;position:fixed;top:56px;right:16px;width:280px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:99998;overflow:hidden;border:1px solid #f0f0f0;">
+<div id="ptSyncPanel" style="display:none;position:fixed;top:56px;right:16px;width:280px;background:#0D0E12;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:99998;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
     <div style="padding:16px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:15px;font-weight:600;color:#1d1d1f;">同步状态</span>
-        <span id="ptSyncPanelStatus" style="font-size:12px;color:#86868b;">检查中...</span>
+        <span style="font-size:15px;font-weight:600;color:#fff;">同步状态</span>
+        <span id="ptSyncPanelStatus" style="font-size:12px;color:rgba(255,255,255,0.5);">检查中...</span>
     </div>
     <div style="padding:14px 18px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -299,21 +386,21 @@ body [style*="border:1px solid #e0e0e0"] {
 
 <!-- 全局搜索弹窗 -->
 <div id="ptSearchOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99998;justify-content:center;align-items:flex-start;padding-top:15vh;">
-    <div style="background:#fff;border-radius:16px;width:90%;max-width:640px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;max-height:70vh;display:flex;flex-direction:column;">
+    <div style="background:#0D0E12;border-radius:16px;width:90%;max-width:640px;box-shadow:0 20px 60px rgba(0,0,0,0.6);overflow:hidden;max-height:70vh;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,0.1);">
         <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #f0f0f0;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#86868b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" id="ptSearchInput" placeholder="搜索笔记、CR数据、图表模板..." style="flex:1;border:none;outline:none;font-size:16px;font-family:inherit;background:none;color:#1d1d1f;" autocomplete="off">
+            <input type="text" id="ptSearchInput" placeholder="搜索笔记、CR数据、图表模板..." style="flex:1;border:none;outline:none;font-size:16px;font-family:inherit;background:none;color:#fff;" autocomplete="off">
             <button onclick="PTSearch.close()" style="background:none;border:none;font-size:13px;color:#86868b;cursor:pointer;padding:4px 8px;border-radius:6px;" onmouseover="this.style.background='#f5f5f7'" onmouseout="this.style.background='none'">ESC</button>
         </div>
         <div id="ptSearchResults" style="overflow-y:auto;flex:1;padding:8px 0;">
-            <div style="text-align:center;padding:40px 20px;color:#86868b;font-size:14px;">输入关键词搜索你的笔记、CR 分析数据和图表模板</div>
+            <div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.5);font-size:14px;">输入关键词搜索你的笔记、CR 分析数据和图表模板</div>
         </div>
     </div>
 </div>
 
 <!-- 用户信息编辑弹窗 -->
 <div id="ptUserModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;justify-content:center;align-items:center;">
-    <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+    <div style="background:#0D0E12;border-radius:16px;padding:24px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.6);max-height:90vh;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h3 style="font-size:18px;font-weight:600;margin:0;">编辑个人信息</h3>
             <button onclick="PTNav.closeUserModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">×</button>
@@ -333,20 +420,20 @@ body [style*="border:1px solid #e0e0e0"] {
         </div>
         <div style="margin-bottom:14px;">
             <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">昵称</label>
-            <input type="text" id="ptModalNickname" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="显示在导航栏的昵称">
+            <input type="text" id="ptModalNickname" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:rgba(255,255,255,0.05);color:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="显示在导航栏的昵称">
         </div>
         <div style="margin-bottom:14px;">
             <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">用户名</label>
-            <input type="text" id="ptModalName" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="请输入用户名">
+            <input type="text" id="ptModalName" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:rgba(255,255,255,0.05);color:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="请输入用户名">
         </div>
         <div style="display:flex;gap:10px;margin-bottom:14px;">
             <div style="flex:1;">
                 <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">部门</label>
-                <input type="text" id="ptModalDepartment" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="如：研发部">
+                <input type="text" id="ptModalDepartment" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:rgba(255,255,255,0.05);color:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'" placeholder="如：研发部">
             </div>
             <div style="flex:1;">
                 <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">角色</label>
-                <select id="ptModalRole" style="width:100%;padding:9px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
+                <select id="ptModalRole" style="width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:14px;outline:none;transition:border-color 0.2s;box-sizing:border-box;background:rgba(255,255,255,0.05);color:#fff;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
                     <option value="member">普通成员</option>
                     <option value="leader">团队负责人</option>
                     <option value="admin">管理员</option>
@@ -360,14 +447,14 @@ body [style*="border:1px solid #e0e0e0"] {
         </div>
         <div style="margin-bottom:20px;">
             <label style="display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:500;">技能标签</label>
-            <div id="ptSkillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid #e0e0e0;border-radius:8px;min-height:42px;"></div>
+            <div id="ptSkillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid rgba(255,255,255,0.15);border-radius:8px;min-height:42px;background:rgba(255,255,255,0.05);"></div>
             <div style="display:flex;gap:6px;margin-top:6px;">
                 <input type="text" id="ptSkillInput" placeholder="输入技能后回车添加，如：Python" style="flex:1;padding:7px 10px;border:1px solid #e0e0e0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#333'" onblur="this.style.borderColor='#e0e0e0'">
                 <button onclick="PTNav.addSkill()" style="padding:7px 14px;background:#000;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">添加</button>
             </div>
         </div>
         <div style="display:flex;gap:10px;">
-            <button onclick="PTNav.closeUserModal()" style="flex:1;padding:10px;border:1px solid #e0e0e0;border-radius:10px;background:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#f5f5f7'" onmouseout="this.style.background='#fff'">取消</button>
+            <button onclick="PTNav.closeUserModal()" style="flex:1;padding:10px;border:1px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(255,255,255,0.05);color:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#f5f5f7'" onmouseout="this.style.background='#fff'">取消</button>
             <button onclick="PTNav.saveUserProfile()" id="ptSaveProfileBtn" style="flex:1;padding:10px;border:none;border-radius:10px;background:#000;color:#fff;font-size:14px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">保存</button>
         </div>
     </div>

@@ -661,24 +661,25 @@
     }
     /* ========== 去掉两侧留白，内容铺满整个宽度 ========== */
     .pa-wrap {
-      padding: 20px 0 48px !important;
+      padding: 16px 0 40px !important;
       max-width: 100% !important;
+      width: 100% !important;
     }
-    /* Hero区域保持居中，但去掉左右限制 */
+    /* Hero区域完全铺满，去掉左右留白 */
     .pa-hero {
-      padding: 0 24px !important;
+      padding: 0 12px !important;
     }
-    /* 结果区域铺满 */
+    /* 结果区域完全铺满 */
     .pa-result {
-      padding: 0 24px !important;
+      padding: 0 12px !important;
     }
     /* KPI卡片区域铺满 */
     .pa-stats {
-      gap: 12px !important;
+      gap: 10px !important;
     }
     /* 网格布局铺满 */
     .pa-grid {
-      gap: 16px !important;
+      gap: 12px !important;
     }
     /* ========== v2.3 列表Hover增强 + 图表样式 ========== */
 
@@ -716,9 +717,79 @@
       background: transparent !important;
     }
 
-    /* 3. 图例样式优化 */
+        /* 3. 图例样式优化 */
     .pa-chart-box .chartjs-render-monitor {
       max-height: 280px !important;
+    }
+    
+    /* ========== 5. Bot气泡白色背景深色文字修复 ========== */
+    .pa-msg.bot .pa-bubble {
+      background: #ffffff !important;
+      color: #1d1d1f !important;
+      border: 1px solid #e8e8ea !important;
+    }
+    .pa-msg.bot .pa-bubble p,
+    .pa-msg.bot .pa-bubble li,
+    .pa-msg.bot .pa-bubble span,
+    .pa-msg.bot .pa-bubble div {
+      color: #1d1d1f !important;
+    }
+    .pa-msg.bot .pa-bubble h1,
+    .pa-msg.bot .pa-bubble h2,
+    .pa-msg.bot .pa-bubble h3,
+    .pa-msg.bot .pa-bubble h4,
+    .pa-msg.bot .pa-bubble h5,
+    .pa-msg.bot .pa-bubble h6 {
+      color: #1d1d1f !important;
+    }
+    .pa-msg.bot .pa-bubble strong {
+      color: #000000 !important;
+    }
+    .pa-msg.bot .pa-bubble em {
+      color: #555555 !important;
+    }
+    .pa-msg.bot .pa-bubble a {
+      color: #0071e3 !important;
+    }
+    .pa-msg.bot .pa-bubble table {
+      color: #1d1d1f !important;
+      border: 1px solid #e8e8ea !important;
+    }
+    .pa-msg.bot .pa-bubble th {
+      color: #1d1d1f !important;
+      background: #f5f5f7 !important;
+      border-bottom: 1px solid #e0e0e3 !important;
+    }
+    .pa-msg.bot .pa-bubble td {
+      color: #3a3a3c !important;
+      border-bottom: 1px solid #f0f0f2 !important;
+    }
+    .pa-msg.bot .pa-bubble tr:nth-child(even) td {
+      background: #fafafa !important;
+    }
+    .pa-msg.bot .pa-bubble blockquote {
+      color: #555555 !important;
+      border-left: 3px solid #0071e3 !important;
+      background: #f5f5f7 !important;
+    }
+    .pa-msg.bot .pa-bubble code {
+      color: #c00 !important;
+      background: #f0f0f2 !important;
+    }
+    .pa-msg.bot .pa-bubble pre {
+      background: #f5f5f7 !important;
+      border: 1px solid #e8e8ea !important;
+    }
+    .pa-msg.bot .pa-bubble pre code {
+      color: #1d1d1f !important;
+      background: none !important;
+    }
+    .pa-msg.bot .pa-bubble ul,
+    .pa-msg.bot .pa-bubble ol {
+      color: #1d1d1f !important;
+    }
+    .pa-msg.bot .pa-bubble li::marker {
+      color: #1d1d1f !important;
     }</style>
 </head>
 <body>
@@ -766,13 +837,23 @@
         </div>
       </div>
 
-      <!-- 概览卡片 -->
-      <div class="pa-stat-grid pa-overview">
-        <div class="pa-stat pa-glass accent"><div class="v" id="paStatTotal">–</div><div class="k">CR 总数</div></div>
-        <div class="pa-stat pa-glass orange"><div class="v" id="paStatUnresolved">–</div><div class="k">未解决</div></div>
-        <div class="pa-stat pa-glass red"><div class="v" id="paStatBC">–</div><div class="k">未解决 BC（Blocker+Critical）</div></div>
-        <div class="pa-stat pa-glass red"><div class="v" id="paStatFail">–</div><div class="k">FAIL 模块</div></div>
-        <div class="pa-stat pa-glass green"><div class="v" id="paStatPass">–</div><div class="k">PASS 模块</div></div>
+      <!-- 概览卡片（含健康度评分） -->
+      <div class="pa-stat-grid pa-overview pa-overview-with-health">
+        <!-- 健康度评分卡片 -->
+        <div class="pa-stat pa-glass pa-health-stat">
+          <div class="pa-health-mini-ring" id="paHealthMiniRing"></div>
+          <div class="v pa-health-num" id="paHealthScore">–</div>
+          <div class="pa-health-status-inline" id="paHealthStatus">–</div>
+          <div class="k">项目健康度</div>
+        </div>
+        <div class="pa-stat pa-glass accent">
+          <div class="pa-stat-trend" id="paTrendTotal"></div>
+          <div class="v" id="paStatTotal">–</div><div class="k">CR 总数</div>
+        </div>
+        <div class="pa-stat pa-glass orange"><div class="pa-stat-trend" id="paTrendUnresolved"></div><div class="v" id="paStatUnresolved">–</div><div class="k">未解决</div></div>
+        <div class="pa-stat pa-glass red"><div class="pa-stat-trend" id="paTrendBC"></div><div class="v" id="paStatBC">–</div><div class="k">未解决 BC（Blocker+Critical）</div></div>
+        <div class="pa-stat pa-glass red"><div class="pa-stat-trend" id="paTrendFail"></div><div class="v" id="paStatFail">–</div><div class="k">FAIL 模块</div></div>
+        <div class="pa-stat pa-glass green"><div class="pa-stat-trend" id="paTrendPass"></div><div class="v" id="paStatPass">–</div><div class="k">PASS 模块</div></div>
       </div>
 
       <!-- 上排：趋势 + 模块表 -->
@@ -789,7 +870,13 @@
         </div>
 
         <div class="pa-card pa-glass pa-mod-card">
-          <h3>模块状态（FAIL 优先，点击展开 Top BC 单）</h3>
+          <h3>模块状态（FAIL 优先，点击展开 Top BC 单）
+            <span class="pa-sort-btns">
+              <button class="pa-sort-btn on" data-sort="fail">按状态</button>
+              <button class="pa-sort-btn" data-sort="bc">按BC数</button>
+              <button class="pa-sort-btn" data-sort="name">按名称</button>
+            </span>
+          </h3>
           <div class="pa-table-tools">
             <input id="paModFilter" type="text" placeholder="筛选模块名称…" />
             <select class="pa-filter-select" id="paModStatus">
@@ -813,6 +900,10 @@
             <button class="pa-chip" data-q="当前风险最高的 5 个模块是什么？各自的 Top 问题和单号？">风险最高模块</button>
             <button class="pa-chip" data-q="把项目状态总结成适合同步到牛马笔记的 Markdown，只保留 FAIL 模块及其 BC 单">生成牛马笔记</button>
             <button class="pa-chip" data-q="近 14 天的新增 / 解决趋势如何？本周质量是在变好还是变差？">近期趋势判断</button>
+            <button class="pa-chip" data-q="列出所有 Critical 级别的未解决问题，按严重度排序">Critical问题</button>
+            <button class="pa-chip" data-q="哪些问题是用户无法忍受影响使用的功能性问题？列出Top10">无法忍受问题</button>
+            <button class="pa-chip" data-q="列出所有带有blocker标签的问题，这些是影响过点的关键问题">影响过点问题</button>
+            <button class="pa-chip" data-q="按经办人统计未解决问题数量，谁的问题最多？">经办人统计</button>
           </div>
           <button class="pa-clear-btn" id="paClearChat" title="清空对话记录">清空</button>
         </div>

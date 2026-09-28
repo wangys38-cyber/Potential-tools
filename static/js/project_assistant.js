@@ -215,6 +215,12 @@
     $('paStatBC').textContent = st.bc_unresolved != null ? st.bc_unresolved : '–';
     $('paStatFail').textContent = st.fail != null ? st.fail : '–';
     $('paStatPass').textContent = st.pass != null ? st.pass : '–';
+    
+    // 计算项目健康度评分
+    renderHealthScore(st, snap);
+    
+    // 计算KPI趋势（对比近7天数据）
+    renderKPITrends(st, snap);
 
     renderModules();
     renderChart();
@@ -222,6 +228,186 @@
     loadAutoRefreshStatus();
   }
 
+  /* ---------------- 项目健康度评分 ---------------- */
+  function renderHealthScore(st, snap) {
+    var total = st.total != null ? st.total : 0;
+    var unresolved = st.unresolved != null ? st.unresolved : 0;
+    var bc = st.bc_unresolved != null ? st.bc_unresolved : 0;
+    var fail = st.fail != null ? st.fail : 0;
+    var pass = st.pass != null ? st.pass : 0;
+    var totalModules = fail + pass;
+    
+    // 健康度评分算法（0-100分）
+    var score = 100;
+    
+    // 1. BC（Blocker+Critical）扣分：每个BC扣5分，最多扣40分
+    var bcPenalty = Math.min(bc * 5, 40);
+    score -= bcPenalty;
+    
+    // 2. 未解决CR占比扣分：超过30%开始扣分，最多扣20分
+    if (total > 0) {
+      var unresolvedRate = unresolved / total;
+      if (unresolvedRate > 0.3) {
+        var ratePenalty = Math.min((unresolvedRate - 0.3) * 50, 20);
+        score -= ratePenalty;
+      }
+    }
+    
+    // 3. FAIL模块比例扣分：超过20%开始扣分，最多扣25分
+    if (totalModules > 0) {
+      var failRate = fail / totalModules;
+      if (failRate > 0.2) {
+        var failPenalty = Math.min((failRate - 0.2) * 50, 25);
+        score -= failPenalty;
+      }
+    }
+    
+    // 4. Blocker额外扣分：每个Blocker扣3分，最多扣15分
+    var blockerCount = 0;
+    if (snap.modules) {
+      snap.modules.forEach(function(m) {
+        if (m.top_list) {
+          m.top_list.forEach(function(it) {
+            if (it.sev === 'blocker' && it.status !== 'Resolved' && it.status !== 'Closed') {
+              blockerCount++;
+            }
+          });
+        }
+      });
+    }
+    var blockerPenalty = Math.min(blockerCount * 3, 15);
+    score -= blockerPenalty;
+    
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    
+    // 更新UI
+    var scoreEl = $('paHealthScore');
+    var statusEl = $('paHealthStatus');
+    var ringEl = $('paHealthRing');
+    var trendEl = $('paHealthTrend');
+    
+    if (scoreEl) {
+      scoreEl.textContent = score;
+      // 数字动画
+      animateNumber(scoreEl, score);
+    }
+    
+    if (statusEl) {
+      if (score >= 80) {
+        statusEl.textContent = '健康';
+        statusEl.className = 'pa-health-status-inline good';
+      } else if (score >= 60) {
+        statusEl.textContent = '关注';
+        statusEl.className = 'pa-health-status-inline warning';
+      } else {
+        statusEl.textContent = '风险';
+        statusEl.className = 'pa-health-status-inline danger';
+      }
+    }
+    
+    if (ringEl) {
+      // 使用CSS变量控制conic-gradient环形进度
+      ringEl.style.setProperty('--health-pct', score + '%');
+    }
+    
+    // 健康度说明已融入卡片，不需要单独的trend元素
+  }
+  
+  // 数字动画函数
+  function animateNumber(el, target) {
+    var start = 0;
+    var duration = 800;
+    var startTime = null;
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / duration, 1);
+      var current = Math.round(start + (target - start) * progress);
+      el.textContent = current;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  
+  /* ---------------- KPI趋势计算 ---------------- */
+  function renderKPITrends(st, snap) {
+    var daily = (snap.daily_stats || []).slice(-7);
+    if (daily.length < 2) return;
+    
+    var today = daily[daily.length - 1];
+    var yesterday = daily[daily.length - 2];
+    
+    // CR总数趋势（累计）
+    var totalToday = today.new_count || 0;
+    var totalYesterday = yesterday.new_count || 0;
+    updateTrend('paTrendTotal', totalToday, totalYesterday, 'new');
+    
+    // 未解决趋势（累计新增-累计解决）
+    var cumToday = 0, cumYesterday = 0;
+    for (var i = 0; i < daily.length - 1; i++) {
+      cumYesterday += (daily[i].new_count || 0) - (daily[i].resolved_count || 0);
+    }
+    cumToday = cumYesterday + (today.new_count || 0) - (today.resolved_count || 0);
+    updateTrend('paTrendUnresolved', cumToday, cumYesterday, 'unresolved');
+    
+    // BC趋势（从stats中获取，对比昨天的快照）
+    // 由于没有历史BC数据，这里显示当前状态
+    var bcEl = $('paTrendBC');
+    if (bcEl) {
+      var bc = st.bc_unresolved != null ? st.bc_unresolved : 0;
+      if (bc > 0) {
+        bcEl.textContent = bc + ' 个待解决';
+        bcEl.className = 'pa-stat-trend up';
+      } else {
+        bcEl.textContent = '已清零';
+        bcEl.className = 'pa-stat-trend down';
+      }
+    }
+    
+    // FAIL模块趋势
+    var failEl = $('paTrendFail');
+    if (failEl) {
+      var fail = st.fail != null ? st.fail : 0;
+      if (fail > 0) {
+        failEl.textContent = fail + ' 个未通过';
+        failEl.className = 'pa-stat-trend up';
+      } else {
+        failEl.textContent = '全部通过';
+        failEl.className = 'pa-stat-trend down';
+      }
+    }
+    
+    // PASS模块趋势
+    var passEl = $('paTrendPass');
+    if (passEl) {
+      var pass = st.pass != null ? st.pass : 0;
+      var totalMod = fail + pass;
+      if (totalMod > 0) {
+        var passRate = Math.round(pass / totalMod * 100);
+        passEl.textContent = passRate + '% 通过';
+        passEl.className = passRate >= 80 ? 'pa-stat-trend down' : 'pa-stat-trend flat';
+      }
+    }
+  }
+  
+  function updateTrend(elId, today, yesterday, type) {
+    var el = $(elId);
+    if (!el) return;
+    var diff = today - yesterday;
+    if (diff > 0) {
+      el.textContent = '+' + diff + ' 较昨日';
+      el.className = 'pa-stat-trend ' + (type === 'unresolved' ? 'up' : 'up');
+    } else if (diff < 0) {
+      el.textContent = diff + ' 较昨日';
+      el.className = 'pa-stat-trend ' + (type === 'unresolved' ? 'down' : 'down');
+    } else {
+      el.textContent = '持平';
+      el.className = 'pa-stat-trend flat';
+    }
+  }
+  
+  /* ---------------- 模块排序 ---------------- */
+  var moduleSortMode = 'fail'; // 默认按状态排序
+  
   /* ---------------- 模块表 ---------------- */
   function sevCN(s) {
     return { blocker: 'Blocker', critical: 'Critical', major: 'Major',
@@ -238,6 +424,30 @@
       if (kw && m.module.toLowerCase().indexOf(kw) < 0) return false;
       return true;
     });
+    
+    // 按排序模式排序
+    if (moduleSortMode === 'bc') {
+      // 按BC数量从多到少排序
+      rows.sort(function(a, b) {
+        var bcA = (a.b || 0) + (a.c || 0);
+        var bcB = (b.b || 0) + (b.c || 0);
+        return bcB - bcA;
+      });
+    } else if (moduleSortMode === 'name') {
+      // 按名称字母顺序排序
+      rows.sort(function(a, b) {
+        return a.module.localeCompare(b.module);
+      });
+    } else {
+      // 默认按状态排序（FAIL优先，然后按BC数量）
+      rows.sort(function(a, b) {
+        if (a.fail !== b.fail) return a.fail ? -1 : 1;
+        var bcA = (a.b || 0) + (a.c || 0);
+        var bcB = (b.b || 0) + (b.c || 0);
+        return bcB - bcA;
+      });
+    }
+    
     if (!rows.length) {
       modTable.innerHTML = '<div class="pa-empty-tip">没有符合条件的模块</div>';
       return;
@@ -399,9 +609,34 @@
   }
   function renderMD(src) {
     if (!src) return '';
+    var raw = String(src).replace(/\r\n/g, '\n');
+    
+    // 检测内容中是否包含HTML表格（<table），如果有，需要保护起来
+    // 因为AI可能返回混合了HTML和Markdown的内容
+    var htmlBlocks = [];
+    var hasHtmlTable = /<table[\s>]/i.test(raw);
+    var hasHtmlDiv = /<div[\s>]/i.test(raw);
+    var hasHtmlPre = /<pre[\s>]/i.test(raw);
+    
+    if (hasHtmlTable || hasHtmlDiv || hasHtmlPre) {
+      // 保护HTML块：把<table>...</table>、<div>...</div>、<pre>...</pre>替换成占位符
+      var placeholderIdx = 0;
+      function protectHtml(tag) {
+        var regex = new RegExp('<' + tag + '[\\s>][\\s\\S]*?</' + tag + '>', 'gi');
+        raw = raw.replace(regex, function(m) {
+          var placeholder = '\u0002HTML_BLOCK_' + placeholderIdx + '\u0002';
+          htmlBlocks.push(m);
+          placeholderIdx++;
+          return placeholder;
+        });
+      }
+      if (hasHtmlTable) protectHtml('table');
+      if (hasHtmlDiv) protectHtml('div');
+      if (hasHtmlPre) protectHtml('pre');
+    }
+    
     // 预处理：AI 经常把所有内容输出在同一行（没有换行符），
     // 需要智能拆分：标题、列表、表格等都要正确换行
-    var raw = String(src).replace(/\r\n/g, '\n');
 
     // 第一步：在 ### 标题前插入换行（如果前面不是行首）
     raw = raw.replace(/(.)\s+(#{1,6}\s+)/g, '$1\n$2');
@@ -469,9 +704,10 @@
           body.push(lines[i].trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); }));
           i++;
         }
-        var t = '<table><thead><tr>' + head.map(function (h) { return '<th>' + inlineMD(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
-        body.forEach(function (r) {
-          t += '<tr>' + head.map(function (h, idx) { return '<td>' + inlineMD(r[idx] != null ? r[idx] : '') + '</td>'; }).join('') + '</tr>';
+        var t = '<table class="pa-md-table" style="border-collapse:collapse;width:100%;margin:16px 0;font-size:13px;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);"><thead><tr style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">' + head.map(function (h) { return '<th style="border:none;padding:12px 14px;text-align:left;color:#ffffff;font-weight:600;font-size:12px;letter-spacing:0.5px;">' + inlineMD(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
+        body.forEach(function (r, ri) {
+          var rowBg = ri % 2 === 0 ? '#ffffff' : '#f8f9fa';
+          t += '<tr style="background-color:' + rowBg + ';transition:background-color 0.2s;">' + head.map(function (h, idx) { return '<td style="border:1px solid #f0f0f0;padding:10px 14px;text-align:left;vertical-align:top;color:#333333;">' + inlineMD(r[idx] != null ? r[idx] : '') + '</td>'; }).join('') + '</tr>';
         });
         t += '</tbody></table>'; html.push(t);
         continue;
@@ -500,7 +736,55 @@
       html.push('<p>' + inlineMD(line) + '</p>'); i++;
     }
     closeList();
-    return html.join('\n');
+    var result = html.join('\n');
+    
+    // 恢复HTML块：把占位符替换回原来的HTML内容
+    if (htmlBlocks.length > 0) {
+      for (var i = 0; i < htmlBlocks.length; i++) {
+        var placeholder = '\u0002HTML_BLOCK_' + i + '\u0002';
+        var htmlContent = htmlBlocks[i];
+        
+        // 给已有的HTML表格添加内联样式（如果还没有样式的话）
+        if (/<table[\s>]/i.test(htmlContent) && !/pa-md-table/i.test(htmlContent)) {
+          // 给<table>添加样式
+          htmlContent = htmlContent.replace(/<table([^>]*)>/gi, function(m, attrs) {
+            if (/style=/i.test(attrs)) {
+              return m; // 已经有样式，不修改
+            }
+            return '<table' + attrs + ' style="border-collapse:collapse;width:100%;margin:16px 0;font-size:13px;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">';
+          });
+          // 给<thead>添加样式
+          htmlContent = htmlContent.replace(/<thead([^>]*)>/gi, function(m, attrs) {
+            if (/style=/i.test(attrs)) return m;
+            return '<thead' + attrs + ' style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">';
+          });
+          // 给<th>添加样式
+          htmlContent = htmlContent.replace(/<th([^>]*)>/gi, function(m, attrs) {
+            if (/style=/i.test(attrs)) return m;
+            return '<th' + attrs + ' style="border:none;padding:12px 14px;text-align:left;color:#ffffff;font-weight:600;font-size:12px;letter-spacing:0.5px;">';
+          });
+          // 给<td>添加样式
+          htmlContent = htmlContent.replace(/<td([^>]*)>/gi, function(m, attrs) {
+            if (/style=/i.test(attrs)) return m;
+            return '<td' + attrs + ' style="border:1px solid #f0f0f0;padding:10px 14px;text-align:left;vertical-align:top;color:#333333;">';
+          });
+          // 给<tr>添加斑马纹样式
+          var rowIdx = 0;
+          htmlContent = htmlContent.replace(/<tr([^>]*)>/gi, function(m, attrs) {
+            if (/style=/i.test(attrs)) return m;
+            var bg = rowIdx % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            rowIdx++;
+            return '<tr' + attrs + ' style="background-color:' + bg + ';transition:background-color 0.2s;">';
+          });
+        }
+        
+        // 占位符可能被包裹在<p>标签中，需要先去掉<p>标签
+        result = result.replace(new RegExp('<p>' + placeholder + '</p>', 'g'), htmlContent);
+        result = result.replace(new RegExp(placeholder, 'g'), htmlContent);
+      }
+    }
+    
+    return result;
   }
 
   /* ---------------- 对话 ---------------- */

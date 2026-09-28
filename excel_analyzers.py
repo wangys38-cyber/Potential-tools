@@ -262,7 +262,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
 
         # 状态判断
         status = issue.get('status', '').lower()
-        is_resolved = any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'])
+        is_resolved = any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', 'verified', '已解决', '已关闭', '已验证'])
         
         if is_resolved:
             resolved += 1
@@ -316,7 +316,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
             sev = issue.get('severity', '').strip()
             status = issue.get('status', '').lower()
             matched = _match_severity_level(sev)
-            if matched in ('blocker', 'critical') and any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭']):
+            if matched in ('blocker', 'critical') and any(kw in status for kw in ['resolved', 'fixed', 'closed', 'done', 'verified', '已解决', '已关闭', '已验证']):
                 bc_resolved += 1
         return bc_total, round(bc_resolved / bc_total * 100, 1) if bc_total > 0 else 0
 
@@ -428,7 +428,7 @@ def _analyze_issue_sheet(file_path, sheet_name):
         bc_unresolved = sum(
             1 for issue in issues
             if _match_severity_level(issue.get('severity', '')) in ('blocker', 'critical')
-            and not any(kw in issue.get('status', '').lower() for kw in ['resolved', 'fixed', 'closed', 'done', '已解决', '已关闭'])
+            and not any(kw in issue.get('status', '').lower() for kw in ['resolved', 'fixed', 'closed', 'done', 'verified', '已解决', '已关闭', '已验证'])
         )
         bc_total = sum(
             1 for issue in issues
@@ -1214,7 +1214,7 @@ def _analyze_issue_sheet_fast(file_path, sheet_name, progress_cb=None):
 
     # 状态判断（向量化）
     status_lower = col_status.str.lower()
-    resolved_mask = status_lower.str.contains('resolved|fixed|closed|done|已解决|已关闭', na=False, regex=True)
+    resolved_mask = status_lower.str.contains('resolved|fixed|closed|done|verified|已解决|已关闭|已验证', na=False, regex=True)
     resolved = int(resolved_mask.sum())
 
     # 严重程度已解决统计

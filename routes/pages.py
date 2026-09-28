@@ -1,4 +1,4 @@
-"""页面路由 Blueprint — 简单的模板渲染路由"""
+﻿"""页面路由 Blueprint — 简单的模板渲染路由"""
 from flask import Blueprint
 
 
@@ -20,7 +20,11 @@ def create_pages_blueprint(cached_render):
 
     @bp.route('/excel-analysis')
     def excel_analysis():
-        return cached_render('excel_analysis.html', nav_title='CR 问题分析')
+        return cached_render('excel_analysis.html', nav_title='Excel 分析')
+
+    @bp.route('/cr-analysis')
+    def cr_analysis():
+        return cached_render('excel_analysis.html', nav_title='CR 智能分析')
 
     @bp.route('/label-filter')
     def label_filter():
