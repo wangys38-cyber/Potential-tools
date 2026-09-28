@@ -4,7 +4,7 @@
 
 集成 CR 分析、智能知识库、邮件助手、知识图谱、HLD 生成、项目计划、测试报告等 **20+ 工具**，本地运行，数据不出内网。
 
-[![Version](https://img.shields.io/badge/version-v9.0.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
+[![Version](https://img.shields.io/badge/version-v9.1.0-blue.svg)](https://github.com/wangys38-cyber/Potential-tools/releases)
 [![Python](https://img.shields.io/badge/python-3.13-green.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -50,10 +50,45 @@
 - 端点：`/api/v1/health`、`/api/v1/projects`、`/api/v1/search`
 - 健康检查增强：版本、运行时间、DB状态、内存、CPU
 
+### 📊 项目状态助手（Project Assistant）
+- 输入项目名称，一键拉取 eDart/Jira 最新 CR 数据
+- 项目健康度评分（0-100分），圆形可视化，健康/关注/风险三档
+- KPI 趋势指示：CR总数、未解决、未解决BC、FAIL/PASS模块，对比昨日增减
+- 模块状态列表：FAIL优先，支持按状态/BC数/名称排序，展开查看Top BC单
+- 每日趋势与累计BUG曲线图表
+- 智能对话：自然语言追问，支持标签筛选、经办人统计、blocker问题分析
+- 自动刷新：每天 00:00 / 12:00 / 18:00 自动拉取最新状态
+- 一键复制状态报告，支持邮件发送
+- 访问：`/project-assistant`
+
+### 🔬 CR 智能分析 v2.0
+- eDart/Jira 直连拉取，无需手动上传Excel
+- 标签筛选分析：支持关键字模糊匹配，智能推荐labels
+- 根因分析（RCA）：从CR单获取log，AI分析找到root cause
+- 项目状态看板：KPI卡片、趋势图表、模块状态热力图
+- 日报自动生成：趋势、结论、阻塞问题、用户无法忍受问题、影响过点问题
+- 访问：`/cr-analysis`
+
+### 🎨 暗黑科技风 UI 全面升级
+- 全局深色主题（#0D0E12），所有页面统一暗黑风格
+- 首页扇形卡片布局，悬停抬起+邻位让位动效
+- 3D 卡通角色（Three.js），应用到五张主要工具卡片
+- 导航栏毛玻璃效果，完全贴顶无留白
+- 健康度圆形评分卡片，6个KPI卡片紧凑一行
+- 所有页面添加 theme-color 元标签，浏览器标题栏深色适配
+- PWA 支持：可安装为桌面应用，深色启动画面
+
+### 🤖 AI Agent 增强
+- 邮件输出美化：专业HTML模板，项目风险综合评估（风险等级+判断依据+建议）
+- 记忆功能：输入的指令自动记住，发邮件无需再次确认
+- 对话交互优化：关键字匹配智能推荐，输出精简减少token使用
+- 访问：`/agent`
+
 ### ⚡ 架构升级
 - 异步任务框架（4工作线程），耗时操作不阻塞
 - ttl_cache 缓存集成，项目状态秒级响应
 - 健康检查端点 `/health`
+- Three.js 3D 可视化集成（static/js/vendor/three/）
 
 ---
 
@@ -70,8 +105,22 @@
 - **知识图谱**：自动提取人-模块-项目实体关系
 - **每日简报**：自动生成 CR 分析摘要
 
-### CR 分析
-- Excel 上传自动解析，趋势图表（每日新增/累计/周对比）
+### 项目状态助手
+- 输入项目名称，eDart/Jira 直连拉取最新 CR 数据
+- 项目健康度评分（0-100分），圆形可视化
+- KPI 趋势指示，对比昨日数据增减
+- 模块状态列表，FAIL优先，支持排序和展开Top BC
+- 智能对话追问，自然语言查询
+- 自动刷新：每天 00:00 / 12:00 / 18:00
+- 一键复制状态报告，支持邮件发送
+
+### CR 智能分析 v2.0
+- eDart/Jira 直连拉取，无需手动上传Excel
+- 标签筛选分析，智能推荐labels
+- 根因分析（RCA）：AI分析log找到root cause
+- 项目状态看板：KPI卡片、趋势图表、模块热力图
+- 日报自动生成：趋势、结论、阻塞问题、无法忍受问题、影响过点问题
+- Excel 上传兼容：自动解析，趋势图表（每日新增/累计/周对比）
 - AI 根因分类、智能归因、趋势预测
 - 未解决问题汇总，一键生成周报邮件
 - 严重/性能/MTTF 剩余问题统计
@@ -90,7 +139,7 @@
 | 层 | 技术 |
 |---|---|
 | 后端 | Flask 3.x + SQLite + SQLAlchemy |
-| 前端 | Vanilla JS + ECharts + Jinja2 |
+| 前端 | Vanilla JS + ECharts + Three.js + Jinja2 |
 | AI | 智谱 GLM-4-Plus / GLM-4V-Plus（多模态） |
 | 向量 | ChromaDB + bge-small-zh-v1.5 + CrossEncoder |
 | 部署 | Python venv + pythonw 后台运行 |
@@ -168,6 +217,8 @@ Potential-tools/
 
 ## 更新日志
 
+- **v9.1.0** — 项目状态助手（健康度圆形评分/KPI趋势/智能对话/自动刷新）、CR智能分析v2.0（eDart直连/标签筛选/根因分析）、暗黑科技风UI全面升级、AI Agent邮件美化与记忆功能、Three.js 3D可视化、全局深色主题色适配
+- **v9.0.0** — 研发智能体平台：Agent 2.0自主任务执行、统一数据源管理、团队协作空间、智能预警与预测、全局搜索、开放API v1
 - **v8.1.0** — 插件化生态，插件市场，智能知识库 v4.0（学习闭环/Multi-hop/知识图谱/每日简报）
 - **v8.0.0** — AI 原生架构，6 个 Phase（AI 对话/NL2SQL/CR 智能归因/Agent 自动分析/智能报告推送/跨工具联动）
 - **v7.x** — CR 分析、邮件助手、知识图谱、HLD 生成
