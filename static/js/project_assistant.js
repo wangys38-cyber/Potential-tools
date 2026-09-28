@@ -280,6 +280,29 @@
     
     score = Math.max(0, Math.min(100, Math.round(score)));
     
+    // 存储评分构成详情（用于悬停弹窗）
+    var healthDetail = {
+      score: score,
+      total: total,
+      unresolved: unresolved,
+      bc: bc,
+      blocker: blockerCount,
+      fail: fail,
+      pass: pass,
+      totalModules: totalModules,
+      unresolvedRate: total > 0 ? (unresolved / total * 100).toFixed(1) : 0,
+      failRate: totalModules > 0 ? (fail / totalModules * 100).toFixed(1) : 0,
+      penalties: {
+        bc: bcPenalty,
+        rate: typeof ratePenalty !== 'undefined' ? ratePenalty : 0,
+        fail: typeof failPenalty !== 'undefined' ? failPenalty : 0,
+        blocker: blockerPenalty
+      }
+    };
+    
+    // 存储到全局变量
+    window._healthDetail = healthDetail;
+    
     // 更新UI
     var scoreEl = $('paHealthScore');
     var statusEl = $('paHealthStatus');
@@ -308,7 +331,40 @@
     if (ringEl) {
       // 使用CSS变量控制conic-gradient环形进度
       ringEl.style.setProperty('--health-pct', score + '%');
+      // 存储评分详情到data属性
+      ringEl.setAttribute('data-health-detail', JSON.stringify(healthDetail));
     }
+    
+    // 更新悬停弹窗数据
+    var tooltipNum = $('paHealthTooltipNum');
+    var tooltipStatus = $('paHealthTooltipStatus');
+    if (tooltipNum) tooltipNum.textContent = score;
+    if (tooltipStatus) {
+      if (score >= 80) {
+        tooltipStatus.textContent = '健康';
+        tooltipStatus.className = 'pa-health-tooltip-status good';
+      } else if (score >= 60) {
+        tooltipStatus.textContent = '关注';
+        tooltipStatus.className = 'pa-health-tooltip-status warning';
+      } else {
+        tooltipStatus.textContent = '风险';
+        tooltipStatus.className = 'pa-health-tooltip-status danger';
+      }
+    }
+    
+    // 评分构成
+    if ($('paHealthTooltipBc')) $('paHealthTooltipBc').textContent = '-' + bcPenalty;
+    if ($('paHealthTooltipRate')) $('paHealthTooltipRate').textContent = '-' + (typeof ratePenalty !== 'undefined' ? Math.round(ratePenalty) : 0);
+    if ($('paHealthTooltipFail')) $('paHealthTooltipFail').textContent = '-' + (typeof failPenalty !== 'undefined' ? Math.round(failPenalty) : 0);
+    if ($('paHealthTooltipBlocker')) $('paHealthTooltipBlocker').textContent = '-' + blockerPenalty;
+    
+    // 关键指标
+    if ($('paHealthTooltipTotal')) $('paHealthTooltipTotal').textContent = total;
+    if ($('paHealthTooltipUnresolved')) $('paHealthTooltipUnresolved').textContent = unresolved + ' (' + healthDetail.unresolvedRate + '%)';
+    if ($('paHealthTooltipBcCount')) $('paHealthTooltipBcCount').textContent = bc;
+    if ($('paHealthTooltipBlockerCount')) $('paHealthTooltipBlockerCount').textContent = blockerCount;
+    if ($('paHealthTooltipFailCount')) $('paHealthTooltipFailCount').textContent = fail + ' (' + healthDetail.failRate + '%)';
+    if ($('paHealthTooltipPassCount')) $('paHealthTooltipPassCount').textContent = pass;
     
     // 健康度说明已融入卡片，不需要单独的trend元素
   }

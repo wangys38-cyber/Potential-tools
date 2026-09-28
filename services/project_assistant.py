@@ -22,6 +22,7 @@ from collections import defaultdict
 
 from excel_analyzers import _analyze_issue_sheet, _match_severity_level
 from services import jira_client as jc
+from services.project_status_sync import sync_to_knowledge_base
 from services.cr_status_summary import (
     build_module_summary, _is_resolved, _SEV_RANK, _issue_num,
 )
@@ -251,6 +252,11 @@ def build_project_snapshot(project_text, on_progress=None, force=False):
         'module_md': module_md,
     }
     _save_snapshot(snap)
+    # 自动同步到智能知识库，保持最新状态
+    try:
+        sync_to_knowledge_base(snap, user_id=1)
+    except Exception as e:
+        logger.warning(f'自动同步知识库失败（不影响主流程）: {e}')
     _p(100, f'{key} 项目状态生成完成')
     logger.info('项目助手快照完成: %s, %s 条', key, n)
     return snap

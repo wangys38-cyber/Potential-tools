@@ -8,13 +8,13 @@ from sqlalchemy import text
 from .base import engine, DB_TYPE, _row_to_dict
 
 def get_notes(user_id):
-    """获取用户所有笔记，按 pinned 优先、updated_at 降序排列"""
+    """获取用户所有笔记，按 pinned 优先、未完成优先、updated_at 降序排列"""
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
                 SELECT id, note_uid, title, content, category, tags, is_todo, pinned, completed, created_at, updated_at
                 FROM notes WHERE user_id = :user_id
-                ORDER BY pinned DESC, updated_at DESC
+                ORDER BY pinned DESC, completed ASC, updated_at DESC
             """),
             {'user_id': user_id}
         ).fetchall()

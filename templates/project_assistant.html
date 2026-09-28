@@ -808,6 +808,11 @@
       justify-content: center !important;
       padding: 8px 4px !important;
       gap: 6px !important;
+      z-index: 100 !important;
+    }
+    /* 悬停时提高健康度卡片的层叠优先级 */
+    .pa-health-circle-stat:hover {
+      z-index: 9999 !important;
     }
     .pa-health-circle-stat::before {
       display: none !important;
@@ -873,6 +878,122 @@
       font-size: 10px !important;
       margin-bottom: 2px !important;
     }
+
+    /* ========== 健康度悬停详情弹窗 ========== */
+    .pa-health-circle-wrap {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 100 !important;
+    }
+    /* 确保健康度卡片和父容器不裁剪弹窗 */
+    .pa-health-circle-stat,
+    .pa-overview-with-health,
+    .pa-stat-grid {
+      overflow: visible !important;
+    }
+    .pa-health-tooltip {
+      position: absolute !important;
+      top: 50% !important;
+      left: calc(100% + 16px) !important;
+      transform: translateY(-50%) translateX(-8px) !important;
+      width: 280px !important;
+      background: rgba(20, 22, 28, 0.98) !important;
+      backdrop-filter: blur(20px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 14px !important;
+      padding: 16px !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 92, 246, 0.1) !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      z-index: 99999 !important;
+      pointer-events: none !important;
+    }
+    .pa-health-circle-wrap:hover .pa-health-tooltip {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(-50%) translateX(0) !important;
+    }
+    .pa-health-tooltip-title {
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+      margin-bottom: 10px !important;
+      text-align: center !important;
+    }
+    .pa-health-tooltip-score {
+      display: flex !important;
+      align-items: baseline !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      margin-bottom: 12px !important;
+    }
+    .pa-health-tooltip-num {
+      font-size: 36px !important;
+      font-weight: 800 !important;
+      background: linear-gradient(135deg, #c4b5fd 0%, #4ade80 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      line-height: 1 !important;
+    }
+    .pa-health-tooltip-status {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      padding: 3px 10px !important;
+      border-radius: 8px !important;
+    }
+    .pa-health-tooltip-status.good { background: rgba(34,197,94,0.15) !important; color: #4ade80 !important; }
+    .pa-health-tooltip-status.warning { background: rgba(245,158,11,0.15) !important; color: #fbbf24 !important; }
+    .pa-health-tooltip-status.danger { background: rgba(239,68,68,0.15) !important; color: #f87171 !important; }
+    .pa-health-tooltip-divider {
+      height: 1px !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      margin: 10px 0 !important;
+    }
+    .pa-health-tooltip-section {
+      margin-bottom: 4px !important;
+    }
+    .pa-health-tooltip-label {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: rgba(255, 255, 255, 0.5) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      margin-bottom: 8px !important;
+    }
+    .pa-health-tooltip-item {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 4px 0 !important;
+      font-size: 12.5px !important;
+    }
+    .pa-health-tooltip-item-name {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+    .pa-health-tooltip-item-value {
+      color: rgba(255, 255, 255, 0.95) !important;
+      font-weight: 600 !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    .pa-health-tooltip-item.penalty .pa-health-tooltip-item-value {
+      color: #f87171 !important;
+    }
+    .pa-health-tooltip-arrow {
+      position: absolute !important;
+      left: -6px !important;
+      top: 50% !important;
+      transform: translateY(-50%) rotate(45deg) !important;
+      width: 12px !important;
+      height: 12px !important;
+      background: rgba(20, 22, 28, 0.98) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
 </style>
     <meta name="theme-color" content="#0D0E12">
     <meta name="msapplication-TileColor" content="#0D0E12">
@@ -927,11 +1048,74 @@
 
       <!-- 概览卡片（含健康度评分） -->
       <div class="pa-stat-grid pa-overview pa-overview-with-health">
-        <!-- 健康度评分卡片（圆形） -->
+        <!-- 健康度评分卡片（圆形，带悬停详情） -->
         <div class="pa-stat pa-glass pa-health-circle-stat">
-          <div class="pa-health-circle" id="paHealthCircle">
-            <div class="pa-health-circle-inner">
-              <span class="pa-health-circle-num" id="paHealthScore">–</span>
+          <div class="pa-health-circle-wrap">
+            <div class="pa-health-circle" id="paHealthCircle">
+              <div class="pa-health-circle-inner">
+                <span class="pa-health-circle-num" id="paHealthScore">–</span>
+              </div>
+            </div>
+            <!-- 悬停详情弹窗 -->
+            <div class="pa-health-tooltip" id="paHealthTooltip">
+              <div class="pa-health-tooltip-title">项目健康度评分</div>
+              <div class="pa-health-tooltip-score">
+                <span class="pa-health-tooltip-num" id="paHealthTooltipNum">–</span>
+                <span class="pa-health-tooltip-status" id="paHealthTooltipStatus">–</span>
+              </div>
+              <div class="pa-health-tooltip-divider"></div>
+              <div class="pa-health-tooltip-section">
+                <div class="pa-health-tooltip-label">评分构成</div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">基础分</span>
+                  <span class="pa-health-tooltip-item-value">100</span>
+                </div>
+                <div class="pa-health-tooltip-item penalty">
+                  <span class="pa-health-tooltip-item-name">未解决BC扣分</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipBc">–</span>
+                </div>
+                <div class="pa-health-tooltip-item penalty">
+                  <span class="pa-health-tooltip-item-name">未解决CR占比扣分</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipRate">–</span>
+                </div>
+                <div class="pa-health-tooltip-item penalty">
+                  <span class="pa-health-tooltip-item-name">FAIL模块比例扣分</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipFail">–</span>
+                </div>
+                <div class="pa-health-tooltip-item penalty">
+                  <span class="pa-health-tooltip-item-name">Blocker额外扣分</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipBlocker">–</span>
+                </div>
+              </div>
+              <div class="pa-health-tooltip-divider"></div>
+              <div class="pa-health-tooltip-section">
+                <div class="pa-health-tooltip-label">关键指标</div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">CR总数</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipTotal">–</span>
+                </div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">未解决CR</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipUnresolved">–</span>
+                </div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">未解决BC</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipBcCount">–</span>
+                </div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">Blocker</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipBlockerCount">–</span>
+                </div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">FAIL模块</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipFailCount">–</span>
+                </div>
+                <div class="pa-health-tooltip-item">
+                  <span class="pa-health-tooltip-item-name">PASS模块</span>
+                  <span class="pa-health-tooltip-item-value" id="paHealthTooltipPassCount">–</span>
+                </div>
+              </div>
+              <div class="pa-health-tooltip-arrow"></div>
             </div>
           </div>
           <div class="pa-health-circle-label" id="paHealthStatus">–</div>
