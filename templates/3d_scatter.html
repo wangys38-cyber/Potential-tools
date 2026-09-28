@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 散点图 - Three.js</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f; 
+            overflow: hidden;
+            color: #fff;
+        }
+        #canvas-container { width: 100vw; height: 100vh; }
+        .panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 21, 22, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 240px;
+        }
+        .panel h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #f7f8f8;
+        }
+        .panel p {
+            font-size: 13px;
+            color: #8a8f98;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #5e6ad2;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #62666d;
+            margin-top: 2px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(20, 21, 22, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 16px;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #d0d6e0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: rgba(94, 106, 210, 0.2);
+            border-color: rgba(94, 106, 210, 0.5);
+            color: #fff;
+        }
+        .btn.primary {
+            background: #5e6ad2;
+            border-color: #5e6ad2;
+            color: #fff;
+        }
+        .btn.primary:hover {
+            background: #828fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="panel">
+        <h2>3D 散点图</h2>
+        <p>鼠标拖拽旋转视角，滚轮缩放，右键平移</p>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="pointCount">500</div>
+                <div class="stat-label">数据点</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="fps">60</div>
+                <div class="stat-label">FPS</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" onclick="regenerateData()">重新生成</button>
+        <button class="btn" onclick="toggleRotation()">暂停旋转</button>
+        <button class="btn primary" onclick="resetView()">重置视角</button>
+    </div>
+
+    <script src="/static/js/vendor/three/three.min.js"></script>
+    <script>
+        // ========== 基础设置 ==========
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0f);
+        scene.fog = new THREE.Fog(0x0a0a0f, 20, 50);
+
+        const camera = new THREE.PerspectiveCamera(
+            75, window.innerWidth / window.innerHeight, 0.1, 1000
+        );
+        camera.position.set(12, 10, 12);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // ========== 灯光 ==========
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const pointLight1 = new THREE.PointLight(0x5e6ad2, 1, 50);
+        pointLight1.position.set(10, 10, 10);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xec4899, 0.5, 50);
+        pointLight2.position.set(-10, 5, -10);
+        scene.add(pointLight2);
+
+        // ========== 坐标轴和网格 ==========
+        const axesHelper = new THREE.AxesHelper(8);
+        scene.add(axesHelper);
+
+        const gridHelper = new THREE.GridHelper(20, 20, 0x333344, 0x222233);
+        gridHelper.position.y = -8;
+        scene.add(gridHelper);
+
+        // ========== 3D散点数据 ==========
+        let points = null;
+        let isRotating = true;
+        const pointCount = 500;
+
+        function generatePoints() {
+            if (points) {
+                scene.remove(points);
+                points.geometry.dispose();
+                points.material.dispose();
+            }
+
+            const positions = new Float32Array(pointCount * 3);
+            const colors = new Float32Array(pointCount * 3);
+            const color = new THREE.Color();
+
+            for (let i = 0; i < pointCount; i++) {
+                // 生成聚类数据（3个簇）
+                const cluster = Math.floor(Math.random() * 3);
+                const centerX = cluster === 0 ? -5 : cluster === 1 ? 0 : 5;
+                const centerY = cluster === 0 ? 0 : cluster === 1 ? 3 : -2;
+                const centerZ = cluster === 0 ? 0 : cluster === 1 ? 5 : -3;
+
+                positions[i * 3] = centerX + (Math.random() - 0.5) * 4;
+                positions[i * 3 + 1] = centerY + (Math.random() - 0.5) * 4;
+                positions[i * 3 + 2] = centerZ + (Math.random() - 0.5) * 4;
+
+                // 根据簇着色
+                if (cluster === 0) color.setHex(0x5e6ad2);
+                else if (cluster === 1) color.setHex(0xec4899);
+                else color.setHex(0x10b981);
+
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.25,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                sizeAttenuation: true
+            });
+
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+        }
+
+        generatePoints();
+
+        // ========== 简单的鼠标控制 ==========
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraDistance = 20;
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+            
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(camera.position);
+            spherical.theta -= deltaX * 0.01;
+            spherical.phi -= deltaY * 0.01;
+            spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+            
+            camera.position.setFromSpherical(spherical);
+            camera.lookAt(0, 0, 0);
+            
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+        renderer.domElement.addEventListener('mouseleave', () => isDragging = false);
+
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(camera.position);
+            spherical.radius += e.deltaY * 0.02;
+            spherical.radius = Math.max(5, Math.min(50, spherical.radius));
+            camera.position.setFromSpherical(spherical);
+        }, { passive: false });
+
+        // ========== 控制函数 ==========
+        function regenerateData() {
+            generatePoints();
+        }
+
+        function toggleRotation() {
+            isRotating = !isRotating;
+            event.target.textContent = isRotating ? '暂停旋转' : '开始旋转';
+        }
+
+        function resetView() {
+            camera.position.set(12, 10, 12);
+            camera.lookAt(0, 0, 0);
+        }
+
+        // ========== FPS统计 ==========
+        let lastTime = performance.now();
+        let frameCount = 0;
+
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+        }
+
+        // ========== 动画循环 ==========
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isRotating && points) {
+                points.rotation.y += 0.002;
+            }
+            
+            updateFPS();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // ========== 响应式 ==========
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

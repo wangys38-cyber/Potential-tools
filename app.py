@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response, g
+﻿from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response, g
 import os
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env 配置
@@ -1300,6 +1300,17 @@ except Exception as e:
 
 
 # ==================== 应用入口 ====================
+
+# ========== Three.js 3D 可视化路由 ==========
+@app.route('/3d/scatter')
+def scatter_3d():
+    """3D散点图可视化"""
+    return render_template('3d_scatter.html')
+
+@app.route('/3d/network')
+def network_3d():
+    """3D关系图谱可视化"""
+    return render_template('3d_network.html')
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     async_tasks.init_workers(count=4)
