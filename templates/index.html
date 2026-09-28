@@ -265,6 +265,34 @@
         border-color: var(--linear-hairline-strong) !important;
         background: var(--linear-surface-2) !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+        transform: translateY(-4px) !important;
+    }
+
+    /* 隐藏旧的3D破框元素 */
+    .card-3d-wrap, .card-3d-element, .contact-shadow, .glass-3d, .sphere-3d, .rim-light {
+        display: none !important;
+    }
+
+    /* 卡片容器 - Linear 风格 */
+    #heroCards a {
+        border-radius: 20px !important;
+        overflow: visible !important;
+    }
+
+    #heroCards a:hover {
+        transform: translateY(-6px) !important;
+        z-index: 50 !important;
+    }
+
+    #heroCards a:hover > div {
+        border-color: #34343a !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    /* 中间卡片悬停 - 主色边框发光 */
+    #heroCards a:nth-child(3):hover > div {
+        border-color: #828fff !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(94, 106, 210, 0.15) !important;
     }
 
     .hero-card-title {
