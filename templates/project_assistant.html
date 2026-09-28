@@ -790,7 +790,95 @@
     }
     .pa-msg.bot .pa-bubble li::marker {
       color: #1d1d1f !important;
-    }</style>
+    }
+    /* ========== 健康度圆形卡片（强制覆盖） ========== */
+    .pa-overview-with-health {
+      grid-template-columns: 80px repeat(5, 1fr) !important;
+      gap: 10px !important;
+    }
+    .pa-health-circle-stat {
+      position: relative !important;
+      overflow: visible !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 8px 4px !important;
+      gap: 6px !important;
+    }
+    .pa-health-circle-stat::before {
+      display: none !important;
+    }
+    .pa-health-circle {
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      background: conic-gradient(#8b5cf6 0%, #22c55e var(--health-pct, 0%), rgba(255,255,255,0.1) var(--health-pct, 0%)) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      flex-shrink: 0 !important;
+    }
+    .pa-health-circle-inner {
+      width: 50px !important;
+      height: 50px !important;
+      border-radius: 50% !important;
+      background: rgba(30,33,42,0.95) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .pa-health-circle-num {
+      font-size: 20px !important;
+      font-weight: 800 !important;
+      background: linear-gradient(135deg, #c4b5fd 0%, #4ade80 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      line-height: 1 !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    .pa-health-circle-label {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      padding: 2px 6px !important;
+      border-radius: 6px !important;
+      display: inline-block !important;
+      text-align: center !important;
+      white-space: nowrap !important;
+    }
+    .pa-health-circle-label.good { background: rgba(34,197,94,0.15) !important; color: #4ade80 !important; }
+    .pa-health-circle-label.warning { background: rgba(245,158,11,0.15) !important; color: #fbbf24 !important; }
+    .pa-health-circle-label.danger { background: rgba(239,68,68,0.15) !important; color: #f87171 !important; }
+    
+    /* 其他KPI卡片改紧凑 */
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) {
+      padding: 10px 12px !important;
+      min-height: auto !important;
+    }
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .v {
+      font-size: 22px !important;
+      line-height: 1.2 !important;
+      margin-bottom: 2px !important;
+    }
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .k {
+      font-size: 11px !important;
+      margin-top: 0 !important;
+    }
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .pa-stat-trend {
+      font-size: 10px !important;
+      margin-bottom: 2px !important;
+    }
+</style>
+    <meta name="theme-color" content="#0D0E12">
+    <meta name="msapplication-TileColor" content="#0D0E12">
+    <meta name="msapplication-navbutton-color" content="#0D0E12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -839,12 +927,14 @@
 
       <!-- 概览卡片（含健康度评分） -->
       <div class="pa-stat-grid pa-overview pa-overview-with-health">
-        <!-- 健康度评分卡片 -->
-        <div class="pa-stat pa-glass pa-health-stat">
-          <div class="pa-health-mini-ring" id="paHealthMiniRing"></div>
-          <div class="v pa-health-num" id="paHealthScore">–</div>
-          <div class="pa-health-status-inline" id="paHealthStatus">–</div>
-          <div class="k">项目健康度</div>
+        <!-- 健康度评分卡片（圆形） -->
+        <div class="pa-stat pa-glass pa-health-circle-stat">
+          <div class="pa-health-circle" id="paHealthCircle">
+            <div class="pa-health-circle-inner">
+              <span class="pa-health-circle-num" id="paHealthScore">–</span>
+            </div>
+          </div>
+          <div class="pa-health-circle-label" id="paHealthStatus">–</div>
         </div>
         <div class="pa-stat pa-glass accent">
           <div class="pa-stat-trend" id="paTrendTotal"></div>

@@ -283,7 +283,7 @@
     // 更新UI
     var scoreEl = $('paHealthScore');
     var statusEl = $('paHealthStatus');
-    var ringEl = $('paHealthRing');
+    var ringEl = $('paHealthCircle');
     var trendEl = $('paHealthTrend');
     
     if (scoreEl) {
@@ -295,13 +295,13 @@
     if (statusEl) {
       if (score >= 80) {
         statusEl.textContent = '健康';
-        statusEl.className = 'pa-health-status-inline good';
+        statusEl.className = 'pa-health-circle-label good';
       } else if (score >= 60) {
         statusEl.textContent = '关注';
-        statusEl.className = 'pa-health-status-inline warning';
+        statusEl.className = 'pa-health-circle-label warning';
       } else {
         statusEl.textContent = '风险';
-        statusEl.className = 'pa-health-status-inline danger';
+        statusEl.className = 'pa-health-circle-label danger';
       }
     }
     
