@@ -158,7 +158,267 @@
       pointer-events: none;
     }
   </style>
-</head>
+    
+    <!-- ========== Linear Design System 优化 - 基于 design-md-reference Skill ========== -->
+    <style>
+    /* Linear 色彩系统 - 单一色彩强调，安静的奢华 */
+    :root {
+        --linear-canvas: #010102;
+        --linear-surface-1: #0f1011;
+        --linear-surface-2: #141516;
+        --linear-surface-3: #18191a;
+        --linear-hairline: #23252a;
+        --linear-hairline-strong: #34343a;
+        --linear-primary: #5e6ad2;
+        --linear-primary-hover: #828fff;
+        --linear-primary-focus: #5e69d1;
+        --linear-ink: #f7f8f8;
+        --linear-ink-muted: #d0d6e0;
+        --linear-ink-subtle: #8a8f98;
+        --linear-ink-tertiary: #62666d;
+        --linear-success: #27a644;
+    }
+
+    /* 全局背景 - 更深的近黑色 */
+    body {
+        background: var(--linear-canvas) !important;
+        color: var(--linear-ink) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 导航栏 - Linear 风格 */
+    #ptNavBar.pt-nav-bar {
+        background: rgba(1, 1, 2, 0.85) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+        border-bottom: 1px solid var(--linear-hairline) !important;
+        height: 56px !important;
+    }
+
+    #ptNavBar .pt-nav-title {
+        color: var(--linear-ink) !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        letter-spacing: -0.2px !important;
+    }
+
+    #ptNavBar .pt-nav-icon-btn {
+        color: var(--linear-ink-subtle) !important;
+        border-color: transparent !important;
+        background: transparent !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border-radius: 6px !important;
+        transition: all 0.15s ease !important;
+    }
+
+    #ptNavBar .pt-nav-icon-btn:hover {
+        background: var(--linear-surface-1) !important;
+        color: var(--linear-ink) !important;
+    }
+
+    #ptNavBar .pt-nav-icon-btn.active {
+        background: var(--linear-surface-2) !important;
+        color: var(--linear-ink) !important;
+    }
+
+    /* Hero 区域 - Linear 排版风格 */
+    .hero-title {
+        font-size: 56px !important;
+        font-weight: 600 !important;
+        line-height: 1.1 !important;
+        letter-spacing: -1.8px !important;
+        color: var(--linear-ink) !important;
+        background: none !important;
+        -webkit-background-clip: initial !important;
+        -webkit-text-fill-color: initial !important;
+    }
+
+    .hero-subtitle {
+        font-size: 20px !important;
+        font-weight: 400 !important;
+        line-height: 1.4 !important;
+        letter-spacing: -0.2px !important;
+        color: var(--linear-ink-subtle) !important;
+    }
+
+    .hero-eyebrow {
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.4px !important;
+        text-transform: uppercase !important;
+        color: var(--linear-primary) !important;
+    }
+
+    /* 卡片 - Linear 炭灰色面板 + 细线边框 */
+    .hero-card {
+        background: var(--linear-surface-1) !important;
+        border: 1px solid var(--linear-hairline) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .hero-card:hover {
+        border-color: var(--linear-hairline-strong) !important;
+        background: var(--linear-surface-2) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .hero-card-title {
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.2px !important;
+        color: var(--linear-ink) !important;
+    }
+
+    .hero-card-desc {
+        font-size: 13px !important;
+        font-weight: 400 !important;
+        color: var(--linear-ink-subtle) !important;
+        line-height: 1.5 !important;
+    }
+
+    /* 工具标签 - Linear 风格 */
+    .tool-tag {
+        background: var(--linear-surface-1) !important;
+        border: 1px solid var(--linear-hairline) !important;
+        color: var(--linear-ink-muted) !important;
+        font-size: 13px !important;
+        font-weight: 400 !important;
+        padding: 6px 14px !important;
+        border-radius: 9999px !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .tool-tag:hover {
+        background: var(--linear-surface-2) !important;
+        border-color: var(--linear-hairline-strong) !important;
+        color: var(--linear-ink) !important;
+    }
+
+    .tool-tag.featured {
+        background: rgba(94, 106, 210, 0.1) !important;
+        border-color: rgba(94, 106, 210, 0.3) !important;
+        color: var(--linear-primary-hover) !important;
+    }
+
+    .tool-tag.featured:hover {
+        background: rgba(94, 106, 210, 0.15) !important;
+        border-color: rgba(94, 106, 210, 0.5) !important;
+    }
+
+    /* 分类标题 - Linear 风格 */
+    .category-title {
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.4px !important;
+        text-transform: uppercase !important;
+        color: var(--linear-ink-tertiary) !important;
+    }
+
+    /* 背景水印 - Linear 风格，更克制 */
+    .bg-watermark {
+        color: rgba(255, 255, 255, 0.02) !important;
+        font-weight: 700 !important;
+        letter-spacing: -2px !important;
+    }
+
+    /* 访问计数器 - Linear 风格 */
+    #visitCounter {
+        background: var(--linear-surface-1) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid var(--linear-hairline) !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    #visitCounter .label {
+        color: var(--linear-ink-subtle) !important;
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.3px !important;
+        text-transform: uppercase !important;
+    }
+
+    #visitCounter .num {
+        color: var(--linear-ink) !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        margin-left: 6px !important;
+        font-variant-numeric: tabular-nums !important;
+    }
+
+    /* 按钮 - Linear 风格 */
+    .btn-primary {
+        background: var(--linear-primary) !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        padding: 8px 14px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .btn-primary:hover {
+        background: var(--linear-primary-hover) !important;
+    }
+
+    .btn-secondary {
+        background: var(--linear-surface-1) !important;
+        color: var(--linear-ink) !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        padding: 8px 14px !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--linear-hairline) !important;
+        transition: all 0.15s ease !important;
+    }
+
+    .btn-secondary:hover {
+        background: var(--linear-surface-2) !important;
+        border-color: var(--linear-hairline-strong) !important;
+    }
+
+    /* 分隔线 - Linear 风格 */
+    .divider {
+        background: var(--linear-hairline) !important;
+        height: 1px !important;
+        border: none !important;
+    }
+
+    /* 滚动条 - Linear 风格 */
+    ::-webkit-scrollbar {
+        width: 8px !important;
+        height: 8px !important;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--linear-canvas) !important;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--linear-hairline-strong) !important;
+        border-radius: 4px !important;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--linear-ink-tertiary) !important;
+    }
+
+    /* 选中文本 - Linear 风格 */
+    ::selection {
+        background: rgba(94, 106, 210, 0.3) !important;
+        color: var(--linear-ink) !important;
+    }
+    </style>
+    <!-- ========== End Linear Design System 优化 ========== -->
+    </head>
 <body>
 
     {% include '_navbar.html' %}
