@@ -273,26 +273,45 @@
         display: none !important;
     }
 
-    /* 卡片容器 - Linear 风格 */
+    /* 卡片容器 - 专业设计 */
     #heroCards a {
         border-radius: 20px !important;
         overflow: visible !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
     #heroCards a:hover {
-        transform: translateY(-6px) !important;
+        transform: translateY(-8px) !important;
         z-index: 50 !important;
     }
 
-    #heroCards a:hover > div {
-        border-color: #34343a !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35) !important;
+    /* 卡片内部悬停效果 */
+    #heroCards a:hover .card-inner {
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset,0 4px 16px rgba(0,0,0,0.4),0 32px 64px rgba(0,0,0,0.3) !important;
+    }
+
+    /* 图标容器悬停 - 放大+发光 */
+    #heroCards a:hover .card-icon-wrap {
+        transform: scale(1.08) !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.25) !important;
+    }
+
+    /* 箭头悬停显示 */
+    #heroCards a:hover .card-arrow {
+        opacity: 1 !important;
+        transform: translateX(0) !important;
     }
 
     /* 中间卡片悬停 - 主色边框发光 */
-    #heroCards a:nth-child(3):hover > div {
-        border-color: #828fff !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(94, 106, 210, 0.15) !important;
+    #heroCards a:nth-child(3):hover .card-inner {
+        border-color: rgba(130, 143, 255, 0.9) !important;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset,0 4px 16px rgba(0,0,0,0.4),0 32px 64px rgba(0,0,0,0.3),0 0 0 4px rgba(94, 106, 210, 0.15),0 0 32px rgba(94, 106, 210, 0.2) !important;
+    }
+
+    /* 中间卡片图标容器更强发光 */
+    #heroCards a:nth-child(3):hover .card-icon-wrap {
+        box-shadow: 0 8px 28px rgba(94, 106, 210, 0.5),0 1px 2px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.25) !important;
     }
 
     .hero-card-title {
