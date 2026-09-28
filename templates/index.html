@@ -1094,28 +1094,18 @@
   }
 
   function renderHeroCards() {
-    var grid = document.getElementById('tools-grid');
     var wrap = document.getElementById('heroCards');
     var moreList = document.getElementById('heroMoreList');
-    var moreWrap = document.getElementById('heroMoreTools');
-    if (!grid || !wrap) return;
-    var cards = grid.querySelectorAll('.tool-card');
-    if (!cards.length) { setTimeout(renderHeroCards, 300); return; }
+    if (!wrap) return;
 
-    var allTools = [];
-    cards.forEach(function(tc) { allTools.push(parseTool(tc)); });
-
-    // 筛选主要工具（按 MAIN_TOOLS 顺序）
-    var mainTools = [];
-    var otherTools = [];
-    MAIN_TOOLS.forEach(function(key) {
-      var found = allTools.find(function(t) { return t.url && t.url.indexOf(key) >= 0; });
-      if (found) mainTools.push(found);
-    });
-    allTools.forEach(function(t) {
-      var isMain = mainTools.some(function(m) { return m.url === t.url; });
-      if (!isMain) otherTools.push(t);
-    });
+    // 直接定义五张主要工具（不依赖tools-grid）
+    var mainTools = [
+      { name: 'CR 智能分析', url: '/cr-analysis', desc: '智能分析CR数据' },
+      { name: '邮件助手', url: '/email-assistant', desc: 'AI邮件起草发送' },
+      { name: '智能知识库', url: '/knowledge-base', desc: '智能问答与检索' },
+      { name: '牛马笔记', url: '/notes', desc: '高效项目笔记' },
+      { name: '研发知识图谱', url: '/knowledge-graph', desc: '知识关联与推荐' }
+    ];
 
     var isCenter = [false, false, true, false, false];
 
@@ -1133,7 +1123,8 @@
       card.style.transform = fanTransforms[idx % 5];
       card.style.background = CARD_GRADIENTS[idx % 5];
       card.style.zIndex = cardZIndex[idx % 5];
-      // 3D元素HTML（每张卡片不同）
+      
+      // 3D动物HTML
       var card3dHTML = getCard3DElement(idx % 5, center);
 
       card.innerHTML =
@@ -1151,162 +1142,7 @@
     bindHover();
     
     // 初始化3D动物
-    setTimeout(initCard3DAnimals, 100);
-
-    // 渲染其余工具列表（按功能分组）
-    if (moreList) {
-      moreList.innerHTML = '';
-      moreList.style.display = 'flex';
-      moreList.style.flexDirection = 'column';
-      moreList.style.gap = '36px';
-      moreList.style.alignItems = 'center';
-
-      // 分类规则（基于URL关键词）
-      var categories = [
-        {name: '🚀 研发效能', keys: ['project-assistant', 'excel', 'cr', 'bug', 'trend', 'milestone', 'sprint', 'release', 'test'], color: 'text-blue-300/70'},
-        {name: '🤖 AI 助手', keys: ['knowledge-base', 'ai', 'agent', 'chat', 'ocr', 'pdf', 'meeting', 'summary', 'knowledge-graph'], color: 'text-purple-300/70'},
-        {name: '📊 数据分析', keys: ['data', 'analysis', 'chart', 'dashboard', 'report', 'stats', 'visual'], color: 'text-emerald-300/70'},
-        {name: '👥 团队协作', keys: ['workspace', 'team', 'note', 'task', 'calendar', 'email', 'im', 'doc'], color: 'text-amber-300/70'}
-      ];
-      var defaultCategory = {name: '🔧 其他工具', keys: [], color: 'text-white/50'};
-
-      // 9.0 新功能单独作为一组
-      var newTools9 = [
-        {name: '🤖 AI Agent', url: '/agent', desc: '自主任务执行'},
-        {name: '🔗 数据源', url: '/data-sources', desc: '第三方数据集成'},
-        {name: '👥 团队协作', url: '/workspaces', desc: '工作空间与权限'},
-        {name: '🚨 智能预警', url: '/alerts', desc: '趋势预测与异常检测'}
-      ];
-
-      function createTagItem(t, isNew) {
-        var item = document.createElement('a');
-        if (isNew) {
-          item.className = 'inline-flex items-center text-[13px] font-semibold text-white bg-gradient-to-r from-purple-500/25 to-indigo-500/25 border border-purple-400/50 rounded-full px-6 py-[10px] no-underline transition-all duration-200 hover:from-purple-500/35 hover:to-indigo-500/35 hover:border-purple-400/70 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(139,92,246,0.4)]';
-        } else {
-          item.className = 'inline-flex items-center text-[13px] font-medium text-white/70 bg-white/[0.08] border border-white/[0.14] rounded-full px-6 py-[10px] no-underline transition-all duration-200 hover:text-white hover:bg-white/[0.15] hover:border-white/[0.28] hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)]';
-        }
-        item.href = t.url;
-        item.textContent = t.name;
-        item.title = t.desc || t.name;
-        return item;
-      }
-
-      function createCategoryGroup(cat, tools, isNew, collapsible) {
-        if (!tools.length) return null;
-        var group = document.createElement('div');
-        group.style.display = 'flex';
-        group.style.flexDirection = 'column';
-        group.style.alignItems = 'center';
-        group.style.gap = '12px';
-        group.style.width = '100%';
-        group.style.transition = 'all 0.3s ease';
-
-        var title = document.createElement('div');
-        title.className = 'text-[15px] font-bold tracking-[0.1em] ' + (cat.color || 'text-white/70');
-        title.style.display = 'flex';
-        title.style.alignItems = 'center';
-        title.style.gap = '8px';
-        // 品牌色小圆点
-        var dot = document.createElement('span');
-        dot.style.display = 'inline-block';
-        dot.style.width = '6px';
-        dot.style.height = '6px';
-        dot.style.borderRadius = '50%';
-        dot.style.background = 'linear-gradient(135deg,#c4b5fd,#818cf8)';
-        dot.style.boxShadow = '0 0 12px rgba(139,92,246,0.8), 0 0 4px rgba(103,232,249,0.4)';
-        title.appendChild(dot);
-        var titleText = document.createElement('span');
-        titleText.textContent = cat.name;
-        title.appendChild(titleText);
-        group.appendChild(title);
-
-        var tagsWrap = document.createElement('div');
-        tagsWrap.style.display = 'flex';
-        tagsWrap.style.flexWrap = 'wrap';
-        tagsWrap.style.justifyContent = 'center';
-        tagsWrap.style.gap = '14px';
-        tagsWrap.style.maxWidth = '800px';
-        tagsWrap.style.overflow = 'hidden';
-        tagsWrap.style.transition = 'max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-        tools.forEach(function(t) {
-          tagsWrap.appendChild(createTagItem(t, isNew));
-        });
-        group.appendChild(tagsWrap);
-
-        // 折叠功能：默认只显示一行
-        if (collapsible && tools.length > 6) {
-          tagsWrap.style.maxHeight = '44px'; // 一行高度
-          var toggleBtn = document.createElement('button');
-          toggleBtn.textContent = '展开全部 ▾';
-          toggleBtn.style.cssText = 'margin-top:10px;padding:8px 20px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:980px;color:#c4b5fd;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.25s ease;font-family:inherit;letter-spacing:0.02em;backdrop-filter:blur(8px);';
-          toggleBtn.onmouseenter = function() {
-            this.style.background = 'rgba(139,92,246,0.22)';
-            this.style.borderColor = 'rgba(139,92,246,0.55)';
-            this.style.color = '#ddd6fe';
-            this.style.boxShadow = '0 0 16px rgba(139,92,246,0.25)';
-            this.style.transform = 'translateY(-1px)';
-          };
-          toggleBtn.onmouseleave = function() {
-            this.style.background = 'rgba(139,92,246,0.12)';
-            this.style.borderColor = 'rgba(139,92,246,0.35)';
-            this.style.color = '#c4b5fd';
-            this.style.boxShadow = 'none';
-            this.style.transform = 'translateY(0)';
-          };
-          var expanded = false;
-          toggleBtn.onclick = function() {
-            expanded = !expanded;
-            if (expanded) {
-              tagsWrap.style.maxHeight = '500px';
-              this.textContent = '收起 ▴';
-            } else {
-              tagsWrap.style.maxHeight = '44px';
-              this.textContent = '展开全部 ▾';
-            }
-          };
-          group.appendChild(toggleBtn);
-        }
-
-        return group;
-      }
-
-      // 先渲染9.0新功能组
-      var newGroup = createCategoryGroup({name: '✨ v9.0 新功能', color: 'text-purple-300'}, newTools9, true);
-      if (newGroup) moreList.appendChild(newGroup);
-
-      // 按分类渲染其他工具
-      var categorized = {};
-      categories.forEach(function(c) { categorized[c.name] = []; });
-      var others = [];
-
-      otherTools.forEach(function(t) {
-        var url = (t.url || '').toLowerCase();
-        var found = false;
-        categories.forEach(function(c) {
-          if (c.keys.some(function(k) { return url.indexOf(k) >= 0; })) {
-            categorized[c.name].push(t);
-            found = true;
-          }
-        });
-        if (!found) others.push(t);
-      });
-
-      categories.forEach(function(c) {
-        var group = createCategoryGroup(c, categorized[c.name], false);
-        if (group) moreList.appendChild(group);
-      });
-
-      // 其他工具（可折叠，默认只显示一行）
-      if (others.length) {
-        var otherGroup = createCategoryGroup(defaultCategory, others, false, true);
-        if (otherGroup) moreList.appendChild(otherGroup);
-      }
-
-      if (moreWrap) {
-        moreWrap.style.display = (otherTools.length || newTools9.length) ? 'block' : 'none';
-      }
-    }
-
+    setTimeout(initCard3DAnimals, 200);
   }
 
   function bindHover() {
