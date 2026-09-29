@@ -19,7 +19,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var page = $('paPage'), input = $('paProjectInput'), loadBtn = $('paLoadBtn'),
-      refreshBtn = $('paRefreshBtn'), progress = $('paProgress'),
+      refreshBtn = $('paRefreshBtn'), dailyReportBtn = $('paDailyReportBtn'), weeklyReportBtn = $('paWeeklyReportBtn'), agingBtn = $('paAgingBtn'), progress = $('paProgress'),
       progressMsg = $('paProgressMsg'), bar = $('paBar'), errorBox = $('paError'),
       result = $('paResult'), msgs = $('paMsgs'), chatInput = $('paInput'),
       sendBtn = $('paSend'), modTable = $('paModTable');
@@ -119,7 +119,7 @@
     if (state.loading) return;
     state.loading = true;
     clearError();
-    loadBtn.disabled = true; refreshBtn.style.display = 'none';
+    loadBtn.disabled = true; refreshBtn.style.display = 'none'; if(dailyReportBtn) dailyReportBtn.style.display = 'none'; if(weeklyReportBtn) weeklyReportBtn.style.display = 'none';
     setProgress(3, '正在提交任务…');
 
     fetch('/api/project/load', {
@@ -141,11 +141,11 @@
         applySnapshot(snap);
         localStorage.setItem(LS_LAST, snap.project_key);
         hideProgress(); state.loading = false;
-        loadBtn.disabled = false; refreshBtn.style.display = '';
+        loadBtn.disabled = false; refreshBtn.style.display = ''; if(dailyReportBtn) dailyReportBtn.style.display = ''; if(weeklyReportBtn) weeklyReportBtn.style.display = ''; if(weeklyReportBtn) weeklyReportBtn.style.display = '';
       })
       .catch(function (e) {
         hideProgress(); state.loading = false;
-        loadBtn.disabled = false; refreshBtn.style.display = '';
+        loadBtn.disabled = false; refreshBtn.style.display = ''; if(dailyReportBtn) dailyReportBtn.style.display = ''; if(weeklyReportBtn) weeklyReportBtn.style.display = ''; if(weeklyReportBtn) weeklyReportBtn.style.display = '';
         showError(e.message || '生成失败');
       });
   }
@@ -200,7 +200,7 @@
     result.classList.remove('rca-only');
     var chatTitle = document.querySelector('.pa-chat h3');
     if (chatTitle) chatTitle.textContent = '就这个项目继续追问';
-    refreshBtn.style.display = '';
+    refreshBtn.style.display = ''; if(dailyReportBtn) dailyReportBtn.style.display = ''; if(weeklyReportBtn) weeklyReportBtn.style.display = '';
 
     var st = snap.stats || {};
     $('paProjTitle').textContent = snap.project_name
@@ -1173,7 +1173,7 @@
     } else {
       input.setAttribute('placeholder', '输入 Project Key，如 EKSANTOS，或项目名称后回车');
       loadBtn.textContent = '查询';
-      refreshBtn.style.display = state.snap ? '' : 'none';
+      refreshBtn.style.display = state.snap ? '' : 'none'; if(dailyReportBtn) dailyReportBtn.style.display = state.snap ? '' : 'none'; if(weeklyReportBtn) weeklyReportBtn.style.display = state.snap ? '' : 'none'; if(agingBtn) agingBtn.style.display = state.snap ? '' : 'none';
     }
   }
   function doPrimary() {
@@ -1242,6 +1242,37 @@
         msgs.scrollTop = msgs.scrollHeight;
         // 容器已由renderMD在标题后直接创建，这里只需要渲染图表
         renderInlineTrendCharts(botBubble);
+        // 添加回答操作按钮
+        if (acc && !botBubble.querySelector('.pa-msg-actions')) {
+          var actions = document.createElement('div');
+          actions.className = 'pa-msg-actions';
+          actions.innerHTML = '<button class="pa-action-btn" data-action="copy">复制</button>' +
+            '<button class="pa-action-btn" data-action="note">存为笔记</button>' +
+            '<button class="pa-action-btn" data-action="email">发送邮件</button>';
+          botBubble.appendChild(actions);
+          actions.addEventListener('click', function (e) {
+            var btn = e.target.closest('.pa-action-btn');
+            if (!btn) return;
+            var action = btn.getAttribute('data-action');
+            var text = acc;
+            if (action === 'copy') {
+              copyText(text, '已复制到剪贴板');
+            } else if (action === 'note') {
+              toast('正在保存到牛马笔记...');
+              fetch('/api/notes', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title: '项目状态助手 - ' + new Date().toLocaleString(), content: text})
+              }).then(function(r){ return r.json(); }).then(function(d){
+                if (d.status === 'success') toast('已保存到牛马笔记');
+                else toast('保存失败: ' + (d.error || '未知错误'));
+              }).catch(function(){ toast('保存失败，请稍后重试'); });
+            } else if (action === 'email') {
+              toast('正在打开邮件助手...');
+              window.location.href = '/mail-assistant?body=' + encodeURIComponent(text);
+            }
+          });
+        }
       }
       return pump();
     }).catch(function (e) {
@@ -1267,6 +1298,38 @@
   /* ---------------- 事件绑定 ---------------- */
   loadBtn.addEventListener('click', doPrimary);
   refreshBtn.addEventListener('click', function () { startLoad(true); });
+  if (dailyReportBtn) {
+    dailyReportBtn.addEventListener('click', function () {
+      if (!state.snap) { showError('请先生成项目状态'); return; }
+      var projectKey = state.snap.project_key || input.value.trim();
+      if (!projectKey) { showError('缺少项目Key'); return; }
+      
+      dailyReportBtn.disabled = true;
+      var originalText = dailyReportBtn.textContent;
+      dailyReportBtn.textContent = '生成中...';
+      
+      fetch('/api/project/daily-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectKey, reporter: '' })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        dailyReportBtn.disabled = false;
+        dailyReportBtn.textContent = originalText;
+        if (data.status === 'success') {
+          toast('✅ ' + (data.data.message || '项目日报已生成并保存到牛马笔记') + ' - ' + (data.data.title || ''));
+        } else {
+          showError(data.error || '生成日报失败');
+        }
+      })
+      .catch(function (e) {
+        dailyReportBtn.disabled = false;
+        dailyReportBtn.textContent = originalText;
+        showError('生成日报失败: ' + e.message);
+      });
+    });
+  }
   $('paForceReload').addEventListener('click', function () { startLoad(true); });
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doPrimary(); } });
   Array.prototype.forEach.call(document.querySelectorAll('#paMode button'), function (b) {
@@ -1283,6 +1346,10 @@
   });
   Array.prototype.forEach.call(document.querySelectorAll('#paChips .pa-chip'), function (c) {
     c.addEventListener('click', function () { sendQuestion(c.getAttribute('data-q')); });
+  });
+  // 快捷问题按钮
+  Array.prototype.forEach.call(document.querySelectorAll('.pa-quick-btn'), function (btn) {
+    btn.addEventListener('click', function () { sendQuestion(btn.getAttribute('data-q')); });
   });
   $('paModFilter').addEventListener('input', renderModules);
   $('paModStatus').addEventListener('change', renderModules);
@@ -1319,5 +1386,161 @@
         page.classList.remove('ready'); result.classList.remove('show'); input.value = '';
       });
     }
+  }
+})();
+
+/* V9.1 周报生成按钮 */
+(function() {
+  var weeklyBtn = document.getElementById('paWeeklyReportBtn');
+  if (!weeklyBtn) return;
+  weeklyBtn.addEventListener('click', function() {
+    var input = document.getElementById('paProjectInput');
+    var projectKey = input ? input.value.trim() : '';
+    if (!projectKey) { alert('请先输入项目Key并生成状态'); return; }
+    weeklyBtn.disabled = true;
+    var originalText = weeklyBtn.textContent;
+    weeklyBtn.textContent = '生成中...';
+    fetch('/api/project/weekly-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: projectKey, reporter: '' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      weeklyBtn.disabled = false;
+      weeklyBtn.textContent = originalText;
+      if (data.status === 'success') {
+        alert('✅ ' + (data.data.message || '项目周报已生成') + '\n' + (data.data.title || ''));
+      } else {
+        alert('❌ ' + (data.error || '生成周报失败'));
+      }
+    })
+    .catch(function(e) {
+      weeklyBtn.disabled = false;
+      weeklyBtn.textContent = originalText;
+      alert('❌ 生成周报失败: ' + e.message);
+    });
+  });
+})();
+/* V9.1 问题老化预警 */
+(function() {
+  var agingBtn = document.getElementById('paAgingBtn');
+  if (!agingBtn) return;
+
+  // 监听项目加载完成，显示老化按钮
+  var observer = new MutationObserver(function() {
+    var dailyBtn = document.getElementById('paDailyReportBtn');
+    if (dailyBtn && dailyBtn.style.display !== 'none') {
+      agingBtn.style.display = '';
+    } else {
+      agingBtn.style.display = 'none';
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  agingBtn.addEventListener('click', function() {
+    var input = document.getElementById('paProjectInput');
+    var projectKey = input ? input.value.trim() : '';
+    if (!projectKey) { alert('请先输入项目Key并生成状态'); return; }
+
+    agingBtn.disabled = true;
+    var originalText = agingBtn.textContent;
+    agingBtn.textContent = '分析中...';
+
+    fetch('/api/project/aging-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: projectKey })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      agingBtn.disabled = false;
+      agingBtn.textContent = originalText;
+      if (data.status === 'success') {
+        showAgingResult(data.data);
+      } else {
+        alert('❌ ' + (data.error || '老化分析失败'));
+      }
+    })
+    .catch(function(e) {
+      agingBtn.disabled = false;
+      agingBtn.textContent = originalText;
+      alert('❌ 老化分析失败: ' + e.message);
+    });
+  });
+
+  function showAgingResult(result) {
+    var a7 = result.aging_7_days || {};
+    var a14 = result.aging_14_days || {};
+    var a30 = result.aging_30_days || {};
+
+    var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;">';
+    html += '<div style="background:#1a1d24;border-radius:16px;max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:30px;color:#e5e7eb;font-family:system-ui,sans-serif;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
+    html += '<h2 style="margin:0;font-size:22px;color:#fff;">⏰ 问题老化预警分析</h2>';
+    html += '<button onclick="this.closest(\'div\').parentElement.parentElement.remove()" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:14px;">关闭</button>';
+    html += '</div>';
+
+    // 概览卡片
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">';
+    html += '<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px;text-align:center;">';
+    html += '<div style="font-size:28px;font-weight:bold;color:#f59e0b;">' + (a7.count || 0) + '</div>';
+    html += '<div style="font-size:13px;color:#9ca3af;margin-top:4px;">≥7天 (关注)</div>';
+    html += '<div style="font-size:12px;color:#6b7280;margin-top:2px;">B:' + (a7.blocker || 0) + ' C:' + (a7.critical || 0) + '</div>';
+    html += '</div>';
+    html += '<div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:12px;padding:16px;text-align:center;">';
+    html += '<div style="font-size:28px;font-weight:bold;color:#f97316;">' + (a14.count || 0) + '</div>';
+    html += '<div style="font-size:13px;color:#9ca3af;margin-top:4px;">≥14天 (警告)</div>';
+    html += '<div style="font-size:12px;color:#6b7280;margin-top:2px;">B:' + (a14.blocker || 0) + ' C:' + (a14.critical || 0) + '</div>';
+    html += '</div>';
+    html += '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:16px;text-align:center;">';
+    html += '<div style="font-size:28px;font-weight:bold;color:#ef4444;">' + (a30.count || 0) + '</div>';
+    html += '<div style="font-size:13px;color:#9ca3af;margin-top:4px;">≥30天 (严重)</div>';
+    html += '<div style="font-size:12px;color:#6b7280;margin-top:2px;">B:' + (a30.blocker || 0) + ' C:' + (a30.critical || 0) + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // 重点关注问题
+    var criticalAging = (a14.issues || []).filter(function(it) { return it.sev === 'blocker' || it.sev === 'critical'; });
+    if (criticalAging.length > 0) {
+      html += '<h3 style="color:#fff;font-size:16px;margin-bottom:12px;">🔴 重点关注问题（≥14天 BC）</h3>';
+      html += '<div style="background:#111827;border-radius:8px;overflow:hidden;margin-bottom:20px;">';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+      html += '<thead><tr style="background:#1f2937;"><th style="padding:10px;text-align:left;color:#9ca3af;">ID</th><th style="padding:10px;text-align:left;color:#9ca3af;">级别</th><th style="padding:10px;text-align:left;color:#9ca3af;">天数</th><th style="padding:10px;text-align:left;color:#9ca3af;">负责人</th><th style="padding:10px;text-align:left;color:#9ca3af;">标题</th></tr></thead>';
+      html += '<tbody>';
+      criticalAging.slice(0, 10).forEach(function(it) {
+        var sevColor = it.sev === 'blocker' ? '#ef4444' : '#f59e0b';
+        var sevText = it.sev === 'blocker' ? 'B' : 'C';
+        html += '<tr style="border-top:1px solid #1f2937;">';
+        html += '<td style="padding:8px;color:#60a5fa;">' + (it.id || '') + '</td>';
+        html += '<td style="padding:8px;"><span style="background:' + sevColor + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">' + sevText + '</span></td>';
+        html += '<td style="padding:8px;color:#f97316;font-weight:bold;">' + (it.days_old != null ? it.days_old + '天' : '?') + '</td>';
+        html += '<td style="padding:8px;color:#9ca3af;">' + (it.developer || '未指派') + '</td>';
+        html += '<td style="padding:8px;color:#d1d5db;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (it.title || '').substring(0, 50) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    // 负责人排名
+    if (result.top_developers && result.top_developers.length > 0) {
+      html += '<h3 style="color:#fff;font-size:16px;margin-bottom:12px;">👤 老化问题负责人 TOP5</h3>';
+      html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;">';
+      result.top_developers.forEach(function(item, idx) {
+        var medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        html += '<div style="background:#111827;border-radius:8px;padding:12px;text-align:center;">';
+        html += '<div style="font-size:20px;">' + (medals[idx] || (idx+1)) + '</div>';
+        html += '<div style="font-size:12px;color:#9ca3af;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + item[0] + '</div>';
+        html += '<div style="font-size:18px;font-weight:bold;color:#f59e0b;margin-top:2px;">' + item[1] + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div.firstElementChild);
   }
 })();

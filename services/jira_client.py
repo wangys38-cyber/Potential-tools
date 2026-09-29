@@ -668,6 +668,7 @@ def client_from_config(cfg: dict) -> JiraClient:
         email=cfg.get("email", ""),
         token=cfg.get("token", ""),
         verify_ssl=cfg.get("verify_ssl", True),
+        timeout=cfg.get("timeout", 120),
         max_retries=cfg.get("max_retries", 8),
         min_interval=cfg.get("min_interval", 1.0),
     )

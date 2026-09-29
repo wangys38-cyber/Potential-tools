@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """项目状态助手路由 Blueprint。
 
 - GET  /api/project/list              列出可访问项目（datalist 自动补全）
@@ -98,7 +98,20 @@ def create_project_blueprint():
                 _fail(str(e))
             except Exception as e:
                 logger.error('项目状态任务异常: %s', traceback.format_exc())
-                _fail(f'{type(e).__name__}: {e}')
+                err_msg = str(e)
+                # 优化超时错误提示
+                if 'ReadTimeout' in err_msg or 'read timeout' in err_msg or 'ConnectTimeout' in err_msg or 'connect timeout' in err_msg:
+                    _fail('连接 eDart/Jira 超时，服务器响应较慢。请检查网络连接，或稍后重试。如果项目数据量较大，可能需要更长时间，请耐心等待。')
+                elif 'ConnectionResetError' in err_msg or '远程主机强迫关闭' in err_msg or 'Connection broken' in err_msg or 'ChunkedEncodingError' in err_msg:
+                    _fail('eDart/Jira 服务器主动断开了连接，可能是单次请求数据量过大或服务器负载较高。请稍后重试，或尝试使用缓存数据。')
+                elif 'ConnectionError' in err_msg or 'Failed to establish' in err_msg:
+                    _fail('无法连接到 eDart/Jira 服务器，请检查网络连接和站点地址配置是否正确。')
+                elif '401' in err_msg or 'Unauthorized' in err_msg or '403' in err_msg or 'Forbidden' in err_msg:
+                    _fail('eDart/Jira 认证失败，请检查 Token 是否正确，或是否有权限访问该项目。')
+                elif '404' in err_msg or 'Not Found' in err_msg:
+                    _fail('未找到该项目或资源，请检查 Project Key 是否正确。')
+                else:
+                    _fail(f'请求失败：{err_msg}')
 
         threading.Thread(target=_do, daemon=True).start()
         return jsonify({'status': 'success', 'data': {'task_id': task_id}})
@@ -266,5 +279,157 @@ def create_project_blueprint():
             return jsonify({'status': 'success', 'data': get_status()})
         except Exception as e:
             return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+    # ---------------- 生成项目日报 ----------------
+    @bp.route('/api/project/daily-report', methods=['POST'])
+    @login_required_or_guest
+    def generate_daily_report():
+        """生成项目日报并保存到牛马笔记"""
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        reporter = (data.get('reporter') or '').strip()
+        
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        
+        try:
+            # 获取用户ID
+            user_id = 1
+            try:
+                from flask import session
+                user_id = session.get('user_id', 1)
+            except Exception:
+                pass
+            
+            note, err = pa.save_daily_report_to_notes(project_key, reporter, user_id)
+            if err:
+                return jsonify({'status': 'error', 'error': err}), 200
+            
+            return jsonify({
+                'status': 'success',
+                'data': {
+                    'note_id': note.get('note_uid') if note else '',
+                    'title': note.get('title') if note else '',
+                    'message': '项目日报已生成并保存到牛马笔记'
+                }
+            })
+        except Exception as e:
+            logger.error('生成项目日报失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'生成日报失败: {e}'}), 200
+
+    @bp.route('/api/project/weekly-report', methods=['POST'])
+    @login_required_or_guest
+    def generate_weekly_report_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        reporter = (data.get('reporter') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        try:
+            user_id = 1
+            try:
+                from flask import session
+                user_id = session.get('user_id', 1)
+            except Exception:
+                pass
+            note, err = pa.save_weekly_report_to_notes(project_key, reporter, user_id)
+            if err:
+                return jsonify({'status': 'error', 'error': err}), 200
+            return jsonify({
+                'status': 'success',
+                'data': {
+                    'note_id': note.get('note_uid') if note else '',
+                    'title': note.get('title') if note else '',
+                    'message': '项目周报已生成并保存到牛马笔记'
+                }
+            })
+        except Exception as e:
+            logger.error('生成项目周报失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'生成周报失败: {e}'}), 200
+
+    @bp.route('/api/project/aging-analysis', methods=['POST'])
+    @login_required_or_guest
+    def aging_analysis_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        try:
+            result, err = pa.analyze_issue_aging(project_key)
+            if err:
+                return jsonify({'status': 'error', 'error': err}), 200
+            return jsonify({'status': 'success', 'data': result})
+        except Exception as e:
+            logger.error('问题老化分析失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'老化分析失败: {e}'}), 200
+
+    @bp.route('/api/project/aging-report', methods=['POST'])
+    @login_required_or_guest
+    def aging_report_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        try:
+            report, err = pa.generate_aging_report(project_key)
+            if err:
+                return jsonify({'status': 'error', 'error': err}), 200
+            return jsonify({'status': 'success', 'data': {'report': report}})
+        except Exception as e:
+            logger.error('生成老化报告失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'生成报告失败: {e}'}), 200
+
+    @bp.route('/api/project/cache-info', methods=['POST'])
+    @login_required_or_guest
+    def cache_info_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        try:
+            info = pa.get_cache_info(project_key)
+            return jsonify({'status': 'success', 'data': info})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': str(e)}), 200
+
+    @bp.route('/api/project/clear-cache', methods=['POST'])
+    @login_required_or_guest
+    def clear_cache_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        try:
+            pa.clear_cache(project_key or None)
+            return jsonify({'status': 'success', 'message': '缓存已清除'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'error': str(e)}), 200
+
+    @bp.route('/api/project/compare', methods=['POST'])
+    @login_required_or_guest
+    def compare_projects_api():
+        data = request.get_json(silent=True) or {}
+        project_keys = data.get('projects') or data.get('project_keys') or []
+        if not project_keys or len(project_keys) < 2:
+            return jsonify({'status': 'error', 'error': '请输入至少2个项目Key'}), 400
+        try:
+            results = pa.compare_projects(project_keys)
+            return jsonify({'status': 'success', 'data': {'projects': results}})
+        except Exception as e:
+            logger.error('多项目对比失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'对比失败: {e}'}), 200
+
+    @bp.route('/api/project/alerts', methods=['POST'])
+    @login_required_or_guest
+    def project_alerts_api():
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        try:
+            result = pa.check_project_alerts(project_key)
+            return jsonify({'status': 'success', 'data': result})
+        except Exception as e:
+            logger.error('预警检查失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': f'预警检查失败: {e}'}), 200
 
     return bp

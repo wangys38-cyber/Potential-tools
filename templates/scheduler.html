@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定时任务管理 - V9.2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0D0E12;
+            color: #E5E7EB;
+            min-height: 100vh;
+        }
+        .header {
+            background: rgba(26, 29, 36, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header .back-btn {
+            color: #9CA3AF;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            transition: all 0.2s;
+        }
+        .header .back-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1A1D24;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .stat-card .label { font-size: 13px; color: #9CA3AF; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; }
+        .stat-card .value.running { color: #10B981; }
+        .stat-card .value.stopped { color: #EF4444; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.4); }
+        .btn-success { background: #10B981; color: white; }
+        .btn-danger { background: #EF4444; color: white; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #E5E7EB; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .task-list { display: flex; flex-direction: column; gap: 12px; }
+        .task-card {
+            background: #1A1D24;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .task-card:hover { border-color: rgba(139,92,246,0.3); }
+        .task-card.disabled { opacity: 0.5; }
+        .task-info { flex: 1; }
+        .task-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .task-meta { display: flex; gap: 16px; font-size: 13px; color: #9CA3AF; }
+        .task-meta span { display: flex; align-items: center; gap: 4px; }
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-daily { background: rgba(59,130,246,0.2); color: #60A5FA; }
+        .badge-weekly { background: rgba(16,185,129,0.2); color: #34D399; }
+        .badge-hourly { background: rgba(245,158,11,0.2); color: #FBBF24; }
+        .badge-interval { background: rgba(239,68,68,0.2); color: #F87171; }
+        .badge-enabled { background: rgba(16,185,129,0.2); color: #34D399; }
+        .badge-disabled { background: rgba(156,163,175,0.2); color: #9CA3AF; }
+        .task-actions { display: flex; gap: 8px; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #1A1D24;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h2 { font-size: 20px; margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; color: #9CA3AF; margin-bottom: 6px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0D0E12;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #E5E7EB;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #8B5CF6;
+        }
+        .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .logs-list { max-height: 400px; overflow-y: auto; }
+        .log-item {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 13px;
+        }
+        .log-item .log-time { color: #6B7280; font-size: 11px; }
+        .log-item .log-status { font-weight: 600; }
+        .log-item .log-status.success { color: #10B981; }
+        .log-item .log-status.failed { color: #EF4444; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6B7280;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>⏰ 定时任务管理 <span style="font-size:12px;color:#8B5CF6;">V9.2</span></h1>
+        <a href="/" class="back-btn">← 返回首页</a>
+    </div>
+    
+    <div class="container">
+        <div class="stats-bar" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card">
+                <div class="label">调度器状态</div>
+                <div class="value" id="schedulerStatus" style="font-size:20px;">检查中...</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">任务总数</div>
+                <div class="value" id="totalTasks" style="font-size:24px;">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">已启用任务</div>
+                <div class="value" id="enabledTasks" style="color:#10B981;font-size:24px;">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">今日执行次数</div>
+                <div class="value" id="todayRuns" style="font-size:24px;">0</div>
+            </div>
+        </div>
+        
+        <!-- 执行趋势折线图 -->
+        <div class="chart-card" style="background:#1A1D24;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="font-size:16px;font-weight:600;color:#E5E7EB;">📈 执行趋势（日报/周报）</h3>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-sm btn-secondary" onclick="loadChart(7)">近7天</button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadChart(30)">近30天</button>
+                </div>
+            </div>
+            <div id="trendChart" style="width:100%;height:300px;"></div>
+        </div>
+        
+        <div class="toolbar">
+            <div>
+                <button class="btn btn-success btn-sm" onclick="startScheduler()" id="startBtn">▶ 启动调度器</button>
+                <button class="btn btn-danger btn-sm" onclick="stopScheduler()" id="stopBtn">■ 停止调度器</button>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ 新建定时任务</button>
+        </div>
+        
+        <div class="task-list" id="taskList">
+            <div class="empty-state">
+                <div class="icon">📋</div>
+                <div>暂无定时任务，点击上方按钮创建</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 创建/编辑任务弹窗 -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <h2 id="modalTitle">新建定时任务</h2>
+            <input type="hidden" id="taskId">
+            <div class="form-group">
+                <label>任务名称</label>
+                <input type="text" id="taskName" placeholder="如：EKSANTOS每日日报">
+            </div>
+            <div class="form-group">
+                <label>任务类型</label>
+                <select id="taskType">
+                    <optgroup label="--- 数据拉取 ---">
+                        <option value="data_refresh">拉取最新CR数据</option>
+                    </optgroup>
+                    <optgroup label="--- 报告生成 ---">
+                        <option value="daily_report">生成日报</option>
+                        <option value="weekly_report">生成周报</option>
+                        <option value="aging_report">老化预警报告</option>
+                    </optgroup>
+                    <optgroup label="--- 自动检查 ---">
+                        <option value="alert_check">智能预警检查</option>
+                    </optgroup>
+                    <optgroup label="--- 提醒类 ---">
+                        <option value="cr_timeout_alert">CR超时提醒</option>
+                        <option value="blocker_alert">Blocker预警</option>
+                        <option value="fail_module_check">FAIL模块巡检</option>
+                        <option value="milestone_tracking">里程碑跟踪</option>
+                    </optgroup>
+                    <optgroup label="--- 分析类 ---">
+                        <option value="competitor_analysis">竞品分析周报</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>项目Key</label>
+                <input type="text" id="projectKey" placeholder="如：EKSANTOS">
+            </div>
+            <div class="form-group">
+                <label>执行频率</label>
+                <select id="taskFreq" onchange="toggleFreqFields()">
+                    <option value="daily">每天</option>
+                    <option value="weekly">每周</option>
+                    <option value="hourly">每小时</option>
+                    <option value="interval">自定义间隔</option>
+                </select>
+            </div>
+            <div class="form-group" id="timeGroup">
+                <label>执行时间</label>
+                <input type="time" id="taskTime" value="18:00">
+            </div>
+            <div class="form-group" id="weekdayGroup" style="display:none;">
+                <label>星期几</label>
+                <select id="taskWeekday">
+                    <option value="0">周一</option>
+                    <option value="1">周二</option>
+                    <option value="2">周三</option>
+                    <option value="3">周四</option>
+                    <option value="4" selected>周五</option>
+                    <option value="5">周六</option>
+                    <option value="6">周日</option>
+                </select>
+            </div>
+            <div class="form-group" id="intervalGroup" style="display:none;">
+                <label>间隔（分钟）</label>
+                <input type="number" id="taskInterval" value="60" min="1">
+            </div>
+            <div class="form-group">
+                <label>邮件收件人（多个用逗号分隔，可选）</label>
+                <input type="text" id="emailRecipients" placeholder="如：user1@example.com,user2@example.com">
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="feishuNotify" checked style="width:auto;">
+                    同时发送飞书通知
+                </label>
+                <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">
+                    需要先在系统设置中配置飞书机器人Webhook
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTask()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 日志弹窗 -->
+    <div class="modal-overlay" id="logsModal">
+        <div class="modal" style="width:600px;">
+            <h2>执行日志</h2>
+            <div class="logs-list" id="logsList"></div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeLogsModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '/api/scheduler';
+        
+        // 加载状态和任务列表
+        async function loadData() {
+            try {
+                const [statusRes, tasksRes] = await Promise.all([
+                    fetch(API_BASE + '/status'),
+                    fetch(API_BASE + '/tasks')
+                ]);
+                const statusData = await statusRes.json();
+                const tasksData = await tasksRes.json();
+                
+                // 更新状态
+                const statusEl = document.getElementById('schedulerStatus');
+                if (statusData.data.running) {
+                    statusEl.textContent = '运行中';
+                    statusEl.className = 'value running';
+                    document.getElementById('startBtn').style.display = 'none';
+                    document.getElementById('stopBtn').style.display = 'inline-block';
+                } else {
+                    statusEl.textContent = '已停止';
+                    statusEl.className = 'value stopped';
+                    document.getElementById('startBtn').style.display = 'inline-block';
+                    document.getElementById('stopBtn').style.display = 'none';
+                }
+                
+                document.getElementById('totalTasks').textContent = statusData.data.total_tasks;
+                document.getElementById('enabledTasks').textContent = statusData.data.enabled_tasks;
+                
+                // 渲染任务列表
+                renderTasks(tasksData.data.tasks);
+            } catch (e) {
+                console.error('加载失败:', e);
+            }
+        }
+        
+        function renderTasks(tasks) {
+            const list = document.getElementById('taskList');
+            if (!tasks || tasks.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div>暂无定时任务，点击上方按钮创建</div></div>';
+                return;
+            }
+            
+            const typeNames = {
+                daily_report: '生成日报',
+                weekly_report: '生成周报',
+                aging_report: '老化报告',
+                alert_check: '预警检查',
+                data_refresh: '数据刷新'
+            };
+            const freqNames = {
+                daily: '每天',
+                weekly: '每周',
+                hourly: '每小时',
+                interval: '间隔'
+            };
+            
+            list.innerHTML = tasks.map(task => `
+                <div class="task-card ${task.enabled ? '' : 'disabled'}">
+                    <div class="task-info">
+                        <div class="task-name">
+                            ${task.name}
+                            <span class="badge badge-${task.freq}">${freqNames[task.freq] || task.freq}</span>
+                            <span class="badge ${task.enabled ? 'badge-enabled' : 'badge-disabled'}">${task.enabled ? '已启用' : '已禁用'}</span>
+                        </div>
+                        <div class="task-meta">
+                            <span>📌 ${typeNames[task.type] || task.type}</span>
+                            <span>📁 ${task.project_key}</span>
+                            <span>⏰ ${task.freq === 'daily' || task.freq === 'weekly' ? task.time : (task.freq === 'interval' ? task.interval_minutes + '分钟' : '每小时')}</span>
+                            <span>▶ 执行${task.run_count || 0}次</span>
+                            <span>✅ 成功${task.success_count || 0}次</span>
+                            <span>❌ 失败${task.fail_count || 0}次</span>
+                            <span>🕐 下次: ${task.next_run || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn btn-sm btn-primary" onclick="runTask('${task.id}')">立即执行</button>
+                        <button class="btn btn-sm btn-secondary" onclick="toggleTask('${task.id}')">${task.enabled ? '禁用' : '启用'}</button>
+                        <button class="btn btn-sm btn-secondary" onclick="viewLogs('${task.id}')">日志</button>
+                        <button class="btn btn-sm btn-secondary" onclick="editTask('${task.id}')">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTask('${task.id}')">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 启动/停止调度器
+        async function startScheduler() {
+            await fetch(API_BASE + '/start', { method: 'POST' });
+            loadData();
+        }
+        async function stopScheduler() {
+            await fetch(API_BASE + '/stop', { method: 'POST' });
+            loadData();
+        }
+        
+        // 弹窗控制
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新建定时任务';
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskName').value = '';
+            document.getElementById('taskType').value = 'daily_report';
+            document.getElementById('projectKey').value = '';
+            document.getElementById('taskFreq').value = 'daily';
+            document.getElementById('taskTime').value = '18:00';
+            document.getElementById('taskWeekday').value = '4';
+            document.getElementById('taskInterval').value = '60';
+            document.getElementById('emailRecipients').value = '';
+            toggleFreqFields();
+            document.getElementById('taskModal').classList.add('active');
+        }
+        
+        async function editTask(taskId) {
+            // 加载任务数据并填充表单
+            try {
+                const response = await fetch(API_BASE + '/tasks');
+                const result = await response.json();
+                const tasks = result.data.tasks;
+                const task = tasks.find(t => t.id === taskId);
+                
+                if (!task) {
+                    alert('任务不存在');
+                    return;
+                }
+                
+                document.getElementById('modalTitle').textContent = '编辑定时任务';
+                document.getElementById('taskId').value = task.id;
+                document.getElementById('taskName').value = task.name || '';
+                document.getElementById('taskType').value = task.type || '';
+                document.getElementById('projectKey').value = task.project_key || '';
+                document.getElementById('taskFreq').value = task.freq || 'daily';
+                document.getElementById('taskTime').value = task.time || '18:00';
+                document.getElementById('taskWeekday').value = task.weekday || 4;
+                document.getElementById('taskInterval').value = task.interval_minutes || 60;
+                document.getElementById('emailRecipients').value = (task.email_recipients || []).join(', ');
+                document.getElementById('feishuNotify').checked = task.feishu_notify !== false;
+                
+                toggleFreqFields();
+                
+                document.getElementById('taskModal').classList.add('active');
+            } catch (err) {
+                alert('加载任务数据失败: ' + err.message);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+        }
+        
+        function toggleFreqFields() {
+            const freq = document.getElementById('taskFreq').value;
+            document.getElementById('timeGroup').style.display = (freq === 'daily' || freq === 'weekly') ? 'block' : 'none';
+            document.getElementById('weekdayGroup').style.display = (freq === 'weekly') ? 'block' : 'none';
+            document.getElementById('intervalGroup').style.display = (freq === 'interval') ? 'block' : 'none';
+        }
+        
+        async function saveTask() {
+            const taskId = document.getElementById('taskId').value;
+            const data = {
+                name: document.getElementById('taskName').value,
+                type: document.getElementById('taskType').value,
+                project_key: document.getElementById('projectKey').value,
+                freq: document.getElementById('taskFreq').value,
+                time: document.getElementById('taskTime').value,
+                weekday: parseInt(document.getElementById('taskWeekday').value),
+                interval_minutes: parseInt(document.getElementById('taskInterval').value),
+                email_recipients: document.getElementById('emailRecipients').value.split(',').map(s => s.trim()).filter(s => s),
+                feishu_notify: document.getElementById('feishuNotify').checked
+            };
+            
+            if (!data.project_key) {
+                alert('请输入项目Key');
+                return;
+            }
+            
+            const url = taskId ? API_BASE + '/tasks/' + taskId : API_BASE + '/tasks';
+            const method = taskId ? 'PUT' : 'POST';
+            
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            closeModal();
+            loadData();
+        }
+        
+        async function runTask(taskId) {
+            if (confirm('确定立即执行此任务？')) {
+                await fetch(API_BASE + '/tasks/' + taskId + '/run', { method: 'POST' });
+                alert('任务已触发执行');
+            }
+        }
+        
+        async function toggleTask(taskId) {
+            await fetch(API_BASE + '/tasks/' + taskId + '/toggle', { method: 'POST' });
+            loadData();
+        }
+        
+        async function deleteTask(taskId) {
+            if (confirm('确定删除此任务？')) {
+                await fetch(API_BASE + '/tasks/' + taskId, { method: 'DELETE' });
+                loadData();
+            }
+        }
+        
+        async function viewLogs(taskId) {
+            const res = await fetch(API_BASE + '/logs?task_id=' + taskId + '&limit=20');
+            const data = await res.json();
+            const logs = data.data.logs || [];
+            
+            const list = document.getElementById('logsList');
+            if (logs.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无执行日志</div>';
+            } else {
+                list.innerHTML = logs.map(log => `
+                    <div class="log-item">
+                        <div class="log-time">${log.started_at || '-'}</div>
+                        <div><span class="log-status ${log.status}">${log.status === 'success' ? '✅ 成功' : '❌ 失败'}</span> ${log.message || ''}</div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('logsModal').classList.add('active');
+        }
+        
+        function closeLogsModal() {
+            document.getElementById('logsModal').classList.remove('active');
+        }
+        
+        // 点击遮罩关闭弹窗
+        document.getElementById('taskModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        document.getElementById('logsModal').addEventListener('click', function(e) {
+            if (e.target === this) closeLogsModal();
+        });
+        
+        // 初始加载
+        loadData();
+        // 加载折线图
+        var trendChart = null;
+        async function loadChart(days) {
+            try {
+                const res = await fetch(API_BASE + '/stats?days=' + days);
+                const data = await res.json();
+                if (data.status === 'success' && data.data) {
+                    if (!trendChart) {
+                        trendChart = echarts.init(document.getElementById('trendChart'), 'dark');
+                    }
+                    const option = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'axis',
+                            backgroundColor: 'rgba(26,29,36,0.95)',
+                            borderColor: 'rgba(139,92,246,0.3)',
+                            textStyle: { color: '#E5E7EB' }
+                        },
+                        legend: {
+                            data: ['日报', '周报', '成功', '失败'],
+                            textStyle: { color: '#9CA3AF' },
+                            top: 0
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            top: '15%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: data.data.dates,
+                            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                            axisLabel: { color: '#9CA3AF', fontSize: 11 }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                            axisLabel: { color: '#9CA3AF' },
+                            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+                        },
+                        series: [
+                            {
+                                name: '日报',
+                                type: 'line',
+                                smooth: true,
+                                data: data.data.daily_report,
+                                lineStyle: { color: '#8B5CF6', width: 2 },
+                                itemStyle: { color: '#8B5CF6' },
+                                areaStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: 'rgba(139,92,246,0.3)' },
+                                        { offset: 1, color: 'rgba(139,92,246,0)' }
+                                    ])
+                                }
+                            },
+                            {
+                                name: '周报',
+                                type: 'line',
+                                smooth: true,
+                                data: data.data.weekly_report,
+                                lineStyle: { color: '#06B6D4', width: 2 },
+                                itemStyle: { color: '#06B6D4' },
+                                areaStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: 'rgba(6,182,212,0.3)' },
+                                        { offset: 1, color: 'rgba(6,182,212,0)' }
+                                    ])
+                                }
+                            },
+                            {
+                                name: '成功',
+                                type: 'line',
+                                smooth: true,
+                                data: data.data.success,
+                                lineStyle: { color: '#10B981', width: 2, type: 'dashed' },
+                                itemStyle: { color: '#10B981' }
+                            },
+                            {
+                                name: '失败',
+                                type: 'line',
+                                smooth: true,
+                                data: data.data.failed,
+                                lineStyle: { color: '#EF4444', width: 2, type: 'dashed' },
+                                itemStyle: { color: '#EF4444' }
+                            }
+                        ]
+                    };
+                    trendChart.setOption(option);
+                }
+            } catch (e) {
+                console.error('加载图表失败:', e);
+            }
+        }
+        
+        // 初始加载图表
+        loadChart(30);
+        
+        // 窗口大小变化时重绘图表
+        window.addEventListener('resize', function() {
+            if (trendChart) trendChart.resize();
+        });
+        
+        // 每30秒刷新一次
+        setInterval(loadData, 30000);
+        setInterval(function() { loadChart(30); }, 60000);
+    </script>
+</body>
+</html>

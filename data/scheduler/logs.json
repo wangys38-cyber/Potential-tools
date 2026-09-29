@@ -1,0 +1,869 @@
+[
+  {
+    "task_id": "task_1790697525604",
+    "task_name": "Santos CR数据更新",
+    "task_type": "data_refresh",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-30 00:08:17",
+    "status": "failed",
+    "message": "执行失败: 拉取数据失败: type object 'datetime.datetime' has no attribute 'datetime'",
+    "finished_at": "2026-09-30 00:14:09"
+  },
+  {
+    "task_id": "task_1790697525604",
+    "task_name": "Santos CR数据更新",
+    "task_type": "data_refresh",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-30 00:04:42",
+    "status": "success",
+    "message": "项目助手中的数据已刷新（CR总数 9387 条）",
+    "total_crs": 9387,
+    "bc_unresolved": 67,
+    "fail_modules": 25,
+    "finished_at": "2026-09-30 00:04:46"
+  },
+  {
+    "task_id": "task_1790697525604",
+    "task_name": "Santos CR数据更新",
+    "task_type": "data_refresh",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-30 00:02:48",
+    "status": "success",
+    "message": "项目助手中的数据已刷新（CR总数 0 条）",
+    "total_crs": 0,
+    "bc_unresolved": 67,
+    "fail_modules": 25,
+    "finished_at": "2026-09-30 00:02:50"
+  },
+  {
+    "task_id": "task_1790697525604",
+    "task_name": "Santos CR数据更新",
+    "task_type": "data_refresh",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:58:50",
+    "status": "failed",
+    "message": "执行失败: too many values to unpack (expected 2)",
+    "finished_at": "2026-09-29 23:58:55"
+  },
+  {
+    "task_id": "task_1790696502794",
+    "task_name": "Santos 模块状态",
+    "task_type": "fail_module_check",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:54:04",
+    "status": "success",
+    "message": "FAIL模块巡检：25个FAIL模块，飞书通知已发送",
+    "report_content": "# FAIL模块巡检报告\n\n**项目**: Santos\n**FAIL模块数量**: 25\n\n| 排名 | 模块 | 未解决BC | Blocker | Critical |\n|------|------|----------|---------|----------|\n| 1 | Apps - iOS | 21 | 5 | 16 |\n| 2 | FW_性能_Performance | 14 | 0 | 14 |\n| 3 | FW_消息通知_Message notification | 5 | 1 | 4 |\n| 4 | FW_睡眠_Sleep | 3 | 0 | 3 |\n| 5 | FW_OTA升级_OTA upgrade | 2 | 2 | 0 |\n| 6 | FW_MTTF | 2 | 2 | 0 |\n| 7 | FW_训练状态_Training status | 2 | 0 | 2 |\n| 8 | FW_运动_Exercise | 1 | 0 | 1 |\n| 9 | Apps - Companion - Watch | 1 | 0 | 1 |\n| 10 | FW_设置_Settings | 1 | 0 | 1 |\n",
+    "fail_count": 25,
+    "fail_modules": [
+      {
+        "module": "Apps - iOS",
+        "fail": true,
+        "total": 267,
+        "unresolved": 43,
+        "bc": 21,
+        "b": 5,
+        "c": 16,
+        "open_bc_count": 21,
+        "top_list": [
+          {
+            "id": "EKSANTOS-8609",
+            "title": "【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表",
+            "module": "Apps - iOS",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_hongcong_tmp@extlenovo.com",
+            "labels": "Device ios_app mico",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8605",
+            "title": "【IOS_APP】【全功能测试】【Device】在线升级失败",
+            "module": "Apps - iOS",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "In Progress",
+            "developer": "zhouhaismart_lijun_tmp@extlenovo.com",
+            "labels": "Device ios_app mico",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8440",
+            "title": "【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态",
+            "module": "Apps - iOS",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhaoyankai_tmp@extlenovo.com",
+            "labels": "Device ios_app",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8439",
+            "title": "【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备",
+            "module": "Apps - iOS",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhaoyankai_tmp@extlenovo.com",
+            "labels": "Device ios_app",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8436",
+            "title": "【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备",
+            "module": "Apps - iOS",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhaoyankai_tmp@extlenovo.com",
+            "labels": "Device ios_app",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_性能_Performance",
+        "fail": true,
+        "total": 296,
+        "unresolved": 77,
+        "bc": 14,
+        "b": 0,
+        "c": 14,
+        "open_bc_count": 14,
+        "top_list": [
+          {
+            "id": "EKSANTOS-8999",
+            "title": "【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416.66ms，竞品：208.33，标准：200ms",
+            "module": "FW_性能_Performance",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_chengjingrong_tmp@extlenovo.com",
+            "labels": "santos_performance_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8968",
+            "title": "【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品：283.33ms，标准：200ms",
+            "module": "FW_性能_Performance",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "Reopened",
+            "developer": "zhouhaismart_chengjingrong_tmp@extlenovo.com",
+            "labels": "santos_performance_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8965",
+            "title": "【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品：315.83ms，标准：200ms",
+            "module": "FW_性能_Performance",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_chengjingrong_tmp@extlenovo.com",
+            "labels": "santos_performance_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8964",
+            "title": "【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品：248.33ms，标准：200ms",
+            "module": "FW_性能_Performance",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_chengjingrong_tmp@extlenovo.com",
+            "labels": "santos_performance_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8963",
+            "title": "【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品：无世界时钟功能，标准：200ms",
+            "module": "FW_性能_Performance",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_chengjingrong_tmp@extlenovo.com",
+            "labels": "santos_performance_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_消息通知_Message notification",
+        "fail": true,
+        "total": 239,
+        "unresolved": 17,
+        "bc": 5,
+        "b": 1,
+        "c": 4,
+        "open_bc_count": 5,
+        "top_list": [
+          {
+            "id": "EKSANTOS-9130",
+            "title": "【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提醒",
+            "module": "FW_消息通知_Message notification",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_weiningbo_tmp@extlenovo.com",
+            "labels": "Device WFP ios_app",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-9387",
+            "title": "【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连接时的消息，重新连接之后发送消息无法接受到",
+            "module": "FW_消息通知_Message notification",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_weiningbo_tmp@extlenovo.com",
+            "labels": "Device WFP ios_app ios_ui",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-9383",
+            "title": "【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打开消息通知",
+            "module": "FW_消息通知_Message notification",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_weiningbo_tmp@extlenovo.com",
+            "labels": "Device WFP ios_app ios_ui",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-9380",
+            "title": "【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有小红点显示",
+            "module": "FW_消息通知_Message notification",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_weiningbo_tmp@extlenovo.com",
+            "labels": "Device WFP ios_app ios_ui",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-2622",
+            "title": "【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度）/马拉地语（印度）的文字，手表显示为方框",
+            "module": "FW_消息通知_Message notification",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "Reopened",
+            "developer": "rayou@lenovo.com",
+            "labels": "i18n_eng_task i18n_sprint_2026_6 i18n_sprint_2026_8 santos_Message_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_睡眠_Sleep",
+        "fail": true,
+        "total": 85,
+        "unresolved": 5,
+        "bc": 3,
+        "b": 0,
+        "c": 3,
+        "open_bc_count": 3,
+        "top_list": [
+          {
+            "id": "EKSANTOS-9189",
+            "title": "Santos记录入睡出睡时间与实际不符。The time Santos recorded for falling asleep and getting out of sleep does not match the actual situation.",
+            "module": "FW_睡眠_Sleep",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_wusuyan_tmp@extlenovo.com",
+            "labels": "Fitness&Health edart_cloned",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-8967",
+            "title": "【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大",
+            "module": "FW_睡眠_Sleep",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_wusuyan_tmp@extlenovo.com",
+            "labels": "santos_CF_Blocker santos_NR_test santos_Sleep_test santos_health_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-7162",
+            "title": "【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据",
+            "module": "FW_睡眠_Sleep",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "Reopened",
+            "developer": "zhouhaismart_wusuyan_tmp@extlenovo.com",
+            "labels": "santos_Sleep_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_OTA升级_OTA upgrade",
+        "fail": true,
+        "total": 107,
+        "unresolved": 11,
+        "bc": 2,
+        "b": 2,
+        "c": 0,
+        "open_bc_count": 2,
+        "top_list": [
+          {
+            "id": "EKSANTOS-9349",
+            "title": "使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的",
+            "module": "FW_OTA升级_OTA upgrade",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhangwang_tmp@extlenovo.com",
+            "labels": "Pasha_NPI_PRC_BYOD df_fix santos_CF_Blocker santos_function_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-9220",
+            "title": "【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败",
+            "module": "FW_OTA升级_OTA upgrade",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhangwang_tmp@extlenovo.com",
+            "labels": "Device WFP ios_app",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_MTTF",
+        "fail": true,
+        "total": 254,
+        "unresolved": 3,
+        "bc": 2,
+        "b": 2,
+        "c": 0,
+        "open_bc_count": 2,
+        "top_list": [
+          {
+            "id": "EKSANTOS-9375",
+            "title": "来新消息，卡死在新消息通知页面，几秒后自动重启。进入的是飞书消息，重启后数据丢失",
+            "module": "FW_MTTF",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhangwang_tmp@extlenovo.com",
+            "labels": "SANTOS_NPI_PRC_DF df_fix santos_CF_Blocker santos_stability_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-9372",
+            "title": "三环页面旋转表冠死机重启",
+            "module": "FW_MTTF",
+            "sev": "blocker",
+            "sev_raw": "Blocker",
+            "status": "New",
+            "developer": "zhouhaismart_zhangwang_tmp@extlenovo.com",
+            "labels": "SANTOS_NPI_PRC_DF df_fix santos_CF_Blocker santos_stability_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_训练状态_Training status",
+        "fail": true,
+        "total": 112,
+        "unresolved": 3,
+        "bc": 2,
+        "b": 0,
+        "c": 2,
+        "open_bc_count": 2,
+        "top_list": [
+          {
+            "id": "EKSANTOS-9194",
+            "title": "耐力每天都快速下降，到个位数。实际没有很疲惫。 9/18跑了4公里，9/21开始，耐力在白天会持续下降，到个位数",
+            "module": "FW_训练状态_Training status",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_songhaolun_tmp@extlenovo.com",
+            "labels": "SANTOS_NPI_PRC_DF/External santos_CF_Blocker santos_sports_test",
+            "num": 0
+          },
+          {
+            "id": "EKSANTOS-5774",
+            "title": "【专项测试】【训练状态】训练负荷基础户外走/户外匀速跑/户外变速跑/户外竭力跑/室内匀速跑/室内变速/ 室内竭力跑各10组，与竞品偏差±10以内的数据占比分别为0%/0%/0%/0%/30%/10%/0%，standard：训练负荷数据与竞品偏差±10以内的数据占比≥85%",
+            "module": "FW_训练状态_Training status",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "Reopened",
+            "developer": "zhouhaismart_yuanjunkang_tmp@extlenovo.com",
+            "labels": "santos_et_test santos_sports_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_运动_Exercise",
+        "fail": true,
+        "total": 1334,
+        "unresolved": 36,
+        "bc": 1,
+        "b": 0,
+        "c": 1,
+        "open_bc_count": 1,
+        "top_list": [
+          {
+            "id": "EKSANTOS-7774",
+            "title": "【专项测试】【户外运动GPS】户外跑步GPS轨迹，256组样本，Santos与实际首点偏差8.36，达标率54%；Standard<=5m",
+            "module": "FW_运动_Exercise",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "zhouhaismart_tanqingyue_tmp@extlenovo.com",
+            "labels": "CCB santos_CF_Blocker santos_ED_test santos_GPS_test santos_sports_test",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "Apps - Companion - Watch",
+        "fail": true,
+        "total": 610,
+        "unresolved": 30,
+        "bc": 1,
+        "b": 0,
+        "c": 1,
+        "open_bc_count": 1,
+        "top_list": [
+          {
+            "id": "EKSANTOS-7046",
+            "title": "【自由测试】【APP】Moto watch APP-手表设置-紧急情况-开启紧急求救，跳转到紧急求救页面，手表示例图按键、卡扣和实物不符",
+            "module": "Apps - Companion - Watch",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "New",
+            "developer": "xuzp9@lenovo.com",
+            "labels": "APP edart_cloned need_clone_to_idart",
+            "num": 0
+          }
+        ]
+      },
+      {
+        "module": "FW_设置_Settings",
+        "fail": true,
+        "total": 663,
+        "unresolved": 22,
+        "bc": 1,
+        "b": 0,
+        "c": 1,
+        "open_bc_count": 1,
+        "top_list": [
+          {
+            "id": "EKSANTOS-7994",
+            "title": "设置 - 手势设置文案修改 Copy of Gesture settings need to align with Watch app side",
+            "module": "FW_设置_Settings",
+            "sev": "critical",
+            "sev_raw": "Critical",
+            "status": "Reopened",
+            "developer": "liuxq12@lenovo.com",
+            "labels": "",
+            "num": 0
+          }
+        ]
+      }
+    ],
+    "finished_at": "2026-09-29 23:54:05"
+  },
+  {
+    "task_id": "task_1790696451937",
+    "task_name": "Santos CR状态同步",
+    "task_type": "cr_timeout_alert",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:53:52",
+    "status": "success",
+    "message": "CR超时提醒：共42条，飞书通知已发送",
+    "report_content": "# CR超时提醒\n\n**项目**: Santos\n**超时阈值**: 7天\n**超时CR数量**: 42\n\n## 超时CR列表\n\n| ID | 标题 | 严重程度 | 模块 |\n|------|------|----------|------|\n| EKSANTOS-8609 | 【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表 | blocker | Apps - iOS |\n| EKSANTOS-8605 | 【IOS_APP】【全功能测试】【Device】在线升级失败 | blocker | Apps - iOS |\n| EKSANTOS-8440 | 【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态 | blocker | Apps - iOS |\n| EKSANTOS-8439 | 【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备 | blocker | Apps - iOS |\n| EKSANTOS-8436 | 【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备 | blocker | Apps - iOS |\n| EKSANTOS-8999 | 【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416 | critical | FW_性能_Performance |\n| EKSANTOS-8968 | 【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8965 | 【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8964 | 【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8963 | 【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-9130 | 【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提 | blocker | FW_消息通知_Message notification |\n| EKSANTOS-9387 | 【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9383 | 【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9380 | 【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有 | critical | FW_消息通知_Message notification |\n| EKSANTOS-2622 | 【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度） | critical | FW_消息通知_Message notification |\n| EKSANTOS-9189 | Santos记录入睡出睡时间与实际不符。The time Santos recorded for f | critical | FW_睡眠_Sleep |\n| EKSANTOS-8967 | 【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大 | critical | FW_睡眠_Sleep |\n| EKSANTOS-7162 | 【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据 | critical | FW_睡眠_Sleep |\n| EKSANTOS-9349 | 使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的 | blocker | FW_OTA升级_OTA upgrade |\n| EKSANTOS-9220 | 【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败 | blocker | FW_OTA升级_OTA upgrade |\n",
+    "timeout_count": 42,
+    "timeout_list": [
+      {
+        "id": "EKSANTOS-8609",
+        "title": "【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表",
+        "sev": "blocker",
+        "module": "Apps - iOS"
+      },
+      {
+        "id": "EKSANTOS-8605",
+        "title": "【IOS_APP】【全功能测试】【Device】在线升级失败",
+        "sev": "blocker",
+        "module": "Apps - iOS"
+      },
+      {
+        "id": "EKSANTOS-8440",
+        "title": "【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态",
+        "sev": "blocker",
+        "module": "Apps - iOS"
+      },
+      {
+        "id": "EKSANTOS-8439",
+        "title": "【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备",
+        "sev": "blocker",
+        "module": "Apps - iOS"
+      },
+      {
+        "id": "EKSANTOS-8436",
+        "title": "【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备",
+        "sev": "blocker",
+        "module": "Apps - iOS"
+      },
+      {
+        "id": "EKSANTOS-8999",
+        "title": "【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416.66ms，竞品：208.33，标准：200ms",
+        "sev": "critical",
+        "module": "FW_性能_Performance"
+      },
+      {
+        "id": "EKSANTOS-8968",
+        "title": "【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品：283.33ms，标准：200ms",
+        "sev": "critical",
+        "module": "FW_性能_Performance"
+      },
+      {
+        "id": "EKSANTOS-8965",
+        "title": "【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品：315.83ms，标准：200ms",
+        "sev": "critical",
+        "module": "FW_性能_Performance"
+      },
+      {
+        "id": "EKSANTOS-8964",
+        "title": "【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品：248.33ms，标准：200ms",
+        "sev": "critical",
+        "module": "FW_性能_Performance"
+      },
+      {
+        "id": "EKSANTOS-8963",
+        "title": "【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品：无世界时钟功能，标准：200ms",
+        "sev": "critical",
+        "module": "FW_性能_Performance"
+      }
+    ],
+    "finished_at": "2026-09-29 23:53:53"
+  },
+  {
+    "task_id": "task_1790696502794",
+    "task_name": "Santos 模块状态",
+    "task_type": "fail_module_check",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:49:16",
+    "status": "success",
+    "message": "FAIL模块巡检：25个FAIL模块，飞书通知已发送",
+    "report_content": "# FAIL模块巡检报告\n\n**项目**: Santos\n**FAIL模块数量**: 25\n\n| 排名 | 模块 | 未解决BC | Blocker | Critical |\n|------|------|----------|---------|----------|\n| 1 | Apps - iOS | 21 | 5 | 16 |\n| 2 | FW_性能_Performance | 14 | 0 | 14 |\n| 3 | FW_消息通知_Message notification | 5 | 1 | 4 |\n| 4 | FW_睡眠_Sleep | 3 | 0 | 3 |\n| 5 | FW_OTA升级_OTA upgrade | 2 | 2 | 0 |\n| 6 | FW_MTTF | 2 | 2 | 0 |\n| 7 | FW_训练状态_Training status | 2 | 0 | 2 |\n| 8 | FW_运动_Exercise | 1 | 0 | 1 |\n| 9 | Apps - Companion - Watch | 1 | 0 | 1 |\n| 10 | FW_设置_Settings | 1 | 0 | 1 |\n",
+    "finished_at": "2026-09-29 23:49:16"
+  },
+  {
+    "task_id": "task_1790696451937",
+    "task_name": "Santos CR状态同步",
+    "task_type": "cr_timeout_alert",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:48:55",
+    "status": "success",
+    "message": "CR超时提醒：共42条，飞书通知已发送",
+    "report_content": "# CR超时提醒\n\n**项目**: Santos\n**超时阈值**: 7天\n**超时CR数量**: 42\n\n## 超时CR列表\n\n| ID | 标题 | 严重程度 | 模块 |\n|------|------|----------|------|\n| EKSANTOS-8609 | 【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表 | blocker | Apps - iOS |\n| EKSANTOS-8605 | 【IOS_APP】【全功能测试】【Device】在线升级失败 | blocker | Apps - iOS |\n| EKSANTOS-8440 | 【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态 | blocker | Apps - iOS |\n| EKSANTOS-8439 | 【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备 | blocker | Apps - iOS |\n| EKSANTOS-8436 | 【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备 | blocker | Apps - iOS |\n| EKSANTOS-8999 | 【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416 | critical | FW_性能_Performance |\n| EKSANTOS-8968 | 【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8965 | 【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8964 | 【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8963 | 【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-9130 | 【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提 | blocker | FW_消息通知_Message notification |\n| EKSANTOS-9387 | 【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9383 | 【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9380 | 【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有 | critical | FW_消息通知_Message notification |\n| EKSANTOS-2622 | 【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度） | critical | FW_消息通知_Message notification |\n| EKSANTOS-9189 | Santos记录入睡出睡时间与实际不符。The time Santos recorded for f | critical | FW_睡眠_Sleep |\n| EKSANTOS-8967 | 【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大 | critical | FW_睡眠_Sleep |\n| EKSANTOS-7162 | 【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据 | critical | FW_睡眠_Sleep |\n| EKSANTOS-9349 | 使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的 | blocker | FW_OTA升级_OTA upgrade |\n| EKSANTOS-9220 | 【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败 | blocker | FW_OTA升级_OTA upgrade |\n",
+    "finished_at": "2026-09-29 23:48:55"
+  },
+  {
+    "task_id": "task_1790696451937",
+    "task_name": "Santos CR状态同步",
+    "task_type": "cr_timeout_alert",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:46:43",
+    "status": "success",
+    "message": "CR超时提醒：共42条，未配置飞书Webhook",
+    "report_content": "# CR超时提醒\n\n**项目**: Santos\n**超时阈值**: 7天\n**超时CR数量**: 42\n\n## 超时CR列表\n\n| ID | 标题 | 严重程度 | 模块 |\n|------|------|----------|------|\n| EKSANTOS-8609 | 【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表 | blocker | Apps - iOS |\n| EKSANTOS-8605 | 【IOS_APP】【全功能测试】【Device】在线升级失败 | blocker | Apps - iOS |\n| EKSANTOS-8440 | 【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态 | blocker | Apps - iOS |\n| EKSANTOS-8439 | 【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备 | blocker | Apps - iOS |\n| EKSANTOS-8436 | 【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备 | blocker | Apps - iOS |\n| EKSANTOS-8999 | 【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416 | critical | FW_性能_Performance |\n| EKSANTOS-8968 | 【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8965 | 【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8964 | 【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8963 | 【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-9130 | 【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提 | blocker | FW_消息通知_Message notification |\n| EKSANTOS-9387 | 【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9383 | 【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9380 | 【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有 | critical | FW_消息通知_Message notification |\n| EKSANTOS-2622 | 【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度） | critical | FW_消息通知_Message notification |\n| EKSANTOS-9189 | Santos记录入睡出睡时间与实际不符。The time Santos recorded for f | critical | FW_睡眠_Sleep |\n| EKSANTOS-8967 | 【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大 | critical | FW_睡眠_Sleep |\n| EKSANTOS-7162 | 【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据 | critical | FW_睡眠_Sleep |\n| EKSANTOS-9349 | 使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的 | blocker | FW_OTA升级_OTA upgrade |\n| EKSANTOS-9220 | 【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败 | blocker | FW_OTA升级_OTA upgrade |\n",
+    "finished_at": "2026-09-29 23:46:43"
+  },
+  {
+    "task_id": "task_1790696451937",
+    "task_name": "Santos CR状态同步",
+    "task_type": "cr_timeout_alert",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:44:44",
+    "status": "success",
+    "message": "CR超时提醒：共42条，未配置飞书Webhook",
+    "report_content": "# CR超时提醒\n\n**项目**: Santos\n**超时阈值**: 7天\n**超时CR数量**: 42\n\n## 超时CR列表\n\n| ID | 标题 | 严重程度 | 模块 |\n|------|------|----------|------|\n| EKSANTOS-8609 | 【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表 | blocker | Apps - iOS |\n| EKSANTOS-8605 | 【IOS_APP】【全功能测试】【Device】在线升级失败 | blocker | Apps - iOS |\n| EKSANTOS-8440 | 【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态 | blocker | Apps - iOS |\n| EKSANTOS-8439 | 【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备 | blocker | Apps - iOS |\n| EKSANTOS-8436 | 【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备 | blocker | Apps - iOS |\n| EKSANTOS-8999 | 【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416 | critical | FW_性能_Performance |\n| EKSANTOS-8968 | 【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8965 | 【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8964 | 【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8963 | 【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-9130 | 【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提 | blocker | FW_消息通知_Message notification |\n| EKSANTOS-9387 | 【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9383 | 【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9380 | 【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有 | critical | FW_消息通知_Message notification |\n| EKSANTOS-2622 | 【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度） | critical | FW_消息通知_Message notification |\n| EKSANTOS-9189 | Santos记录入睡出睡时间与实际不符。The time Santos recorded for f | critical | FW_睡眠_Sleep |\n| EKSANTOS-8967 | 【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大 | critical | FW_睡眠_Sleep |\n| EKSANTOS-7162 | 【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据 | critical | FW_睡眠_Sleep |\n| EKSANTOS-9349 | 使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的 | blocker | FW_OTA升级_OTA upgrade |\n| EKSANTOS-9220 | 【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败 | blocker | FW_OTA升级_OTA upgrade |\n",
+    "finished_at": "2026-09-29 23:44:44"
+  },
+  {
+    "task_id": "task_1790696502794",
+    "task_name": "Santos 模块状态",
+    "task_type": "fail_module_check",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:42:18",
+    "status": "success",
+    "message": "FAIL模块巡检：25个FAIL模块",
+    "report_content": "# FAIL模块巡检报告\n\n**项目**: Santos\n**FAIL模块数量**: 25\n\n| 排名 | 模块 | 未解决BC | Blocker | Critical |\n|------|------|----------|---------|----------|\n| 1 | Apps - iOS | 21 | 5 | 16 |\n| 2 | FW_性能_Performance | 14 | 0 | 14 |\n| 3 | FW_消息通知_Message notification | 5 | 1 | 4 |\n| 4 | FW_睡眠_Sleep | 3 | 0 | 3 |\n| 5 | FW_OTA升级_OTA upgrade | 2 | 2 | 0 |\n| 6 | FW_MTTF | 2 | 2 | 0 |\n| 7 | FW_训练状态_Training status | 2 | 0 | 2 |\n| 8 | FW_运动_Exercise | 1 | 0 | 1 |\n| 9 | Apps - Companion - Watch | 1 | 0 | 1 |\n| 10 | FW_设置_Settings | 1 | 0 | 1 |\n",
+    "finished_at": "2026-09-29 23:42:18"
+  },
+  {
+    "task_id": "task_1790696451937",
+    "task_name": "Santos CR状态同步",
+    "task_type": "cr_timeout_alert",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 23:41:49",
+    "status": "success",
+    "message": "CR超时提醒：共42条",
+    "report_content": "# CR超时提醒\n\n**项目**: Santos\n**超时阈值**: 7天\n**超时CR数量**: 42\n\n## 超时CR列表\n\n| ID | 标题 | 严重程度 | 模块 |\n|------|------|----------|------|\n| EKSANTOS-8609 | 【IOS_APP】【全功能测试】【OOBE】移除手表后，APP无法重新连接手表 | blocker | Apps - iOS |\n| EKSANTOS-8605 | 【IOS_APP】【全功能测试】【Device】在线升级失败 | blocker | Apps - iOS |\n| EKSANTOS-8440 | 【IOS_APP】【全功能测试】设备配对完成后重连，设备有时未在广播状态 | blocker | Apps - iOS |\n| EKSANTOS-8439 | 【IOS_APP】【全功能测试】设备配对完成后重连，从系统已配对列表有时拿不到设备 | blocker | Apps - iOS |\n| EKSANTOS-8436 | 【IOS_APP】【全功能测试】在安卓手机绑定后，关闭安卓app，可以在iOS手机上搜到此设备 | blocker | Apps - iOS |\n| EKSANTOS-8999 | 【性能专项】【应用启动响应时延】V1.98版本Ask anything冷启动响应时延，E62：416 | critical | FW_性能_Performance |\n| EKSANTOS-8968 | 【性能专项】【应用启动响应时延】V1.101.3版本设置冷启动响应时延，E62：430.00，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8965 | 【性能专项】【应用启动响应时延】V1.101版本天气冷启动响应时延，E62：354.17ms，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8964 | 【性能专项】【应用启动响应时延】V1.100版本训练状态冷启动响应时延，E62：418.33，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-8963 | 【性能专项】【应用启动响应时延】V1.100版本世界时钟冷启动响应时延，E62：469.17，竞品： | critical | FW_性能_Performance |\n| EKSANTOS-9130 | 【IOS_APP】【全功能测试】【Device】【消息通知】设备绑定以后打开消息通知，无法收到消息提 | blocker | FW_消息通知_Message notification |\n| EKSANTOS-9387 | 【IOS_APP】【全功能测试】【Device】【消息通知】断开蓝牙之后发送消息重新连接以后同步未连 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9383 | 【IOS_APP】【全功能测试】【Device】【消息通知】清除所有消息通知之后，消息中心显示需要打 | critical | FW_消息通知_Message notification |\n| EKSANTOS-9380 | 【IOS_APP】【全功能测试】【Device】【消息通知】收到消息之后未打开消息中心主表盘界面未有 | critical | FW_消息通知_Message notification |\n| EKSANTOS-2622 | 【专项测试】【消息通知】手表收到孟加拉语（孟加拉国）/韩语/希腊语/泰米尔语（印度）/印地语（印度） | critical | FW_消息通知_Message notification |\n| EKSANTOS-9189 | Santos记录入睡出睡时间与实际不符。The time Santos recorded for f | critical | FW_睡眠_Sleep |\n| EKSANTOS-8967 | 【专项测试】【睡眠&夜间充电】【低概率】入睡误差较大 | critical | FW_睡眠_Sleep |\n| EKSANTOS-7162 | 【专项测试】【真实续航】开启25HZ日常佩戴，手表无睡眠数据 | critical | FW_睡眠_Sleep |\n| EKSANTOS-9349 | 使用 Companion app 从 1.97 升级到 1.101.3 版本，手表文字菜单都是乱的 | blocker | FW_OTA升级_OTA upgrade |\n| EKSANTOS-9220 | 【IOS_APP】【全功能测试】【Device】【OTA】传输完成以后安装失败 | blocker | FW_OTA升级_OTA upgrade |\n",
+    "finished_at": "2026-09-29 23:41:49"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 19:22:57",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 19:22:57"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 19:22:01",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 19:22:03"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 19:19:50",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 19:19:51"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 19:18:36",
+    "status": "failed",
+    "message": "执行失败: name '_generate_svg_line_chart' is not defined",
+    "finished_at": "2026-09-29 19:18:36"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 18:35:54",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 18:35:56"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 18:32:48",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 18:32:50"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 18:30:41",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 18:30:42"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 18:13:49",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 18:13:50"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 18:03:43",
+    "status": "failed",
+    "message": "执行失败: name '_generate_svg_line_chart' is not defined",
+    "finished_at": "2026-09-29 18:03:43"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:51:40",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:51:42"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:47:58",
+    "status": "failed",
+    "message": "执行失败: name '_generate_svg_line_chart' is not defined",
+    "finished_at": "2026-09-29 17:47:58"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:47:29",
+    "status": "failed",
+    "message": "执行失败: name '_generate_svg_line_chart' is not defined",
+    "finished_at": "2026-09-29 17:47:29"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:45:31",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:45:32"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:39:11",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:39:12"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:37:07",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:37:08"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:37:04",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:37:05"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:28:57",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 17:28:58"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 17:00:50",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件发送失败: (535, b'5.7.3 Authentication unsuccessful [TP0P295CA0006.TWNP295.PROD.OUTLOOK.COM 2026-09-29T09:00:58.267Z 08DF1DF959B662BC]')",
+    "finished_at": "2026-09-29 17:00:58"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:58:03",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件发送失败: (535, b'5.7.3 Authentication unsuccessful [TY4PR01CA0053.jpnprd01.prod.outlook.com 2026-09-29T08:58:11.280Z 08DF1D73DCE95AF9]')",
+    "finished_at": "2026-09-29 16:58:11"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:50:29",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 16:50:30"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:48:46",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 16:48:48"
+  },
+  {
+    "task_id": "task_1790671263487",
+    "task_name": "EKSANTOS每周周报",
+    "task_type": "weekly_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:44:43",
+    "status": "success",
+    "message": "周报已生成并保存: 【项目周报】Santos - 第40周，SMTP未配置，请先在设置中配置邮箱",
+    "finished_at": "2026-09-29 16:44:43"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:44:37",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，SMTP未配置，请先在设置中配置邮箱",
+    "finished_at": "2026-09-29 16:44:37"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:41:49",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，SMTP未配置，请先在设置中配置邮箱",
+    "finished_at": "2026-09-29 16:41:49"
+  },
+  {
+    "task_id": "task_1790670790558",
+    "task_name": "EKSANTOS每日日报",
+    "task_type": "daily_report",
+    "project_key": "EKSANTOS",
+    "started_at": "2026-09-29 16:33:17",
+    "status": "success",
+    "message": "日报已生成并保存: 【项目日报】Santos - 2026-09-29，邮件已发送给: wangys38@lenovo.com",
+    "finished_at": "2026-09-29 16:33:17"
+  }
+]

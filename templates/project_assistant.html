@@ -240,6 +240,62 @@
       background: rgba(0,0,0,0.4) !important;
     }
     .pa-input-row textarea::placeholder { color: rgba(255,255,255,0.35) !important; }
+    
+    /* 快捷问题按钮 */
+    .pa-quick-questions {
+      padding: 10px 20px 0 20px !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      align-items: center !important;
+    }
+    .pa-quick-label {
+      font-size: 12px !important;
+      color: rgba(255,255,255,0.4) !important;
+      margin-right: 4px !important;
+    }
+    .pa-quick-btn {
+      padding: 5px 12px !important;
+      font-size: 12px !important;
+      background: rgba(139, 92, 246, 0.1) !important;
+      border: 1px solid rgba(139, 92, 246, 0.2) !important;
+      border-radius: 20px !important;
+      color: rgba(255,255,255,0.7) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      font-family: inherit !important;
+    }
+    .pa-quick-btn:hover {
+      background: rgba(139, 92, 246, 0.2) !important;
+      border-color: rgba(139, 92, 246, 0.4) !important;
+      color: #fff !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* 回答操作按钮 */
+    .pa-msg-actions {
+      margin-top: 10px !important;
+      padding-top: 8px !important;
+      border-top: 1px solid rgba(255,255,255,0.06) !important;
+      display: flex !important;
+      gap: 8px !important;
+    }
+    .pa-action-btn {
+      padding: 4px 10px !important;
+      font-size: 11px !important;
+      background: rgba(255,255,255,0.05) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      border-radius: 6px !important;
+      color: rgba(255,255,255,0.5) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      font-family: inherit !important;
+    }
+    .pa-action-btn:hover {
+      background: rgba(139, 92, 246, 0.15) !important;
+      border-color: rgba(139, 92, 246, 0.3) !important;
+      color: rgba(255,255,255,0.8) !important;
+    }
 
     /* ========== 7. 图表区域优化 ========== */
     .pa-chart-box { padding: 16px 20px !important; }
@@ -1024,6 +1080,9 @@
         <datalist id="paProjectList"></datalist>
         <button class="pa-btn" id="paLoadBtn">查询</button>
         <button class="pa-btn ghost" id="paRefreshBtn" title="强制重新拉取最新数据" style="display:none;">刷新</button>
+        <button class="pa-btn" id="paDailyReportBtn" title="生成项目日报并保存到牛马笔记" style="display:none;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;">📋 生成日报</button>
+        <button class="pa-btn" id="paWeeklyReportBtn" title="生成项目周报并保存到牛马笔记" style="display:none;background:linear-gradient(135deg,#06b6d4,#3b82f6);border:none;">📊 生成周报</button>
+        <button class="pa-btn" id="paAgingBtn" title="问题老化预警分析" style="display:none;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;">⏰ 老化预警</button>
       </div>
       <div class="pa-progress pa-glass" id="paProgress">
         <div class="pa-progress-msg" id="paProgressMsg">正在准备…</div>
@@ -1183,6 +1242,17 @@
         </div>
           <div class="pa-msgs" id="paMsgs">
             <div class="pa-empty-tip">输入问题开始对话，或点击模块 Top BC 的根因按钮。</div>
+          </div>
+          <!-- 快捷问题按钮 -->
+          <div class="pa-quick-questions">
+            <span class="pa-quick-label">快捷提问：</span>
+            <button class="pa-quick-btn" data-q="整体状态怎么样？">📊 整体状态</button>
+            <button class="pa-quick-btn" data-q="有多少个未解决的Blocker？">🔴 Blocker问题</button>
+            <button class="pa-quick-btn" data-q="健康度评分多少？">💯 健康度</button>
+            <button class="pa-quick-btn" data-q="哪些模块FAIL了？">⚠️ FAIL模块</button>
+            <button class="pa-quick-btn" data-q="哪个模块问题最多？">🏆 问题最多模块</button>
+            <button class="pa-quick-btn" data-q="最近趋势怎么样？">📈 趋势分析</button>
+            <button class="pa-quick-btn" data-q="谁负责的问题最多？">👤 负责人统计</button>
           </div>
           <div class="pa-input-row">
             <textarea id="paInput" rows="1" placeholder="输入问题，或 CR 单号 + 根因"></textarea>

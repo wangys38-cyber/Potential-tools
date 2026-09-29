@@ -50,6 +50,7 @@ from routes.notifications import create_notifications_blueprint
 from routes.ai import bp as ai_bp
 from routes.plugins import bp as plugins_bp
 from routes.knowledge_base import kb_bp
+from routes.scheduler import bp as scheduler_bp
 from routes.project_assistant import create_project_blueprint
 
 # 性能优化：Whitenoise直接服务静态文件，Flask-Compress启用gzip
@@ -1259,6 +1260,8 @@ try:
 except ImportError as e:
     logger.warning(f"HLD Blueprint 加载失败: {e}")
 
+app.register_blueprint(scheduler_bp)
+
 logger.info(f"Blueprint 注册完成，应用版本 v{APP_VERSION}")
 logger.info(f"静态资源版本: {_STATIC_VERSION}, 生产环境: {_is_production}")
 
@@ -1311,6 +1314,10 @@ def scatter_3d():
 def network_3d():
     """3D关系图谱可视化"""
     return render_template('3d_network.html')
+@app.route('/scheduler')
+def scheduler_page():
+    return render_template('scheduler.html')
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     async_tasks.init_workers(count=4)

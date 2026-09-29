@@ -606,7 +606,7 @@
       </div>
       <!-- 更多工具 -->
       <div class="relative z-[2] max-w-[900px] mx-auto px-5 text-center pb-32" id="heroMoreTools">
-        <div class="text-[13px] font-semibold text-white/50 tracking-[0.15em] uppercase mb-5">全部工具</div>
+        <div class="text-[11px] font-medium text-white/30 tracking-[0.2em] uppercase mb-6">全部工具</div>
         <div class="flex flex-wrap justify-center gap-2" id="heroMoreList"></div>
       </div>
     </div>
@@ -1155,34 +1155,35 @@ card.style.boxShadow = '0 25px 60px rgba(0,0,0,0.35), 0 10px 25px rgba(0,0,0,0.2
     var moreList = document.getElementById('heroMoreList');
     if (moreList) {
       var otherTools = [
-        { name: '🤖 AI Agent', url: '/agent', group: 'V9.0新功能' },
-        { name: '📊 项目助手', url: '/project-assistant', group: 'V9.0新功能' },
-        { name: '🔔 智能预警', url: '/alerts', group: 'V9.0新功能' },
-        { name: '📈 Excel分析', url: '/excel-analysis', group: '研发效能' },
-        { name: '🐛 Bug趋势', url: '/bug-trend', group: '研发效能' },
-        { name: '🏷️ 标签筛选', url: '/label-filter', group: '研发效能' },
-        { name: '📝 日志分析', url: '/log-analyzer', group: '研发效能' },
-        { name: '📅 每日站会', url: '/daily-standup', group: '研发效能' },
-        { name: '📋 周报', url: '/weekly-report', group: '研发效能' },
-        { name: '✅ 发布检查', url: '/release-checklist', group: '研发效能' },
-        { name: '🧪 测试报告', url: '/test-report', group: '研发效能' },
-        { name: '💬 智能知识库', url: '/knowledge-base', group: 'AI助手' },
-        { name: '📝 牛马笔记', url: '/notes', group: 'AI助手' },
-        { name: '🔗 研发知识图谱', url: '/knowledge-graph', group: 'AI助手' },
-        { name: '📊 AI报告', url: '/ai-reports', group: 'AI助手' },
-        { name: '🎙️ 会议纪要', url: '/meeting-minutes', group: 'AI助手' },
-        { name: '📐 HLD生成', url: '/hld-generator', group: 'AI助手' },
-        { name: '📋 计划生成', url: '/plan-generator', group: 'AI助手' },
-        { name: '🌐 翻译器', url: '/translator', group: 'AI助手' },
-        { name: '📊 数据看板', url: '/dashboard', group: '数据分析' },
-        { name: '📈 数据可视化', url: '/data-viz', group: '数据分析' },
-        { name: '📉 MTTF看板', url: '/mttf-dashboard', group: '数据分析' },
-        { name: '📧 邮件助手', url: '/email-assistant', group: '团队协作' },
-        { name: '👥 团队', url: '/teams', group: '团队协作' },
-        { name: '💼 工作区', url: '/workspaces', group: '团队协作' },
-        { name: '📊 我的活动', url: '/my-activity', group: '团队协作' },
-        { name: '🔌 数据源', url: '/data-sources', group: '团队协作' },
-        { name: '⚙️ 设置', url: '/settings', group: '团队协作' }
+        { name: 'AI Agent', url: '/agent', group: 'V9.0新功能' },
+        { name: '项目助手', url: '/project-assistant', group: 'V9.0新功能' },
+        { name: '智能预警', url: '/alerts', group: 'V9.0新功能' },
+        { name: '定时任务', url: '/scheduler', group: 'V9.0新功能' },
+        { name: 'Excel分析', url: '/excel-analysis', group: '研发效能' },
+        { name: 'Bug趋势', url: '/bug-trend', group: '研发效能' },
+        { name: '标签筛选', url: '/label-filter', group: '研发效能' },
+        { name: '日志分析', url: '/log-analyzer', group: '研发效能' },
+        { name: '每日站会', url: '/daily-standup', group: '研发效能' },
+        { name: '周报', url: '/weekly-report', group: '研发效能' },
+        { name: '发布检查', url: '/release-checklist', group: '研发效能' },
+        { name: '测试报告', url: '/test-report', group: '研发效能' },
+        { name: '智能知识库', url: '/knowledge-base', group: 'AI助手' },
+        { name: '牛马笔记', url: '/notes', group: 'AI助手' },
+        { name: '研发知识图谱', url: '/knowledge-graph', group: 'AI助手' },
+        { name: 'AI报告', url: '/ai-reports', group: 'AI助手' },
+        { name: '会议纪要', url: '/meeting-minutes', group: 'AI助手' },
+        { name: 'HLD生成', url: '/hld-generator', group: 'AI助手' },
+        { name: '计划生成', url: '/plan-generator', group: 'AI助手' },
+        { name: '翻译器', url: '/translator', group: 'AI助手' },
+        { name: '数据看板', url: '/dashboard', group: '数据分析' },
+        { name: '数据可视化', url: '/data-viz', group: '数据分析' },
+        { name: 'MTTF看板', url: '/mttf-dashboard', group: '数据分析' },
+        { name: '邮件助手', url: '/email-assistant', group: '团队协作' },
+        { name: '团队', url: '/teams', group: '团队协作' },
+        { name: '工作区', url: '/workspaces', group: '团队协作' },
+        { name: '我的活动', url: '/my-activity', group: '团队协作' },
+        { name: '数据源', url: '/data-sources', group: '团队协作' },
+        { name: '设置', url: '/settings', group: '团队协作' }
       ];
 
       // 按分组渲染
@@ -1203,65 +1204,87 @@ card.style.boxShadow = '0 25px 60px rgba(0,0,0,0.35), 0 10px 25px rgba(0,0,0,0.2
       moreList.innerHTML = '';
       moreList.style.display = 'flex';
       moreList.style.flexDirection = 'column';
-      moreList.style.gap = '24px';
+      moreList.style.gap = '28px';
       moreList.style.alignItems = 'center';
 
+      // 分组颜色配置（更柔和的色调）
+      var groupStyle = {
+        'V9.0新功能': { border: 'rgba(168,85,247,0.25)', bg: 'rgba(168,85,247,0.08)', color: 'rgba(196,181,253,0.85)', dot: '#a855f7' },
+        '研发效能': { border: 'rgba(59,130,246,0.2)', bg: 'rgba(59,130,246,0.06)', color: 'rgba(147,197,253,0.8)', dot: '#3b82f6' },
+        'AI助手': { border: 'rgba(16,185,129,0.2)', bg: 'rgba(16,185,129,0.06)', color: 'rgba(110,231,183,0.8)', dot: '#10b981' },
+        '数据分析': { border: 'rgba(245,158,11,0.2)', bg: 'rgba(245,158,11,0.06)', color: 'rgba(252,211,77,0.8)', dot: '#f59e0b' },
+        '团队协作': { border: 'rgba(236,72,153,0.2)', bg: 'rgba(236,72,153,0.06)', color: 'rgba(249,168,212,0.8)', dot: '#ec4899' }
+      };
+
       Object.keys(groups).forEach(function(groupName) {
+        var gs = groupStyle[groupName] || { border: 'rgba(255,255,255,0.1)', bg: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', dot: '#fff' };
         var groupDiv = document.createElement('div');
         groupDiv.style.width = '100%';
-        groupDiv.style.maxWidth = '800px';
-        
-        var title = document.createElement('div');
-        title.style.fontSize = '12px';
+        groupDiv.style.maxWidth = '850px';
+
+        // 分组标题 - 带小圆点
+        var titleWrap = document.createElement('div');
+        titleWrap.style.display = 'flex';
+        titleWrap.style.alignItems = 'center';
+        titleWrap.style.justifyContent = 'center';
+        titleWrap.style.gap = '8px';
+        titleWrap.style.marginBottom = '12px';
+
+        var dot = document.createElement('span');
+        dot.style.width = '6px';
+        dot.style.height = '6px';
+        dot.style.borderRadius = '50%';
+        dot.style.background = gs.dot;
+        dot.style.opacity = '0.8';
+        titleWrap.appendChild(dot);
+
+        var title = document.createElement('span');
+        title.style.fontSize = '11px';
         title.style.fontWeight = '600';
-        title.style.color = 'rgba(255,255,255,0.5)';
-        title.style.textTransform = 'uppercase';
-        title.style.letterSpacing = '0.1em';
-        title.style.marginBottom = '10px';
-        title.style.textAlign = 'center';
+        title.style.color = 'rgba(255,255,255,0.4)';
+        title.style.letterSpacing = '0.12em';
         title.textContent = groupName;
-        groupDiv.appendChild(title);
+        titleWrap.appendChild(title);
+
+        groupDiv.appendChild(titleWrap);
 
         var toolsDiv = document.createElement('div');
         toolsDiv.style.display = 'flex';
         toolsDiv.style.flexWrap = 'wrap';
         toolsDiv.style.justifyContent = 'center';
-        toolsDiv.style.gap = '8px';
+        toolsDiv.style.gap = '6px';
 
         groups[groupName].forEach(function(t) {
           var link = document.createElement('a');
           link.href = t.url;
           link.textContent = t.name;
-          link.style.display = 'inline-block';
-          link.style.padding = '8px 16px';
-          link.style.borderRadius = '9999px';
-          link.style.fontSize = '13px';
-          link.style.fontWeight = '500';
+          link.style.display = 'inline-flex';
+          link.style.alignItems = 'center';
+          link.style.padding = '6px 14px';
+          link.style.borderRadius = '8px';
+          link.style.fontSize = '12.5px';
+          link.style.fontWeight = '400';
           link.style.textDecoration = 'none';
-          link.style.border = '1px solid rgba(255,255,255,0.1)';
-          link.style.background = 'rgba(255,255,255,0.05)';
-          link.style.color = 'rgba(255,255,255,0.7)';
-          link.style.transition = 'all 0.2s ease';
+          link.style.border = '1px solid ' + gs.border;
+          link.style.background = gs.bg;
+          link.style.color = gs.color;
+          link.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
           link.style.cursor = 'pointer';
-          
-          // V9.0新功能高亮
-          if (groupName === 'V9.0新功能') {
-            link.style.border = '1px solid rgba(168,85,247,0.3)';
-            link.style.background = 'rgba(168,85,247,0.1)';
-            link.style.color = 'rgba(216,180,254,0.9)';
-          }
-          
+          link.style.letterSpacing = '0.01em';
+
           link.onmouseenter = function() {
-            this.style.background = 'rgba(255,255,255,0.1)';
+            this.style.background = 'rgba(255,255,255,0.08)';
             this.style.color = 'rgba(255,255,255,0.95)';
-            this.style.transform = 'translateY(-2px)';
+            this.style.borderColor = 'rgba(255,255,255,0.2)';
+            this.style.transform = 'translateY(-1px)';
           };
           link.onmouseleave = function() {
-            this.style.background = groupName === 'V9.0新功能' ? 'rgba(168,85,247,0.1)' : 'rgba(255,255,255,0.05)';
-            this.style.color = groupName === 'V9.0新功能' ? 'rgba(216,180,254,0.9)' : 'rgba(255,255,255,0.7)';
+            this.style.background = gs.bg;
+            this.style.color = gs.color;
+            this.style.borderColor = gs.border;
             this.style.transform = 'translateY(0)';
           };
-          
+
           toolsDiv.appendChild(link);
         });
 

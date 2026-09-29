@@ -215,7 +215,15 @@ def build_project_snapshot(project_text, on_progress=None, force=False):
         pct = 14 + int(66 * fetched / max(1, total))
         _p(pct, f'已拉取 {fetched}/{total} 条（第 {page} 页）')
 
-    issues = client.search(jql, on_progress=_prog)
+    # 只拉取CR分析必要的字段，减少数据传输量，提升速度
+    # 注意：severity在eDart中是自定义字段，需要用fmap中的实际字段ID
+    sev_field = fmap.get('severity', 'severity')
+    essential_fields = [
+        'summary', 'status', 'components', 'assignee', 'reporter',
+        'priority', sev_field, 'issuetype', 'created', 'updated', 'resolutiondate',
+        'resolution', 'fixVersions', 'versions', 'labels'
+    ]
+    issues = client.search(jql, fields=essential_fields, page_size=100, on_progress=_prog)
     if not issues:
         raise RuntimeError(f'项目 {key} 未检索到任何问题单，请检查 JQL 或权限')
 
@@ -276,10 +284,13 @@ def build_system_prompt(snap):
         "判定口径与 CR 分析页完全一致：状态包含 resolved/fixed/closed/done/已解决/已关闭 "
         "才算已解决（Verified 计未解决）；模块只要存在未解决的 Blocker 或 Critical（合称 BC）"
         "即 FAIL，否则 PASS。")
+    # 明确统计未解决的Blocker和Critical数量（避免AI混淆）
+    _blocker_unresolved = int(summ.get('blocker_unresolved', 0) or 0)
+    _critical_unresolved = int((summ.get('critical_total', 0) or 0) - (summ.get('critical_resolved', 0) or 0))
     lines.append(
         f"总体：CR 总数 {st.get('total',0)}，未解决 {st.get('unresolved',0)}，"
-        f"未解决 BC {st.get('bc_unresolved',0)}；模块 {st.get('modules',0)} 个，"
-        f"其中 FAIL {st.get('fail',0)}、PASS {st.get('pass',0)}。")
+        f"未解决 BC {st.get('bc_unresolved',0)}（其中 Blocker {_blocker_unresolved} 个、Critical {_critical_unresolved} 个）；"
+        f"模块 {st.get('modules',0)} 个，其中 FAIL {st.get('fail',0)}、PASS {st.get('pass',0)}。")
 
     sev_bits = []
     for label, tk, rk in (('Blocker', 'blocker_total', 'blocker_resolved'),
@@ -290,7 +301,11 @@ def build_system_prompt(snap):
             resolved = summ.get(rk, 0) or 0
             sev_bits.append(f'{label} {total}（未解决 {total - resolved}）')
     if sev_bits:
-        lines.append('严重度分布：' + '；'.join(sev_bits) + '。')
+        lines.append('严重度分布（总数/未解决）：' + '；'.join(sev_bits) + '。')
+        lines.append(
+            f'⚠️ 注意：未解决 BC 共 {st.get("bc_unresolved",0)} 个 = '
+            f'未解决 Blocker {_blocker_unresolved} 个 + 未解决 Critical {_critical_unresolved} 个，'
+            f'回答数量问题时请严格区分，不要把 BC 总数当成 Blocker 或 Critical 数量。')
 
     daily = snap.get('daily_stats', [])
     recent = daily[-14:]
@@ -471,6 +486,354 @@ def _is_functional_issue(title, module=''):
         if kw in text:
             return False
     return True
+
+
+def generate_stat_answer(snap, question, context=None):
+    """根据问题生成准确的统计回答（绕过AI，确保数据准确，表达自然）
+    
+    Args:
+        snap: 项目快照数据
+        question: 用户问题
+        context: 多轮对话上下文，格式为 {'last_topic': 'blocker', 'last_module': 'xxx'}
+    """
+    st = snap.get('stats', {}) or {}
+    summ = snap.get('summary', {}) or {}
+    modules = snap.get('modules', []) or []
+    project_name = snap.get('project_name') or snap.get('project_key') or '项目'
+    q = (question or '').lower()
+    context = context or {}
+    
+    total = st.get('total', 0)
+    unresolved = st.get('unresolved', 0)
+    bc_unresolved = st.get('bc_unresolved', 0)
+    fail_count = st.get('fail', 0)
+    pass_count = st.get('pass', 0)
+    total_modules = st.get('modules', len(modules))
+    
+    blocker_unresolved = int(summ.get('blocker_unresolved', 0) or 0)
+    critical_total = int(summ.get('critical_total', 0) or 0)
+    critical_resolved = int(summ.get('critical_resolved', 0) or 0)
+    critical_unresolved = critical_total - critical_resolved
+    resolve_rate = round((total - unresolved) / max(total, 1) * 100, 1)
+    
+    # 健康度评分
+    score = 100
+    bc_penalty = min(bc_unresolved * 5, 40)
+    score -= bc_penalty
+    if total > 0:
+        unresolved_rate = unresolved / total
+        if unresolved_rate > 0.3:
+            rate_penalty = min((unresolved_rate - 0.3) * 50, 20)
+            score -= rate_penalty
+    if total_modules > 0:
+        fail_rate_calc = fail_count / total_modules
+        if fail_rate_calc > 0.2:
+            fail_penalty = min((fail_rate_calc - 0.2) * 50, 25)
+            score -= fail_penalty
+    blocker_penalty = min(blocker_unresolved * 3, 15)
+    score -= blocker_penalty
+    health_score = max(0, min(100, round(score)))
+    
+    # 收集所有未解决问题用于高级分析
+    all_unresolved = []
+    bc_list = snap.get('unresolved_bc', []) or []
+    for m in modules:
+        top = m.get('top_list', []) or []
+        for it in top:
+            if it.get('status') not in ('Resolved', 'Closed', 'Done'):
+                all_unresolved.append(it)
+    
+    # 判断问题类型
+    is_blocker_q = any(kw in q for kw in ['blocker', '阻塞'])
+    is_critical_q = any(kw in q for kw in ['critical', '严重'])
+    is_bc_q = any(kw in q for kw in [' bc', 'bc数', '未解决bc', 'bc问题'])
+    is_fail_q = any(kw in q for kw in ['fail', '失败', '异常模块'])
+    is_module_q = '模块' in q
+    is_unresolved_q = any(kw in q for kw in ['未解决', 'cr数量', '多少个cr'])
+    is_health_q = any(kw in q for kw in ['健康度', '评分', '多少分'])
+    wants_list = any(kw in q for kw in ['清单', '列表', '列出', '有哪些', '具体', '明细', '详情'])
+    
+    # 新增问题类型
+    is_top_module_q = any(kw in q for kw in ['哪个模块', '哪个模块最多', '问题最多', '最严重的模块', '模块排名'])
+    is_owner_q = any(kw in q for kw in ['谁负责', '负责人', '谁的问题', '谁手上', '开发人员'])
+    is_aging_q = any(kw in q for kw in ['老化', '超过', '没解决', '长期', '搁置', '老问题', '30天', '7天', '14天'])
+    is_trend_q = any(kw in q for kw in ['趋势', '本周', '这周', '最近', '新增', '解决了多少', '变化'])
+    is_overview_q = any(kw in q for kw in ['整体', '概览', '怎么样', '状态如何', '总结', '概况'])
+    
+    # 多轮上下文处理：如果用户说"列出具体的"、"详细看看"等，继承上一个话题
+    if any(kw in q for kw in ['列出', '具体', '详细', '展开', '看看', '有哪些']) and not is_blocker_q and not is_critical_q and not is_bc_q:
+        last_topic = context.get('last_topic', '')
+        if last_topic == 'blocker':
+            is_blocker_q = True
+            wants_list = True
+        elif last_topic == 'critical':
+            is_critical_q = True
+            wants_list = True
+        elif last_topic == 'bc':
+            is_bc_q = True
+            wants_list = True
+        elif last_topic == 'fail':
+            is_fail_q = True
+            wants_list = True
+    
+    lines = []
+    
+    # ===== 新增：哪个模块问题最多 =====
+    if is_top_module_q:
+        fail_modules_sorted = sorted([m for m in modules if m.get('fail')], key=lambda x: -x.get('bc', 0))
+        if fail_modules_sorted:
+            top3 = fail_modules_sorted[:3]
+            lines.append(f"问题最集中的模块排名（按未解决 BC 数量）：")
+            lines.append("")
+            for i, m in enumerate(top3, 1):
+                medal = ["🥇", "🥈", "🥉"][i-1] if i <= 3 else f"{i}."
+                lines.append(f"{medal} **{m.get('module','')}**：{m.get('bc',0)} 个未解决 BC（B {m.get('b',0)} / C {m.get('c',0)}），未解决总数 {m.get('unresolved',0)} 条")
+            lines.append("")
+            lines.append(f"这 {len(fail_modules_sorted)} 个 FAIL 模块总共贡献了 {sum(m.get('bc',0) for m in fail_modules_sorted)} 个未解决 BC，占全部 BC 的 {round(sum(m.get('bc',0) for m in fail_modules_sorted) / max(bc_unresolved, 1) * 100, 1)}%。")
+            lines.append("")
+            lines.append("建议优先攻坚 Top 3 模块，能最快降低整体 BC 数量。")
+            lines.append("")
+        else:
+            lines.append(f"目前所有模块都没有未解决 BC，状态很好！")
+            lines.append("")
+    
+    # ===== 新增：谁负责的问题最多 =====
+    elif is_owner_q:
+        # 按负责人统计
+        owner_stats = {}
+        for it in all_unresolved:
+            dev = it.get('developer') or '未指派'
+            if dev not in owner_stats:
+                owner_stats[dev] = {'total': 0, 'blocker': 0, 'critical': 0, 'major': 0}
+            owner_stats[dev]['total'] += 1
+            sev = (it.get('sev') or '').lower()
+            if sev == 'blocker':
+                owner_stats[dev]['blocker'] += 1
+            elif sev == 'critical':
+                owner_stats[dev]['critical'] += 1
+            elif sev == 'major':
+                owner_stats[dev]['major'] += 1
+        
+        sorted_owners = sorted(owner_stats.items(), key=lambda x: -x[1]['total'])
+        if sorted_owners:
+            lines.append(f"未解决问题按负责人统计（Top 5）：")
+            lines.append("")
+            for i, (dev, stats) in enumerate(sorted_owners[:5], 1):
+                bc_count = stats['blocker'] + stats['critical']
+                lines.append(f"{i}. **{dev}**：{stats['total']} 个未解决（其中 BC {bc_count} 个：B {stats['blocker']} / C {stats['critical']}）")
+            lines.append("")
+            total_with_owner = sum(s['total'] for _, s in sorted_owners)
+            lines.append(f"已指派的未解决问题共 {total_with_owner} 个，还有 {unresolved - total_with_owner} 个未指派。")
+            lines.append("")
+        else:
+            lines.append("暂无未解决问题的负责人统计数据。")
+            lines.append("")
+    
+    # ===== 新增：问题老化分析 =====
+    elif is_aging_q:
+        # 简单统计：由于没有创建时间字段，用状态来推断
+        new_count = sum(1 for it in all_unresolved if it.get('status') == 'New')
+        in_progress = sum(1 for it in all_unresolved if it.get('status') in ('In Progress', 'Open', 'Reopened'))
+        other = len(all_unresolved) - new_count - in_progress
+        
+        lines.append(f"未解决问题状态分布（共 {len(all_unresolved)} 个抽样）：")
+        lines.append("")
+        lines.append(f"- 🆕 New（新建未处理）：**{new_count} 个**")
+        lines.append(f"- 🔄 In Progress（处理中）：**{in_progress} 个**")
+        lines.append(f"- 📋 其他状态：**{other} 个**")
+        lines.append("")
+        if new_count > 0:
+            lines.append(f"有 {new_count} 个问题还处于 New 状态，建议尽快分配负责人并启动处理。")
+            lines.append("")
+        # 列出New状态的BC问题
+        new_bc = [it for it in all_unresolved if it.get('status') == 'New' and it.get('sev') in ('blocker', 'critical')]
+        if new_bc:
+            lines.append(f"**New 状态的 BC 问题（最需要关注）：**")
+            lines.append("")
+            for i, it in enumerate(new_bc[:10], 1):
+                sev_cn = 'B' if it.get('sev') == 'blocker' else 'C'
+                dev = it.get('developer') or '未指派'
+                lines.append(f"{i}. [{sev_cn}] **{it.get('id','')}**（{dev}）- {str(it.get('title',''))[:60]}")
+            lines.append("")
+    
+    # ===== 新增：趋势分析 =====
+    elif is_trend_q:
+        daily = snap.get('daily_stats', []) or []
+        if daily and len(daily) >= 2:
+            recent = daily[-7:] if len(daily) >= 7 else daily
+            total_new = sum(d.get('new_count', 0) for d in recent)
+            total_resolved = sum(d.get('resolved_count', 0) for d in recent)
+            lines.append(f"最近 {len(recent)} 天的 CR 趋势：")
+            lines.append("")
+            lines.append(f"- 📈 新增：**{total_new} 个**")
+            lines.append(f"- ✅ 解决：**{total_resolved} 个**")
+            delta = total_resolved - total_new
+            if delta > 0:
+                lines.append(f"- 📉 净减少：**{delta} 个**（解决速度 > 新增速度，趋势向好）")
+            elif delta < 0:
+                lines.append(f"- 📈 净增加：**{abs(delta)} 个**（新增速度 > 解决速度，需要关注）")
+            else:
+                lines.append(f"- ➖ 基本持平：新增和解决数量相当")
+            lines.append("")
+            # 最近3天明细
+            if len(recent) >= 3:
+                lines.append("最近 3 天明细：")
+                lines.append("")
+                for d in recent[-3:]:
+                    lines.append(f"- {d.get('date','')}：新增 {d.get('new_count',0)}，解决 {d.get('resolved_count',0)}")
+                lines.append("")
+        else:
+            lines.append("暂无足够的历史数据来分析趋势，建议先生成几天的状态数据后再查看。")
+            lines.append("")
+    
+    # ===== 原有问题类型 =====
+    elif is_blocker_q:
+        if blocker_unresolved == 0:
+            lines.append(f"目前{project_name}没有未解决的 Blocker 问题，状态不错。")
+        else:
+            lines.append(f"目前{project_name}有 **{blocker_unresolved} 个未解决的 Blocker 问题**，需要重点关注。")
+            lines.append("")
+            if fail_count > 0:
+                fail_modules_sorted = sorted([m for m in modules if m.get('fail')], key=lambda x: -x.get('b', 0))
+                top_b_module = fail_modules_sorted[0] if fail_modules_sorted else None
+                if top_b_module and top_b_module.get('b', 0) > 0:
+                    lines.append(f"这些 Blocker 分布在 {fail_count} 个 FAIL 模块中，其中 {top_b_module.get('module','')} 模块最多（{top_b_module.get('b',0)}个）。")
+            lines.append("")
+            if wants_list or blocker_unresolved <= 5:
+                blocker_list = [r for r in bc_list if r.get('sev') == 'blocker']
+                if blocker_list:
+                    lines.append("具体如下：")
+                    lines.append("")
+                    for i, r in enumerate(blocker_list[:5], 1):
+                        dev = r.get('developer') or '未指派'
+                        status_text = r.get('status', '')
+                        lines.append(f"{i}. **{r.get('id','')}**（{status_text}，负责人：{dev}）")
+                        lines.append(f"   {str(r.get('title',''))[:70]}")
+                    lines.append("")
+            else:
+                lines.append(f"需要我列出这 {blocker_unresolved} 个 Blocker 的具体清单吗？")
+                lines.append("")
+    
+    elif is_critical_q:
+        if critical_unresolved == 0:
+            lines.append(f"目前{project_name}没有未解决的 Critical 问题。")
+        else:
+            lines.append(f"目前{project_name}有 **{critical_unresolved} 个未解决的 Critical 问题**。")
+            lines.append("")
+            lines.append(f"加上 {blocker_unresolved} 个 Blocker，未解决的 BC 问题总共 {bc_unresolved} 个。")
+            lines.append("")
+            if wants_list:
+                critical_list = [r for r in bc_list if r.get('sev') == 'critical']
+                if critical_list:
+                    lines.append("具体如下：")
+                    lines.append("")
+                    for i, r in enumerate(critical_list[:10], 1):
+                        dev = r.get('developer') or '未指派'
+                        lines.append(f"{i}. **{r.get('id','')}**（{r.get('status','')}，{dev}）- {str(r.get('title',''))[:60]}")
+                    lines.append("")
+            else:
+                lines.append(f"需要我列出具体的 Critical 问题清单吗？")
+                lines.append("")
+    
+    elif is_bc_q:
+        lines.append(f"目前{project_name}有 **{bc_unresolved} 个未解决的 BC 问题**（Blocker+Critical）。")
+        lines.append("")
+        lines.append(f"其中 Blocker {blocker_unresolved} 个，Critical {critical_unresolved} 个。")
+        if fail_count > 0:
+            lines.append(f"有 {fail_count} 个模块因为存在未解决 BC 而处于 FAIL 状态。")
+        lines.append("")
+        if wants_list:
+            lines.append("具体清单如下：")
+            lines.append("")
+            for i, r in enumerate(bc_list[:15], 1):
+                sev_cn = 'B' if r.get('sev') == 'blocker' else 'C'
+                dev = r.get('developer') or '未指派'
+                lines.append(f"{i}. [{sev_cn}] **{r.get('id','')}**（{r.get('status','')}，{dev}）- {str(r.get('title',''))[:55]}")
+            lines.append("")
+        else:
+            lines.append(f"需要我列出这 {bc_unresolved} 个 BC 问题的具体清单吗？")
+            lines.append("")
+    
+    elif is_fail_q or (is_module_q and fail_count > 0):
+        if fail_count == 0:
+            lines.append(f"目前{project_name}所有 {total_modules} 个模块都处于 PASS 状态，没有 FAIL 模块。")
+        else:
+            lines.append(f"目前{project_name}有 **{fail_count} 个 FAIL 模块**，另外 {pass_count} 个模块 PASS。")
+            lines.append("")
+            fail_modules_sorted = sorted([m for m in modules if m.get('fail')], key=lambda x: -x.get('bc', 0))
+            top_module = fail_modules_sorted[0] if fail_modules_sorted else None
+            if top_module:
+                lines.append(f"问题最集中的是 **{top_module.get('module','')}** 模块，有 {top_module.get('bc',0)} 个未解决 BC（其中 B {top_module.get('b',0)} 个、C {top_module.get('c',0)} 个）。")
+                lines.append("")
+            if wants_list or fail_count <= 5:
+                lines.append("FAIL 模块完整清单：")
+                lines.append("")
+                for i, m in enumerate(fail_modules_sorted[:10], 1):
+                    lines.append(f"{i}. **{m.get('module','')}**：未解决 {m.get('unresolved',0)} 条，BC {m.get('bc',0)} 个（B {m.get('b',0)} / C {m.get('c',0)}）")
+                lines.append("")
+            else:
+                lines.append(f"需要我列出这 {fail_count} 个 FAIL 模块的完整清单吗？")
+                lines.append("")
+    
+    elif is_unresolved_q:
+        lines.append(f"目前{project_name}有 **{unresolved} 个未解决的 CR**，整体解决率 {resolve_rate}%。")
+        lines.append("")
+        lines.append(f"CR 总数 {total} 个，已解决 {total - unresolved} 个。")
+        lines.append(f"未解决的问题中，有 {bc_unresolved} 个是 BC 级别（Blocker {blocker_unresolved} + Critical {critical_unresolved}），需要优先处理。")
+        lines.append("")
+    
+    elif is_health_q:
+        if health_score >= 80:
+            status_text = "整体健康，状态不错"
+            status_icon = "🟢"
+        elif health_score >= 60:
+            status_text = "有一定风险，需要关注"
+            status_icon = "🟡"
+        else:
+            status_text = "风险较高，需要重点跟进"
+            status_icon = "🔴"
+        lines.append(f"{project_name}目前的健康度评分为 **{health_score} 分**，{status_icon}{status_text}。")
+        lines.append("")
+        lines.append("评分主要扣在：")
+        lines.append(f"- BC 问题扣分：{min(bc_unresolved * 5, 40)} 分（{bc_unresolved} 个未解决 BC）")
+        if blocker_unresolved > 0:
+            lines.append(f"- Blocker 问题扣分：{min(blocker_unresolved * 3, 15)} 分（{blocker_unresolved} 个 Blocker）")
+        if fail_count > 0 and total_modules > 0 and fail_count / total_modules > 0.2:
+            lines.append(f"- FAIL 模块比例扣分：{min((fail_count / total_modules - 0.2) * 50, 25)} 分（{fail_count}/{total_modules} 个模块 FAIL）")
+        lines.append("")
+        lines.append(f"要提升健康度，最直接的方式就是尽快闭环这 {bc_unresolved} 个未解决 BC 问题。")
+        lines.append("")
+    
+    elif is_overview_q:
+        lines.append(f"{project_name}整体状态概览：")
+        lines.append("")
+        lines.append(f"- 📊 CR 总数 {total} 个，未解决 {unresolved} 个，解决率 {resolve_rate}%")
+        lines.append(f"- 🔴 未解决 BC {bc_unresolved} 个（Blocker {blocker_unresolved} + Critical {critical_unresolved}）")
+        lines.append(f"- ⚠️ 模块状态：{fail_count} 个 FAIL / {pass_count} 个 PASS")
+        lines.append(f"- 💯 健康度评分：{health_score} 分")
+        lines.append("")
+        if health_score < 60:
+            lines.append(f"⚠️ 当前健康度较低，主要风险点是 {bc_unresolved} 个未解决 BC 和 {fail_count} 个 FAIL 模块，建议优先处理。")
+        elif health_score < 80:
+            lines.append(f"📌 当前状态基本可控，但仍有 {bc_unresolved} 个 BC 问题需要持续跟进。")
+        else:
+            lines.append(f"✅ 当前状态健康，继续保持！")
+        lines.append("")
+        lines.append("想了解哪方面的详细数据？可以直接问我，比如'有多少个Blocker'、'哪些模块FAIL了'。")
+        lines.append("")
+    
+    else:
+        lines.append(f"{project_name}目前的整体状态：")
+        lines.append("")
+        lines.append(f"- CR 总数 {total} 个，未解决 {unresolved} 个，解决率 {resolve_rate}%")
+        lines.append(f"- 未解决 BC {bc_unresolved} 个（Blocker {blocker_unresolved} + Critical {critical_unresolved}）")
+        lines.append(f"- 模块状态：{fail_count} 个 FAIL / {pass_count} 个 PASS")
+        lines.append(f"- 健康度评分：{health_score} 分")
+        lines.append("")
+        lines.append("想了解哪方面的详细数据？可以直接问我，比如'有多少个Blocker'、'哪些模块FAIL了'。")
+        lines.append("")
+    
+    return '\n'.join(lines)
 
 
 def generate_report_markdown(snap):
@@ -997,6 +1360,26 @@ def generate_report_markdown(snap):
 # 放行报告/日报关键词
 _REPORT_KEYWORDS = ('放行报告', '日报', '周报', '生成牛马笔记', '放行', '报告')
 
+# 数量/统计关键词（直接用代码生成准确回答，绕过AI避免数据错误）
+_STAT_KEYWORDS = (
+    # 核心严重级别关键词（宽泛匹配，各种语序都能命中）
+    'blocker', '阻塞',
+    'critical', '严重',
+    ' bc', 'bc数', '未解决bc', 'bc问题',
+    'fail', '失败', '异常',
+    # 数量/状态关键词
+    '多少个', '几个', '数量', '未解决', 'cr数量',
+    '模块状态', '模块',
+    '健康度', '评分', '多少分',
+    # 高级分析关键词
+    '哪个模块', '模块最多', '问题最多', '模块排名',
+    '谁负责', '负责人', '谁的问题', '开发人员',
+    '老化', '超过', '没解决', '长期', '搁置', '老问题',
+    '趋势', '本周', '这周', '最近', '新增', '变化',
+    '整体', '概览', '怎么样', '状态如何', '总结', '概况',
+)
+
+
 
 def answer_stream(snap, history, question):
     """流式回答，yield 文本片段。AI 未配置时给出可读降级提示。"""
@@ -1009,6 +1392,15 @@ def answer_stream(snap, history, question):
             return
         except Exception as e:
             logger.exception('generate_report_markdown failed, fallback to AI: %s', e)
+    # 检测是否为数量/统计问题，如果是直接用 Python 生成准确回答，绕过 AI 避免数据错误
+    q_lower = q.lower()
+    if any(kw in q_lower for kw in _STAT_KEYWORDS):
+        try:
+            answer = generate_stat_answer(snap, q)
+            yield answer
+            return
+        except Exception as e:
+            logger.exception('generate_stat_answer failed, fallback to AI: %s', e)
     from services.ai.factory import get_ai_service
     svc = get_ai_service()
     if svc is None:
@@ -1031,3 +1423,1157 @@ def answer_once(snap, history, question):
         return ('⚠️ 尚未配置 AI 模型，无法对话。请先在「智能知识库」完成 AI 配置。')
     resp = svc.chat(build_messages(snap, history, question))
     return getattr(resp, 'content', None) or str(resp)
+
+
+
+# ============================ 项目日报生成 ============================
+def _generate_svg_line_chart(dates, series_data, title="", width=600, height=250):
+    """生成精致的数据卡片图表（邮件100%兼容）"""
+    if not dates or not series_data:
+        return ""
+    
+    all_values = []
+    for s in series_data:
+        all_values.extend(s["data"])
+    max_val = max(all_values) if all_values else 1
+    if max_val == 0:
+        max_val = 1
+    
+    n_days = len(dates)
+    
+    html = []
+    html.append('<div style="background:#1f2937;border-radius:10px;padding:16px;margin:12px 0;border:1px solid #374151;">')
+    
+    # 标题
+    html.append(f'<div style="font-size:13px;font-weight:600;color:#f9fafb;margin-bottom:12px;">{title}</div>')
+    
+    # 数据网格
+    html.append('<table style="width:100%;border-collapse:collapse;">')
+    
+    # 表头
+    html.append('<tr style="border-bottom:1px solid #374151;">')
+    html.append('<td style="padding:6px 4px;font-size:11px;color:#9CA3AF;width:50px;">日期</td>')
+    for s in series_data:
+        name = s.get("name", "")
+        color = s.get("color", "#8B5CF6")
+        html.append(f'<td style="padding:6px 8px;font-size:11px;color:{color};font-weight:500;">{name}</td>')
+    html.append('</tr>')
+    
+    # 数据行
+    for day_idx in range(n_days):
+        date = dates[day_idx]
+        short_date = date[5:] if len(date) >= 10 else date
+        
+        bg_color = "#1f2937" if day_idx % 2 == 0 else "#111827"
+        html.append(f'<tr style="background:{bg_color};">')
+        html.append(f'<td style="padding:8px 4px;font-size:12px;color:#D1D5DB;">{short_date}</td>')
+        
+        for s in series_data:
+            color = s.get("color", "#8B5CF6")
+            val = s["data"][day_idx]
+            
+            bar_width = int(50 * val / max_val)
+            if bar_width < 2 and val > 0:
+                bar_width = 2
+            
+            html.append('<td style="padding:8px;">')
+            html.append('<table style="border-collapse:collapse;"><tr>')
+            html.append(f'<td style="background:{color};height:8px;width:{bar_width}px;border-radius:2px;"></td>')
+            html.append(f'<td style="padding-left:6px;font-size:12px;font-weight:600;color:#f9fafb;">{val}</td>')
+            html.append('</tr></table>')
+            html.append('</td>')
+        
+        html.append('</tr>')
+    
+    html.append('</table>')
+    html.append('</div>')
+    
+    return "".join(html)
+
+
+def generate_daily_report(project_key, reporter=""):
+    """基于项目状态快照生成项目日报，返回Markdown格式的日报内容"""
+    import datetime
+    snap = load_snapshot(project_key)
+    if not snap:
+        return None, "项目状态尚未生成，请先生成项目状态"
+
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    project_name = snap.get("project_name") or project_key
+    stats = snap.get("stats", {})
+    modules = snap.get("modules", [])
+    unresolved_bc = snap.get("unresolved_bc", [])
+    daily_stats = snap.get("daily_stats", [])
+
+    # 统计数据
+    total = stats.get("total", 0)
+    unresolved = stats.get("unresolved", 0)
+    bc_count = stats.get("bc_unresolved", 0)
+    fail_modules = stats.get("fail", 0)
+    pass_modules = stats.get("pass", 0)
+    resolve_rate = round((total - unresolved) / max(total, 1) * 100, 1)
+    total_modules = fail_modules + pass_modules
+    pass_rate = round(pass_modules / max(total_modules, 1) * 100, 1)
+    fail_rate = round(fail_modules / max(total_modules, 1) * 100, 1)
+
+    # 统计Blocker数量
+    blocker_count = 0
+    blocker_list = []
+    for m in modules:
+        top_list = m.get("top_list", [])
+        for it in top_list:
+            if it.get("sev") == "blocker" and it.get("status") not in ["Resolved", "Closed"]:
+                blocker_count += 1
+                blocker_list.append(it)
+
+    # 计算健康度评分
+    score = 100
+    bc_penalty = min(bc_count * 5, 40)
+    score -= bc_penalty
+    if total > 0:
+        unresolved_rate = unresolved / total
+        if unresolved_rate > 0.3:
+            rate_penalty = min((unresolved_rate - 0.3) * 50, 20)
+            score -= rate_penalty
+    if total_modules > 0:
+        fail_rate_calc = fail_modules / total_modules
+        if fail_rate_calc > 0.2:
+            fail_penalty = min((fail_rate_calc - 0.2) * 50, 25)
+            score -= fail_penalty
+    blocker_penalty = min(blocker_count * 3, 15)
+    score -= blocker_penalty
+    score = max(0, round(score))
+
+    # 健康度状态
+    if score >= 80:
+        health_status = "正常"
+        health_color = "绿色"
+    elif score >= 60:
+        health_status = "有风险"
+        health_color = "黄色"
+    else:
+        health_status = "阻塞"
+        health_color = "红色"
+
+    # 今日新增/解决
+    today_new = 0
+    today_resolved = 0
+    if daily_stats and len(daily_stats) > 0:
+        latest = daily_stats[-1]
+        today_new = latest.get("new_count", 0)
+        today_resolved = latest.get("resolved_count", 0)
+
+    # FAIL模块列表
+    fail_module_list = [m for m in modules if m.get("fail")]
+
+    # 整体进度
+    overall_progress = round((resolve_rate + pass_rate) / 2, 1)
+
+    # 计算每日趋势与未解决BUG变化（最近7天）
+    recent_daily = daily_stats[-7:] if daily_stats else []
+    trend_data = []
+
+    if recent_daily:
+        daily_unresolved = [0] * len(recent_daily)
+        daily_unresolved[-1] = unresolved
+
+        for i in range(len(recent_daily) - 2, -1, -1):
+            next_day = recent_daily[i + 1]
+            daily_unresolved[i] = daily_unresolved[i + 1] - next_day.get("new_count", 0) + next_day.get("resolved_count", 0)
+            daily_unresolved[i] = max(0, daily_unresolved[i])
+
+        for i, d in enumerate(recent_daily):
+            day_new = d.get("new_count", 0)
+            day_resolved = d.get("resolved_count", 0)
+            day_date = d.get("date", "")
+            net = day_new - day_resolved
+            trend_data.append({
+                "date": day_date,
+                "new": day_new,
+                "resolved": day_resolved,
+                "net": net,
+                "unresolved": daily_unresolved[i],
+            })
+
+    # 构建日报
+    lines = []
+    
+    # 标题
+    lines.append("# 项目日报")
+    lines.append("")
+    lines.append(f"**{project_name}** | {today}")
+    lines.append("")
+    
+    # 分隔线
+    lines.append("---")
+    lines.append("")
+    
+    # 一、基础信息
+    lines.append("## 一、基础信息")
+    lines.append("")
+    lines.append(f"| 项目 | 内容 |")
+    lines.append(f"|------|------|")
+    lines.append(f"| 日期 | {today} |")
+    lines.append(f"| 项目名称 | {project_name} |")
+    lines.append(f"| 汇报人 | {reporter or '自动生成'} |")
+    lines.append(f"| 整体状态 | {health_status}（{score}分） |")
+    lines.append("")
+    
+    # 关键指标
+    lines.append("### 关键指标")
+    lines.append("")
+    lines.append(f"| 指标 | 数值 | 说明 |")
+    lines.append(f"|------|------|------|")
+    lines.append(f"| CR总数 | {total} | 累计问题数 |")
+    lines.append(f"| 未解决CR | {unresolved} | 待处理问题 |")
+    lines.append(f"| 解决率 | {resolve_rate}% | 已解决占比 |")
+    lines.append(f"| 未解决BC | {bc_count} | Blocker+Critical |")
+    lines.append(f"| 模块状态 | {fail_modules}FAIL / {pass_modules}PASS | 共{total_modules}个模块 |")
+    lines.append(f"| 整体进度 | {overall_progress}% | 解决率+通过率均值 |")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 二、今日完成事项
+    lines.append("## 二、今日完成事项")
+    lines.append("")
+    lines.append(f"- **CR处理**：今日新增 {today_new} 条，解决 {today_resolved} 条")
+    lines.append(f"- **问题闭环**：累计已解决 {total - unresolved} 条CR，解决率 {resolve_rate}%")
+    lines.append(f"- **模块健康**：{pass_modules} 个模块状态正常（PASS）")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 三、进行中事项
+    lines.append("## 三、进行中事项")
+    lines.append("")
+    lines.append(f"- **未解决CR**：共 {unresolved} 条待处理")
+    lines.append(f"- **严重问题**：{bc_count} 条 Blocker+Critical 未解决")
+    lines.append(f"- **Blocker问题**：{blocker_count} 条阻塞性问题待处理")
+    lines.append(f"- **FAIL模块**：{len(fail_module_list)} 个模块存在未解决BC")
+    lines.append("")
+    
+    # FAIL模块Top5
+    if fail_module_list:
+        lines.append("### FAIL模块 Top 5")
+        lines.append("")
+        sorted_fail = sorted(fail_module_list, key=lambda x: -x.get("bc", 0))[:5]
+        lines.append("| 排名 | 模块 | 未解决BC | Blocker | Critical |")
+        lines.append("|------|------|----------|---------|----------|")
+        for i, m in enumerate(sorted_fail, 1):
+            lines.append(f"| {i} | {m.get('module','')} | {m.get('bc',0)} | {m.get('b',0)} | {m.get('c',0)} |")
+        lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 四、每日趋势与BUG曲线
+    lines.append("## 四、每日趋势与BUG曲线")
+    lines.append("")
+    
+    if trend_data:
+        # 趋势数据表
+        lines.append("### 4.1 每日新增/解决趋势（最近7天）")
+        lines.append("")
+        lines.append("| 日期 | 新增 | 解决 | 净增 | 趋势 |")
+        lines.append("|------|------|------|------|------|")
+        for d in trend_data:
+            if d["net"] > 0:
+                trend_icon = "上升"
+            elif d["net"] < 0:
+                trend_icon = "下降"
+            else:
+                trend_icon = "持平"
+            lines.append(f"| {d['date']} | {d['new']} | {d['resolved']} | {d['net']} | {trend_icon} |")
+        lines.append("")
+        
+        # SVG折线图1
+        chart_dates = [d["date"] for d in trend_data]
+        chart_new = [d["new"] for d in trend_data]
+        chart_resolved = [d["resolved"] for d in trend_data]
+        # 图表已去掉，直接显示数据
+        lines.append("")
+        
+        # 未解决BUG曲线
+        lines.append("### 4.2 未解决BUG变化曲线（最近7天）")
+        lines.append("")
+        lines.append("| 日期 | 当日新增 | 当日解决 | 未解决总数 | 变化 | 状态 |")
+        lines.append("|------|----------|----------|------------|------|------|")
+        for i, d in enumerate(trend_data):
+            if i == 0:
+                change = "-"
+            else:
+                diff = d["unresolved"] - trend_data[i-1]["unresolved"]
+                if diff > 0:
+                    change = f"+{diff}"
+                elif diff < 0:
+                    change = str(diff)
+                else:
+                    change = "0"
+
+            if d["unresolved"] > 100:
+                status = "高风险"
+            elif d["unresolved"] > 50:
+                status = "关注"
+            else:
+                status = "正常"
+
+            lines.append(f"| {d['date']} | {d['new']} | {d['resolved']} | {d['unresolved']} | {change} | {status} |")
+        lines.append("")
+        
+        # SVG折线图2
+        chart_unresolved = [d["unresolved"] for d in trend_data]
+        # 图表已去掉
+        lines.append("")
+
+        # 趋势分析
+        if len(trend_data) >= 2:
+            first_unresolved = trend_data[0]["unresolved"]
+            last_unresolved = trend_data[-1]["unresolved"]
+            diff = last_unresolved - first_unresolved
+            if diff < 0:
+                trend_analysis = f"**趋势向好**：最近7天未解决BUG减少 {abs(diff)} 条，问题闭环效率高于新增速度"
+            elif diff > 0:
+                trend_analysis = f"**需关注**：最近7天未解决BUG增加 {diff} 条，新增速度高于问题闭环效率"
+            else:
+                trend_analysis = "**持平**：最近7天未解决BUG数量保持稳定"
+            lines.append(f"**趋势分析**：{trend_analysis}")
+            lines.append("")
+    else:
+        lines.append("暂无每日趋势数据")
+        lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 五、明日/下一步计划
+    lines.append("## 五、明日/下一步计划")
+    lines.append("")
+    lines.append(f"- **优先处理**：{min(blocker_count, 5)} 条 Blocker 阻塞性问题")
+    lines.append(f"- **重点关注**：{min(bc_count, 10)} 条 BC（Blocker+Critical）严重问题")
+    lines.append(f"- **模块攻坚**：{len(fail_module_list)} 个 FAIL 模块需要重点跟进")
+    lines.append("- **目标**：降低未解决CR数量，提升模块通过率")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 六、风险与问题
+    lines.append("## 六、风险与问题")
+    lines.append("")
+    
+    risks = []
+    if blocker_count > 0:
+        risks.append(f"**阻塞风险**：存在 {blocker_count} 个 Blocker 级问题，可能影响项目进度")
+    if bc_count > 20:
+        risks.append(f"**严重问题过多**：未解决BC达 {bc_count} 个，质量风险较高")
+    if fail_rate > 0.3:
+        risks.append(f"**模块健康度差**：FAIL模块占比 {fail_rate}%，超过30%预警线")
+    if unresolved_rate := unresolved / max(total, 1) > 0.3:
+        risks.append(f"**未解决率过高**：未解决CR占比 {round(unresolved_rate*100,1)}%，需要加快处理速度")
+    
+    if risks:
+        for r in risks:
+            lines.append(f"- {r}")
+    else:
+        lines.append("- 当前无重大风险")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append(f"*本报告由 Potential Tools 自动生成，数据截止 {today}*")
+    lines.append("")
+
+    return "\n".join(lines), None
+
+
+
+def save_daily_report_to_notes(project_key, reporter="", user_id=1):
+    """生成项目日报并保存到牛马笔记"""
+    import datetime
+    report, err = generate_daily_report(project_key, reporter)
+    if err:
+        return None, err
+    
+    note_uid = "daily-report-" + project_key + "-" + datetime.datetime.now().strftime("%Y%m%d")
+    project_name = (load_snapshot(project_key) or {}).get("project_name") or project_key
+    title = "【项目日报】" + project_name + " - " + datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    try:
+        from db import notes as notes_db
+        existing = notes_db.get_note_by_uid(user_id, note_uid)
+        if existing:
+            notes_db.update_note(user_id, note_uid, content=report)
+            note = notes_db.get_note_by_uid(user_id, note_uid)
+        else:
+            note = notes_db.create_note(
+                user_id=user_id,
+                note_uid=note_uid,
+                title=title,
+                content=report,
+                category="项目日报",
+                tags=["项目日报", project_key],
+                pinned=True,
+            )
+        return note, None
+    except Exception as e:
+        return None, "保存到牛马笔记失败: " + str(e)
+
+
+
+def generate_weekly_report(project_key, reporter=""):
+    """基于项目状态快照生成项目周报，返回Markdown格式的周报内容"""
+    import datetime
+    snap = load_snapshot(project_key)
+    if not snap:
+        return None, "项目状态尚未生成，请先生成项目状态"
+
+    today = datetime.datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+    project_name = snap.get("project_name") or project_key
+    stats = snap.get("stats", {})
+    modules = snap.get("modules", [])
+    unresolved_bc = snap.get("unresolved_bc", [])
+    daily_stats = snap.get("daily_stats", [])
+
+    # 统计数据
+    total = stats.get("total", 0)
+    unresolved = stats.get("unresolved", 0)
+    bc_count = stats.get("bc_unresolved", 0)
+    fail_modules = stats.get("fail", 0)
+    pass_modules = stats.get("pass", 0)
+    resolve_rate = round((total - unresolved) / max(total, 1) * 100, 1)
+    total_modules = fail_modules + pass_modules
+    pass_rate = round(pass_modules / max(total_modules, 1) * 100, 1)
+
+    # 统计Blocker和Critical数量
+    blocker_count = 0
+    critical_count = 0
+    for m in modules:
+        top_list = m.get("top_list", [])
+        for it in top_list:
+            if it.get("status") not in ["Resolved", "Closed"]:
+                if it.get("sev") == "blocker":
+                    blocker_count += 1
+                elif it.get("sev") == "critical":
+                    critical_count += 1
+
+    # 计算健康度评分
+    score = 100
+    bc_penalty = min(bc_count * 5, 40)
+    score -= bc_penalty
+    if total > 0:
+        unresolved_rate = unresolved / total
+        if unresolved_rate > 0.3:
+            rate_penalty = min((unresolved_rate - 0.3) * 50, 20)
+            score -= rate_penalty
+    if total_modules > 0:
+        fail_rate_calc = fail_modules / total_modules
+        if fail_rate_calc > 0.2:
+            fail_penalty = min((fail_rate_calc - 0.2) * 50, 25)
+            score -= fail_penalty
+    blocker_penalty = min(blocker_count * 3, 15)
+    score -= blocker_penalty
+    score = max(0, round(score))
+
+    if score >= 80:
+        health_status = "正常"
+    elif score >= 60:
+        health_status = "有风险"
+    else:
+        health_status = "阻塞"
+
+    # 本周趋势（最近7天）
+    week_data = daily_stats[-7:] if daily_stats and len(daily_stats) >= 7 else daily_stats
+    week_new = sum(d.get("new_count", 0) for d in week_data) if week_data else 0
+    week_resolved = sum(d.get("resolved_count", 0) for d in week_data) if week_data else 0
+    net_change = week_resolved - week_new
+
+    # FAIL模块列表（按BC数量排序）
+    fail_module_list = [m for m in modules if m.get("fail")]
+    fail_module_list.sort(key=lambda x: -x.get("bc", 0))
+
+    # 问题老化分析
+    all_unresolved = []
+    for m in modules:
+        top = m.get("top_list", [])
+        for it in top:
+            if it.get("status") not in ["Resolved", "Closed"]:
+                all_unresolved.append(it)
+    new_status_count = sum(1 for it in all_unresolved if it.get("status") == "New")
+    in_progress_count = sum(1 for it in all_unresolved if it.get("status") in ["In Progress", "Open", "Reopened"])
+
+    # 生成周报内容
+    lines = []
+    
+    # 标题
+    lines.append("# 项目周报")
+    lines.append("")
+    lines.append(f"**{project_name}** | 第{today.isocalendar()[1]}周")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 一、基础信息
+    lines.append("## 一、基础信息")
+    lines.append("")
+    lines.append("| 项目 | 内容 |")
+    lines.append("|------|------|")
+    lines.append(f"| 项目名称 | {project_name} |")
+    lines.append(f"| 报告周期 | 第 {today.isocalendar()[1]} 周 |")
+    lines.append(f"| 汇报人 | {reporter or '自动生成'} |")
+    lines.append(f"| 生成时间 | {today.strftime('%Y-%m-%d %H:%M')} |")
+    lines.append(f"| 整体状态 | {health_status}（{score}分） |")
+    lines.append("")
+    
+    # 关键指标
+    lines.append("### 本周关键指标")
+    lines.append("")
+    lines.append("| 指标 | 数值 | 说明 |")
+    lines.append("|------|------|------|")
+    lines.append(f"| CR总数 | {total} | 累计问题数 |")
+    lines.append(f"| 未解决CR | {unresolved} | 待处理问题 |")
+    lines.append(f"| 解决率 | {resolve_rate}% | 已解决占比 |")
+    lines.append(f"| 未解决BC | {bc_count} | Blocker+Critical |")
+    lines.append(f"| Blocker | {blocker_count} | 阻塞性问题 |")
+    lines.append(f"| Critical | {critical_count} | 严重问题 |")
+    lines.append(f"| 模块状态 | {fail_modules}FAIL / {pass_modules}PASS | 共{total_modules}个模块 |")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 二、本周进展总结
+    lines.append("## 二、本周进展总结")
+    lines.append("")
+    lines.append(f"- **本周新增**：{week_new} 条CR")
+    lines.append(f"- **本周解决**：{week_resolved} 条CR")
+    if net_change > 0:
+        lines.append(f"- **净减少**：{net_change} 条（解决速度 > 新增速度，趋势向好）")
+    elif net_change < 0:
+        lines.append(f"- **净增加**：{abs(net_change)} 条（新增速度 > 解决速度，需要关注）")
+    else:
+        lines.append("- **基本持平**：新增和解决数量相当")
+    lines.append(f"- **问题老化**：{new_status_count} 个新问题，{in_progress_count} 个进行中")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 三、模块状态概览
+    lines.append("## 三、模块状态概览")
+    lines.append("")
+    
+    if fail_module_list:
+        lines.append("### FAIL模块 Top 10")
+        lines.append("")
+        lines.append("| 排名 | 模块 | 未解决BC | Blocker | Critical | 未解决总数 |")
+        lines.append("|------|------|----------|---------|----------|------------|")
+        top_fail = fail_module_list[:10]
+        for i, m in enumerate(top_fail, 1):
+            lines.append(f"| {i} | {m.get('module','')} | {m.get('bc',0)} | {m.get('b',0)} | {m.get('c',0)} | {m.get('unresolved',0)} |")
+        lines.append("")
+    else:
+        lines.append("所有模块状态正常（PASS）")
+        lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 四、每日趋势与BUG曲线
+    lines.append("## 四、每日趋势与BUG曲线")
+    lines.append("")
+    
+    # 计算趋势数据
+    recent_daily = daily_stats[-7:] if daily_stats else []
+    trend_data = []
+    if recent_daily:
+        daily_unresolved = [0] * len(recent_daily)
+        daily_unresolved[-1] = unresolved
+        for i in range(len(recent_daily) - 2, -1, -1):
+            next_day = recent_daily[i + 1]
+            daily_unresolved[i] = daily_unresolved[i + 1] - next_day.get("new_count", 0) + next_day.get("resolved_count", 0)
+            daily_unresolved[i] = max(0, daily_unresolved[i])
+        for i, d in enumerate(recent_daily):
+            trend_data.append({
+                "date": d.get("date", ""),
+                "new": d.get("new_count", 0),
+                "resolved": d.get("resolved_count", 0),
+                "unresolved": daily_unresolved[i],
+            })
+    
+    if trend_data:
+        # SVG折线图
+        chart_dates = [d["date"] for d in trend_data]
+        chart_new = [d["new"] for d in trend_data]
+        chart_resolved = [d["resolved"] for d in trend_data]
+        chart_unresolved = [d["unresolved"] for d in trend_data]
+        
+        # 图表已去掉，直接显示数据
+        lines.append("")
+        
+        # 图表已去掉
+        lines.append("")
+        
+        # 趋势分析
+        if len(trend_data) >= 2:
+            first_unresolved = trend_data[0]["unresolved"]
+            last_unresolved = trend_data[-1]["unresolved"]
+            diff = last_unresolved - first_unresolved
+            if diff < 0:
+                trend_analysis = f"**趋势向好**：本周未解决BUG减少 {abs(diff)} 条"
+            elif diff > 0:
+                trend_analysis = f"**需关注**：本周未解决BUG增加 {diff} 条"
+            else:
+                trend_analysis = "**持平**：本周未解决BUG数量保持稳定"
+            lines.append(f"**趋势分析**：{trend_analysis}")
+            lines.append("")
+    else:
+        lines.append("暂无每日趋势数据")
+        lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 五、下周计划
+    lines.append("## 五、下周计划")
+    lines.append("")
+    lines.append(f"- **优先处理**：{min(blocker_count, 10)} 条 Blocker 阻塞性问题")
+    lines.append(f"- **重点关注**：{min(bc_count, 20)} 条 BC（Blocker+Critical）严重问题")
+    lines.append(f"- **模块攻坚**：{len(fail_module_list)} 个 FAIL 模块需要重点跟进")
+    lines.append("- **目标**：降低未解决CR数量，提升模块通过率")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 六、风险与建议
+    lines.append("## 六、风险与建议")
+    lines.append("")
+    
+    risks = []
+    if blocker_count > 0:
+        risks.append(f"**阻塞风险**：存在 {blocker_count} 个 Blocker 级问题，可能影响项目进度")
+    if bc_count > 30:
+        risks.append(f"**严重问题过多**：未解决BC达 {bc_count} 个，质量风险较高")
+    if fail_rate := fail_modules / max(total_modules, 1) > 0.3:
+        risks.append(f"**模块健康度差**：FAIL模块占比 {round(fail_rate*100,1)}%，超过30%预警线")
+    if unresolved_rate := unresolved / max(total, 1) > 0.3:
+        risks.append(f"**未解决率过高**：未解决CR占比 {round(unresolved_rate*100,1)}%，需要加快处理速度")
+    
+    if risks:
+        for r in risks:
+            lines.append(f"- {r}")
+    else:
+        lines.append("- 当前无重大风险")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    lines.append(f"*本报告由 Potential Tools 自动生成，数据截止 {today_str}*")
+    lines.append("")
+
+    return "\n".join(lines), None
+
+
+
+def save_weekly_report_to_notes(project_key, reporter="", user_id=1):
+    """生成项目周报并保存到牛马笔记"""
+    import datetime
+    report, err = generate_weekly_report(project_key, reporter)
+    if err:
+        return None, err
+    
+    today = datetime.datetime.now()
+    week_num = today.isocalendar()[1]
+    note_uid = "weekly-report-" + project_key + "-" + today.strftime("%Y%m%d")
+    project_name = (load_snapshot(project_key) or {}).get("project_name") or project_key
+    title = "【项目周报】" + project_name + " - 第" + str(week_num) + "周"
+    
+    try:
+        from db import notes as notes_db
+        existing = notes_db.get_note_by_uid(user_id, note_uid)
+        if existing:
+            notes_db.update_note(user_id, note_uid, content=report)
+            note = notes_db.get_note_by_uid(user_id, note_uid)
+        else:
+            note = notes_db.create_note(
+                user_id=user_id,
+                note_uid=note_uid,
+                title=title,
+                content=report,
+                category="项目周报",
+                tags=["项目周报", project_key],
+                pinned=True,
+            )
+        return note, None
+    except Exception as e:
+        return None, "保存到牛马笔记失败: " + str(e)
+
+
+
+def analyze_issue_aging(project_key):
+    """分析问题老化情况，识别超过7/14/30天未解决的问题"""
+    import datetime
+    snap = load_snapshot(project_key)
+    if not snap:
+        return None, "项目状态尚未生成，请先生成项目状态"
+    
+    modules = snap.get("modules", [])
+    today = datetime.datetime.now()
+    
+    # 收集所有未解决问题
+    all_unresolved = []
+    for m in modules:
+        top_list = m.get("top_list", [])
+        for it in top_list:
+            if it.get("status") not in ["Resolved", "Closed"]:
+                # 尝试获取创建时间
+                created_str = it.get("created") or it.get("created_at") or it.get("create_time") or ""
+                days_old = None
+                if created_str:
+                    try:
+                        # 尝试多种日期格式
+                        for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y/%m/%d"]:
+                            try:
+                                created = datetime.datetime.strptime(created_str[:19], fmt)
+                                days_old = (today - created).days
+                                break
+                            except ValueError:
+                                continue
+                    except Exception:
+                        pass
+                
+                all_unresolved.append({
+                    "id": it.get("id", ""),
+                    "title": it.get("title", ""),
+                    "sev": it.get("sev", ""),
+                    "status": it.get("status", ""),
+                    "developer": it.get("developer") or "未指派",
+                    "module": m.get("module", ""),
+                    "created": created_str,
+                    "days_old": days_old,
+                })
+    
+    # 按老化天数分组
+    aging_7 = [it for it in all_unresolved if it["days_old"] is not None and it["days_old"] >= 7]
+    aging_14 = [it for it in all_unresolved if it["days_old"] is not None and it["days_old"] >= 14]
+    aging_30 = [it for it in all_unresolved if it["days_old"] is not None and it["days_old"] >= 30]
+    unknown_age = [it for it in all_unresolved if it["days_old"] is None]
+    
+    # 按严重级别统计
+    def count_by_sev(issues):
+        b = sum(1 for it in issues if it["sev"] == "blocker")
+        c = sum(1 for it in issues if it["sev"] == "critical")
+        return b, c
+    
+    b7, c7 = count_by_sev(aging_7)
+    b14, c14 = count_by_sev(aging_14)
+    b30, c30 = count_by_sev(aging_30)
+    
+    # 按负责人统计（老化问题最多的负责人）
+    from collections import Counter
+    dev_counter = Counter(it["developer"] for it in aging_14)
+    top_devs = dev_counter.most_common(5)
+    
+    # 按模块统计
+    mod_counter = Counter(it["module"] for it in aging_14)
+    top_mods = mod_counter.most_common(5)
+    
+    result = {
+        "total_unresolved": len(all_unresolved),
+        "aging_7_days": {
+            "count": len(aging_7),
+            "blocker": b7,
+            "critical": c7,
+            "issues": sorted(aging_7, key=lambda x: -(x["days_old"] or 0))[:20],
+        },
+        "aging_14_days": {
+            "count": len(aging_14),
+            "blocker": b14,
+            "critical": c14,
+            "issues": sorted(aging_14, key=lambda x: -(x["days_old"] or 0))[:20],
+        },
+        "aging_30_days": {
+            "count": len(aging_30),
+            "blocker": b30,
+            "critical": c30,
+            "issues": sorted(aging_30, key=lambda x: -(x["days_old"] or 0))[:20],
+        },
+        "unknown_age_count": len(unknown_age),
+        "top_developers": top_devs,
+        "top_modules": top_mods,
+    }
+    
+    return result, None
+
+
+def generate_aging_report(project_key):
+    """生成问题老化预警报告（Markdown格式）"""
+    import datetime
+    result, err = analyze_issue_aging(project_key)
+    if err:
+        return None, err
+    
+    snap = load_snapshot(project_key)
+    project_name = (snap or {}).get("project_name") or project_key
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    lines = []
+    lines.append("# ⏰ 问题老化预警报告")
+    lines.append("")
+    lines.append(f"- **项目**：{project_name}")
+    lines.append(f"- **生成时间**：{today}")
+    lines.append(f"- **未解决问题总数**：{result['total_unresolved']} 个")
+    lines.append("")
+    
+    # 老化概览
+    lines.append("## 一、老化概览")
+    lines.append("")
+    lines.append("| 老化级别 | 问题数量 | Blocker | Critical | 风险等级 |")
+    lines.append("|----------|----------|---------|----------|----------|")
+    
+    a7 = result["aging_7_days"]
+    a14 = result["aging_14_days"]
+    a30 = result["aging_30_days"]
+    
+    lines.append(f"| ≥7天 | {a7['count']} | {a7['blocker']} | {a7['critical']} | 🟡 关注 |")
+    lines.append(f"| ≥14天 | {a14['count']} | {a14['blocker']} | {a14['critical']} | 🟠 警告 |")
+    lines.append(f"| ≥30天 | {a30['count']} | {a30['blocker']} | {a30['critical']} | 🔴 严重 |")
+    lines.append("")
+    
+    if result["unknown_age_count"] > 0:
+        lines.append(f"*注：有 {result['unknown_age_count']} 个问题无法获取创建时间，未计入老化统计*")
+        lines.append("")
+    
+    # 严重老化问题（≥14天的BC问题）
+    lines.append("## 二、重点关注问题（≥14天的 BC 问题）")
+    lines.append("")
+    critical_aging = [it for it in a14["issues"] if it["sev"] in ["blocker", "critical"]]
+    if critical_aging:
+        for i, it in enumerate(critical_aging[:15], 1):
+            sev_cn = "B" if it["sev"] == "blocker" else "C"
+            days = it["days_old"] if it["days_old"] is not None else "?"
+            lines.append(f"{i}. [{sev_cn}] **{it['id']}**（{days}天）@{it['developer']}")
+            lines.append(f"   模块：{it['module']} | 状态：{it['status']}")
+            lines.append(f"   {str(it['title'])[:80]}")
+            lines.append("")
+        if len(critical_aging) > 15:
+            lines.append(f"... 还有 {len(critical_aging) - 15} 个重点关注问题")
+            lines.append("")
+    else:
+        lines.append("✅ 暂无 ≥14天的 BC 问题，状态良好。")
+        lines.append("")
+    
+    # 老化问题最多的负责人
+    lines.append("## 三、老化问题负责人排名（TOP 5）")
+    lines.append("")
+    if result["top_developers"]:
+        lines.append("| 排名 | 负责人 | ≥14天老化问题数 |")
+        lines.append("|------|--------|------------------|")
+        for i, (dev, cnt) in enumerate(result["top_developers"], 1):
+            medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i-1] if i <= 5 else str(i)
+            lines.append(f"| {medal} | {dev} | {cnt} |")
+        lines.append("")
+    
+    # 老化问题最多的模块
+    lines.append("## 四、老化问题模块排名（TOP 5）")
+    lines.append("")
+    if result["top_modules"]:
+        lines.append("| 排名 | 模块 | ≥14天老化问题数 |")
+        lines.append("|------|------|------------------|")
+        for i, (mod, cnt) in enumerate(result["top_modules"], 1):
+            medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i-1] if i <= 5 else str(i)
+            lines.append(f"| {medal} | {mod} | {cnt} |")
+        lines.append("")
+    
+    # 建议
+    lines.append("## 五、处理建议")
+    lines.append("")
+    suggestions = []
+    if a30["count"] > 0:
+        suggestions.append(f"1. **紧急处理 ≥30天的 {a30['count']} 个问题**：这些问题长期未解决，可能存在技术难点或资源不足，需专项跟进")
+    if a14["blocker"] > 0:
+        suggestions.append(f"2. **优先闭环 ≥14天的 {a14['blocker']} 个 Blocker 问题**：Blocker问题长期存在会严重阻塞项目进度")
+    if result["top_developers"] and result["top_developers"][0][1] > 5:
+        top_dev = result["top_developers"][0]
+        suggestions.append(f"3. **关注 {top_dev[0]} 的工作量**：该负责人有 {top_dev[1]} 个 ≥14天的老化问题，可能负载过重，考虑分配支援")
+    suggestions.append("4. **建立老化问题清理机制**：每周定期review老化问题，确保问题不被遗忘")
+    suggestions.append("5. **设置问题SLA**：为不同严重级别问题设置解决时限（如Blocker 3天、Critical 7天），超期自动预警")
+    
+    for s in suggestions:
+        lines.append(f"- {s}")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append(f"*本报告由 Potential Tools V9.1 自动生成，数据截止 {today}*")
+    
+    return "\n".join(lines), None
+
+
+
+# ==================== V9.1 数据缓存与增量拉取 ====================
+import json
+import os
+import time
+
+_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "cache")
+os.makedirs(_CACHE_DIR, exist_ok=True)
+
+def _get_cache_path(project_key):
+    safe_key = project_key.replace("/", "_").replace("\\", "_")
+    return os.path.join(_CACHE_DIR, f"snapshot_{safe_key}.json")
+
+def get_cached_snapshot(project_key, max_age_seconds=300):
+    """从本地缓存读取项目状态快照，max_age_seconds默认5分钟"""
+    cache_path = _get_cache_path(project_key)
+    if not os.path.exists(cache_path):
+        return None
+    try:
+        mtime = os.path.getmtime(cache_path)
+        if time.time() - mtime > max_age_seconds:
+            return None
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def save_snapshot_to_cache(project_key, snapshot):
+    """保存项目状态快照到本地缓存"""
+    try:
+        cache_path = _get_cache_path(project_key)
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(snapshot, f, ensure_ascii=False, default=str)
+        return True
+    except Exception:
+        return False
+
+def get_cache_info(project_key):
+    """获取缓存信息（用于前端显示）"""
+    cache_path = _get_cache_path(project_key)
+    if not os.path.exists(cache_path):
+        return {"exists": False}
+    try:
+        mtime = os.path.getmtime(cache_path)
+        size = os.path.getsize(cache_path)
+        age = int(time.time() - mtime)
+        return {
+            "exists": True,
+            "cached_at": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S"),
+            "age_seconds": age,
+            "size_kb": round(size / 1024, 1),
+        }
+    except Exception:
+        return {"exists": False}
+
+def clear_cache(project_key=None):
+    """清除缓存，project_key为None时清除全部"""
+    try:
+        if project_key:
+            cache_path = _get_cache_path(project_key)
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
+                return True
+        else:
+            for f in os.listdir(_CACHE_DIR):
+                if f.startswith("snapshot_") and f.endswith(".json"):
+                    os.remove(os.path.join(_CACHE_DIR, f))
+            return True
+    except Exception:
+        return False
+    return False
+
+
+# ==================== V9.1 多项目对比 ====================
+def compare_projects(project_keys):
+    """对比多个项目的健康度状态"""
+    results = []
+    for key in project_keys:
+        snap = load_snapshot(key) or get_cached_snapshot(key, max_age_seconds=3600)
+        if not snap:
+            results.append({"project_key": key, "error": "无数据"})
+            continue
+        
+        stats = snap.get("stats", {})
+        modules = snap.get("modules", [])
+        
+        # 统计Blocker
+        blocker_count = 0
+        for m in modules:
+            for it in m.get("top_list", []):
+                if it.get("sev") == "blocker" and it.get("status") not in ["Resolved", "Closed"]:
+                    blocker_count += 1
+        
+        bc_count = stats.get("bc_unresolved", 0)
+        fail_modules = stats.get("fail", 0)
+        pass_modules = stats.get("pass", 0)
+        total = stats.get("total", 0)
+        unresolved = stats.get("unresolved", 0)
+        
+        # 计算健康度
+        score = 100
+        score -= min(bc_count * 5, 40)
+        if total > 0 and unresolved / total > 0.3:
+            score -= min((unresolved / total - 0.3) * 50, 20)
+        total_mods = fail_modules + pass_modules
+        if total_mods > 0 and fail_modules / total_mods > 0.2:
+            score -= min((fail_modules / total_mods - 0.2) * 50, 25)
+        score -= min(blocker_count * 3, 15)
+        health_score = max(0, min(100, round(score)))
+        
+        results.append({
+            "project_key": key,
+            "project_name": snap.get("project_name") or key,
+            "total": total,
+            "unresolved": unresolved,
+            "bc_unresolved": bc_count,
+            "blocker": blocker_count,
+            "fail_modules": fail_modules,
+            "pass_modules": pass_modules,
+            "health_score": health_score,
+            "resolve_rate": round((total - unresolved) / max(total, 1) * 100, 1),
+        })
+    
+    # 按健康度排序
+    results.sort(key=lambda x: x.get("health_score", 0), reverse=True)
+    return results
+
+
+
+# ==================== V9.1 智能预警中心 ====================
+def check_project_alerts(project_key):
+    """检查项目预警状态，返回所有触发的预警"""
+    alerts = []
+    snap = load_snapshot(project_key) or get_cached_snapshot(project_key, max_age_seconds=3600)
+    if not snap:
+        return [{"level": "info", "code": "NO_DATA", "message": "项目状态数据不存在，请先生成状态"}]
+    
+    stats = snap.get("stats", {})
+    modules = snap.get("modules", [])
+    project_name = snap.get("project_name") or project_key
+    
+    # 统计Blocker
+    blocker_count = 0
+    for m in modules:
+        for it in m.get("top_list", []):
+            if it.get("sev") == "blocker" and it.get("status") not in ["Resolved", "Closed"]:
+                blocker_count += 1
+    
+    bc_count = stats.get("bc_unresolved", 0)
+    fail_modules = stats.get("fail", 0)
+    total = stats.get("total", 0)
+    unresolved = stats.get("unresolved", 0)
+    
+    # 预警1: Blocker数量过多
+    if blocker_count >= 5:
+        alerts.append({
+            "level": "critical",
+            "code": "BLOCKER_OVERLOAD",
+            "message": f"存在 {blocker_count} 个未解决的 Blocker 问题，可能严重阻塞项目进度",
+            "suggestion": "立即组织专项会议，优先闭环所有Blocker问题",
+        })
+    elif blocker_count >= 3:
+        alerts.append({
+            "level": "warning",
+            "code": "BLOCKER_ATTENTION",
+            "message": f"存在 {blocker_count} 个未解决的 Blocker 问题，需要关注",
+            "suggestion": "本周内优先解决Blocker问题",
+        })
+    
+    # 预警2: BC数量过多
+    if bc_count >= 50:
+        alerts.append({
+            "level": "critical",
+            "code": "BC_OVERLOAD",
+            "message": f"未解决 BC 问题达 {bc_count} 个，数量严重超标",
+            "suggestion": "启动BC问题专项清理行动，目标本周下降20%",
+        })
+    elif bc_count >= 30:
+        alerts.append({
+            "level": "warning",
+            "code": "BC_ATTENTION",
+            "message": f"未解决 BC 问题达 {bc_count} 个，需要加快解决速度",
+            "suggestion": "关注BC问题最多的模块，优先处理",
+        })
+    
+    # 预警3: FAIL模块过多
+    if fail_modules >= 15:
+        alerts.append({
+            "level": "critical",
+            "code": "FAIL_MODULES_OVERLOAD",
+            "message": f"{fail_modules} 个模块处于 FAIL 状态，问题分布广泛",
+            "suggestion": "按模块BC数量排序，逐个攻坚",
+        })
+    elif fail_modules >= 10:
+        alerts.append({
+            "level": "warning",
+            "code": "FAIL_MODULES_ATTENTION",
+            "message": f"{fail_modules} 个模块处于 FAIL 状态，需要关注",
+            "suggestion": "优先处理BC数量最多的TOP3模块",
+        })
+    
+    # 预警4: 未解决率过高
+    if total > 0:
+        unresolved_rate = unresolved / total * 100
+        if unresolved_rate >= 40:
+            alerts.append({
+                "level": "critical",
+                "code": "UNRESOLVED_RATE_HIGH",
+                "message": f"未解决率达 {unresolved_rate:.1f}%，解决速度严重不足",
+                "suggestion": "增加解决资源，控制新增问题数量",
+            })
+        elif unresolved_rate >= 30:
+            alerts.append({
+                "level": "warning",
+                "code": "UNRESOLVED_RATE_ATTENTION",
+                "message": f"未解决率达 {unresolved_rate:.1f}%，需要关注",
+                "suggestion": "确保解决速度 >= 新增速度",
+            })
+    
+    # 预警5: 问题老化检查
+    aging_result, _ = analyze_issue_aging(project_key)
+    if aging_result:
+        a30 = aging_result.get("aging_30_days", {})
+        a14 = aging_result.get("aging_14_days", {})
+        if a30.get("count", 0) >= 5:
+            alerts.append({
+                "level": "critical",
+                "code": "AGING_OVER_30D",
+                "message": f"{a30['count']} 个问题超过30天未解决，存在技术难点或资源不足",
+                "suggestion": "专项review长期未解决问题，评估是否需要升级处理",
+            })
+        elif a14.get("count", 0) >= 10:
+            alerts.append({
+                "level": "warning",
+                "code": "AGING_OVER_14D",
+                "message": f"{a14['count']} 个问题超过14天未解决，需要关注",
+                "suggestion": "每周定期review老化问题，避免问题被遗忘",
+            })
+    
+    # 计算整体预警等级
+    critical_count = sum(1 for a in alerts if a["level"] == "critical")
+    warning_count = sum(1 for a in alerts if a["level"] == "warning")
+    
+    if critical_count > 0:
+        overall_level = "critical"
+        overall_message = f"项目存在 {critical_count} 个严重预警，需要立即处理"
+    elif warning_count > 0:
+        overall_level = "warning"
+        overall_message = f"项目存在 {warning_count} 个警告预警，需要关注"
+    else:
+        overall_level = "healthy"
+        overall_message = "项目状态健康，无触发预警"
+    
+    return {
+        "project_key": project_key,
+        "project_name": project_name,
+        "overall_level": overall_level,
+        "overall_message": overall_message,
+        "critical_count": critical_count,
+        "warning_count": warning_count,
+        "alerts": alerts,
+        "checked_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
