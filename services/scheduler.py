@@ -502,24 +502,46 @@ def _execute_task(task):
             result["message"] = "里程碑跟踪完成"
 
         elif task["type"] == TASK_TYPE_COMPETITOR:
-            # 竞品分析
-            lines = []
-            lines.append("# 竞品分析周报")
-            lines.append("")
-            lines.append("**分析周期**: 本周")
-            lines.append("")
-            lines.append("## 待收集信息")
-            lines.append("")
-            lines.append("1. 竞品新产品发布")
-            lines.append("2. 竞品功能更新")
-            lines.append("3. 竞品价格变动")
-            lines.append("4. 竞品用户反馈")
-            lines.append("5. 市场趋势变化")
-            lines.append("")
-            lines.append("*本报告为自动生成模板，需人工补充具体内容*")
-            lines.append("")
-            result["report_content"] = "\n".join(lines)
-            result["message"] = "竞品分析周报已生成"
+            # 竞品分析（调用AI生成）
+            from services.ai.factory import get_ai_service
+            from services.ai.base import ChatMessage
+            
+            ai = get_ai_service()
+            if not ai:
+                result["message"] = "AI服务未配置，无法生成竞品分析"
+                result["report_content"] = "AI服务未配置"
+            else:
+                prompt = """请为我生成一份IOT行业竞品分析周报，内容包括：
+
+1. **IOT行业当前最火热的3-5款产品**：
+   - 产品名称和公司
+   - 核心规格参数（芯片、传感器、连接方式、电池续航等）
+   - 为什么这么火（用户评价、市场反响、创新点）
+
+2. **竞品动态分析**：
+   - 最近一周有哪些竞品发布了新产品或重要更新
+   - 价格变动情况
+   - 用户反馈和痛点
+
+3. **值得学习的地方**：
+   - 这些热门产品有哪些设计/功能/营销上的亮点
+   - 我们可以借鉴的地方
+
+请用专业、简洁的中文输出，结构清晰，数据具体。"""
+                
+                try:
+                    # ChatMessage对象格式
+                    messages = [
+                        ChatMessage(role="user", content=prompt)
+                    ]
+                    response = ai.chat(messages, temperature=0.7, max_tokens=3000)
+                    # AIResponse对象，取content字段
+                    content = response.content if hasattr(response, 'content') else str(response)
+                    result["report_content"] = content
+                    result["message"] = f"竞品分析周报已生成（{len(content)}字）"
+                except Exception as e:
+                    result["message"] = f"生成竞品分析失败: {str(e)}"
+                    result["report_content"] = f"生成失败: {str(e)}"
         
         # 如果配置了邮件收件人，发送邮件
         if task.get("email_recipients") and len(task["email_recipients"]) > 0:
@@ -537,19 +559,23 @@ def _execute_task(task):
                 
                 # 尝试获取报告内容
                 report_content = ""
-                try:
-                    if task["type"] == "daily_report":
-                        from services import project_assistant as pa
-                        report, err = pa.generate_daily_report(task["project_key"])
-                        if report:
-                            report_content = report if isinstance(report, str) else str(report)
-                    elif task["type"] == "weekly_report":
-                        from services import project_assistant as pa
-                        report, err = pa.generate_weekly_report(task["project_key"])
-                        if report:
-                            report_content = report if isinstance(report, str) else str(report)
-                except Exception as report_err:
-                    report_content = f"<p>报告生成详情请查看系统。</p><p>错误: {report_err}</p>"
+                # 优先使用任务执行时生成的报告内容
+                if result.get("report_content"):
+                    report_content = result["report_content"]
+                else:
+                    try:
+                        if task["type"] == "daily_report":
+                            from services import project_assistant as pa
+                            report, err = pa.generate_daily_report(task["project_key"])
+                            if report:
+                                report_content = report if isinstance(report, str) else str(report)
+                        elif task["type"] == "weekly_report":
+                            from services import project_assistant as pa
+                            report, err = pa.generate_weekly_report(task["project_key"])
+                            if report:
+                                report_content = report if isinstance(report, str) else str(report)
+                    except Exception as report_err:
+                        report_content = f"<p>报告生成详情请查看系统。</p><p>错误: {report_err}</p>"
                 
                 if not report_content:
                     report_content = f"<h2>{report_type}</h2><p>项目: {task['project_key']}</p><p>生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
