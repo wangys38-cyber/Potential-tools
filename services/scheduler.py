@@ -802,10 +802,16 @@ def stop_scheduler():
 
 def get_scheduler_status():
     """获取调度器状态"""
+    # 计算今日执行次数
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    logs = _load_logs()
+    today_runs = sum(1 for log in logs if log.get("started_at", "").startswith(today_str))
+    
     return {
         "running": _scheduler_running,
         "total_tasks": len(_load_tasks()),
         "enabled_tasks": len([t for t in _load_tasks() if t.get("enabled", True)]),
+        "today_runs": today_runs,
     }
 
 

@@ -39,9 +39,29 @@ def stop_scheduler():
 
 @bp.route('/tasks', methods=['GET'])
 def list_tasks():
-    """获取所有定时任务"""
+    """获取所有定时任务（自动更新过期的下次执行时间）"""
     try:
+        from datetime import datetime
         tasks = sched.get_all_tasks()
+        
+        # 自动更新过期的任务时间
+        updated = False
+        for task in tasks:
+            if not task.get("next_run") or not task.get("enabled", True):
+                continue
+            try:
+                next_run = datetime.strptime(task["next_run"], "%Y-%m-%d %H:%M:%S")
+                # 如果下次执行时间已经过去了，更新到下次时间
+                if datetime.now() > next_run:
+                    sched.update_task(task["id"])
+                    updated = True
+            except:
+                pass
+        
+        # 如果有更新，重新加载任务列表
+        if updated:
+            tasks = sched.get_all_tasks()
+        
         return jsonify({'status': 'success', 'data': {'tasks': tasks}})
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 200

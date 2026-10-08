@@ -337,6 +337,7 @@
                 
                 document.getElementById('totalTasks').textContent = statusData.data.total_tasks;
                 document.getElementById('enabledTasks').textContent = statusData.data.enabled_tasks;
+                document.getElementById('todayRuns').textContent = statusData.data.today_runs || 0;
                 
                 // 渲染任务列表
                 renderTasks(tasksData.data.tasks);
@@ -500,7 +501,11 @@
         async function runTask(taskId) {
             if (confirm('确定立即执行此任务？')) {
                 await fetch(API_BASE + '/tasks/' + taskId + '/run', { method: 'POST' });
-                alert('任务已触发执行');
+                alert('任务已触发执行，请稍后刷新查看结果');
+                // 延迟3秒后自动刷新（因为任务是异步执行的）
+                setTimeout(() => {
+                    loadData();
+                }, 3000);
             }
         }
         

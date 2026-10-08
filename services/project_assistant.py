@@ -147,6 +147,8 @@ def structure_modules(all_issues, top_n=5):
             'sev': sev, 'sev_raw': sev_raw, 'status': status,
             'developer': it.get('developer', ''), 'labels': it.get('labels', ''),
             'num': _issue_num(it.get('id', '')),
+            'created': it.get('created', ''),  # 老化预警需要
+            'updated': it.get('updated', ''),   # 老化预警需要
         }
         if not resolved:
             m['unresolved'] += 1
@@ -358,10 +360,11 @@ def build_system_prompt(snap):
     lines.append(
         '\n===== 交互与回答规范（请严格遵守，让对话自然智能）=====\n'
         '\n【基础原则】\n'
-        '1. 只依据上面的数据作答，所有数字、CR ID、模块名、标签名必须来自数据，严禁编造；数据里没有就明确说没有，不要猜。\n'
+        '1. 只依据上面的数据作答，所有数字、CR ID、模块名、标签名、状态必须来自数据，严禁编造；数据里没有就明确说没有，不要猜。\n'
         '2. 结论先行：先用1-2句话给核心结论/数字，再展开细节。去掉空泛套话和免责声明。\n'
         '3. 默认中文，口语化自然表达，不要太机械。比如不说"经查询，共有..."，直接说"有X个"。\n'
         '4. 默认输出不带CR标题，只带ID；用户明确说"带标题"时才提示去CR分析页查看。\n'
+        '5. ⚠️ 重要：状态列必须使用上面清单中提供的实际状态（New/In Progress/Verified/Open/Reopened等），严禁默认写成New！如果清单中某个CR的状态是Verified，就写Verified，不能写New！\n'
         '\n【意图识别（重要）】\n'
         '5. 先判断用户意图，再决定输出格式：\n'
         '   - "统计/多少/数量/汇总" → 给数字+简要分布，不需要列每条问题\n'
@@ -408,8 +411,9 @@ def build_system_prompt(snap):
         '11. 用户要邮件/周报/放行报告/牛马笔记时，直接输出可一键复制的完整Markdown，不设字数限制，必须完整输出所有符合条件的问题，绝对不能省略或截断，格式严格按以下顺序：\n'
         '    第一部分【趋势结论】：一句话总结近14天趋势（新增/解决/风险变化）。\n'
         '    第二部分【总体状态】：CR总数/未解决/未解决BC/FAIL模块数，一句话。\n'
-        '    第三部分【新增 BC（不含 iOS APP）】：Markdown表格，只列状态为New且模块不包含IOS_APP/iOS/Apps-iOS的Blocker和Critical，全部列出；列：严重度 | CR ID | 模块 | 经办人。\n'
-        '    第四部分【iOS APP 新增 BC】：Markdown表格，只列状态为New且模块包含IOS_APP/iOS/Apps-iOS的Blocker和Critical，全部列出；列同上。\n'
+        '    第三部分【未解决 BC（不含 iOS APP）】：Markdown表格，列出所有未解决且模块不包含IOS_APP/iOS/Apps-iOS的Blocker和Critical，全部列出；列：严重度 | CR ID | 模块 | 状态 | 经办人。\n'
+        '    第四部分【iOS APP 未解决 BC】：Markdown表格，列出所有未解决且模块包含IOS_APP/iOS/Apps-iOS的Blocker和Critical，全部列出；列同上。\n'
+        '    - 重要：状态列必须使用上面提供的实际状态（New/In Progress/Verified/Open等），严禁编造或默认写成New！\n'
         '    - 不要额外解释，不要空泛套话，不要省略任何符合条件的问题。\n'
         '\n【其他】\n'
         '12. 用户问某模块/某人/某严重度时，从清单筛选汇总，必要时给表格。\n'
@@ -463,15 +467,15 @@ def _is_ios_module(module):
     return ('ios' in m) or ('ios_app' in m) or ('apps - ios' in m) or ('apps-ios' in m)
 
 
-# 非功能性问题关键词（本地化/文案/UI/文档/测试/流程等）
+# 非功能性问题关键词（本地化/文案/纯UI/文档/测试/流程等）
 _NON_FUNCTIONAL_KEYWORDS = (
     '本地化', 'localize', 'localization', '翻译', 'translation', 'translate',
     '文案', 'copy', 'text', 'string', '字串',
-    'ui', '界面', '显示', 'display', '颜色', 'color', 'colour', '字体', 'font',
+    '界面', '颜色', 'color', 'colour', '字体', 'font',
     '布局', 'layout', '样式', 'style', '主题', 'theme', '皮肤', 'skin',
     '文档', 'doc', 'document', '帮助', 'help', 'faq', '指南', 'guide', '教程', 'tutorial',
     '说明', 'manual', 'release note', '更新日志', 'changelog',
-    '测试', 'test', '用例', 'case', 'mock', '桩', 'stub', '自动化', 'automat',
+    '测试用例', 'case', 'mock', '桩', 'stub', '自动化测试', 'automat',
     '流程', 'process', '规范', 'standard', '标准', '评审', 'review', '审计', 'audit',
     '会议', 'meeting', '培训', 'training', '支持', 'support',
     '版本', 'version', '发布', 'release', '打包', 'build', '编译', 'compile',
@@ -559,6 +563,7 @@ def generate_stat_answer(snap, question, context=None):
     is_aging_q = any(kw in q for kw in ['老化', '超过', '没解决', '长期', '搁置', '老问题', '30天', '7天', '14天'])
     is_trend_q = any(kw in q for kw in ['趋势', '本周', '这周', '最近', '新增', '解决了多少', '变化'])
     is_overview_q = any(kw in q for kw in ['整体', '概览', '怎么样', '状态如何', '总结', '概况'])
+    is_functional_q = any(kw in q for kw in ['功能性', '用户无法忍受', '无法忍受', '影响使用', 'top10', 'top 10', 'top5', 'top 5', '列出top'])
     
     # 多轮上下文处理：如果用户说"列出具体的"、"详细看看"等，继承上一个话题
     if any(kw in q for kw in ['列出', '具体', '详细', '展开', '看看', '有哪些']) and not is_blocker_q and not is_critical_q and not is_bc_q:
@@ -654,6 +659,46 @@ def generate_stat_answer(snap, question, context=None):
                 sev_cn = 'B' if it.get('sev') == 'blocker' else 'C'
                 dev = it.get('developer') or '未指派'
                 lines.append(f"{i}. [{sev_cn}] **{it.get('id','')}**（{dev}）- {str(it.get('title',''))[:60]}")
+            lines.append("")
+    
+    # ===== 新增：功能性问题分析 =====
+    elif is_functional_q:
+        # 筛选所有未解决的功能性 Blocker 问题
+        functional_blockers = [
+            it for it in all_unresolved 
+            if it.get('sev') == 'blocker' 
+            and _is_functional_issue(it.get('title', ''), it.get('module', ''))
+        ]
+        
+        if functional_blockers:
+            lines.append(f"用户无法忍受的功能性 Blocker 问题（共 {len(functional_blockers)} 个）：")
+            lines.append("")
+            lines.append("| 排名 | CR ID | 模块 | 状态 | 经办人 | 问题描述 |")
+            lines.append("|------|-------|------|------|--------|----------|")
+            for i, it in enumerate(functional_blockers[:10], 1):
+                status = it.get('status', '未知')
+                dev = it.get('developer') or '未指派'
+                module = it.get('module', '')
+                title = str(it.get('title', ''))[:40]
+                lines.append(f"| {i} | {it.get('id','')} | {module} | {status} | {dev} | {title} |")
+            lines.append("")
+            
+            if len(functional_blockers) > 10:
+                lines.append(f"...还有 {len(functional_blockers) - 10} 个功能性 Blocker 问题")
+                lines.append("")
+            
+            # 按模块统计
+            from collections import Counter
+            module_counter = Counter(it.get('module', '') for it in functional_blockers)
+            top_modules = module_counter.most_common(3)
+            if top_modules:
+                lines.append(f"**主要集中在：**")
+                lines.append("")
+                for mod, cnt in top_modules:
+                    lines.append(f"- {mod}：{cnt} 个")
+                lines.append("")
+        else:
+            lines.append("✅ 当前暂无用户无法忍受的功能性 Blocker 问题，状态良好！")
             lines.append("")
     
     # ===== 新增：趋势分析 =====
@@ -876,9 +921,11 @@ def generate_report_markdown(snap):
                     return cate, item
         return 'Device', 'Function'
 
-    # ===== 筛选 New 状态 BC =====
+    # ===== 筛选未解决 BC（不只是 New 状态）=====
     bc = snap.get('unresolved_bc', []) or []
-    new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() == 'new']
+    # 筛选所有未解决的 BC（排除已解决/已关闭的状态）
+    resolved_statuses = ('resolved', 'closed', 'done', 'fixed', 'resolved/fixed', 'closed/fixed')
+    new_bc = [r for r in bc if str(r.get('status', '')).strip().lower() not in resolved_statuses]
 
     # ===== Blocker 问题分类（提前定义，供执行摘要使用）=====
     def _has_blocker_label(rec):
@@ -1051,20 +1098,30 @@ def generate_report_markdown(snap):
 
     if _fb_list:
         lines.append(f"**🔴 [High-Risk] 用户无法忍受的功能性 Blocker（{len(_fb_list)}个）**")
+        lines.append("")
+        lines.append("| CR ID | 模块 | 状态 | 经办人 | 问题描述 |")
+        lines.append("|-------|------|------|--------|----------|")
         for r in _fb_list[:5]:
-            title = str(r.get('title', '')).replace('\n', ' ')
-            lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+            title = str(r.get('title', '')).replace('\n', ' ')[:50]
+            status = r.get('status', '未知')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {r.get('id', '')} | {r.get('module', '')} | {status} | {dev} | {title} |")
         if len(_fb_list) > 5:
-            lines.append(f"- ...等共{len(_fb_list)}个")
+            lines.append(f"| ... | ... | ... | ... | 等共{len(_fb_list)}个 |")
         lines.append("")
 
     if _lb_list:
         lines.append(f"**🟡 [Mid-Risk] 标签带 blocker、影响过点（{len(_lb_list)}个）**")
+        lines.append("")
+        lines.append("| CR ID | 模块 | 状态 | 经办人 | 问题描述 |")
+        lines.append("|-------|------|------|--------|----------|")
         for r in _lb_list[:5]:
-            title = str(r.get('title', '')).replace('\n', ' ')
-            lines.append(f"- [{r.get('id', '')}] {title}（{r.get('module', '')}，@{r.get('developer', '') or '未指派'}）")
+            title = str(r.get('title', '')).replace('\n', ' ')[:50]
+            status = r.get('status', '未知')
+            dev = r.get('developer', '') or '未指派'
+            lines.append(f"| {r.get('id', '')} | {r.get('module', '')} | {status} | {dev} | {title} |")
         if len(_lb_list) > 5:
-            lines.append(f"- ...等共{len(_lb_list)}个")
+            lines.append(f"| ... | ... | ... | ... | 等共{len(_lb_list)}个 |")
         lines.append("")
 
     if not _fb_list and not _lb_list:
@@ -1377,6 +1434,9 @@ _STAT_KEYWORDS = (
     '老化', '超过', '没解决', '长期', '搁置', '老问题',
     '趋势', '本周', '这周', '最近', '新增', '变化',
     '整体', '概览', '怎么样', '状态如何', '总结', '概况',
+    # 功能性问题关键词
+    '功能性', '用户无法忍受', '无法忍受', '影响使用',
+    'top10', 'top 10', 'top5', 'top 5', '列出top',
 )
 
 
@@ -1760,8 +1820,41 @@ def generate_daily_report(project_key, reporter=""):
     lines.append("---")
     lines.append("")
     
-    # 六、风险与问题
-    lines.append("## 六、风险与问题")
+    # 六、用户无法忍受的TOP5功能性问题
+    lines.append("## 六、用户无法忍受的TOP5功能性问题")
+    lines.append("")
+    
+    # 筛选功能性 Blocker 问题
+    functional_blockers = [
+        it for it in unresolved_bc 
+        if it.get('sev') == 'blocker' 
+        and _is_functional_issue(it.get('title', ''), it.get('module', ''))
+    ]
+    
+    if functional_blockers:
+        lines.append(f"共 {len(functional_blockers)} 个用户无法忍受的功能性 Blocker 问题：")
+        lines.append("")
+        lines.append("| 排名 | CR ID | 模块 | 状态 | 经办人 | 问题描述 |")
+        lines.append("|------|-------|------|------|--------|----------|")
+        for i, it in enumerate(functional_blockers[:5], 1):
+            status = it.get('status', '未知')
+            dev = it.get('developer') or '未指派'
+            module = it.get('module', '')
+            title = str(it.get('title', ''))[:40]
+            lines.append(f"| {i} | {it.get('id','')} | {module} | {status} | {dev} | {title} |")
+        lines.append("")
+        if len(functional_blockers) > 5:
+            lines.append(f"...还有 {len(functional_blockers) - 5} 个功能性 Blocker 问题")
+            lines.append("")
+    else:
+        lines.append("✅ 当前暂无用户无法忍受的功能性 Blocker 问题")
+        lines.append("")
+    
+    lines.append("---")
+    lines.append("")
+    
+    # 七、风险与问题
+    lines.append("## 七、风险与问题")
     lines.append("")
     
     risks = []
