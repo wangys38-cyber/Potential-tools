@@ -1876,6 +1876,120 @@ def generate_daily_report(project_key, reporter=""):
     
     lines.append("---")
     lines.append("")
+    
+    # 八、管理决策摘要（给管理层看的重点信息）
+    lines.append("## 八、管理决策摘要")
+    lines.append("")
+    
+    # 1. 当前最影响项目交付的Top风险
+    lines.append("### 8.1 当前最影响项目交付的 Top 风险")
+    lines.append("")
+    
+    top_risks = []
+    if blocker_count > 0:
+        top_risks.append(f"**阻塞性风险**：{blocker_count} 个 Blocker 级问题未解决，直接影响核心功能交付")
+    if fail_modules > total_modules * 0.3:
+        top_risks.append(f"**模块健康风险**：{fail_modules}/{total_modules} 个模块 FAIL（{fail_rate}%），超过30%预警线")
+    if bc_count > 30:
+        top_risks.append(f"**质量风险**：未解决BC达 {bc_count} 个，质量债务持续累积")
+    if functional_blockers:
+        top_risks.append(f"**用户体验风险**：{len(functional_blockers)} 个用户无法忍受的功能性 Blocker，影响核心体验")
+    
+    if top_risks:
+        for i, r in enumerate(top_risks[:3], 1):
+            lines.append(f"{i}. {r}")
+    else:
+        lines.append("当前无重大交付风险，项目进展顺利")
+    lines.append("")
+    
+    # 2. 需要管理层介入协调的问题
+    lines.append("### 8.2 需要管理层介入协调的问题")
+    lines.append("")
+    
+    escalation_needed = []
+    if blocker_count > 5:
+        escalation_needed.append(f"**人力协调**：{blocker_count} 个 Blocker 积压，建议协调资源加速处理")
+    if fail_rate > 0.4:
+        escalation_needed.append(f"**质量升级**：FAIL模块占比 {fail_rate}%，建议组织专项攻坚")
+    if functional_blockers and len(functional_blockers) > 3:
+        escalation_needed.append(f"**用户体验**：{len(functional_blockers)} 个功能性问题影响核心体验，建议优先级提升")
+    
+    if escalation_needed:
+        for r in escalation_needed:
+            lines.append(f"- {r}")
+    else:
+        lines.append("暂无需管理层介入的事项")
+    lines.append("")
+    
+    # 3. 对发版时程有直接影响的Blocker
+    lines.append("### 8.3 对发版时程有直接影响的 Blocker")
+    lines.append("")
+    
+    if functional_blockers:
+        lines.append("以下功能性 Blocker 直接影响核心功能可用性，必须在发版前解决：")
+        lines.append("")
+        lines.append("| CR ID | 模块 | 状态 | 经办人 | 影响说明 |")
+        lines.append("|-------|------|------|--------|----------|")
+        for it in functional_blockers[:3]:
+            module = it.get('module', '')
+            status = it.get('status', '未知')
+            dev = it.get('developer', '') or '未指派'
+            impact = "核心功能不可用" if it.get('sev') == 'blocker' else "严重影响体验"
+            lines.append(f"| {it.get('id','')} | {module} | {status} | {dev} | {impact} |")
+        lines.append("")
+    else:
+        lines.append("✅ 当前无影响发版的功能性 Blocker")
+        lines.append("")
+    
+    # 4. 与昨天相比，风险是在改善还是在恶化
+    lines.append("### 8.4 风险趋势（与昨日对比）")
+    lines.append("")
+    
+    if daily_stats and len(daily_stats) >= 2:
+        yesterday = daily_stats[-2]
+        today = daily_stats[-1]
+        delta_new = today.get('new_count', 0) - yesterday.get('new_count', 0)
+        delta_resolved = today.get('resolved_count', 0) - yesterday.get('resolved_count', 0)
+        net_change = delta_new - delta_resolved
+        
+        if net_change < 0:
+            trend = "**改善中** ✅"
+            trend_detail = f"未解决数减少 {abs(net_change)} 个（新增 {today.get('new_count',0)}，解决 {today.get('resolved_count',0)}）"
+        elif net_change > 0:
+            trend = "**恶化中** ⚠️"
+            trend_detail = f"未解决数增加 {net_change} 个（新增 {today.get('new_count',0)}，解决 {today.get('resolved_count',0)}）"
+        else:
+            trend = "**持平** ➖"
+            trend_detail = f"新增和解决数量相当（新增 {today.get('new_count',0)}，解决 {today.get('resolved_count',0)}）"
+        
+        lines.append(f"- 风险趋势：{trend}")
+        lines.append(f"- {trend_detail}")
+        lines.append("")
+    else:
+        lines.append("数据不足，无法对比")
+        lines.append("")
+    
+    # 5. 团队明天最需要关注的三件事
+    lines.append("### 8.5 团队明天最需要关注的三件事")
+    lines.append("")
+    
+    tomorrow_focus = []
+    if blocker_count > 0:
+        tomorrow_focus.append(f"**处理 Blocker**：优先解决 {min(blocker_count, 3)} 个最高优先级的 Blocker 问题")
+    if fail_module_list:
+        top_fail = sorted(fail_module_list, key=lambda x: -x.get("bc", 0))[0]
+        tomorrow_focus.append(f"**攻坚 FAIL 模块**：重点攻克 {top_fail.get('module','')}（未解决BC {top_fail.get('bc',0)} 个）")
+    if functional_blockers:
+        tomorrow_focus.append(f"**修复用户体验问题**：解决 {min(len(functional_blockers), 3)} 个用户无法忍受的功能性问题")
+    if bc_count > 20:
+        tomorrow_focus.append(f"**清理技术债务**：降低未解决BC数量（当前 {bc_count} 个）")
+    
+    for i, focus in enumerate(tomorrow_focus[:3], 1):
+        lines.append(f"{i}. {focus}")
+    lines.append("")
+    
+    lines.append("---")
+    lines.append("")
     lines.append(f"*本报告由 Potential Tools 自动生成，数据截止 {today}*")
     lines.append("")
 
