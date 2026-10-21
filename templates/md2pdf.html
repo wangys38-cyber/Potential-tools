@@ -15,6 +15,20 @@
     {# v8.0 目标4：Mermaid 改为按需加载，预览首次出现图表时才通过 PTLoader 动态拉取 #}
     
 <link rel="stylesheet" href="/static/css/page/md2pdf.css?v={{ STATIC_VERSION }}">
+    <!-- 直接引入 Mermaid，确保图表能渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        if (window.mermaid) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose',
+                flowchart: { useMaxWidth: true, htmlLabels: true },
+                sequence: { useMaxWidth: true },
+                gantt: { useMaxWidth: true }
+            });
+        }
+    </script>
     <meta name="theme-color" content="#0D0E12">
     <meta name="msapplication-TileColor" content="#0D0E12">
     <meta name="msapplication-navbutton-color" content="#0D0E12">
@@ -230,5 +244,42 @@
 <script src="/static/js/v5-sync.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/ux-enhancements.js?v={{ STATIC_VERSION }}"></script>
 <script src="/static/js/page/md2pdf.js?v={{ STATIC_VERSION }}"></script>
+<!-- Mermaid 自动渲染：监听预览区域变化，自动渲染图表 -->
+<script>
+(function() {
+    var renderTimer = null;
+    function renderMermaid() {
+        if (!window.mermaid) return;
+        var preview = document.getElementById('preview');
+        if (!preview) return;
+        var mermaidBlocks = preview.querySelectorAll('.mermaid:not([data-processed])');
+        if (mermaidBlocks.length === 0) return;
+        mermaidBlocks.forEach(function(block, idx) {
+            block.id = 'mermaid-' + Date.now() + '-' + idx;
+        });
+        try {
+            mermaid.run({ querySelector: '.mermaid:not([data-processed])' });
+        } catch(e) {
+            console.warn('Mermaid 渲染失败，重试:', e);
+            setTimeout(function() {
+                try { mermaid.run({ querySelector: '.mermaid:not([data-processed])' }); } catch(e2) {}
+            }, 500);
+        }
+    }
+    // 监听预览区域变化
+    var preview = document.getElementById('preview');
+    if (preview) {
+        var observer = new MutationObserver(function() {
+            clearTimeout(renderTimer);
+            renderTimer = setTimeout(renderMermaid, 300);
+        });
+        observer.observe(preview, { childList: true, subtree: true });
+    }
+    // 页面加载完成后也尝试渲染一次
+    window.addEventListener('load', function() {
+        setTimeout(renderMermaid, 500);
+    });
+})();
+</script>
 </body>
 </html>

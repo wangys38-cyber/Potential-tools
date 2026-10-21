@@ -1,5 +1,6 @@
 ﻿/* ========== 全局强制暗黑主题（最高优先级，在head中加载） ========== */
-body{background:#0D0E12!important;color:#F5F5F7!important;}
+html,body{margin:0!important;padding:0!important;overflow-x:hidden!important;}
+body{background:#0D0E12!important;color:#F5F5F7!important;min-height:100vh!important;}
 #ptNavBar.pt-nav-bar{background:rgba(26,29,36,0.92)!important;backdrop-filter:blur(24px) saturate(180%)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;border-bottom:1px solid rgba(255,255,255,0.1)!important;}
 #ptNavBar .pt-nav-icon-btn{color:rgba(255,255,255,0.75)!important;border-color:rgba(255,255,255,0.12)!important;background:transparent!important;}
 #ptNavBar .pt-nav-icon-btn:hover{background:rgba(255,255,255,0.1)!important;color:#fff!important;}

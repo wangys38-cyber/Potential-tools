@@ -62,27 +62,41 @@ from flask_sock import Sock
 import datetime as _dt
 
 def _get_static_version():
-    """静态资源版本号：优先用 git commit hash，其次用 app.py mtime，避免每分钟变化导致缓存失效"""
+    """静态资源版本号：git commit hash + 静态文件最新修改时间，确保修改静态文件后浏览器重新加载"""
     _base = os.path.abspath(os.path.dirname(__file__))
     # 1. Railway 注入的 git commit
     sha = os.environ.get('RAILWAY_GIT_COMMIT_SHA', '')
     if sha:
-        return sha[:8]
-    # 2. 尝试读取本地 git HEAD
+        base_ver = sha[:8]
+    else:
+        # 2. 尝试读取本地 git HEAD
+        try:
+            import subprocess
+            result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
+                                  capture_output=True, text=True, timeout=2, cwd=_base)
+            if result.returncode == 0 and result.stdout.strip():
+                base_ver = result.stdout.strip()
+            else:
+                base_ver = 'dev'
+        except Exception:
+            base_ver = 'dev'
+    # 3. 加上 static 目录下最新修改文件的时间戳，确保静态文件修改后版本号变化
     try:
-        import subprocess
-        result = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
-                              capture_output=True, text=True, timeout=2, cwd=_base)
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+        import glob
+        static_dir = os.path.join(_base, 'static')
+        max_mtime = 0
+        for f in glob.glob(os.path.join(static_dir, '**', '*.*'), recursive=True):
+            try:
+                mtime = os.path.getmtime(f)
+                if mtime > max_mtime:
+                    max_mtime = mtime
+            except Exception:
+                pass
+        if max_mtime > 0:
+            base_ver += '-' + str(int(max_mtime))
     except Exception:
         pass
-    # 3. 回退到 app.py 修改时间（仅代码变更时才变）
-    try:
-        mtime = os.path.getmtime(os.path.join(_base, 'app.py'))
-        return _dt.datetime.fromtimestamp(mtime).strftime('%Y%m%d%H%M')
-    except Exception:
-        return _dt.datetime.now().strftime('%Y%m%d%H%M')
+    return base_ver
 
 _STATIC_VERSION = _get_static_version()
 
@@ -1317,6 +1331,50 @@ def network_3d():
 @app.route('/scheduler')
 def scheduler_page():
     return render_template('scheduler.html')
+
+# ==================== Excel 周报自动生成 ====================
+@app.route('/api/excel-weekly/config', methods=['GET', 'POST'])
+def excel_weekly_config():
+    """Excel 周报配置"""
+    from services.excel_weekly_report import load_config, save_config
+    if request.method == 'GET':
+        return jsonify(load_config())
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        config = load_config()
+        config.update(data)
+        save_config(config)
+        return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/excel-weekly/generate', methods=['POST'])
+def excel_weekly_generate():
+    """生成 Excel 周报"""
+    from services.excel_weekly_report import generate_weekly_report, get_week_label
+    data = request.get_json(force=True, silent=True) or {}
+    project_key = data.get('project_key')
+    excel_path = data.get('excel_path')
+    week_label = data.get('week_label') or get_week_label()
+
+    result = generate_weekly_report(project_key=project_key, excel_path=excel_path, week_label=week_label)
+    return jsonify(result)
+
+
+@app.route('/api/excel-weekly/preview')
+def excel_weekly_preview():
+    """预览周报内容"""
+    from services.excel_weekly_report import generate_weekly_report, get_week_label
+    project_key = request.args.get('project_key', 'EKSANTOS')
+    week_label = request.args.get('week_label') or get_week_label()
+
+    result = generate_weekly_report(project_key=project_key, week_label=week_label)
+    return jsonify(result)
+
+
+@app.route('/excel-weekly')
+def excel_weekly_page():
+    """Excel 周报页面"""
+    return render_template('excel_weekly.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -1,0 +1,464 @@
+
+/* ============================================================
+   Ethereal Dashboard 风格 - 彻底修复版
+   ============================================================ */
+
+/* 第一步：强制深色背景 - 直接设置body和html */
+html, body {
+  background: #0A0A0F !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.pa-page {
+  /* 基础变量覆盖 */
+  --pa-bg: #0A0A0F !important;
+  --pa-text: #F5F5F7 !important;
+  --pa-text-2: #AEAEB2 !important;
+  --pa-text-3: #636366 !important;
+  
+  /* 玻璃卡片变量 */
+  --pa-glass: rgba(255, 255, 255, 0.06) !important;
+  --pa-glass-strong: rgba(255, 255, 255, 0.09) !important;
+  --pa-stroke: rgba(255, 255, 255, 0.1) !important;
+  
+  /* 阴影 */
+  --pa-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  --pa-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  
+  /* 强调色 */
+  --pa-accent: #8B5CF6 !important;
+  --pa-red: #F43F5E !important;
+  --pa-orange: #F59E0B !important;
+  --pa-green: #10B981 !important;
+  --pa-yellow: #EAB308 !important;
+  --pa-purple: #A855F7 !important;
+  --pa-pink: #EC4899 !important;
+  --pa-cyan: #06B6D4 !important;
+  
+  /* 圆角 */
+  --pa-radius: 24px !important;
+  
+  /* 背景 - 深色 + 微弱光晕 */
+  background: 
+    radial-gradient(ellipse 600px 600px at 15% 10%, rgba(139, 92, 246, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 500px 500px at 85% 15%, rgba(236, 72, 153, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 700px 700px at 50% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+    #0A0A0F !important;
+  
+  color: var(--pa-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+  min-height: 100vh !important;
+}
+
+/* 确保pa-wrap也是透明的 */
+.pa-wrap {
+  background: transparent !important;
+}
+
+/* 第二步：统一毛玻璃卡片 */
+.pa-card,
+.pa-stat,
+.pa-search-bar,
+.pa-progress,
+.pa-chat,
+.pa-glass {
+  background: rgba(28, 28, 34, 0.6) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 卡片悬停 */
+.pa-card:hover,
+.pa-stat:hover,
+.pa-glass:hover {
+  background: rgba(36, 36, 44, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* 第三步：KPI区域 - 6个卡片一行 */
+/* 健康度大卡片 - 渐变背景，占2列 */
+.pa-health-circle-stat {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 182, 212, 0.2) 50%, rgba(139, 92, 246, 0.15) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 8px 32px rgba(16, 185, 129, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  grid-column: span 2 !important;
+  min-height: 160px !important;
+}
+
+/* 健康度卡片内部装饰 */
+.pa-health-circle-stat::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -50% !important;
+  right: -20% !important;
+  width: 300px !important;
+  height: 300px !important;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%) !important;
+  border-radius: 50% !important;
+  pointer-events: none !important;
+}
+
+/* KPI网格布局 - 健康度占2列，其他5个各占1列，总共7列宽度 */
+.pa-stat-grid.pa-overview.pa-overview-with-health {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr !important;
+  gap: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+/* KPI小卡片 */
+.pa-stat-grid .pa-stat:not(.pa-health-circle-stat) {
+  padding: 20px !important;
+  min-height: 160px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* KPI数字 */
+.pa-stat-grid .pa-stat .v {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: #FFFFFF !important;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1 !important;
+}
+
+/* KPI标签 */
+.pa-stat-grid .pa-stat .k {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  letter-spacing: 0.3px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  line-height: 1.4 !important;
+  margin-top: 8px !important;
+}
+
+/* KPI趋势标签 */
+.pa-stat-trend {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  font-family: 'SF Mono', monospace !important;
+  padding: 3px 6px !important;
+  border-radius: 6px !important;
+}
+
+/* 第四步：健康度圆环优化 */
+.pa-health-circle-num {
+  color: #FFFFFF !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace !important;
+  letter-spacing: -1px !important;
+}
+
+.pa-health-circle-label {
+  background: rgba(244, 63, 94, 0.2) !important;
+  color: #F43F5E !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 5px 10px !important;
+  border-radius: 8px !important;
+  margin-top: 10px !important;
+}
+
+.pa-health-circle-label.good {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #10B981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.pa-health-circle-label.warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #F59E0B !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 第五步：文字颜色统一 */
+.pa-head h2,
+.pa-card h3,
+.pa-mod-title,
+.pa-stat .v {
+  color: #FFFFFF !important;
+}
+
+.pa-meta,
+.pa-card .pa-subtitle,
+.pa-mod-stats span {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 第六步：状态标签 - 轻量级 */
+.pa-pill,
+.pa-pill.fail,
+.pa-pill.pass,
+.pa-pill.warning {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: #F43F5E !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-weight: 600 !important;
+  font-size: 10px !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.pa-pill.pass {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10B981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.pa-pill.warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #F59E0B !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 第七步：模块列表优化 */
+.pa-mod-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 14px 18px !important;
+  transition: all 0.2s ease !important;
+}
+
+.pa-mod-row:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.pa-mod-row:last-child {
+  border-bottom: none !important;
+}
+
+.pa-mod-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+.pa-mod-stats {
+  font-family: 'SF Mono', 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+}
+
+.pa-mod-stat b {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+
+.pa-mod-stat.bc b {
+  color: #F43F5E !important;
+}
+
+/* 第八步：按钮优化 */
+.pa-btn,
+.pa-btn-primary {
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 10px !important;
+  box-shadow: 
+    0 4px 16px rgba(139, 92, 246, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.3s ease !important;
+  padding: 8px 16px !important;
+}
+
+.pa-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 
+    0 8px 24px rgba(139, 92, 246, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.pa-btn.ghost,
+.pa-btn-secondary {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.pa-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #FFFFFF !important;
+}
+
+/* 第九步：输入框优化 */
+.pa-search-bar input,
+.pa-chat-input input,
+#paModFilter,
+.pa-input {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  color: #FFFFFF !important;
+  font-size: 12px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.3s ease !important;
+  padding: 10px 14px !important;
+}
+
+.pa-search-bar input:focus,
+.pa-chat-input input:focus,
+#paModFilter:focus {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 
+    0 0 0 3px rgba(139, 92, 246, 0.15),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  outline: none !important;
+}
+
+.pa-search-bar input::placeholder,
+.pa-chat-input input::placeholder,
+#paModFilter::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 第十步：快捷按钮优化 */
+.pa-quick-btn,
+.pa-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.2s ease !important;
+  padding: 6px 10px !important;
+}
+
+.pa-quick-btn:hover,
+.pa-chip:hover {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  color: #FFFFFF !important;
+}
+
+/* 第十一步：滚动条优化 */
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 3px !important;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-radius: 3px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 第十二步：搜索栏优化 */
+.pa-search-bar {
+  padding: 14px 18px !important;
+  margin-bottom: 14px !important;
+}
+
+/* 第十三步：卡片标题优化 */
+.pa-card h3 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  margin-bottom: 14px !important;
+}
+
+/* 第十四步：项目标题优化 */
+.pa-head h2 {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.5px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  margin-bottom: 6px !important;
+}
+
+.pa-head {
+  margin-bottom: 14px !important;
+}
+
+/* 第十五步：主布局优化 */
+.pa-main-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.pa-content,
+.pa-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  min-width: 0 !important;
+}
+
+/* 第十六步：趋势图和模块表布局 */
+.pa-row-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 18px !important;
+}
+
+/* 图表容器 */
+.pa-chart-box {
+  height: 280px !important;
+  min-height: 280px !important;
+}
+
+/* 模块列表容器 */
+.pa-mod-table {
+  max-height: 380px !important;
+  overflow-y: auto !important;
+}
+
+/* 第十七步：AI对话区域优化 */
+.pa-sidebar .pa-chat {
+  padding: 20px !important;
+  min-height: 480px !important;
+}

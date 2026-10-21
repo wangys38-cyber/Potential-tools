@@ -26,6 +26,8 @@ TASK_TYPE_BLOCKER_ALERT = "blocker_alert"          # Blocker预警
 TASK_TYPE_FAIL_MODULE = "fail_module_check"         # FAIL模块巡检
 TASK_TYPE_MILESTONE = "milestone_tracking"         # 里程碑跟踪
 TASK_TYPE_COMPETITOR = "competitor_analysis"       # 竞品分析
+# V9.4 新增任务类型
+TASK_TYPE_EXCEL_WEEKLY = "excel_weekly_report"     # Excel周报自动生成
 
 
 # 执行频率
@@ -542,7 +544,33 @@ def _execute_task(task):
                 except Exception as e:
                     result["message"] = f"生成竞品分析失败: {str(e)}"
                     result["report_content"] = f"生成失败: {str(e)}"
-        
+
+        elif task["type"] == TASK_TYPE_EXCEL_WEEKLY:
+            # Excel周报自动生成
+            from services.excel_weekly_report import generate_weekly_report, get_week_label
+            config = task.get("config", {})
+            excel_path = config.get("excel_path", "")
+            week_label = get_week_label()
+
+            if not excel_path:
+                raise Exception("未配置Excel文件路径")
+
+            gen_result = generate_weekly_report(
+                project_key=task["project_key"],
+                excel_path=excel_path,
+                week_label=week_label
+            )
+            if not gen_result.get("success"):
+                raise Exception(gen_result.get("error", "生成失败"))
+
+            result["message"] = f"Excel周报已生成: {week_label}，写入 {excel_path}"
+            result["week_label"] = week_label
+            result["excel_path"] = excel_path
+            cr_data = gen_result.get("cr_data", {})
+            result["total_crs"] = cr_data.get("total", 0)
+            result["bc_unresolved"] = cr_data.get("bc_count", 0)
+            result["fail_modules"] = cr_data.get("fail_modules", 0)
+
         # 如果配置了邮件收件人，发送邮件
         if task.get("email_recipients") and len(task["email_recipients"]) > 0:
             try:

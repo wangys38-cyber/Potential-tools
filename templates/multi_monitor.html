@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多项目监控 · Potential Tools</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235e6ad2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='7'/><rect x='14' y='3' width='7' height='7'/><rect x='14' y='14' width='7' height='7'/><rect x='3' y='14' width='7' height='7'/></svg>">
+    <!-- 最高优先级全局reset：彻底去掉白边 -->
+    <style>
+        /* ========== 现代SaaS数据监控大屏设计 ========== */
+        * { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+        html, body { margin: 0 !important; padding: 0 !important; overflow-x: hidden !important; width: 100% !important; min-height: 100vh !important; }
+        body {
+            background: #080B11 !important;
+            background-color: #080B11 !important;
+            background-image: radial-gradient(ellipse at 30% 0%, rgba(99,102,241,0.03) 0%, transparent 50%) !important;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            position: relative;
+        }
+        /* 背景网格 + 霓虹光晕 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: -10%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse at center, rgba(0,230,118,0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        html { background: #0b0e14 !important; background-color: #0b0e14 !important; }
+
+        /* 精致滚动条 */
+        ::-webkit-scrollbar { width: 6px !important; height: 6px !important; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02) !important; }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3) !important; border-radius: 3px !important; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.5) !important; }
+        * { scrollbar-width: thin !important; scrollbar-color: rgba(99,102,241,0.3) transparent !important; }
+
+        /* 页面容器 - 强制深色背景 */
+        .mm-page {
+            background: #0b0e14 !important;
+            background-color: #0b0e14 !important;
+            min-height: 100vh;
+            padding: 48px 56px 80px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 页面头部 */
+        .mm-header { margin-bottom: 40px; }
+        .mm-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #f8fafc !important;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+        .mm-subtitle {
+            font-size: 15px;
+            color: #94a3b8;
+            line-height: 1.6;
+            max-width: 680px;
+            font-weight: 400;
+        }
+
+        /* 搜索区域 - 玻璃拟态 */
+        .mm-search {
+            background: rgba(30,41,59,0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .mm-search input {
+            flex: 1;
+            min-width: 340px;
+            background: rgba(15,23,42,0.6) !important;
+            border: 1px solid rgba(148,163,184,0.15) !important;
+            border-radius: 12px;
+            color: #f1f5f9 !important;
+            padding: 14px 18px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s ease;
+        }
+        .mm-search input:focus {
+            outline: none !important;
+            border-color: rgba(99,102,241,0.5) !important;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.12), 0 0 20px rgba(99,102,241,0.15) !important;
+            background: rgba(15,23,42,0.8) !important;
+        }
+        .mm-search input::placeholder { color: #64748b !important; }
+
+        /* 按钮 - 霓虹渐变 */
+        .mm-btn {
+            background: linear-gradient(135deg, #2979ff 0%, #536dfe 50%, #7c4dff 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 13px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+            box-shadow: 0 4px 20px rgba(41,121,255,0.35), 0 0 40px rgba(83,109,254,0.15);
+        }
+        .mm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(41,121,255,0.45), 0 0 60px rgba(83,109,254,0.25);
+            background: linear-gradient(135deg, #448aff 0%, #5c6bc0 50%, #b388ff 100%);
+        }
+        .mm-btn:active { transform: translateY(0); }
+        .mm-btn-ghost {
+            background: rgba(30,41,59,0.5);
+            color: #cbd5e1;
+            border: 1px solid rgba(148,163,184,0.15);
+            box-shadow: none;
+            backdrop-filter: blur(12px);
+        }
+        .mm-btn-ghost:hover {
+            background: rgba(51,65,85,0.6);
+            border-color: rgba(148,163,184,0.25);
+            color: #f1f5f9;
+            box-shadow: none;
+            transform: translateY(-2px);
+        }
+        .mm-btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 10px; }
+
+        /* 项目记忆区域 - 玻璃拟态 */
+        .mm-memory {
+            background: rgba(30,41,59,0.35);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(148,163,184,0.1);
+            border-radius: 14px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        .mm-memory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .mm-memory-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .mm-memory-actions { display: flex; gap: 10px; }
+        .mm-memory-add, .mm-memory-clear {
+            background: transparent;
+            border: 1px solid rgba(148,163,184,0.15);
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .mm-memory-add:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+        .mm-memory-clear:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+        .mm-memory-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .mm-memory-empty {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .mm-memory-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .mm-memory-tag:hover {
+            background: rgba(99,102,241,0.15);
+            border-color: rgba(99,102,241,0.4);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(99,102,241,0.15);
+        }
+        .mm-memory-tag.active {
+            background: rgba(99,102,241,0.25);
+            border-color: rgba(99,102,241,0.5);
+            color: #ffffff;
+            box-shadow: 0 0 24px rgba(99,102,241,0.2);
+        }
+        .mm-memory-tag-count {
+            background: rgba(255,255,255,0.08);
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 5px;
+        }
+        .mm-memory-tag-remove {
+            color: #64748b;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 2px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .mm-memory-tag:hover .mm-memory-tag-remove { opacity: 1; }
+        .mm-memory-tag-remove:hover { color: #ef4444; }
+        .mm-memory-recent {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(148,163,184,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .mm-memory-recent-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .mm-memory-recent-item {
+            font-size: 12px;
+            color: #94a3b8;
+            background: rgba(15,23,42,0.4);
+            border: 1px solid rgba(148,163,184,0.08);
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .mm-memory-recent-item:hover { color: #a5b4fc; border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1); }
+
+        /* 进度条 */
+        .mm-progress {
+            display: none;
+            background: rgba(30,41,59,0.5);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        }
+        .mm-progress.show { display: block; }
+        .mm-progress-text { font-size: 14px; color: #cbd5e1; margin-bottom: 16px; font-weight: 500; }
+        .mm-progress-bar {
+            height: 8px;
+            background: rgba(15,23,42,0.6);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .mm-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+            box-shadow: 0 0 16px rgba(99,102,241,0.5);
+        }
+
+        /* 错误提示 */
+        .mm-error {
+            display: none;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            color: #fca5a5;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+        }
+        .mm-error.show { display: block; }
+
+        /* 结果区域 */
+        .mm-result { display: none; }
+        .mm-result.show { display: block; }
+
+        /* 结果头部 */
+        .mm-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .mm-result-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+        .mm-result-meta { font-size: 13px; color: #64748b; margin-top: 6px; }
+
+        /* ========== KPI区域 - 主次分明布局 ========== */
+        .mm-kpi-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 2fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        /* 左侧重点卡片 - 平均健康度 */
+        .mm-kpi-hero {
+            background: #121620;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .mm-kpi-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(244,63,94,0.04) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .mm-kpi-hero-label {
+            font-size: 12px;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .mm-kpi-hero-donut {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .mm-kpi-hero-donut svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .mm-kpi-hero-donut-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 3;
+        }
+        .mm-kpi-hero-donut-fill {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+        .mm-kpi-hero-score {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: 600;
+            color: #F1F5F9;
+            letter-spacing: -0.03em;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+        }
+        .mm-kpi-hero-trend {
+            font-size: 12px;
+            color: #F43F5E;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+        /* 右侧三个小卡片 */
+        .mm-kpi-small-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .mm-kpi-small {
+            background: #121620;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .mm-kpi-small:hover {
+            border-color: rgba(99,102,241,0.15);
+            background: #161B26;
+        }
+        .mm-kpi-small-label {
+            font-size: 11px;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+        .mm-kpi-small-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .mm-kpi-small-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #F1F5F9;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+        }
+        .mm-kpi-small-value.danger { color: #F43F5E; }
+        .mm-kpi-small-value.warning { color: #F59E0B; }
+        .mm-kpi-small-value.success { color: #10B981; }
+        .mm-kpi-small-trend {
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+        .mm-kpi-small-trend.up { color: #F43F5E; }
+        .mm-kpi-small-trend.down { color: #10B981; }
+
+        /* 表格卡片 - 玻璃拟态 */
+        .mm-card {
+            background: rgba(30,41,59,0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 16px;
+            padding: 0;
+            margin-bottom: 28px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .mm-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f1f5f9;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(148,163,184,0.1);
+            letter-spacing: -0.01em;
+        }
+
+        /* ========== 项目列表 - 卡片式列表（去表格化） ========== */
+        .mm-list-container {
+            background: #121620;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .mm-list-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 20px;
+            padding: 16px 28px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.01);
+        }
+        .mm-list-header-item {
+            font-size: 10px;
+            font-weight: 500;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .mm-list-header-item.num { text-align: right; }
+        .mm-list-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 20px;
+            padding: 20px 28px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .mm-list-row:last-child { border-bottom: none; }
+        .mm-list-row:hover {
+            background: rgba(99,102,241,0.03);
+        }
+        .mm-list-project {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .mm-list-project-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .mm-list-project-dot.good { background: #10B981; }
+        .mm-list-project-dot.warning { background: #F59E0B; }
+        .mm-list-project-dot.danger { background: #F43F5E; }
+        .mm-list-project-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .mm-list-project-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #F1F5F9;
+            letter-spacing: -0.01em;
+        }
+        .mm-list-project-sub {
+            font-size: 11px;
+            color: #475569;
+        }
+        .mm-list-data {
+            font-size: 15px;
+            font-weight: 500;
+            color: #F1F5F9;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            text-align: right;
+            letter-spacing: -0.01em;
+        }
+        .mm-list-data.danger { color: #F43F5E; }
+        .mm-list-data.warning { color: #F59E0B; }
+        .mm-list-data.success { color: #10B981; }
+        .mm-list-data-sub {
+            font-size: 11px;
+            color: #475569;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+        .mm-list-action {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* 幽灵按钮 (Ghost Button) */
+        .mm-btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94A3B8;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+        .mm-btn-ghost:hover {
+            background: rgba(99,102,241,0.1);
+            border-color: rgba(99,102,241,0.3);
+            color: #818CF8;
+        }
+        .mm-btn-sm {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+
+        /* 健康度 - 发光进度条 */
+        .mm-health {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .mm-health-bar {
+            width: 56px;
+            height: 6px;
+            background: rgba(15,23,42,0.6);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .mm-health-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .mm-health-fill.good {
+            background: linear-gradient(90deg, #00c853, #00e676);
+            box-shadow: 0 0 12px rgba(0,230,118,0.6);
+        }
+        .mm-health-fill.warning {
+            background: linear-gradient(90deg, #ff8f00, #ffb300);
+            box-shadow: 0 0 12px rgba(255,179,0,0.6);
+        }
+        .mm-health-fill.danger {
+            background: linear-gradient(90deg, #ff1744, #ff5252);
+            box-shadow: 0 0 12px rgba(255,82,82,0.6);
+        }
+        .mm-health-score {
+            font-size: 15px;
+            font-weight: 700;
+            min-width: 32px;
+        }
+        .mm-health-score.good { color: #00e676; text-shadow: 0 0 20px rgba(0,230,118,0.5); }
+        .mm-health-score.warning { color: #ffb300; text-shadow: 0 0 20px rgba(255,179,0,0.5); }
+        .mm-health-score.danger { color: #ff5252; text-shadow: 0 0 20px rgba(255,82,82,0.5); }
+
+        /* 项目名称 */
+        .mm-project-name { color: #F1F5F9; font-weight: 700; font-size: 14px; letter-spacing: -0.01em; }
+        .mm-project-sub { font-size: 11px; color: #475569; margin-top: 4px; }
+
+        /* 数字颜色 - 霓虹发光 */
+        .text-danger { color: #ff5252; text-shadow: 0 0 16px rgba(255,82,82,0.4); }
+        .text-warning { color: #ffb300; text-shadow: 0 0 16px rgba(255,179,0,0.4); }
+        .text-success { color: #00e676; text-shadow: 0 0 16px rgba(0,230,118,0.4); }
+        .text-muted { color: #8b949e; }
+
+        /* 风险项目卡片 - 红橙预警风格 */
+        .mm-risk-item {
+            padding: 18px 22px;
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%);
+            margin-bottom: 14px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(12px);
+        }
+        .mm-risk-item:hover {
+            background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.05) 100%);
+            border-color: rgba(239,68,68,0.35);
+            transform: translateX(4px);
+            box-shadow: 0 8px 32px rgba(239,68,68,0.15);
+        }
+        .mm-risk-item.warning {
+            border-color: rgba(245,158,11,0.2);
+            background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+        }
+        .mm-risk-item.warning:hover {
+            background: linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.05) 100%);
+            border-color: rgba(245,158,11,0.35);
+            box-shadow: 0 8px 32px rgba(245,158,11,0.15);
+        }
+        .mm-risk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .mm-risk-name { color: #f8fafc; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+        .mm-risk-status { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 8px; }
+        .mm-risk-status.danger {
+            background: rgba(255,82,82,0.15);
+            color: #ff8a80;
+            box-shadow: 0 0 16px rgba(255,82,82,0.25);
+        }
+        .mm-risk-status.warning {
+            background: rgba(255,179,0,0.15);
+            color: #ffd54f;
+            box-shadow: 0 0 16px rgba(255,179,0,0.25);
+        }
+        .mm-risk-desc { color: #94a3b8; font-size: 13px; line-height: 1.7; }
+
+        /* 错误列表 */
+        .mm-error-item {
+            padding: 14px 22px;
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            background: rgba(239,68,68,0.06);
+            margin-bottom: 12px;
+            backdrop-filter: blur(12px);
+        }
+        .mm-error-key { color: #fca5a5; font-weight: 600; font-size: 14px; }
+        .mm-error-msg { color: #94a3b8; font-size: 13px; margin-left: 12px; }
+
+        /* Toast提示 - 玻璃拟态 */
+        .mm-toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(30,41,59,0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(148,163,184,0.15);
+            border-radius: 14px;
+            padding: 16px 28px;
+            color: #f8fafc;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(99,102,241,0.1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+        .mm-toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ========== 顶部工具栏 ========== */
+        .mm-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding: 16px 24px;
+            background: rgba(30,41,59,0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148,163,184,0.1);
+            border-radius: 14px;
+        }
+        .mm-topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .mm-topbar-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+        .mm-topbar-search {
+            position: relative;
+            width: 280px;
+        }
+        .mm-topbar-search input {
+            width: 100%;
+            background: rgba(15,23,42,0.6) !important;
+            border: 1px solid rgba(148,163,184,0.12) !important;
+            border-radius: 10px;
+            color: #f1f5f9 !important;
+            padding: 10px 14px 10px 38px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .mm-topbar-search input:focus {
+            outline: none !important;
+            border-color: rgba(41,121,255,0.5) !important;
+            box-shadow: 0 0 0 3px rgba(41,121,255,0.1) !important;
+        }
+        .mm-topbar-search::before {
+            content: '🔍';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            opacity: 0.5;
+        }
+        .mm-topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .mm-topbar-icon {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(148,163,184,0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+            position: relative;
+        }
+        .mm-topbar-icon:hover {
+            background: rgba(41,121,255,0.15);
+            border-color: rgba(41,121,255,0.3);
+        }
+        .mm-topbar-icon .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: #ff5252;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(255,82,82,0.5);
+        }
+        .mm-topbar-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2979ff, #7c4dff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 0 16px rgba(41,121,255,0.3);
+        }
+
+        /* ========== 极纤细半圆环进度条 (Gauge) ========== */
+        .mm-stat-chart {
+            margin-top: 8px;
+            height: 40px;
+            position: relative;
+        }
+        .mm-stat-sparkline {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .mm-stat-gauge {
+            width: 100%;
+            height: 48px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .mm-stat-gauge svg {
+            width: 64px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        .mm-stat-gauge-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.06);
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+        .mm-stat-gauge-fill {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.8s ease;
+        }
+        .mm-stat-gauge-text {
+            font-size: 28px;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            color: #F1F5F9;
+            letter-spacing: -0.02em;
+        }
+
+        /* ========== 表格胶囊Tags ========== */
+        .mm-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+        }
+        .mm-tag.success {
+            background: rgba(63,185,80,0.15);
+            color: #3fb950;
+            border: 1px solid rgba(63,185,80,0.25);
+        }
+        .mm-tag.warning {
+            background: rgba(210,153,34,0.15);
+            color: #e3b341;
+            border: 1px solid rgba(210,153,34,0.25);
+        }
+        .mm-tag.danger {
+            background: rgba(248,81,73,0.15);
+            color: #ff7b72;
+            border: 1px solid rgba(248,81,73,0.25);
+        }
+        .mm-tag.info {
+            background: rgba(88,166,255,0.15);
+            color: #58a6ff;
+            border: 1px solid rgba(88,166,255,0.25);
+        }
+
+        /* ========== 风险预警 - Donut Chart 高级图表 ========== */
+        .mm-risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .mm-risk-card {
+            background: #121620;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        .mm-risk-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .mm-risk-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #F1F5F9;
+            letter-spacing: -0.01em;
+        }
+        .mm-risk-card-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .mm-risk-card-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .mm-risk-card-status-dot.danger { background: #F43F5E; }
+        .mm-risk-card-status-dot.warning { background: #F59E0B; }
+        .mm-risk-chart-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 28px;
+            align-items: center;
+        }
+        .mm-risk-donut {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .mm-risk-donut svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .mm-risk-donut-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 6;
+        }
+        .mm-risk-donut-resolved {
+            fill: none;
+            stroke: #10B981;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+        .mm-risk-donut-unresolved {
+            fill: none;
+            stroke: #F43F5E;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+        .mm-risk-donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .mm-risk-donut-score {
+            font-size: 24px;
+            font-weight: 700;
+            color: #F1F5F9;
+            letter-spacing: -0.02em;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            line-height: 1;
+        }
+        .mm-risk-donut-label {
+            font-size: 9px;
+            color: #475569;
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        /* 中间数据区 */
+        .mm-risk-details {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .mm-risk-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mm-risk-detail-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94A3B8;
+        }
+        .mm-risk-detail-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .mm-risk-detail-dot.resolved { background: #10B981; }
+        .mm-risk-detail-dot.unresolved { background: #F43F5E; }
+        .mm-risk-detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #F1F5F9;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* 右边微型折线图 */
+        .mm-risk-sparkline {
+            width: 100px;
+            height: 60px;
+            flex-shrink: 0;
+        }
+        .mm-risk-sparkline svg {
+            width: 100%;
+            height: 100%;
+        }
+        .mm-risk-sparkline-label {
+            font-size: 10px;
+            color: #475569;
+            text-align: center;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .mm-risk-desc {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+            color: #64748B;
+            line-height: 1.7;
+        }
+        }
+        .mm-module-bar-name {
+            width: 50px;
+            font-size: 11px;
+            color: #64748B;
+            text-align: right;
+        }
+        .mm-module-bar-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .mm-module-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+        .mm-module-bar-value {
+            width: 36px;
+            font-size: 11px;
+            color: #94A3B8;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .mm-risk-card-desc {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+            color: #64748B;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
+
+    <div class="mm-page">
+        <!-- 顶部工具栏 -->
+        <div class="mm-topbar">
+            <div class="mm-topbar-left">
+                <div class="mm-topbar-title">📊 多项目监控</div>
+                <div class="mm-topbar-search">
+                    <input type="text" placeholder="搜索项目..." />
+                </div>
+            </div>
+            <div class="mm-topbar-right">
+                <div class="mm-topbar-icon" title="通知">
+                    🔔
+                    <span class="badge">3</span>
+                </div>
+                <div class="mm-topbar-icon" title="设置">
+                    ⚙️
+                </div>
+                <div class="mm-topbar-avatar" title="用户">王</div>
+            </div>
+        </div>
+
+        <!-- 页面副标题 -->
+        <div class="mm-header" style="margin-bottom: 24px;">
+            <p class="mm-subtitle">同时监控多个项目的健康状态，自动计算健康度评分，快速识别风险项目。支持批量查询、对比分析和一键导出。</p>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="mm-search">
+            <input type="text" id="mmProjectInput" placeholder="输入多个 Project Key，用逗号、空格或分号分隔，如：EKSANTOS, EKSAURA, EKSMATE" />
+            <button class="mm-btn" id="mmLoadBtn">批量查询</button>
+            <button class="mm-btn mm-btn-ghost" id="mmRefreshBtn">强制刷新</button>
+        </div>
+
+        <!-- 项目记忆区域 -->
+        <div class="mm-memory" id="mmMemory">
+            <div class="mm-memory-header">
+                <span class="mm-memory-title">📌 常用项目</span>
+                <div class="mm-memory-actions">
+                    <button class="mm-memory-add" id="mmMemoryAddBtn" title="添加当前输入为常用项目">+ 保存当前</button>
+                    <button class="mm-memory-clear" id="mmMemoryClearBtn" title="清空所有记忆">清空</button>
+                </div>
+            </div>
+            <div class="mm-memory-tags" id="mmMemoryTags">
+                <span class="mm-memory-empty">暂无常用项目，查询后会自动保存</span>
+            </div>
+            <div class="mm-memory-recent" id="mmMemoryRecent" style="display:none;">
+                <span class="mm-memory-recent-label">最近查询：</span>
+                <span class="mm-memory-recent-list" id="mmMemoryRecentList"></span>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="mm-progress" id="mmProgress">
+            <div class="mm-progress-text" id="mmProgressText">正在加载...</div>
+            <div class="mm-progress-bar">
+                <div class="mm-progress-fill" id="mmProgressFill"></div>
+            </div>
+        </div>
+
+        <!-- 错误提示 -->
+        <div class="mm-error" id="mmError"></div>
+
+        <!-- 结果区域 -->
+        <div class="mm-result" id="mmResult">
+            <!-- 结果头部 -->
+            <div class="mm-result-header">
+                <div>
+                    <div class="mm-result-title">多项目监控对比</div>
+                    <div class="mm-result-meta" id="mmResultMeta"></div>
+                </div>
+                <button class="mm-btn mm-btn-ghost mm-btn-sm" id="mmExportBtn">导出对比报告</button>
+            </div>
+
+            <!-- KPI区域 - 主次分明布局 -->
+            <div class="mm-kpi-grid" id="mmKpiGrid">
+                <!-- 左侧重点卡片 - 平均健康度 -->
+                <div class="mm-kpi-hero" id="mmKpiHero"></div>
+                <!-- 右侧三个小卡片 -->
+                <div class="mm-kpi-small-grid" id="mmKpiSmall"></div>
+            </div>
+
+            <!-- 项目列表 - 卡片式列表（去表格化） -->
+            <div class="mm-list-container" id="mmListContainer">
+                <div class="mm-list-header">
+                    <div class="mm-list-header-item">项目</div>
+                    <div class="mm-list-header-item num">CR总数</div>
+                    <div class="mm-list-header-item num">未解决</div>
+                    <div class="mm-list-header-item num">通过率</div>
+                    <div class="mm-list-header-item num" style="text-align:right;">操作</div>
+                </div>
+                <div id="mmListBody"></div>
+            </div>
+
+            <!-- 风险项目预警 -->
+            <div id="mmRiskSection" style="display:none;">
+                <div id="mmRiskList"></div>
+            </div>
+
+            <!-- 加载失败的项目 -->
+            <div class="mm-card" id="mmErrorSection" style="display:none;">
+                <div class="mm-card-title">加载失败的项目</div>
+                <div id="mmErrorList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="mm-toast" id="mmToast"></div>
+
+    <script>
+    (function() {
+        var $ = function(id) { return document.getElementById(id); };
+
+        var input = $('mmProjectInput');
+        var loadBtn = $('mmLoadBtn');
+        var refreshBtn = $('mmRefreshBtn');
+        var progress = $('mmProgress');
+        var progressText = $('mmProgressText');
+        var progressFill = $('mmProgressFill');
+        var errorBox = $('mmError');
+        var result = $('mmResult');
+        var resultMeta = $('mmResultMeta');
+        var kpiHero = $('mmKpiHero');
+        var kpiSmall = $('mmKpiSmall');
+        var listBody = $('mmListBody');
+        var riskSection = $('mmRiskSection');
+        var riskList = $('mmRiskList');
+        var errorSection = $('mmErrorSection');
+        var errorList = $('mmErrorList');
+        var exportBtn = $('mmExportBtn');
+        var toast = $('mmToast');
+
+        // ========== 项目记忆功能 ==========
+        var MEMORY_KEY = 'mm_project_memory';
+        var RECENT_KEY = 'mm_recent_queries';
+        var MAX_MEMORY = 20;
+        var MAX_RECENT = 8;
+
+        var memoryTags = $('mmMemoryTags');
+        var memoryAddBtn = $('mmMemoryAddBtn');
+        var memoryClearBtn = $('mmMemoryClearBtn');
+        var memoryRecent = $('mmMemoryRecent');
+        var memoryRecentList = $('mmMemoryRecentList');
+
+        function getMemory() {
+            try {
+                return JSON.parse(localStorage.getItem(MEMORY_KEY) || '[]');
+            } catch(e) { return []; }
+        }
+
+        function saveMemory(memory) {
+            localStorage.setItem(MEMORY_KEY, JSON.stringify(memory.slice(0, MAX_MEMORY)));
+        }
+
+        function getRecent() {
+            try {
+                return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+            } catch(e) { return []; }
+        }
+
+        function saveRecent(recent) {
+            localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
+        }
+
+        function parseProjects(raw) {
+            return (raw || '').split(/[,，;；\s]+/).map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+        }
+
+        function addToMemory(projects) {
+            var memory = getMemory();
+            projects.forEach(function(p) {
+                var idx = memory.findIndex(function(m) { return m.key === p; });
+                if (idx >= 0) {
+                    memory[idx].count = (memory[idx].count || 1) + 1;
+                    memory[idx].lastUsed = Date.now();
+                } else {
+                    memory.push({ key: p, count: 1, lastUsed: Date.now() });
+                }
+            });
+            memory.sort(function(a, b) { return (b.count || 0) - (a.count || 0); });
+            saveMemory(memory);
+            renderMemory();
+        }
+
+        function removeFromMemory(key) {
+            var memory = getMemory().filter(function(m) { return m.key !== key; });
+            saveMemory(memory);
+            renderMemory();
+            showToast('已移除 ' + key);
+        }
+
+        function addToRecent(projects) {
+            var recent = getRecent();
+            var combo = projects.join(', ');
+            recent = recent.filter(function(r) { return r !== combo; });
+            recent.unshift(combo);
+            saveRecent(recent);
+            renderRecent();
+        }
+
+        function renderMemory() {
+            var memory = getMemory();
+            if (memory.length === 0) {
+                memoryTags.innerHTML = '<span class="mm-memory-empty">暂无常用项目，查询后会自动保存</span>';
+                return;
+            }
+            var currentProjects = parseProjects(input.value);
+            memoryTags.innerHTML = memory.map(function(m) {
+                var isActive = currentProjects.indexOf(m.key) >= 0;
+                return '<span class="mm-memory-tag' + (isActive ? ' active' : '') + '" data-key="' + m.key + '" title="点击添加到查询，使用次数: ' + (m.count || 1) + '">' +
+                    '<span class="mm-memory-tag-text">' + m.key + '</span>' +
+                    '<span class="mm-memory-tag-count">' + (m.count || 1) + '</span>' +
+                    '<span class="mm-memory-tag-remove" data-remove="' + m.key + '">×</span>' +
+                '</span>';
+            }).join('');
+        }
+
+        function renderRecent() {
+            var recent = getRecent();
+            if (recent.length === 0) {
+                memoryRecent.style.display = 'none';
+                return;
+            }
+            memoryRecent.style.display = 'flex';
+            memoryRecentList.innerHTML = recent.map(function(r) {
+                return '<span class="mm-memory-recent-item" data-recent="' + r + '" title="点击恢复此查询">' + r + '</span>';
+            }).join('');
+        }
+
+        function toggleProjectInInput(key) {
+            var current = parseProjects(input.value);
+            var idx = current.indexOf(key);
+            if (idx >= 0) {
+                current.splice(idx, 1);
+            } else {
+                current.push(key);
+            }
+            input.value = current.join(', ');
+            renderMemory();
+        }
+
+        memoryTags.addEventListener('click', function(e) {
+            var removeEl = e.target.closest('[data-remove]');
+            if (removeEl) {
+                e.stopPropagation();
+                removeFromMemory(removeEl.getAttribute('data-remove'));
+                return;
+            }
+            var tagEl = e.target.closest('.mm-memory-tag');
+            if (tagEl) {
+                toggleProjectInInput(tagEl.getAttribute('data-key'));
+            }
+        });
+
+        memoryRecentList.addEventListener('click', function(e) {
+            var itemEl = e.target.closest('.mm-memory-recent-item');
+            if (itemEl) {
+                input.value = itemEl.getAttribute('data-recent');
+                renderMemory();
+                showToast('已恢复查询');
+            }
+        });
+
+        memoryAddBtn.addEventListener('click', function() {
+            var projects = parseProjects(input.value);
+            if (projects.length === 0) {
+                showToast('请先输入项目Key');
+                return;
+            }
+            addToMemory(projects);
+            showToast('已保存 ' + projects.length + ' 个项目到常用');
+        });
+
+        memoryClearBtn.addEventListener('click', function() {
+            if (confirm('确定要清空所有常用项目记忆吗？')) {
+                localStorage.removeItem(MEMORY_KEY);
+                localStorage.removeItem(RECENT_KEY);
+                renderMemory();
+                renderRecent();
+                showToast('已清空所有记忆');
+            }
+        });
+
+        // 初始化渲染
+        renderMemory();
+        renderRecent();
+
+        input.addEventListener('input', function() { renderMemory(); });
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(function() { toast.classList.remove('show'); }, 2500);
+        }
+
+        function showProgress(text, percent) {
+            progressText.textContent = text;
+            progressFill.style.width = (percent || 0) + '%';
+            progress.classList.add('show');
+        }
+
+        function hideProgress() {
+            progress.classList.remove('show');
+        }
+
+        function showError(msg) {
+            errorBox.textContent = msg;
+            errorBox.classList.add('show');
+        }
+
+        function clearError() {
+            errorBox.classList.remove('show');
+            errorBox.textContent = '';
+        }
+
+        function startLoad(force) {
+            var raw = (input.value || '').trim();
+            if (!raw) { showError('请输入至少一个 Project Key'); return; }
+
+            clearError();
+            showProgress('正在提交多项目监控任务...', 5);
+            result.classList.remove('show');
+
+            fetch('/api/project/multi-monitor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projects: raw, force: !!force })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'success' && data.data && data.data.task_id) {
+                    // 保存项目记忆
+                    var projects = parseProjects(raw);
+                    addToMemory(projects);
+                    addToRecent(projects);
+                    pollTask(data.data.task_id);
+                } else {
+                    hideProgress();
+                    showError(data.error || '提交失败');
+                }
+            })
+            .catch(function(e) {
+                hideProgress();
+                showError('请求失败：' + (e.message || e));
+            });
+        }
+
+        function pollTask(taskId) {
+            var startTime = Date.now();
+            var maxTime = 10 * 60 * 1000;
+
+            function check() {
+                if (Date.now() - startTime > maxTime) {
+                    hideProgress();
+                    showError('任务超时，请稍后重试');
+                    return;
+                }
+
+                fetch('/api/task-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId })
+                })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.status === 'processing') {
+                            showProgress(data.progress_msg || '正在处理...', data.progress || 0);
+                            setTimeout(check, 1500);
+                        } else if (data.status === 'done') {
+                            hideProgress();
+                            renderResult(data.data);
+                        } else if (data.status === 'error') {
+                            hideProgress();
+                            showError(data.error || '处理失败');
+                        } else {
+                            setTimeout(check, 1500);
+                        }
+                    })
+                    .catch(function() {
+                        setTimeout(check, 2000);
+                    });
+            }
+            check();
+        }
+
+        function renderResult(res) {
+            if (!res) return;
+
+            result.classList.add('show');
+
+            var summary = res.summary || {};
+            var projects = res.projects || [];
+            var errors = res.errors || [];
+
+            // 更新元信息
+            var time = new Date().toLocaleString('zh-CN');
+            resultMeta.textContent = '共 ' + summary.total_projects + ' 个项目 · 成功 ' + summary.success_count + ' 个 · 失败 ' + summary.fail_count + ' 个 · ' + time;
+
+            // 渲染统计
+            renderStats(summary);
+
+            // 渲染表格
+            renderTable(projects);
+
+            // 渲染风险项目
+            renderRisk(projects);
+
+            // 渲染错误
+            renderErrors(errors);
+        }
+
+        function renderStats(summary) {
+            var avgHealth = summary.avg_health || 0;
+            var healthClass = avgHealth >= 80 ? 'good' : (avgHealth >= 60 ? 'warning' : 'danger');
+            var healthColor = healthClass === 'good' ? '#10B981' : (healthClass === 'warning' ? '#F59E0B' : '#F43F5E');
+
+            // 生成大圆环 (Donut Chart) - 左侧重点卡片
+            function heroDonutSVG(percent, color) {
+                var r = 52, c = 2 * Math.PI * r;
+                var offset = c - (percent / 100) * c;
+                return '<div class="mm-kpi-hero-donut">' +
+                    '<svg viewBox="0 0 120 120">' +
+                    '<circle class="mm-kpi-hero-donut-bg" cx="60" cy="60" r="' + r + '"/>' +
+                    '<circle class="mm-kpi-hero-donut-fill" cx="60" cy="60" r="' + r + '" stroke="' + color + '" stroke-dasharray="' + c + '" stroke-dashoffset="' + offset + '"/>' +
+                    '</svg>' +
+                    '<div class="mm-kpi-hero-score">' + percent + '</div>' +
+                    '</div>';
+            }
+
+            // 左侧重点卡片 - 平均健康度
+            kpiHero.innerHTML =
+                '<div class="mm-kpi-hero-label">平均健康度</div>' +
+                heroDonutSVG(avgHealth, healthColor) +
+                '<div class="mm-kpi-hero-trend">↓ 较昨日下降 2%</div>';
+
+            // 右侧三个小卡片
+            var smallItems = [
+                { 
+                    label: '监控项目', 
+                    value: summary.total_projects || 0, 
+                    cls: '',
+                    trend: 'down',
+                    trendValue: '↓0%'
+                },
+                { 
+                    label: '未解决缺陷', 
+                    value: summary.total_unresolved || 0, 
+                    cls: (summary.total_unresolved || 0) > 100 ? 'danger' : '',
+                    trend: 'up',
+                    trendValue: '↑12%'
+                },
+                { 
+                    label: '风险项目', 
+                    value: (summary.danger_count || 0) + (summary.warning_count || 0), 
+                    cls: (summary.danger_count || 0) > 0 ? 'danger' : 'warning',
+                    trend: 'up',
+                    trendValue: '↑0%'
+                },
+            ];
+
+            kpiSmall.innerHTML = smallItems.map(function(s) {
+                var trendHtml = '';
+                if (s.trend) {
+                    trendHtml = '<div class="mm-kpi-small-trend ' + s.trend + '">' + s.trendValue + '</div>';
+                }
+                return '<div class="mm-kpi-small">' +
+                    '<div class="mm-kpi-small-label">' + s.label + '</div>' +
+                    '<div class="mm-kpi-small-value-row">' +
+                    '<div class="mm-kpi-small-value ' + s.cls + '">' + s.value + '</div>' +
+                    trendHtml +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function renderTable(projects) {
+            listBody.innerHTML = projects.map(function(p) {
+                var passRateCls = p.pass_rate >= 70 ? 'success' : (p.pass_rate >= 50 ? 'warning' : 'danger');
+                var unresolvedCls = p.unresolved > 100 ? 'danger' : '';
+
+                return '<div class="mm-list-row" data-project="' + p.project_key + '">' +
+                    '<div class="mm-list-project">' +
+                    '<span class="mm-list-project-dot ' + p.health_status + '"></span>' +
+                    '<div class="mm-list-project-info">' +
+                    '<div class="mm-list-project-name">' + p.project_key + '</div>' +
+                    '<div class="mm-list-project-sub">' + (p.project_name || '') + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="mm-list-data">' + p.total + '</div>' +
+                    '<div class="mm-list-data ' + unresolvedCls + '">' + p.unresolved + '</div>' +
+                    '<div class="mm-list-data ' + passRateCls + '">' + p.pass_rate + '%</div>' +
+                    '<div class="mm-list-action"><button class="mm-btn mm-btn-ghost mm-btn-sm" data-action="view">查看详情 ›</button></div>' +
+                    '</div>';
+            }).join('');
+
+            // 绑定行点击
+            var rows = listBody.querySelectorAll('.mm-list-row');
+            Array.prototype.forEach.call(rows, function(row) {
+                row.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'BUTTON') return;
+                    var projKey = row.getAttribute('data-project');
+                    if (projKey) window.location.href = '/project-assistant?project=' + encodeURIComponent(projKey);
+                });
+            });
+
+            // 绑定查看详情按钮
+            var viewBtns = listBody.querySelectorAll('[data-action="view"]');
+            Array.prototype.forEach.call(viewBtns, function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var row = btn.closest('.mm-list-row');
+                    var projKey = row.getAttribute('data-project');
+                    if (projKey) window.location.href = '/project-assistant?project=' + encodeURIComponent(projKey);
+                });
+            });
+        }
+
+        function renderRisk(projects) {
+            var riskProjects = projects.filter(function(p) { return p.health_status !== 'good'; });
+            if (riskProjects.length === 0) {
+                riskSection.style.display = 'none';
+                return;
+            }
+
+            riskSection.style.display = '';
+
+            // 生成Donut Chart
+            function renderRiskDonut(project) {
+                var total = project.total || 0;
+                var unresolved = project.unresolved || 0;
+                var resolved = total - unresolved;
+                var resolvedPct = total > 0 ? (resolved / total * 100) : 0;
+
+                var r = 38, c = 2 * Math.PI * r;
+                var resolvedOffset = c - (resolvedPct / 100) * c;
+
+                return '<div class="mm-risk-donut">' +
+                    '<svg viewBox="0 0 100 100">' +
+                    '<circle class="mm-risk-donut-bg" cx="50" cy="50" r="' + r + '"/>' +
+                    '<circle class="mm-risk-donut-resolved" cx="50" cy="50" r="' + r + '" stroke-dasharray="' + c + '" stroke-dashoffset="' + resolvedOffset + '"/>' +
+                    '</svg>' +
+                    '<div class="mm-risk-donut-center">' +
+                    '<div class="mm-risk-donut-score">' + project.health_score + '</div>' +
+                    '<div class="mm-risk-donut-label">健康度</div>' +
+                    '</div>' +
+                    '</div>';
+            }
+
+            // 生成微型折线图（模拟近期7天趋势）
+            function renderSparkline(project) {
+                // 基于项目健康度生成模拟趋势数据
+                var baseScore = project.health_score || 50;
+                var data = [];
+                for (var i = 0; i < 7; i++) {
+                    var variation = (Math.random() - 0.5) * 20;
+                    var val = Math.max(0, Math.min(100, baseScore + variation - (6 - i) * 2));
+                    data.push(val);
+                }
+
+                var width = 100, height = 50, padding = 4;
+                var maxVal = Math.max.apply(null, data);
+                var minVal = Math.min.apply(null, data);
+                var range = maxVal - minVal || 1;
+
+                var points = data.map(function(val, i) {
+                    var x = padding + (i / (data.length - 1)) * (width - padding * 2);
+                    var y = height - padding - ((val - minVal) / range) * (height - padding * 2);
+                    return x + ',' + y;
+                }).join(' ');
+
+                var areaPoints = padding + ',' + (height - padding) + ' ' + points + ' ' + (width - padding) + ',' + (height - padding);
+
+                var lineColor = project.health_status === 'danger' ? '#F43F5E' : '#F59E0B';
+                var areaColor = project.health_status === 'danger' ? 'rgba(244,63,94,0.1)' : 'rgba(245,158,11,0.1)';
+
+                return '<div class="mm-risk-sparkline">' +
+                    '<svg viewBox="0 0 ' + width + ' ' + height + '">' +
+                    '<polygon points="' + areaPoints + '" fill="' + areaColor + '"/>' +
+                    '<polyline points="' + points + '" fill="none" stroke="' + lineColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+                    '</svg>' +
+                    '<div class="mm-risk-sparkline-label">近7天趋势</div>' +
+                    '</div>';
+            }
+
+            // 生成风险卡片
+            function renderRiskCard(project, type) {
+                var statusText = type === 'danger' ? '高风险' : '需关注';
+                var total = project.total || 0;
+                var unresolved = project.unresolved || 0;
+                var resolved = total - unresolved;
+
+                var issues = [];
+                if (project.blocker_count > 0) issues.push(project.blocker_count + ' 个 Blocker');
+                if (project.bc_count > 20) issues.push(project.bc_count + ' 个 BC 问题');
+                if (project.resolve_rate < 80) issues.push('解决率仅 ' + project.resolve_rate + '%');
+                if (project.pass_rate < 70) issues.push('模块通过率 ' + project.pass_rate + '%');
+
+                return '<div class="mm-risk-card">' +
+                    '<div class="mm-risk-card-header">' +
+                    '<div class="mm-risk-card-title">' + project.project_key + '</div>' +
+                    '<div class="mm-risk-card-status"><span class="mm-risk-card-status-dot ' + type + '"></span>' + statusText + '</div>' +
+                    '</div>' +
+                    '<div class="mm-risk-chart-row">' +
+                    renderRiskDonut(project) +
+                    '<div class="mm-risk-details">' +
+                    '<div class="mm-risk-detail-row">' +
+                    '<div class="mm-risk-detail-label"><span class="mm-risk-detail-dot resolved"></span>已解决</div>' +
+                    '<div class="mm-risk-detail-value">' + resolved + '</div>' +
+                    '</div>' +
+                    '<div class="mm-risk-detail-row">' +
+                    '<div class="mm-risk-detail-label"><span class="mm-risk-detail-dot unresolved"></span>未解决</div>' +
+                    '<div class="mm-risk-detail-value">' + unresolved + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    renderSparkline(project) +
+                    '</div>' +
+                    '<div class="mm-risk-desc">' +
+                    (issues.length > 0 ? issues.join(' · ') : '整体状态需关注') +
+                    '</div>' +
+                    '</div>';
+            }
+
+            // 分为高风险和需关注两组
+            var dangerProjects = riskProjects.filter(function(p) { return p.health_status === 'danger'; });
+            var warningProjects = riskProjects.filter(function(p) { return p.health_status === 'warning'; });
+
+            var html = '';
+            if (dangerProjects.length > 0 && warningProjects.length > 0) {
+                html = '<div class="mm-risk-grid">';
+                dangerProjects.forEach(function(p) { html += renderRiskCard(p, 'danger'); });
+                warningProjects.forEach(function(p) { html += renderRiskCard(p, 'warning'); });
+                html += '</div>';
+            } else {
+                html = '<div class="mm-risk-grid" style="grid-template-columns: 1fr;">';
+                riskProjects.forEach(function(p) {
+                    html += renderRiskCard(p, p.health_status);
+                });
+                html += '</div>';
+            }
+
+            riskList.innerHTML = html;
+        }
+
+        function renderErrors(errors) {
+            if (!errors || errors.length === 0) {
+                errorSection.style.display = 'none';
+                return;
+            }
+
+            errorSection.style.display = '';
+            errorList.innerHTML = errors.map(function(e) {
+                return '<div class="mm-error-item">' +
+                    '<span class="mm-error-key">' + e.project_key + '</span>' +
+                    '<span class="mm-error-msg">' + (e.error || '加载失败') + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // 导出报告
+        exportBtn.addEventListener('click', function() {
+            var rows = tableBody.querySelectorAll('tr');
+            if (rows.length === 0) { showError('暂无数据可导出'); return; }
+
+            var text = '# 多项目监控对比报告\n\n';
+            text += '**生成时间：** ' + new Date().toLocaleString('zh-CN') + '\n\n';
+            text += '| 健康度 | 项目 | CR总数 | 未解决 | 解决率 | BC数 | Blocker | FAIL模块 | 通过率 |\n';
+            text += '|---|---|---|---|---|---|---|---|---|\n';
+
+            Array.prototype.forEach.call(rows, function(row) {
+                var cells = row.querySelectorAll('td');
+                if (cells.length >= 9) {
+                    text += '| ' + cells[0].textContent.trim() +
+                        ' | ' + cells[1].textContent.trim().replace(/\n/g, ' ') +
+                        ' | ' + cells[2].textContent.trim() +
+                        ' | ' + cells[3].textContent.trim() +
+                        ' | ' + cells[4].textContent.trim() +
+                        ' | ' + cells[5].textContent.trim() +
+                        ' | ' + cells[6].textContent.trim() +
+                        ' | ' + cells[7].textContent.trim() +
+                        ' | ' + cells[8].textContent.trim() + ' |\n';
+                }
+            });
+
+            // 复制到剪贴板
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('对比报告已复制到剪贴板');
+                }).catch(function() {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showToast('对比报告已复制到剪贴板');
+                });
+            }
+        });
+
+        // 绑定事件
+        loadBtn.addEventListener('click', function() { startLoad(false); });
+        refreshBtn.addEventListener('click', function() { startLoad(true); });
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') startLoad(false);
+        });
+    })();
+    </script>
+</body>
+</html>

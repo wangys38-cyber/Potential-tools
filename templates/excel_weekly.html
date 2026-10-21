@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel 周报自动生成 - Potential Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0D0E12;
+            color: #E5E7EB;
+            min-height: 100vh;
+        }
+        .header {
+            background: #1A1D24;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2D3139;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .back-btn {
+            color: #9CA3AF;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: #252830;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: #2D3139; color: #E5E7EB; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
+        .card {
+            background: #1A1D24;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #2D3139;
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #F3F4F6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #9CA3AF;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: #252830;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            color: #E5E7EB;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #8B5CF6;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4); }
+        .btn-secondary { background: #374151; color: #E5E7EB; }
+        .btn-secondary:hover { background: #4B5563; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .preview-box {
+            background: #0D0E12;
+            border: 1px solid #2D3139;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-success { background: rgba(34, 197, 94, 0.2); color: #4ADE80; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+        .status-info { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: #252830;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .info-item .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #8B5CF6;
+            margin-bottom: 4px;
+        }
+        .info-item .label {
+            font-size: 12px;
+            color: #9CA3AF;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #374151;
+            border-top-color: #8B5CF6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #22C55E; }
+        .toast-error { background: #EF4444; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Excel 周报自动生成</h1>
+        <a href="/" class="back-btn">← 返回工作台</a>
+    </div>
+
+    <div class="container">
+        <!-- 配置卡片 -->
+        <div class="card">
+            <h2>⚙️ 配置</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>项目 Key</label>
+                    <input type="text" id="projectKey" value="EKSANTOS" placeholder="如 EKSANTOS">
+                </div>
+                <div class="form-group">
+                    <label>周标签</label>
+                    <input type="text" id="weekLabel" placeholder="如 2026W41，留空自动计算">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CF ETA</label>
+                    <input type="text" id="cfEta" placeholder="如 10/15">
+                </div>
+                <div class="form-group">
+                    <label>Next Milestone</label>
+                    <input type="text" id="nextMilestone" placeholder="如 10/22">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Excel 文件路径（本地，可选）</label>
+                <input type="text" id="excelPath" placeholder="如 D:\Santos_26_SWPD_Workbook.xlsx">
+            </div>
+            <!-- 数据状态提示 -->
+            <div id="dataStatus" style="margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none;">
+                <span id="dataStatusText"></span>
+                <a href="/project-assistant" target="_blank" style="margin-left: 8px; color: #a78bfa; text-decoration: underline;">去项目助手刷新数据 →</a>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button class="btn btn-primary" onclick="previewReport()">
+                    <span id="previewBtnText">预览周报</span>
+                </button>
+                <button class="btn btn-secondary" onclick="generateReport()">
+                    <span id="generateBtnText">生成并写入 Excel</span>
+                </button>
+                <button class="btn btn-secondary" onclick="saveConfig()">保存配置</button>
+            </div>
+        </div>
+
+        <!-- CR 数据概览 -->
+        <div class="card" id="crDataCard" style="display: none;">
+            <h2>📊 CR 数据概览</h2>
+            <div class="info-grid" id="crDataGrid"></div>
+        </div>
+
+        <!-- 预览卡片 -->
+        <div class="card" id="previewCard" style="display: none;">
+            <h2>📝 周报内容预览</h2>
+            <div id="previewStatus" style="margin-bottom: 12px;"></div>
+            <div class="preview-box" id="previewBox"></div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时读取配置
+        window.onload = function() {
+            fetch('/api/excel-weekly/config')
+                .then(r => r.json())
+                .then(config => {
+                    if (config.project_key) document.getElementById('projectKey').value = config.project_key;
+                    if (config.cf_eta) document.getElementById('cfEta').value = config.cf_eta;
+                    if (config.next_milestone) document.getElementById('nextMilestone').value = config.next_milestone;
+                })
+                .catch(() => {});
+        };
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function saveConfig() {
+            const config = {
+                project_key: document.getElementById('projectKey').value,
+                cf_eta: document.getElementById('cfEta').value,
+                next_milestone: document.getElementById('nextMilestone').value,
+            };
+            fetch('/api/excel-weekly/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => r.json())
+            .then(() => showToast('配置已保存'))
+            .catch(() => showToast('保存失败', 'error'));
+        }
+
+        function updateDataStatus(crData) {
+            const statusDiv = document.getElementById('dataStatus');
+            const statusText = document.getElementById('dataStatusText');
+
+            const isFresh = crData.snapshot_is_fresh;
+            const ageHours = crData.snapshot_age_hours;
+            const generatedAt = crData.snapshot_generated_at;
+
+            if (isFresh) {
+                // 数据新鲜
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = 'rgba(34, 197, 94, 0.1)';
+                statusDiv.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+                statusDiv.style.color = '#86efac';
+                statusText.innerHTML = `✓ 数据已同步（${generatedAt || '刚刚'}，${Math.round(ageHours || 0)}小时前更新）`;
+            } else {
+                // 数据过期
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                statusDiv.style.color = '#fca5a5';
+                statusText.innerHTML = `⚠ 数据可能已过期（${generatedAt || '未知时间'}，${Math.round(ageHours || 0)}小时前更新），建议先刷新数据`;
+            }
+        }
+
+        function previewReport() {
+            const btnText = document.getElementById('previewBtnText');
+            btnText.innerHTML = '<span class="loading"></span> 生成中...';
+
+            const projectKey = document.getElementById('projectKey').value;
+            const weekLabel = document.getElementById('weekLabel').value;
+
+            fetch(`/api/excel-weekly/preview?project_key=${encodeURIComponent(projectKey)}&week_label=${encodeURIComponent(weekLabel)}`)
+                .then(r => r.json())
+                .then(data => {
+                    btnText.textContent = '预览周报';
+                    if (data.success) {
+                        // 显示 CR 数据
+                        const crData = data.cr_data || {};
+                        document.getElementById('crDataCard').style.display = 'block';
+                        document.getElementById('crDataGrid').innerHTML = `
+                            <div class="info-item"><div class="value">${crData.total || 0}</div><div class="label">CR 总数</div></div>
+                            <div class="info-item"><div class="value">${crData.unresolved || 0}</div><div class="label">未解决</div></div>
+                            <div class="info-item"><div class="value">${crData.bc_count || 0}</div><div class="label">未解决 BC</div></div>
+                            <div class="info-item"><div class="value">${crData.fail_modules || 0}</div><div class="label">FAIL 模块</div></div>
+                        `;
+
+                        // 显示数据新鲜度状态
+                        updateDataStatus(crData);
+
+                        // 显示预览
+                        document.getElementById('previewCard').style.display = 'block';
+                        document.getElementById('previewStatus').innerHTML = `<span class="status-badge status-success">✓ 周标签：${data.week_label}</span>`;
+                        const rows = data.rows || [];
+                        const content = rows.map(([cell, text]) => `${cell}: ${text}`).join('\n');
+                        document.getElementById('previewBox').textContent = content;
+                    } else {
+                        showToast(data.error || '生成失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    btnText.textContent = '预览周报';
+                    showToast('请求失败: ' + err.message, 'error');
+                });
+        }
+
+        function generateReport() {
+            const btnText = document.getElementById('generateBtnText');
+            const excelPath = document.getElementById('excelPath').value;
+
+            if (!excelPath) {
+                showToast('请先填写 Excel 文件路径', 'error');
+                return;
+            }
+
+            btnText.innerHTML = '<span class="loading"></span> 生成中...';
+
+            const data = {
+                project_key: document.getElementById('projectKey').value,
+                week_label: document.getElementById('weekLabel').value,
+                excel_path: excelPath,
+            };
+
+            fetch('/api/excel-weekly/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(result => {
+                btnText.textContent = '生成并写入 Excel';
+                if (result.success) {
+                    showToast(`成功！已创建 sheet ${result.week_label}`);
+                    // 更新数据状态
+                    if (result.cr_data) {
+                        updateDataStatus(result.cr_data);
+                    }
+                    previewReport();
+                } else {
+                    showToast(result.error || '生成失败', 'error');
+                }
+            })
+            .catch(err => {
+                btnText.textContent = '生成并写入 Excel';
+                showToast('请求失败: ' + err.message, 'error');
+            });
+        }
+    </script>
+</body>
+</html>

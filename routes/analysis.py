@@ -774,19 +774,58 @@ def create_analysis_blueprint():
         try:
             import markdown
             import re as _re
-            # 检测并转换 Mermaid 代码块为 <div class="mermaid">
-            has_mermaid = bool(_re.search(r'```mermaid', markdown_content, _re.IGNORECASE))
-            if has_mermaid:
-                def mermaid_replacer(match):
-                    code = match.group(1).strip()
+            # Mermaid 关键字列表（用于检测普通代码块中的 Mermaid 代码）
+            MERMAID_KEYWORDS = r'(?:stateDiagram|graph|flowchart|sequenceDiagram|classDiagram|erDiagram|gantt|journey|pie|requirementDiagram|mindmap|timeline|zenuml|C4Context|C4Container|C4Component|C4Dynamic|gitGraph|architecture)'
+            
+            def is_mermaid_code(code):
+                """检测代码内容是否为 Mermaid 图表"""
+                code_stripped = code.strip()
+                return bool(_re.match(r'^\s*' + MERMAID_KEYWORDS, code_stripped, _re.IGNORECASE))
+            
+            # 1. 转换标准的 ```mermaid 代码块
+            def mermaid_replacer(match):
+                code = match.group(1).strip()
+                return f'<div class="mermaid">{code}</div>'
+            markdown_content, count_standard = _re.subn(
+                r'```mermaid\s*\n(.*?)```',
+                mermaid_replacer,
+                markdown_content,
+                flags=_re.DOTALL | _re.IGNORECASE
+            )
+            
+            # 2. 转换普通代码块 ``` 中的 Mermaid 代码
+            def plain_mermaid_replacer(match):
+                code = match.group(1).strip()
+                if is_mermaid_code(code):
                     return f'<div class="mermaid">{code}</div>'
-                markdown_content = _re.sub(
-                    r'```mermaid\s*\n(.*?)```',
-                    mermaid_replacer,
-                    markdown_content,
-                    flags=_re.DOTALL | _re.IGNORECASE
-                )
+                return match.group(0)
+            markdown_content, count_plain = _re.subn(
+                r'```\s*\n(.*?)```',
+                plain_mermaid_replacer,
+                markdown_content,
+                flags=_re.DOTALL
+            )
+            
+            has_mermaid = (count_standard + count_plain) > 0
+            
             html_content = markdown.markdown(markdown_content, extensions=['extra', 'codehilite', 'tables', 'fenced_code'])
+            
+            # 再次扫描HTML内容，把以Mermaid关键字开头的<pre><code>转换为<div class="mermaid">
+            MERMAID_KEYWORDS_HTML = r'(?:stateDiagram|graph|flowchart|sequenceDiagram|classDiagram|erDiagram|gantt|journey|pie|requirementDiagram|mindmap|timeline|zenuml|C4Context|C4Container|C4Component|C4Dynamic|gitGraph|architecture)'
+            def html_code_block_replacer_preview(match):
+                code = match.group(1).strip()
+                if _re.match(r'^\s*' + MERMAID_KEYWORDS_HTML, code, _re.IGNORECASE):
+                    return f'<div class="mermaid">{code}</div>'
+                return match.group(0)
+            html_content, count_html = _re.subn(
+                r'<pre><code[^>]*>(.*?)</code></pre>',
+                html_code_block_replacer_preview,
+                html_content,
+                flags=_re.DOTALL
+            )
+            if count_html > 0:
+                has_mermaid = True
+            
             if watermark:
                 html_content += f'''<div style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:0.035;font-size:70px;font-weight:600;color:#0071e3;text-align:center;display:flex;align-items:center;justify-content:center;transform:rotate(-15deg);">{watermark}</div>'''
             return jsonify({'html': html_content, 'has_mermaid': has_mermaid})
@@ -806,42 +845,143 @@ def create_analysis_blueprint():
             import markdown
             import tempfile as tf
             import re as _re
-            # 检测并转换 Mermaid 代码块
-            has_mermaid = bool(_re.search(r'```mermaid', markdown_content, _re.IGNORECASE))
-            if has_mermaid:
-                def mermaid_replacer(match):
-                    code = match.group(1).strip()
+            # Mermaid 关键字列表
+            MERMAID_KEYWORDS = r'(?:stateDiagram|graph|flowchart|sequenceDiagram|classDiagram|erDiagram|gantt|journey|pie|requirementDiagram|mindmap|timeline|zenuml|C4Context|C4Container|C4Component|C4Dynamic|gitGraph|architecture)'
+            
+            def is_mermaid_code(code):
+                return bool(_re.match(r'^\s*' + MERMAID_KEYWORDS, code.strip(), _re.IGNORECASE))
+            
+            # 1. 转换标准的 ```mermaid 代码块
+            def mermaid_replacer(match):
+                code = match.group(1).strip()
+                return f'<div class="mermaid">{code}</div>'
+            markdown_content, count_standard = _re.subn(
+                r'```mermaid\s*\n(.*?)```',
+                mermaid_replacer,
+                markdown_content,
+                flags=_re.DOTALL | _re.IGNORECASE
+            )
+            
+            # 2. 转换普通代码块中的 Mermaid 代码
+            def plain_mermaid_replacer(match):
+                code = match.group(1).strip()
+                if is_mermaid_code(code):
                     return f'<div class="mermaid">{code}</div>'
-                markdown_content = _re.sub(
-                    r'```mermaid\s*\n(.*?)```',
-                    mermaid_replacer,
-                    markdown_content,
-                    flags=_re.DOTALL | _re.IGNORECASE
-                )
+                return match.group(0)
+            markdown_content, count_plain = _re.subn(
+                r'```\s*\n(.*?)```',
+                plain_mermaid_replacer,
+                markdown_content,
+                flags=_re.DOTALL
+            )
+            
+            has_mermaid = (count_standard + count_plain) > 0
+            
             html_content = markdown.markdown(markdown_content, extensions=['extra', 'codehilite', 'tables', 'fenced_code'])
+            
+            # 再次扫描HTML内容，把以Mermaid关键字开头的<pre><code>转换为<div class="mermaid">
+            MERMAID_KEYWORDS_HTML = r'(?:stateDiagram|graph|flowchart|sequenceDiagram|classDiagram|erDiagram|gantt|journey|pie|requirementDiagram|mindmap|timeline|zenuml|C4Context|C4Container|C4Component|C4Dynamic|gitGraph|architecture)'
+            def html_code_block_replacer(match):
+                code = match.group(1).strip()
+                if _re.match(r'^\s*' + MERMAID_KEYWORDS_HTML, code, _re.IGNORECASE):
+                    return f'<div class="mermaid">{code}</div>'
+                return match.group(0)
+            html_content, count_html = _re.subn(
+                r'<pre><code[^>]*>(.*?)</code></pre>',
+                html_code_block_replacer,
+                html_content,
+                flags=_re.DOTALL
+            )
+            if count_html > 0:
+                has_mermaid = True
+            
             watermark_html = ''
             if watermark:
                 watermark_html = f'''<div style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:0.035;font-size:70px;font-weight:600;color:#0071e3;text-align:center;display:flex;align-items:center;justify-content:center;transform:rotate(-15deg);">{watermark}</div>'''
-            # Mermaid 脚本
+            # Mermaid 脚本（内联本地mermaid.js，避免CDN加载问题）
             mermaid_script = ''
             wait_selector = None
             extra_wait = 0
             if has_mermaid:
-                mermaid_script = '''
-                <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+                # 读取本地mermaid.js文件内容并内联
+                mermaid_js_path = os.path.join(current_app.static_folder, 'vendor', 'mermaid.min.js')
+                mermaid_js_content = ''
+                try:
+                    with open(mermaid_js_path, 'r', encoding='utf-8') as f:
+                        mermaid_js_content = f.read()
+                except Exception as e:
+                    logger.warning(f"读取本地mermaid.js失败，使用CDN: {e}")
+                    mermaid_js_content = ''
+                
+                # 公共的Mermaid渲染JavaScript代码
+                mermaid_js_code = '''
                 <script>
-                    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose',
-                        flowchart: { useMaxWidth: true, htmlLabels: true },
-                        sequence: { useMaxWidth: true }, gantt: { useMaxWidth: true } });
-                    window.addEventListener('load', function() {
-                        setTimeout(function() { document.body.setAttribute('data-mermaid-done', 'true'); }, 2000);
-                    });
+                    (function() {
+                        var maxWait = 15000;
+                        var startTime = Date.now();
+                        function markDone() { document.body.setAttribute('data-mermaid-done', 'true'); }
+                        function convertMermaidText() {
+                            var keywords = ['stateDiagram', 'graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 'erDiagram', 'gantt', 'journey', 'pie', 'requirementDiagram', 'mindmap', 'timeline', 'zenuml', 'C4Context', 'C4Container', 'C4Component', 'C4Dynamic', 'gitGraph', 'architecture'];
+                            var paragraphs = document.querySelectorAll('p');
+                            paragraphs.forEach(function(p) {
+                                var text = p.textContent.trim();
+                                for (var i = 0; i < keywords.length; i++) {
+                                    if (text.indexOf(keywords[i]) === 0) {
+                                        var div = document.createElement('div');
+                                        div.className = 'mermaid';
+                                        div.textContent = text;
+                                        p.parentNode.replaceChild(div, p);
+                                        break;
+                                    }
+                                }
+                            });
+                            var codeBlocks = document.querySelectorAll('pre code');
+                            codeBlocks.forEach(function(code) {
+                                var text = code.textContent.trim();
+                                for (var i = 0; i < keywords.length; i++) {
+                                    if (text.indexOf(keywords[i]) === 0) {
+                                        var div = document.createElement('div');
+                                        div.className = 'mermaid';
+                                        div.textContent = text;
+                                        var pre = code.parentNode;
+                                        pre.parentNode.replaceChild(div, pre);
+                                        break;
+                                    }
+                                }
+                            });
+                        }
+                        function renderMermaid() {
+                            if (!window.mermaid) {
+                                if (Date.now() - startTime > maxWait) { markDone(); return; }
+                                setTimeout(renderMermaid, 200); return;
+                            }
+                            try {
+                                convertMermaidText();
+                                mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose',
+                                    flowchart: { useMaxWidth: true, htmlLabels: true },
+                                    sequence: { useMaxWidth: true }, gantt: { useMaxWidth: true } });
+                                if (document.querySelectorAll('.mermaid').length === 0) { markDone(); return; }
+                                mermaid.run({ querySelector: '.mermaid' }).then(function() {
+                                    setTimeout(markDone, 1000);
+                                }).catch(function(e) { console.error('Mermaid error:', e); markDone(); });
+                            } catch(e) { console.error('Mermaid init error:', e); markDone(); }
+                        }
+                        if (document.readyState === 'complete') { renderMermaid(); }
+                        else { window.addEventListener('load', renderMermaid); }
+                    })();
                 </script>
-                <style>.mermaid { text-align: center; margin: 20px 0; page-break-inside: avoid; }
-                .mermaid svg { max-width: 100% !important; height: auto !important; }</style>
+                <style>
+                    .mermaid { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+                    .mermaid svg { max-width: 100% !important; height: auto !important; }
+                </style>
                 '''
+                
+                if mermaid_js_content:
+                    mermaid_script = '<script>' + mermaid_js_content + '</script>' + mermaid_js_code
+                else:
+                    mermaid_script = '<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>' + mermaid_js_code
                 wait_selector = 'body[data-mermaid-done="true"]'
-                extra_wait = 3000
+                extra_wait = 5000
             with tf.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
                 f.write(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><style>{MD2PDF_PREVIEW_CSS}</style>{mermaid_script}</head><body>{html_content}{watermark_html}</body></html>''')
                 html_path = f.name

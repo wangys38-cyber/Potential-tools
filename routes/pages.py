@@ -106,6 +106,10 @@ def create_pages_blueprint(cached_render):
     def project_assistant():
         return cached_render('project_assistant.html', nav_title='项目状态助手')
 
+    @bp.route('/multi-monitor')
+    def multi_monitor():
+        return cached_render('multi_monitor.html', nav_title='多项目监控')
+
     @bp.route('/my-activity')
     def my_activity():
         return cached_render('my_activity.html', nav_title='我的活动')

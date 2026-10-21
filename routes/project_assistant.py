@@ -128,6 +128,196 @@ def create_project_blueprint():
         snap['age_hours'] = pa.snapshot_age_hours(snap)
         return jsonify({'status': 'success', 'data': snap})
 
+    # ---------------- 多项目同时监控 ----------------
+    @bp.route('/api/project/multi-monitor', methods=['POST'])
+    @login_required_or_guest
+    def multi_monitor():
+        data = request.get_json(silent=True) or {}
+        projects_text = (data.get('projects') or data.get('project_keys') or '').strip()
+        force = bool(data.get('force'))
+
+        if not projects_text:
+            return jsonify({'status': 'error', 'error': '请输入至少一个 Project Key'}), 400
+
+        # 解析多个项目Key（支持逗号、空格、分号分隔）
+        project_keys = []
+        for p in re.split(r'[,，;；\s]+', projects_text):
+            p = p.strip()
+            if p and p not in project_keys:
+                project_keys.append(p)
+
+        if not project_keys:
+            return jsonify({'status': 'error', 'error': '未解析到有效的 Project Key'}), 400
+
+        task_id = hashlib.md5(f'multi_{time.time()}'.encode()).hexdigest()[:16]
+        task = {'status': 'processing', 'result': None, 'error': None,
+                'created_at': time.time(), 'progress': 0,
+                'progress_msg': f'正在加载 {len(project_keys)} 个项目...'}
+        background_tasks[task_id] = task
+        save_task_meta(task_id, task)
+
+        def _set(pct, msg):
+            t = background_tasks.get(task_id)
+            if t:
+                t['progress'] = max(t.get('progress', 0), int(pct))
+                t['progress_msg'] = msg
+                save_task_meta(task_id, t)
+
+        def _fail(msg):
+            t = background_tasks.get(task_id)
+            if t:
+                t.update({'status': 'error', 'error': msg, 'completed_at': time.time()})
+                save_task_meta(task_id, t)
+
+        def _do():
+            try:
+                results = []
+                errors = []
+                total = len(project_keys)
+                completed = [0]
+                lock = threading.Lock()
+
+                def _load_one(proj_key):
+                    try:
+                        snap = pa.build_project_snapshot(proj_key, on_progress=lambda p, m: None, force=force)
+                        stats = snap.get('stats', {})
+                        total_count = snap.get('total', 0)
+                        unresolved = stats.get('unresolved', 0)
+                        # 修复字段名：使用正确的字段名
+                        bc_count = stats.get('bc_unresolved', stats.get('bc_count', 0))
+                        fail_modules = stats.get('fail', stats.get('fail_modules', 0))
+                        pass_modules = stats.get('pass', stats.get('pass_modules', 0))
+                        total_modules = fail_modules + pass_modules
+
+                        # 计算blocker_count：从CR列表中统计（使用Severity字段）
+                        blocker_count = 0
+                        cr_list = snap.get('crs', []) or snap.get('cr_list', []) or []
+                        if cr_list:
+                            for cr in cr_list:
+                                # 优先使用Severity字段判断
+                                severity = (cr.get('severity') or cr.get('Severity') or '').upper()
+                                # 备用：使用priority字段
+                                priority = (cr.get('priority') or cr.get('Priority') or '').upper()
+                                # 判断条件：Severity或Priority中包含Blocker/Block/P0/Critical等
+                                if ('BLOCKER' in severity or 'BLOCK' in severity or 
+                                    severity == 'B' or severity == 'P0' or 'P0' in severity or
+                                    'CRITICAL' in severity or severity == 'C' or
+                                    'BLOCKER' in priority or 'BLOCK' in priority or 
+                                    priority == 'B' or priority == 'P0' or 'P0' in priority or
+                                    'CRITICAL' in priority or priority == 'C'):
+                                    blocker_count += 1
+                        else:
+                            # 如果没有CR列表，尝试从stats中获取
+                            blocker_count = stats.get('blocker', stats.get('blocker_count', 0))
+                            # 如果stats中也没有，尝试从critical_count获取
+                            if blocker_count == 0:
+                                blocker_count = stats.get('critical_count', 0)
+
+                        # 计算健康度评分
+                        health_score = 100
+                        health_score -= min(bc_count * 5, 40)
+                        if total_count > 0:
+                            health_score -= min((unresolved / total_count) * 100 * 0.2, 20)
+                        if total_modules > 0:
+                            health_score -= min((fail_modules / total_modules) * 100 * 0.25, 25)
+                        health_score -= min(blocker_count * 3, 15)
+                        health_score = max(0, min(100, int(health_score)))
+
+                        # 健康状态
+                        if health_score >= 80:
+                            health_status = 'good'
+                        elif health_score >= 60:
+                            health_status = 'warning'
+                        else:
+                            health_status = 'danger'
+
+                        result = {
+                            'project_key': snap['project_key'],
+                            'project_name': snap.get('project_name', ''),
+                            'total': total_count,
+                            'unresolved': unresolved,
+                            'resolved': total_count - unresolved,
+                            'resolve_rate': round((total_count - unresolved) / total_count * 100, 1) if total_count > 0 else 0,
+                            'bc_count': bc_count,
+                            'blocker_count': blocker_count,
+                            'critical_count': stats.get('critical_count', 0),
+                            'fail_modules': fail_modules,
+                            'pass_modules': pass_modules,
+                            'total_modules': total_modules,
+                            'pass_rate': round(pass_modules / total_modules * 100, 1) if total_modules > 0 else 0,
+                            'health_score': health_score,
+                            'health_status': health_status,
+                            'generated_at': snap.get('generated_at'),
+                            'cached': bool(snap.get('_cached', False)),
+                        }
+                        with lock:
+                            results.append(result)
+                            completed[0] += 1
+                            _set(int((completed[0] / total) * 90), f'已加载 [{completed[0]}/{total}] {proj_key}')
+                    except Exception as e:
+                        with lock:
+                            errors.append({'project_key': proj_key, 'error': str(e)})
+                            completed[0] += 1
+                            _set(int((completed[0] / total) * 90), f'加载失败 [{completed[0]}/{total}] {proj_key}')
+                        logger.error(f'多项目监控 - 加载 {proj_key} 失败: {e}')
+
+                # 并发加载（最多5个线程）
+                from concurrent.futures import ThreadPoolExecutor
+                max_workers = min(5, total)
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = [executor.submit(_load_one, pk) for pk in project_keys]
+                    for f in futures:
+                        f.result()
+
+                _set(95, '正在聚合数据...')
+
+                # 聚合统计
+                total_projects = len(results)
+                total_cr = sum(r['total'] for r in results)
+                total_unresolved = sum(r['unresolved'] for r in results)
+                total_bc = sum(r['bc_count'] for r in results)
+                total_blocker = sum(r['blocker_count'] for r in results)
+                avg_health = round(sum(r['health_score'] for r in results) / total_projects, 1) if total_projects > 0 else 0
+
+                # 按健康度排序（风险高的排前面）
+                results.sort(key=lambda x: x['health_score'])
+
+                # 风险项目
+                danger_projects = [r for r in results if r['health_status'] == 'danger']
+                warning_projects = [r for r in results if r['health_status'] == 'warning']
+                good_projects = [r for r in results if r['health_status'] == 'good']
+
+                result_data = {
+                    'projects': results,
+                    'errors': errors,
+                    'summary': {
+                        'total_projects': total_projects,
+                        'success_count': len(results),
+                        'fail_count': len(errors),
+                        'total_cr': total_cr,
+                        'total_unresolved': total_unresolved,
+                        'total_bc': total_bc,
+                        'total_blocker': total_blocker,
+                        'avg_health': avg_health,
+                        'danger_count': len(danger_projects),
+                        'warning_count': len(warning_projects),
+                        'good_count': len(good_projects),
+                    }
+                }
+
+                t = background_tasks.get(task_id)
+                t.update({'status': 'done', 'result': result_data, 'progress': 100,
+                          'progress_msg': f'已加载 {len(results)}/{total_projects} 个项目',
+                          'completed_at': time.time()})
+                save_task_meta(task_id, t)
+
+            except Exception as e:
+                logger.error('多项目监控任务异常: %s', traceback.format_exc())
+                _fail(f'请求失败：{str(e)}')
+
+        threading.Thread(target=_do, daemon=True).start()
+        return jsonify({'status': 'success', 'data': {'task_id': task_id}})
+
     # ---------------- CR 单根因分析（RCA） ----------------
     RCA_INTENT = re.compile(
         r'根因|日志|为什么|崩溃|重启|卡死|闪退|黑屏|无响应|不响应|死机|复位|重置|'
@@ -363,6 +553,36 @@ def create_project_blueprint():
         except Exception as e:
             logger.error('问题老化分析失败: %s', traceback.format_exc())
             return jsonify({'status': 'error', 'error': f'老化分析失败: {e}'}), 200
+
+    # ==================== 开发阶段配置 ====================
+    @bp.route('/api/project/dev-stage/<project_key>', methods=['GET'])
+    @login_required_or_guest
+    def get_dev_stage(project_key):
+        """获取项目的开发阶段配置"""
+        try:
+            stage = pa.get_project_dev_stage(project_key)
+            return jsonify({'status': 'success', 'data': {'stage': stage}})
+        except Exception as e:
+            logger.error('获取开发阶段失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': str(e)}), 200
+
+    @bp.route('/api/project/dev-stage', methods=['POST'])
+    @login_required_or_guest
+    def save_dev_stage():
+        """保存项目的开发阶段配置"""
+        data = request.get_json(silent=True) or {}
+        project_key = (data.get('project') or data.get('project_key') or '').strip()
+        stage = (data.get('stage') or '').strip()
+        if not project_key:
+            return jsonify({'status': 'error', 'error': '请输入 Project Key'}), 400
+        if not stage:
+            return jsonify({'status': 'error', 'error': '请选择开发阶段'}), 400
+        try:
+            pa.save_project_dev_stage(project_key, stage)
+            return jsonify({'status': 'success', 'data': {'stage': stage, 'message': '开发阶段已保存'}})
+        except Exception as e:
+            logger.error('保存开发阶段失败: %s', traceback.format_exc())
+            return jsonify({'status': 'error', 'error': str(e)}), 200
 
     @bp.route('/api/project/aging-report', methods=['POST'])
     @login_required_or_guest

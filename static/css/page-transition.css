@@ -5,11 +5,16 @@
 /* 1. 立即设置深色背景，防止白屏 */
 html {
   background-color: #0D0E12 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 body {
   background-color: #0D0E12 !important;
   color: #F5F5F7 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
   /* 防止页面加载时的闪烁 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

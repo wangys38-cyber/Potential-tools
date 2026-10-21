@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/static/css/de-ai.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/mobile.css?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="/static/css/project_assistant.css?v={{ STATIC_VERSION }}">
+<link rel="stylesheet" href="/static/css/project_assistant_dashboard.css?v={{ STATIC_VERSION }}">
     <!-- 暗黑科技风 UI 优化 v2 -->
     <style>
     /* ========== 1. 强制暗黑模式 ========== */
@@ -72,22 +73,10 @@
       line-height: 1.1 !important;
       font-variant-numeric: tabular-nums !important;
     }
-    .pa-stat.red .v {
-      color: #f87171 !important;
-      text-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
-    }
-    .pa-stat.orange .v {
-      color: #fbbf24 !important;
-      text-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
-    }
-    .pa-stat.green .v {
-      color: #4ade80 !important;
-      text-shadow: 0 0 20px rgba(34, 197, 94, 0.4) !important;
-    }
-    .pa-stat.accent .v {
-      color: #c4b5fd !important;
-      text-shadow: 0 0 20px rgba(139, 92, 246, 0.4) !important;
-    }
+    .pa-stat.red .v { color: #FFFFFF !important; text-shadow: none !important; }
+    .pa-stat.orange .v { color: #FFFFFF !important; text-shadow: none !important; }
+    .pa-stat.green .v { color: #FFFFFF !important; text-shadow: none !important; }
+    .pa-stat.accent .v { color: #FFFFFF !important; text-shadow: none !important; }
     .pa-stat .k {
       font-size: 12px !important;
       color: rgba(255,255,255,0.55) !important;
@@ -849,8 +838,7 @@
     }
     /* ========== 健康度圆形卡片（强制覆盖） ========== */
     .pa-overview-with-health {
-      grid-template-columns: 80px repeat(5, 1fr) !important;
-      gap: 10px !important;
+      grid-template-columns: repeat(6, 1fr) !important; gap: 16px !important;
     }
     .pa-health-circle-stat {
       position: relative !important;
@@ -858,12 +846,7 @@
       border: none !important;
       background: transparent !important;
       box-shadow: none !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 8px 4px !important;
-      gap: 6px !important;
+      display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; padding: 16px !important; gap: 12px !important; grid-column: span 1 !important; min-height: 120px !important; border-radius: 24px !important;
       z-index: 100 !important;
     }
     /* 悬停时提高健康度卡片的层叠优先级 */
@@ -874,8 +857,7 @@
       display: none !important;
     }
     .pa-health-circle {
-      width: 60px !important;
-      height: 60px !important;
+      width: 72px !important; height: 72px !important;
       border-radius: 50% !important;
       background: conic-gradient(#8b5cf6 0%, #22c55e var(--health-pct, 0%), rgba(255,255,255,0.1) var(--health-pct, 0%)) !important;
       display: flex !important;
@@ -885,8 +867,7 @@
       flex-shrink: 0 !important;
     }
     .pa-health-circle-inner {
-      width: 50px !important;
-      height: 50px !important;
+      width: 58px !important; height: 58px !important;
       border-radius: 50% !important;
       background: rgba(30,33,42,0.95) !important;
       display: flex !important;
@@ -894,12 +875,7 @@
       justify-content: center !important;
     }
     .pa-health-circle-num {
-      font-size: 20px !important;
-      font-weight: 800 !important;
-      background: linear-gradient(135deg, #c4b5fd 0%, #4ade80 100%) !important;
-      -webkit-background-clip: text !important;
-      -webkit-text-fill-color: transparent !important;
-      background-clip: text !important;
+      font-size: 26px !important; font-weight: 700 !important; background: none !important; -webkit-background-clip: initial !important; -webkit-text-fill-color: #FFFFFF !important; background-clip: initial !important; color: #FFFFFF !important;
       line-height: 1 !important;
       font-variant-numeric: tabular-nums !important;
     }
@@ -917,15 +893,8 @@
     .pa-health-circle-label.danger { background: rgba(239,68,68,0.15) !important; color: #f87171 !important; }
     
     /* 其他KPI卡片改紧凑 */
-    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) {
-      padding: 10px 12px !important;
-      min-height: auto !important;
-    }
-    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .v {
-      font-size: 22px !important;
-      line-height: 1.2 !important;
-      margin-bottom: 2px !important;
-    }
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) { padding: 20px !important; min-height: 120px !important; background: rgba(28, 28, 34, 0.6) !important; backdrop-filter: blur(40px) saturate(180%) !important; -webkit-backdrop-filter: blur(40px) saturate(180%) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 24px !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important; }
+    .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .v { font-size: 32px !important; line-height: 1 !important; margin-bottom: 8px !important; font-family: "SF Mono", "JetBrains Mono", monospace !important; }
     .pa-overview-with-health .pa-stat:not(.pa-health-circle-stat) .k {
       font-size: 11px !important;
       margin-top: 0 !important;
@@ -936,13 +905,7 @@
     }
 
     /* ========== 健康度悬停详情弹窗 ========== */
-    .pa-health-circle-wrap {
-      position: relative !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      z-index: 100 !important;
-    }
+    .pa-health-circle-wrap { position: relative !important; display: flex !important; flex-direction: column !important; align-items: flex-start !important; justify-content: center !important; z-index: 100 !important; gap: 8px !important; }
     /* 确保健康度卡片和父容器不裁剪弹窗 */
     .pa-health-circle-stat,
     .pa-overview-with-health,
@@ -988,7 +951,7 @@
       margin-bottom: 12px !important;
     }
     .pa-health-tooltip-num {
-      font-size: 36px !important;
+      font-size: 26px !important;
       font-weight: 800 !important;
       background: linear-gradient(135deg, #c4b5fd 0%, #4ade80 100%) !important;
       -webkit-background-clip: text !important;
@@ -1056,6 +1019,53 @@
     <meta name="msapplication-navbutton-color" content="#0D0E12">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- 全局错误处理 + 自动加载 -->
+    <script>
+    (function() {
+      window.addEventListener('error', function(e) {
+        console.error('[GLOBAL ERROR]', e.message, e.filename, e.lineno);
+        var errDiv = document.getElementById('paError');
+        if (errDiv) {
+          errDiv.textContent = 'JS错误: ' + e.message + ' (' + e.filename + ':' + e.lineno + ')';
+          errDiv.style.display = 'block';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('[UNHANDLED PROMISE]', e.reason);
+      });
+            document.addEventListener('DOMContentLoaded', function() {
+        function tryAutoLoad(retryCount) {
+          try {
+            var prefix = window._USER_PREFIX || '';
+            var lastProj = localStorage.getItem(prefix + 'pa_last_project');
+            var input = document.getElementById('paProjectInput');
+            var loadBtn = document.getElementById('paLoadBtn');
+            if (lastProj && input && loadBtn && !loadBtn.disabled) {
+              input.value = lastProj;
+              console.log('[AUTOLOAD] Auto loading project:', lastProj, 'retry:', retryCount);
+              loadBtn.click();
+              return true;
+            } else {
+              console.log('[AUTOLOAD] Conditions not met, retry:', retryCount, 
+                'lastProj:', !!lastProj, 'input:', !!input, 'loadBtn:', !!loadBtn, 'disabled:', loadBtn ? loadBtn.disabled : 'N/A');
+              if (retryCount < 5) {
+                setTimeout(function() { tryAutoLoad(retryCount + 1); }, 800);
+              }
+              return false;
+            }
+          } catch(e) { 
+            console.error('[AUTOLOAD] Error:', e); 
+            if (retryCount < 5) {
+              setTimeout(function() { tryAutoLoad(retryCount + 1); }, 800);
+            }
+            return false;
+          }
+        }
+        // 延迟2秒开始尝试自动加载
+        setTimeout(function() { tryAutoLoad(0); }, 2000);
+      });
+    })();
+    </script>
 </head>
 <body>
 {% include '_navbar.html' %}
@@ -1064,7 +1074,7 @@
   <div class="pa-wrap">
 
     <!-- 顶部：输入（首次居中） -->
-    <section class="pa-hero">
+    <section class="pa-hero" style="min-height: auto !important; max-height: 100px !important; padding: 8px 12px !important; display: block !important; overflow: hidden !important;">
       <div class="pa-logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
       <h1 class="pa-title">CR 分析</h1>
       <p class="pa-sub">输入项目 Key 查看模块状态与趋势，或输入 CR 单号查看根因。</p>
@@ -1089,10 +1099,12 @@
         <div class="pa-bar"><i id="paBar"></i></div>
       </div>
       <div class="pa-error" id="paError"></div>
+        </div>
+      </div>
     </section>
 
     <!-- 结果区 -->
-    <section class="pa-result" id="paResult">
+    <section class="pa-result" id="paResult" style="margin-top: 0 !important; padding-top: 0 !important;">
       <div class="pa-head">
         <div>
           <h2 id="paProjTitle">—</h2>
@@ -1105,6 +1117,9 @@
         </div>
       </div>
 
+      <!-- 主布局：左侧内容 + 右侧边栏 -->
+      <div class="pa-main-layout">
+        <div class="pa-content">
       <!-- 概览卡片（含健康度评分） -->
       <div class="pa-stat-grid pa-overview pa-overview-with-health">
         <!-- 健康度评分卡片（圆形，带悬停详情） -->
@@ -1221,7 +1236,9 @@
           <div class="pa-mod-table" id="paModTable"></div>
         </div>
       </div>
-
+        </div>
+        <!-- 右侧边栏：AI对话 -->
+        <div class="pa-sidebar">
       <!-- 下排：对话 / 根因分析（通栏，表格与报告可完整铺开） -->
       <div class="pa-row-chat">
         <div class="pa-card pa-glass pa-chat">
@@ -1260,12 +1277,472 @@
           </div>
         </div>
       </div>
+        </div>
+      </div>
     </section>
 
   </div>
 </div>
 
 <script src="/static/vendor/chart.umd.min.js"></script>
-<script src="/static/js/project_assistant.js?v={{ STATIC_VERSION }}" defer></script>
+<script src="/static/js/project_assistant.js?v={{ STATIC_VERSION }}"></script>
+
+<!-- ========== Ethereal Dashboard 最终覆盖样式 ========== -->
+<style>
+/* 强制深色背景 - 最高优先级 */
+html, body {
+  background: #0A0A0F !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body .pa-page {
+  background: 
+    radial-gradient(ellipse 600px 600px at 15% 10%, rgba(139, 92, 246, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 500px 500px at 85% 15%, rgba(236, 72, 153, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 700px 700px at 50% 100%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+    #0A0A0F !important;
+  min-height: 100vh !important;
+}
+
+body .pa-wrap {
+  background: transparent !important;
+}
+
+/* KPI网格布局 - 健康度占2列，其他5个各占1列 */
+body .pa-page .pa-stat-grid.pa-overview.pa-overview-with-health {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+/* 健康度大卡片 - 渐变背景 */
+body .pa-page .pa-health-circle-stat {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.4) 0%, rgba(6, 182, 212, 0.3) 50%, rgba(139, 92, 246, 0.25) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 8px 32px rgba(16, 185, 129, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  grid-column: span 1 !important;
+  min-height: 120px !important;
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 24px !important;
+  z-index: 1 !important;
+}
+
+body .pa-page .pa-health-circle-stat::before {
+  display: none !important;
+}
+
+/* 健康度圆环 - 更大 */
+body .pa-page .pa-health-circle {
+  width: 72px !important; height: 72px !important;
+  flex-shrink: 0 !important;
+}
+
+body .pa-page .pa-health-circle-inner {
+  width: 58px !important; height: 58px !important;
+  background: rgba(10, 10, 15, 0.8) !important;
+}
+
+/* 健康度数字 - 更大 */
+body .pa-page .pa-health-circle-num {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  background: none !important;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace !important;
+  letter-spacing: -1px !important;
+}
+
+/* 健康度状态标签 */
+body .pa-page .pa-health-circle-label {
+  background: rgba(244, 63, 94, 0.2) !important;
+  color: #F43F5E !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  margin-top: 8px !important;
+}
+
+body .pa-page .pa-health-circle-label.good {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #10B981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+body .pa-page .pa-health-circle-label.warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #F59E0B !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 健康度卡片右侧信息 */
+body .pa-page .pa-health-circle-wrap {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+/* 其他KPI小卡片 - 毛玻璃效果 */
+body .pa-page .pa-stat-grid .pa-stat:not(.pa-health-circle-stat) {
+  background: rgba(28, 28, 34, 0.6) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  padding: 20px !important;
+  min-height: 120px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body .pa-page .pa-stat-grid .pa-stat:not(.pa-health-circle-stat)::before {
+  display: none !important;
+}
+
+/* KPI数字 - 大、白色、等宽 */
+body .pa-page .pa-stat-grid .pa-stat:not(.pa-health-circle-stat) .v {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: #FFFFFF !important;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+}
+
+/* KPI标签 */
+body .pa-page .pa-stat-grid .pa-stat:not(.pa-health-circle-stat) .k {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  letter-spacing: 0.3px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  line-height: 1.4 !important;
+  margin-top: 8px !important;
+}
+
+/* 统一毛玻璃卡片 */
+body .pa-page .pa-card,
+body .pa-page .pa-search-bar,
+body .pa-page .pa-progress,
+body .pa-page .pa-chat,
+body .pa-page .pa-glass {
+  background: rgba(28, 28, 34, 0.6) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 状态标签 - 轻量级 */
+body .pa-page .pa-pill,
+body .pa-page .pa-pill.fail,
+body .pa-page .pa-pill.pass,
+body .pa-page .pa-pill.warning {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: #F43F5E !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-weight: 600 !important;
+  font-size: 10px !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  letter-spacing: 0.3px !important;
+}
+
+body .pa-page .pa-pill.pass {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10B981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+body .pa-page .pa-pill.warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #F59E0B !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 主布局 */
+body .pa-page .pa-main-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+body .pa-page .pa-content,
+body .pa-page .pa-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  min-width: 0 !important;
+}
+
+/* 趋势图和模块表布局 */
+body .pa-page .pa-row-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 18px !important;
+}
+
+/* 按钮 */
+body .pa-page .pa-btn,
+body .pa-page .pa-btn-primary {
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 10px !important;
+  box-shadow: 
+    0 4px 16px rgba(139, 92, 246, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.3s ease !important;
+  padding: 8px 16px !important;
+}
+
+/* 文字颜色 */
+body .pa-page .pa-head h2,
+body .pa-page .pa-card h3,
+body .pa-page .pa-mod-title {
+  color: #FFFFFF !important;
+}
+
+body .pa-page .pa-meta,
+body .pa-page .pa-card .pa-subtitle,
+body .pa-page .pa-mod-stats span {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 模块列表 */
+body .pa-page .pa-mod-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 14px 18px !important;
+  transition: all 0.2s ease !important;
+}
+
+body .pa-page .pa-mod-row:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+body .pa-page .pa-mod-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+body .pa-page .pa-mod-stats {
+  font-family: 'SF Mono', 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+}
+
+body .pa-page .pa-mod-stat b {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+
+body .pa-page .pa-mod-stat.bc b {
+  color: #F43F5E !important;
+}
+
+/* 输入框 */
+body .pa-page .pa-search-bar input,
+body .pa-page .pa-chat-input input,
+body .pa-page #paModFilter,
+body .pa-page .pa-input {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  color: #FFFFFF !important;
+  font-size: 12px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.3s ease !important;
+  padding: 10px 14px !important;
+}
+
+body .pa-page .pa-search-bar input:focus,
+body .pa-page .pa-chat-input input:focus,
+body .pa-page #paModFilter:focus {
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 
+    0 0 0 3px rgba(139, 92, 246, 0.15),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  outline: none !important;
+}
+
+body .pa-page .pa-search-bar input::placeholder,
+body .pa-page .pa-chat-input input::placeholder,
+body .pa-page #paModFilter::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 快捷按钮 */
+body .pa-page .pa-quick-btn,
+body .pa-page .pa-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  transition: all 0.2s ease !important;
+  padding: 6px 10px !important;
+}
+
+body .pa-page .pa-quick-btn:hover,
+body .pa-page .pa-chip:hover {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  color: #FFFFFF !important;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 3px !important;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-radius: 3px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 卡片标题 */
+body .pa-page .pa-card h3 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  margin-bottom: 14px !important;
+}
+
+/* 项目标题 */
+body .pa-page .pa-head h2 {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.5px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  margin-bottom: 6px !important;
+}
+
+body .pa-page .pa-head {
+  margin-bottom: 14px !important;
+}
+
+/* 搜索栏 */
+body .pa-page .pa-search-bar {
+  padding: 14px 18px !important;
+  margin-bottom: 14px !important;
+}
+
+/* 图表容器 */
+body .pa-page .pa-chart-box {
+  height: 280px !important;
+  min-height: 280px !important;
+}
+
+/* 模块列表容器 */
+body .pa-page .pa-mod-table {
+  max-height: 380px !important;
+  overflow-y: auto !important;
+}
+
+/* AI对话区域 */
+body .pa-page .pa-sidebar .pa-chat {
+  padding: 20px !important;
+  min-height: 480px !important;
+}
+</style>
+
+/* ========== 修复顶部空白和KPI布局 ========== */
+/* 用最高优先级选择器强制缩小hero区域 */
+html body .pa-page .pa-hero {
+  min-height: auto !important;
+  max-height: 120px !important;
+  padding: 6px 12px !important;
+  display: block !important;
+  text-align: left !important;
+  overflow: hidden !important;
+}
+html body .pa-page:not(.ready) .pa-hero {
+  min-height: auto !important;
+  max-height: 120px !important;
+  justify-content: flex-start !important;
+}
+.pa-logo {
+  display: none !important;
+}
+.pa-title {
+  display: none !important;
+}
+.pa-sub {
+  display: none !important;
+}
+.pa-mode {
+  margin: 4px 0 !important;
+  display: inline-flex !important;
+}
+.pa-search {
+  max-width: 100% !important;
+  margin: 4px 0 !important;
+}
+.pa-result {
+  margin-top: 4px !important;
+  padding-top: 0 !important;
+}
+
+/* KPI卡片取消最小宽度限制 */
+.pa-stat-grid .pa-stat {
+  min-width: 0 !important;
+}
+
+/* 确保KPI网格7列布局生效 */
+.pa-overview-with-health {
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 12px !important;
+}
 </body>
 </html>

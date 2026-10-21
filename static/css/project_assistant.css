@@ -81,8 +81,9 @@ body[data-theme="dark"] .pa-page {
   transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .pa-page:not(.ready) .pa-hero {
-  min-height: calc(100vh - 160px);
-  justify-content: center;
+  min-height: auto;
+  justify-content: flex-start;
+  padding: 8px 12px;
 }
 .pa-page.ready .pa-hero {
   min-height: 0;
@@ -100,6 +101,9 @@ body[data-theme="dark"] .pa-page {
   background: linear-gradient(135deg, #0a84ff, #5e5ce6);
   box-shadow: 0 10px 30px rgba(10, 132, 255, 0.35);
 }
+.pa-page .pa-logo {
+  display: none !important;
+}
 .pa-page.ready .pa-logo {
   width: 42px;
   height: 42px;
@@ -108,20 +112,32 @@ body[data-theme="dark"] .pa-page {
   margin-bottom: 10px;
 }
 .pa-title {
+  display: none !important;
+}
+.pa-title-original {
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
 }
-.pa-page.ready .pa-title { font-size: 21px; margin-bottom: 4px; }
+.pa-page.ready .pa-title {
+  display: none !important;
+}
+.pa-title-original { font-size: 21px; margin-bottom: 4px; }
 .pa-sub {
+  display: none !important;
+}
+.pa-sub-original {
   color: var(--pa-text-2);
   font-size: 15px;
   margin: 0 0 26px;
   max-width: 560px;
   line-height: 1.6;
 }
-.pa-page.ready .pa-sub { display: none; }
+.pa-page.ready .pa-sub {
+  display: none !important;
+}
+.pa-sub-original { display: none; }
 
 .pa-search {
   width: 100%;
@@ -362,7 +378,10 @@ body[data-theme="dark"] .pa-page {
 @media (max-width: 920px) {
   .pa-stat-grid { grid-template-columns: repeat(2, 1fr); }
   .pa-grid { grid-template-columns: 1fr; }
-  .pa-title { font-size: 25px; }
+  .pa-title {
+  display: none !important;
+}
+.pa-title-original { font-size: 25px; }
 }
 
 /* ===== CR 根因分析 RCA ===== */
@@ -903,12 +922,18 @@ body[data-theme="dark"] .pa-bc-item {
   border-radius: 10px;
 }
 .pa-title {
+  display: none !important;
+}
+.pa-title-original {
   font-size: 22px;
   font-weight: 700;
   color: #1d1d1f;
   letter-spacing: -0.02em;
 }
 .pa-sub {
+  display: none !important;
+}
+.pa-sub-original {
   font-size: 13.5px;
   color: #6e6e73;
   line-height: 1.6;

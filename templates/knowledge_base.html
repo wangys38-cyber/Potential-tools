@@ -87,6 +87,13 @@
             border: 1px solid rgba(255,255,255,.6);
             box-shadow: 0 4px 16px rgba(0,0,0,.06);
             border-top-left-radius: 6px;
+            color: #111827 !important;
+        }
+        .kb-msg.ai .kb-bubble * {
+            color: #111827 !important;
+        }
+        .kb-msg.ai .kb-bubble a {
+            color: #4f46e5 !important;
         }
         .kb-msg.user .kb-bubble {
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -256,6 +263,23 @@
 .kb-cursor { display:inline-block; color:#6366f1; animation: kb-blink 0.8s steps(2) infinite; margin-left:1px; font-weight:normal; }
 @keyframes kb-blink { 0%,50%{opacity:1;} 51%,100%{opacity:0;} }
 .kb-stream-content { line-height:1.7; word-break:break-word; }
+
+/* 加载进度条 */
+.kb-loading-wrap { padding: 8px 0; }
+.kb-loading-status { font-size: 13px; color: #6b7280; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.kb-loading-spinner { width: 16px; height: 16px; border: 2px solid rgba(99,102,241,.2); border-top-color: #6366f1; border-radius: 50%; animation: kb-spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes kb-spin { to { transform: rotate(360deg); } }
+.kb-loading-bar { width: 100%; height: 6px; background: rgba(99,102,241,.1); border-radius: 3px; overflow: hidden; }
+.kb-loading-bar-inner { height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 3px; animation: kb-progress 2s ease-in-out infinite; width: 40%; }
+@keyframes kb-progress { 0% { width: 10%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 10%; margin-left: 90%; } }
+.kb-loading-steps { margin-top: 10px; font-size: 11px; color: #9ca3af; }
+.kb-loading-step { padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+.kb-loading-step.done { color: #10b981; }
+.kb-loading-step.active { color: #6366f1; font-weight: 500; }
+.kb-loading-step .dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+.kb-loading-step.done .dot { background: #10b981; }
+.kb-loading-step.active .dot { background: #6366f1; animation: kb-pulse 1s ease-in-out infinite; }
+@keyframes kb-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.3); } }
 
 /* 豆包风格：首次进入输入框居中 */
 body.kb-centered .kb-fullpage { justify-content: flex-start; }
@@ -586,9 +610,29 @@ function createStreamBubble() {
     div.className = 'kb-msg ai';
     const id = 'stream_' + Date.now();
     div.id = id;
-    div.innerHTML = '<div class="kb-avatar">🤖</div><div class="kb-bubble"><div class="kb-stream-content" style="color:#999;">正在检索相关文档<span class="dots">...</span></div></div>';
+    div.innerHTML = '<div class="kb-avatar">🤖</div><div class="kb-bubble">' +
+        '<div class="kb-loading-wrap">' +
+            '<div class="kb-loading-status"><span class="kb-loading-spinner"></span><span id="' + id + '_status">正在检索相关文档...</span></div>' +
+            '<div class="kb-loading-bar"><div class="kb-loading-bar-inner"></div></div>' +
+            '<div class="kb-loading-steps">' +
+                '<div class="kb-loading-step active" id="' + id + '_step1"><span class="dot"></span>检索知识库</div>' +
+                '<div class="kb-loading-step" id="' + id + '_step2"><span class="dot"></span>分析上下文</div>' +
+                '<div class="kb-loading-step" id="' + id + '_step3"><span class="dot"></span>生成回答</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="kb-stream-content" style="display:none;"></div>' +
+    '</div>';
     area.appendChild(div);
     area.scrollTop = area.scrollHeight;
+    // 2秒后自动进入"分析上下文"状态
+    setTimeout(() => {
+        const s1 = document.getElementById(id + '_step1');
+        const s2 = document.getElementById(id + '_step2');
+        const status = document.getElementById(id + '_status');
+        if (s1) { s1.classList.remove('active'); s1.classList.add('done'); }
+        if (s2) { s2.classList.add('active'); }
+        if (status) status.textContent = '正在分析上下文...';
+    }, 2000);
     return id;
 }
 
@@ -598,6 +642,19 @@ function updateStreamBubble(id, text) {
     if (!el) return;
     const cc = el.querySelector('.kb-stream-content');
     if (!cc) return;
+    // 第一次收到内容时，隐藏加载进度条，显示流式内容
+    const loading = el.querySelector('.kb-loading-wrap');
+    if (loading && loading.style.display !== 'none') {
+        loading.style.display = 'none';
+        cc.style.display = 'block';
+        // 更新步骤状态
+        const s1 = document.getElementById(id + '_step1');
+        const s2 = document.getElementById(id + '_step2');
+        const s3 = document.getElementById(id + '_step3');
+        if (s1) { s1.classList.remove('active'); s1.classList.add('done'); }
+        if (s2) { s2.classList.remove('active'); s2.classList.add('done'); }
+        if (s3) { s3.classList.add('active'); }
+    }
     if (_streamRaf) return;
     _streamRaf = requestAnimationFrame(() => {
         _streamRaf = null;
