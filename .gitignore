@@ -48,3 +48,31 @@ data/data_sources.json
 # AI Agent 配置与记忆数据（含用户信息，不入库）
 data/agent_config/
 data/agent_memory/
+
+# 临时测试文件
+test_*.txt
+check_*.txt
+verify_*.txt
+api_test.txt
+server_error.txt
+server_log.txt
+temp_*.txt
+style.json
+
+# 备份文件
+*.bak_*
+*.bak
+
+# 临时脚本
+check_*.py
+test_*.js
+test_*.html
+
+# UI设计运行缓存
+ui-design-runs/
+
+# nssm服务工具
+nssm/
+nssm.zip
+install_service_admin.bat
+start_server.bat
